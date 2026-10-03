@@ -1,0 +1,775 @@
+{
+ "n": 240,
+ "ids": [
+  "f02470",
+  "f01741",
+  "f00141",
+  "f00076",
+  "f00710",
+  "f00343",
+  "f01756",
+  "f02230",
+  "f01498",
+  "f01852",
+  "f02319",
+  "f00763",
+  "f02629",
+  "f00911",
+  "f00250",
+  "f00570",
+  "f00003",
+  "f02248",
+  "f02493",
+  "f01206",
+  "f00701",
+  "f02296",
+  "f01897",
+  "f01530",
+  "f01776",
+  "f02654",
+  "f00356",
+  "f02526",
+  "f02485",
+  "f02380",
+  "f01563",
+  "f02351",
+  "f02291",
+  "f02484",
+  "f01017",
+  "f01423",
+  "f01819",
+  "f01631",
+  "f01075",
+  "f02580",
+  "f00211",
+  "f00860",
+  "f02202",
+  "f02579",
+  "f00707",
+  "f00049",
+  "f00169",
+  "f01369",
+  "f01970",
+  "f00721",
+  "f01528",
+  "f00360",
+  "f00818",
+  "f00546",
+  "f00072",
+  "f00168",
+  "f02316",
+  "f00417",
+  "f01643",
+  "f02089",
+  "f00120",
+  "f02026",
+  "f00054",
+  "f02633",
+  "f01095",
+  "f00200",
+  "f02477",
+  "f01331",
+  "f00348",
+  "f00909",
+  "f02167",
+  "f01231",
+  "f01105",
+  "f00248",
+  "f00264",
+  "f02398",
+  "f00694",
+  "f02504",
+  "f01529",
+  "f01193",
+  "f01093",
+  "f00332",
+  "f01625",
+  "f02194",
+  "f02159",
+  "f02060",
+  "f00693",
+  "f00665",
+  "f01429",
+  "f01569",
+  "f00484",
+  "f00097",
+  "f01106",
+  "f02445",
+  "f01591",
+  "f00577",
+  "f00407",
+  "f02419",
+  "f01785",
+  "f01134",
+  "f02278",
+  "f00875",
+  "f02375",
+  "f00226",
+  "f02015",
+  "f00225",
+  "f01871",
+  "f02617",
+  "f01849",
+  "f02120",
+  "f01386",
+  "f02069",
+  "f00217",
+  "f02423",
+  "f02145",
+  "f01648",
+  "f00451",
+  "f00458",
+  "f00341",
+  "f02429",
+  "f00709",
+  "f01900",
+  "f02347",
+  "f01879",
+  "f00812",
+  "f01123",
+  "f02271",
+  "f00383",
+  "f01975",
+  "f01728",
+  "f00568",
+  "f00855",
+  "f01552",
+  "f00970",
+  "f02353",
+  "f00222",
+  "f00998",
+  "f02357",
+  "f02201",
+  "f01593",
+  "f02490",
+  "f02393",
+  "f00596",
+  "f00690",
+  "f01731",
+  "f01265",
+  "f00364",
+  "f01168",
+  "f00975",
+  "f01353",
+  "f01418",
+  "f00584",
+  "f02302",
+  "f00644",
+  "f00409",
+  "f02495",
+  "f02371",
+  "f00612",
+  "f00061",
+  "f00199",
+  "f02512",
+  "f02505",
+  "f00207",
+  "f01078",
+  "f00815",
+  "f00034",
+  "f00919",
+  "f00355",
+  "f02667",
+  "f00027",
+  "f02008",
+  "f01453",
+  "f02447",
+  "f00564",
+  "f01941",
+  "f01845",
+  "f00121",
+  "f01553",
+  "f02274",
+  "f00543",
+  "f01858",
+  "f00497",
+  "f00272",
+  "f00608",
+  "f02235",
+  "f02211",
+  "f02038",
+  "f00861",
+  "f00526",
+  "f01572",
+  "f02410",
+  "f00810",
+  "f00016",
+  "f02035",
+  "f01685",
+  "f02014",
+  "f00788",
+  "f00177",
+  "f01152",
+  "f00663",
+  "f00269",
+  "f02139",
+  "f02418",
+  "f01259",
+  "f01400",
+  "f00273",
+  "f00946",
+  "f01167",
+  "f00260",
+  "f02052",
+  "f00423",
+  "f01513",
+  "f00840",
+  "f00105",
+  "f01499",
+  "f00459",
+  "f01721",
+  "f00708",
+  "f01100",
+  "f00282",
+  "f01347",
+  "f00455",
+  "f01213",
+  "f00393",
+  "f00493",
+  "f01649",
+  "f00947",
+  "f02074",
+  "f02609",
+  "f00563",
+  "f00118",
+  "f01190",
+  "f01740",
+  "f00832",
+  "f01061",
+  "f02221",
+  "f00022",
+  "f00673",
+  "f00346",
+  "f01138"
+ ],
+ "uso": [
+  {
+   "latencia_s": 115.5,
+   "tok_in": 12181,
+   "tok_out": 3411,
+   "custo_usd": 0.0018135901
+  },
+  {
+   "latencia_s": 50.8,
+   "tok_in": 15422,
+   "tok_out": 3423,
+   "custo_usd": 0.0021486927
+  },
+  {
+   "latencia_s": 115.0,
+   "tok_in": 15400,
+   "tok_out": 3659,
+   "custo_usd": 0.0015809255
+  }
+ ],
+ "problemas_por_rodada": [
+  [
+   "subtipo de 'Segurança e Conformidade' 'Risco Regulatório e LGPD' tem nome de área, time ou produto (lgpd)",
+   "tipo 'Processo e Fluxo de Trabalho' é só de melhoria (o tipo é o assunto, e recebe o problema e a melhoria)"
+  ],
+  [
+   "tipo 'Processo e Fluxo de Trabalho' é só de melhoria (o tipo é o assunto, e recebe o problema e a melhoria)"
+  ]
+ ],
+ "problemas": [
+  "tipo 'Processo e Fluxo de Trabalho' é só de melhoria (o tipo é o assunto, e recebe o problema e a melhoria)"
+ ],
+ "bruto": {
+  "tipos": [
+   {
+    "nome": "Disponibilidade e Performance",
+    "descricao": "Frentes sobre serviço fora do ar, lento, com erros de timeout, 5xx, latência alta ou degradação de performance. Inclui tanto a quebra quanto a melhoria proativa para evitar ou mitigar esses problemas.",
+    "exemplo_reativo": "2. [log] 324 erros timeout em /politicas-de-credito/v1 (svc-politicas-de-credito) entre 05:43 e 06:18; p95 25s",
+    "exemplo_proativo": "35. [relato] Tempo de resposta da API de consulta aumentando gradualmente. Já passou de 2s para 5s. Preocupa porque pode afetar o SLA. Precisamos investigar a causa antes que piore.",
+    "subtipos": [
+     {
+      "nome": "Indisponibilidade",
+      "descricao": "Serviço ou sistema completamente fora do ar ou com erros 5xx em massa.",
+      "evidencias": [
+       2,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       15,
+       18,
+       26,
+       27,
+       31,
+       33,
+       41,
+       50,
+       58,
+       60,
+       61,
+       78,
+       100,
+       105,
+       106,
+       107,
+       109,
+       122,
+       126,
+       129,
+       133,
+       137,
+       147,
+       148,
+       155,
+       166,
+       169,
+       175,
+       186,
+       192,
+       195,
+       204,
+       222,
+       231,
+       240
+      ]
+     },
+     {
+      "nome": "Lentidão e Degradação",
+      "descricao": "Serviço operando, mas com latência acima do esperado ou degradação gradual de performance.",
+      "evidencias": [
+       4,
+       53,
+       62,
+       76,
+       82,
+       89,
+       96,
+       113,
+       161,
+       210,
+       218,
+       229
+      ]
+     },
+     {
+      "nome": "Falha em Componente Externo",
+      "descricao": "Problemas de disponibilidade ou performance causados por dependências externas (bureau de crédito, fornecedores, DETRAN).",
+      "evidencias": [
+       22,
+       28,
+       30,
+       104,
+       117,
+       174,
+       202,
+       207,
+       227,
+       232
+      ]
+     }
+    ]
+   },
+   {
+    "nome": "Integridade e Consistência de Dados",
+    "descricao": "Frentes sobre dados incorretos, divergentes, duplicados, perdidos ou com falha de conciliação. Inclui correção de dados corrompidos e propostas de validação ou sincronização automática.",
+    "exemplo_reativo": "44. [banco] job de conciliação de App terminou com 247 divergências",
+    "exemplo_proativo": "54. [relato] - Carga noturna está gerando registros duplicados. - Precisamos de validação de unicidade antes de inserir. - Sugiro incluir um check de chave candidata no script de carga.",
+    "subtipos": [
+     {
+      "nome": "Divergência entre Sistemas",
+      "descricao": "Dados de um mesmo cliente ou entidade não batem entre sistemas de origem e destino.",
+      "evidencias": [
+       14,
+       64,
+       88,
+       101,
+       140
+      ]
+     },
+     {
+      "nome": "Duplicidade e Inconsistência em Lotes",
+      "descricao": "Registros duplicados, valores divergentes ou dados incorretos em cargas noturnas, lotes de boletos ou carnês.",
+      "evidencias": [
+       56,
+       85,
+       86,
+       91,
+       92,
+       120,
+       133,
+       136,
+       159,
+       171,
+       172,
+       187,
+       209,
+       215,
+       226
+      ]
+     },
+     {
+      "nome": "Falha em Conciliação",
+      "descricao": "Jobs de conciliação terminam com divergências entre sistemas.",
+      "evidencias": [
+       44,
+       65,
+       69,
+       97,
+       103,
+       151,
+       153,
+       163,
+       194,
+       214,
+       216
+      ]
+     }
+    ]
+   },
+   {
+    "nome": "Segurança e Conformidade",
+    "descricao": "Frentes sobre vulnerabilidades, exposição de segredos, certificados vencendo, riscos de acesso, prazos de atendimento a titulares de dados e riscos de multa regulatória. Inclui correção de falha e proposta de automação de segurança.",
+    "exemplo_reativo": "1. [webhook] [scanner] dependência com CVE crítica em svc-marketplace-de-veiculos: jackson-databind sem correção há 62 dias",
+    "exemplo_proativo": "48. [relato] Identifiquei um certificado TLS que vence em 15 dias e não tem dono definido. Já são três certificados nesta situação este mês. Sugiro criarmos um processo de renovação automática com lead time de 30 dias para evitar indisponibilidade.",
+    "subtipos": [
+     {
+      "nome": "Vulnerabilidade em Dependência",
+      "descricao": "CVE crítica ou vulnerabilidade conhecida em biblioteca ou dependência de software.",
+      "evidencias": [
+       1,
+       47,
+       75,
+       124,
+       128
+      ]
+     },
+     {
+      "nome": "Exposição de Segredo ou Acesso Indevido",
+      "descricao": "Senhas, chaves de API ou tokens expostos em repositórios, planilhas ou acessos não revogados.",
+      "evidencias": [
+       12,
+       16,
+       164,
+       178,
+       179,
+       185,
+       224,
+       234
+      ]
+     },
+     {
+      "nome": "Achado de Pentest Vencido",
+      "descricao": "Itens de segurança identificados em pentest que não foram corrigidos dentro do prazo.",
+      "evidencias": [
+       43,
+       94,
+       116,
+       160,
+       168,
+       237,
+       239
+      ]
+     },
+     {
+      "nome": "Risco Regulatório e Prazo Legal",
+      "descricao": "Frentes sobre prazos de atendimento a titulares de dados, relatórios para órgãos reguladores e riscos de multa.",
+      "evidencias": [
+       36,
+       39,
+       87,
+       135,
+       138,
+       154,
+       183,
+       200,
+       225,
+       233
+      ]
+     }
+    ]
+   },
+   {
+    "nome": "Infraestrutura e Operação",
+    "descricao": "Frentes sobre ambientes, pipelines, deploys, custos de nuvem, certificados, acoplamento de serviços e ferramentas de desenvolvimento. Inclui quebra de pipeline e proposta de melhoria de infra.",
+    "exemplo_reativo": "29. [webhook] [ci-cd] deploy de svc-proposta aguardando janela manual há 3 dias",
+    "exemplo_proativo": "21. [relato] O pipeline de entrega tá demorando 40 minutos, o que não é crítico mas incomoda. Dá pra gente otimizar ou paralelizar algumas etapas pra reduzir esse tempo.",
+    "subtipos": [
+     {
+      "nome": "Pipeline e Deploy",
+      "descricao": "Problemas ou melhorias em pipelines de CI/CD, deploys travados, testes instáveis, rollbacks.",
+      "evidencias": [
+       29,
+       63,
+       79,
+       146,
+       199
+      ]
+     },
+     {
+      "nome": "Custo de Nuvem",
+      "descricao": "Gastos de nuvem acima do esperado, sem causa identificada, ou propostas de monitoramento de custos.",
+      "evidencias": [
+       24,
+       51,
+       52,
+       114,
+       143,
+       173,
+       180,
+       182,
+       205,
+       230
+      ]
+     },
+     {
+      "nome": "Ambiente de Desenvolvimento e Teste",
+      "descricao": "Problemas com ambientes locais, de homologação ou teste (setup demorado, massa perdida, refresh).",
+      "evidencias": [
+       40,
+       57,
+       70,
+       156,
+       189,
+       206,
+       211,
+       212
+      ]
+     },
+     {
+      "nome": "Acoplamento e Dívida Técnica",
+      "descricao": "Serviços acoplados que impedem deploys independentes, código legado sem testes, bibliotecas descontinuadas.",
+      "evidencias": [
+       49,
+       55,
+       115,
+       141,
+       152,
+       176,
+       184,
+       221
+      ]
+     }
+    ]
+   },
+   {
+    "nome": "Experiência do Parceiro e do Cliente",
+    "descricao": "Frentes originadas de parceiros (lojistas, correspondentes) ou clientes finais, sobre falta de informação, lentidão em consultas, painéis de comissão, notificações de status. Inclui reclamação e pedido de funcionalidade.",
+    "exemplo_reativo": "19. [webhook] [atendimento-lojista] 21 chamados hoje de lojistas pedindo extrato de comissão, que hoje só o correspondente consegue informar",
+    "exemplo_proativo": "142. [mcp] Lojistas têm solicitado um painel onde possam acompanhar o valor e a previsão de pagamento das comissões. O time de parceiros sugere desenvolver essa funcionalidade para aumentar a transparência e reduzir chamados sobre o tema.",
+    "subtipos": [
+     {
+      "nome": "Falta de Informação ou Transparência",
+      "descricao": "Parceiro ou cliente não consegue obter status, extrato, retorno sobre proposta ou comissão.",
+      "evidencias": [
+       3,
+       19,
+       37,
+       81,
+       84,
+       110,
+       142,
+       177,
+       208,
+       219
+      ]
+     },
+     {
+      "nome": "Lentidão em Interface do Parceiro",
+      "descricao": "Sistema ou portal usado por parceiro está lento, travando ou com tempo de resposta alto.",
+      "evidencias": [
+       53,
+       59,
+       87,
+       210,
+       218
+      ]
+     }
+    ]
+   },
+   {
+    "nome": "Processo e Fluxo de Trabalho",
+    "descricao": "Frentes sobre ineficiências, retrabalho, falta de automação, gargalos de comunicação ou conflitos de prioridade entre áreas. Inclui tanto o processo quebrado quanto a proposta de melhoria do fluxo.",
+    "exemplo_reativo": "20. [relato] Prezados, venho por meio deste registrar um conflito recorrente de prioridades entre as áreas de Produto e Sustentação no Canal Digital. Isso tem gerado retrabalho e atrasos nas entregas.",
+    "exemplo_proativo": "42. [relato] Prezados, atualmente realizamos uma conferência manual em planilha antes de liberar cada operação no canal digital. Esse processo é suscetível a erros e consome tempo que poderia ser automatizado. Solicito uma análise para incluir validações automáticas no sistema, reduzindo retrabalho e riscos operacionais.",
+    "subtipos": [
+     {
+      "nome": "Retrabalho por Dados Incompletos",
+      "descricao": "Etapa a montante envia dados incompletos ou inválidos, forçando correção manual a jusante.",
+      "evidencias": [
+       90,
+       121,
+       191
+      ]
+     },
+     {
+      "nome": "Gargalo de Comunicação e Alinhamento",
+      "descricao": "Mudanças não são comunicadas adequadamente, áreas não se alinham, code review demora, prioridades conflitam.",
+      "evidencias": [
+       20,
+       34,
+       38,
+       95,
+       112,
+       193,
+       196,
+       197,
+       201,
+       203,
+       217
+      ]
+     },
+     {
+      "nome": "Processo Manual e Falta de Automação",
+      "descricao": "Atividade repetitiva e manual que poderia ser automatizada (conferência, extração de dados, follow-up).",
+      "evidencias": [
+       42,
+       67,
+       84,
+       131,
+       154,
+       225,
+       235
+      ]
+     },
+     {
+      "nome": "Fila de Exceções e Itens Parados",
+      "descricao": "Itens parados em filas de exceção ou backoffice por mais de 48h, sem tratamento.",
+      "evidencias": [
+       23,
+       25,
+       46,
+       77,
+       80,
+       119,
+       130,
+       139,
+       149,
+       158,
+       188,
+       236
+      ]
+     }
+    ]
+   }
+  ],
+  "causas_raiz": [
+   {
+    "nome": "Falta de Automação",
+    "descricao": "Processo manual que deveria ser automatizado (validação, extração, comunicação, deploy)."
+   },
+   {
+    "nome": "Falta de Testes e Cobertura",
+    "descricao": "Código sem testes, massa de teste perdida, testes instáveis, falta de validação."
+   },
+   {
+    "nome": "Dívida Técnica e Acoplamento",
+    "descricao": "Serviços acoplados, código legado, bibliotecas descontinuadas, falta de refatoração."
+   },
+   {
+    "nome": "Falha de Comunicação e Alinhamento",
+    "descricao": "Mudanças não comunicadas, áreas desalinhadas, falta de canal oficial, prioridades conflitantes."
+   },
+   {
+    "nome": "Falta de Monitoramento e Observabilidade",
+    "descricao": "Ausência de tracing, métricas, alertas ou dashboards para detectar problemas proativamente."
+   },
+   {
+    "nome": "Erro de Configuração ou Capacidade",
+    "descricao": "Configuração incorreta de infraestrutura, autoscaling, regras de firewall, certificados ou thresholds de alerta."
+   },
+   {
+    "nome": "Dependência Externa Instável",
+    "descricao": "Fornecedor, bureau de crédito, DETRAN ou outro sistema externo com SLA inadequado ou instabilidade."
+   }
+  ],
+  "regua_severidade": [
+   "Sem impacto operacional ou financeiro imediato; apenas ruído ou incômodo.",
+   "Impacto localizado em um time ou processo, com retrabalho ou atraso de até 1 dia.",
+   "Impacto em múltiplos times ou clientes, com atraso de dias, perda de dados ou risco de multa.",
+   "Impacto crítico: sistema fora do ar para todos os usuários, perda massiva de dados, violação de segurança ou multa iminente."
+  ],
+  "regua_impacto": [
+   "Ganho marginal: melhoria de conforto ou redução de ruído, sem impacto mensurável em tempo ou custo.",
+   "Ganho operacional: redução de retrabalho ou tempo de execução em até 50% para um time.",
+   "Ganho significativo: redução de retrabalho ou tempo de execução em mais de 50%, ou prevenção de incidentes recorrentes.",
+   "Ganho estratégico: evita multa, violação de segurança, perda de receita ou habilita novo modelo de negócio."
+  ],
+  "criterio_urgencia": "A frente precisa ser resolvida nas próximas 2 semanas para evitar um impacto maior (multa, perda de receita, violação de segurança)?"
+ },
+ "taxonomia": {
+  "versao": 1,
+  "tipos": {
+   "Disponibilidade e Performance": {
+    "descricao": "Frentes sobre serviço fora do ar, lento, com erros de timeout, 5xx, latência alta ou degradação de performance. Inclui tanto a quebra quanto a melhoria proativa para evitar ou mitigar esses problemas.",
+    "subtipos": {
+     "Indisponibilidade": "Serviço ou sistema completamente fora do ar ou com erros 5xx em massa.",
+     "Lentidão e Degradação": "Serviço operando, mas com latência acima do esperado ou degradação gradual de performance.",
+     "Falha em Componente Externo": "Problemas de disponibilidade ou performance causados por dependências externas (bureau de crédito, fornecedores, DETRAN)."
+    }
+   },
+   "Integridade e Consistência de Dados": {
+    "descricao": "Frentes sobre dados incorretos, divergentes, duplicados, perdidos ou com falha de conciliação. Inclui correção de dados corrompidos e propostas de validação ou sincronização automática.",
+    "subtipos": {
+     "Divergência entre Sistemas": "Dados de um mesmo cliente ou entidade não batem entre sistemas de origem e destino.",
+     "Duplicidade e Inconsistência em Lotes": "Registros duplicados, valores divergentes ou dados incorretos em cargas noturnas, lotes de boletos ou carnês.",
+     "Falha em Conciliação": "Jobs de conciliação terminam com divergências entre sistemas."
+    }
+   },
+   "Segurança e Conformidade": {
+    "descricao": "Frentes sobre vulnerabilidades, exposição de segredos, certificados vencendo, riscos de acesso, prazos de atendimento a titulares de dados e riscos de multa regulatória. Inclui correção de falha e proposta de automação de segurança.",
+    "subtipos": {
+     "Vulnerabilidade em Dependência": "CVE crítica ou vulnerabilidade conhecida em biblioteca ou dependência de software.",
+     "Exposição de Segredo ou Acesso Indevido": "Senhas, chaves de API ou tokens expostos em repositórios, planilhas ou acessos não revogados.",
+     "Achado de Pentest Vencido": "Itens de segurança identificados em pentest que não foram corrigidos dentro do prazo.",
+     "Risco Regulatório e Prazo Legal": "Frentes sobre prazos de atendimento a titulares de dados, relatórios para órgãos reguladores e riscos de multa."
+    }
+   },
+   "Infraestrutura e Operação": {
+    "descricao": "Frentes sobre ambientes, pipelines, deploys, custos de nuvem, certificados, acoplamento de serviços e ferramentas de desenvolvimento. Inclui quebra de pipeline e proposta de melhoria de infra.",
+    "subtipos": {
+     "Pipeline e Deploy": "Problemas ou melhorias em pipelines de CI/CD, deploys travados, testes instáveis, rollbacks.",
+     "Custo de Nuvem": "Gastos de nuvem acima do esperado, sem causa identificada, ou propostas de monitoramento de custos.",
+     "Ambiente de Desenvolvimento e Teste": "Problemas com ambientes locais, de homologação ou teste (setup demorado, massa perdida, refresh).",
+     "Acoplamento e Dívida Técnica": "Serviços acoplados que impedem deploys independentes, código legado sem testes, bibliotecas descontinuadas."
+    }
+   },
+   "Experiência do Parceiro e do Cliente": {
+    "descricao": "Frentes originadas de parceiros (lojistas, correspondentes) ou clientes finais, sobre falta de informação, lentidão em consultas, painéis de comissão, notificações de status. Inclui reclamação e pedido de funcionalidade.",
+    "subtipos": {
+     "Falta de Informação ou Transparência": "Parceiro ou cliente não consegue obter status, extrato, retorno sobre proposta ou comissão.",
+     "Lentidão em Interface do Parceiro": "Sistema ou portal usado por parceiro está lento, travando ou com tempo de resposta alto."
+    }
+   },
+   "Processo e Fluxo de Trabalho": {
+    "descricao": "Frentes sobre ineficiências, retrabalho, falta de automação, gargalos de comunicação ou conflitos de prioridade entre áreas. Inclui tanto o processo quebrado quanto a proposta de melhoria do fluxo.",
+    "subtipos": {
+     "Retrabalho por Dados Incompletos": "Etapa a montante envia dados incompletos ou inválidos, forçando correção manual a jusante.",
+     "Gargalo de Comunicação e Alinhamento": "Mudanças não são comunicadas adequadamente, áreas não se alinham, code review demora, prioridades conflitam.",
+     "Processo Manual e Falta de Automação": "Atividade repetitiva e manual que poderia ser automatizada (conferência, extração de dados, follow-up).",
+     "Fila de Exceções e Itens Parados": "Itens parados em filas de exceção ou backoffice por mais de 48h, sem tratamento."
+    }
+   }
+  },
+  "causas_raiz": {
+   "Falta de Automação": "Processo manual que deveria ser automatizado (validação, extração, comunicação, deploy).",
+   "Falta de Testes e Cobertura": "Código sem testes, massa de teste perdida, testes instáveis, falta de validação.",
+   "Dívida Técnica e Acoplamento": "Serviços acoplados, código legado, bibliotecas descontinuadas, falta de refatoração.",
+   "Falha de Comunicação e Alinhamento": "Mudanças não comunicadas, áreas desalinhadas, falta de canal oficial, prioridades conflitantes.",
+   "Falta de Monitoramento e Observabilidade": "Ausência de tracing, métricas, alertas ou dashboards para detectar problemas proativamente.",
+   "Erro de Configuração ou Capacidade": "Configuração incorreta de infraestrutura, autoscaling, regras de firewall, certificados ou thresholds de alerta.",
+   "Dependência Externa Instável": "Fornecedor, bureau de crédito, DETRAN ou outro sistema externo com SLA inadequado ou instabilidade."
+  },
+  "regua_severidade": [
+   "Sem impacto operacional ou financeiro imediato; apenas ruído ou incômodo.",
+   "Impacto localizado em um time ou processo, com retrabalho ou atraso de até 1 dia.",
+   "Impacto em múltiplos times ou clientes, com atraso de dias, perda de dados ou risco de multa.",
+   "Impacto crítico: sistema fora do ar para todos os usuários, perda massiva de dados, violação de segurança ou multa iminente."
+  ],
+  "regua_impacto": [
+   "Ganho marginal: melhoria de conforto ou redução de ruído, sem impacto mensurável em tempo ou custo.",
+   "Ganho operacional: redução de retrabalho ou tempo de execução em até 50% para um time.",
+   "Ganho significativo: redução de retrabalho ou tempo de execução em mais de 50%, ou prevenção de incidentes recorrentes.",
+   "Ganho estratégico: evita multa, violação de segurança, perda de receita ou habilita novo modelo de negócio."
+  ],
+  "criterio_urgencia": "A frente precisa ser resolvida nas próximas 2 semanas para evitar um impacto maior (multa, perda de receita, violação de segurança)?"
+ }
+}

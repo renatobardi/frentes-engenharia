@@ -1,0 +1,77 @@
+{
+ "versao": 1,
+ "tipos": {
+  "Disponibilidade e Performance": {
+   "descricao": "Frentes sobre serviço fora do ar, lento, com erros de timeout, 5xx, latência alta ou degradação de performance. Inclui tanto a quebra quanto a melhoria proativa para evitar ou mitigar esses problemas.",
+   "subtipos": {
+    "Indisponibilidade": "Serviço ou sistema completamente fora do ar ou com erros 5xx em massa.",
+    "Lentidão e Degradação": "Serviço operando, mas com latência acima do esperado ou degradação gradual de performance.",
+    "Falha em Componente Externo": "Problemas de disponibilidade ou performance causados por dependências externas (bureau de crédito, fornecedores, DETRAN)."
+   }
+  },
+  "Integridade e Consistência de Dados": {
+   "descricao": "Frentes sobre dados incorretos, divergentes, duplicados, perdidos ou com falha de conciliação. Inclui correção de dados corrompidos e propostas de validação ou sincronização automática.",
+   "subtipos": {
+    "Divergência entre Sistemas": "Dados de um mesmo cliente ou entidade não batem entre sistemas de origem e destino.",
+    "Duplicidade e Inconsistência em Lotes": "Registros duplicados, valores divergentes ou dados incorretos em cargas noturnas, lotes de boletos ou carnês.",
+    "Falha em Conciliação": "Jobs de conciliação terminam com divergências entre sistemas."
+   }
+  },
+  "Segurança e Conformidade": {
+   "descricao": "Frentes sobre vulnerabilidades, exposição de segredos, certificados vencendo, riscos de acesso, prazos de atendimento a titulares de dados e riscos de multa regulatória. Inclui correção de falha e proposta de automação de segurança.",
+   "subtipos": {
+    "Vulnerabilidade em Dependência": "CVE crítica ou vulnerabilidade conhecida em biblioteca ou dependência de software.",
+    "Exposição de Segredo ou Acesso Indevido": "Senhas, chaves de API ou tokens expostos em repositórios, planilhas ou acessos não revogados.",
+    "Achado de Pentest Vencido": "Itens de segurança identificados em pentest que não foram corrigidos dentro do prazo.",
+    "Risco Regulatório e Prazo Legal": "Frentes sobre prazos de atendimento a titulares de dados, relatórios para órgãos reguladores e riscos de multa."
+   }
+  },
+  "Infraestrutura e Operação": {
+   "descricao": "Frentes sobre ambientes, pipelines, deploys, custos de nuvem, certificados, acoplamento de serviços e ferramentas de desenvolvimento. Inclui quebra de pipeline e proposta de melhoria de infra.",
+   "subtipos": {
+    "Pipeline e Deploy": "Problemas ou melhorias em pipelines de CI/CD, deploys travados, testes instáveis, rollbacks.",
+    "Custo de Nuvem": "Gastos de nuvem acima do esperado, sem causa identificada, ou propostas de monitoramento de custos.",
+    "Ambiente de Desenvolvimento e Teste": "Problemas com ambientes locais, de homologação ou teste (setup demorado, massa perdida, refresh).",
+    "Acoplamento e Dívida Técnica": "Serviços acoplados que impedem deploys independentes, código legado sem testes, bibliotecas descontinuadas."
+   }
+  },
+  "Experiência do Parceiro e do Cliente": {
+   "descricao": "Frentes originadas de parceiros (lojistas, correspondentes) ou clientes finais, sobre falta de informação, lentidão em consultas, painéis de comissão, notificações de status. Inclui reclamação e pedido de funcionalidade.",
+   "subtipos": {
+    "Falta de Informação ou Transparência": "Parceiro ou cliente não consegue obter status, extrato, retorno sobre proposta ou comissão.",
+    "Lentidão em Interface do Parceiro": "Sistema ou portal usado por parceiro está lento, travando ou com tempo de resposta alto."
+   }
+  },
+  "Processo e Fluxo de Trabalho": {
+   "descricao": "Frentes sobre ineficiências, retrabalho, falta de automação, gargalos de comunicação ou conflitos de prioridade entre áreas. Inclui tanto o processo quebrado quanto a proposta de melhoria do fluxo.",
+   "subtipos": {
+    "Retrabalho por Dados Incompletos": "Etapa a montante envia dados incompletos ou inválidos, forçando correção manual a jusante.",
+    "Gargalo de Comunicação e Alinhamento": "Mudanças não são comunicadas adequadamente, áreas não se alinham, code review demora, prioridades conflitam.",
+    "Processo Manual e Falta de Automação": "Atividade repetitiva e manual que poderia ser automatizada (conferência, extração de dados, follow-up).",
+    "Fila de Exceções e Itens Parados": "Itens parados em filas de exceção ou backoffice por mais de 48h, sem tratamento."
+   }
+  }
+ },
+ "causas_raiz": {
+  "Falta de Automação": "Processo manual que deveria ser automatizado (validação, extração, comunicação, deploy).",
+  "Falta de Testes e Cobertura": "Código sem testes, massa de teste perdida, testes instáveis, falta de validação.",
+  "Dívida Técnica e Acoplamento": "Serviços acoplados, código legado, bibliotecas descontinuadas, falta de refatoração.",
+  "Falha de Comunicação e Alinhamento": "Mudanças não comunicadas, áreas desalinhadas, falta de canal oficial, prioridades conflitantes.",
+  "Falta de Monitoramento e Observabilidade": "Ausência de tracing, métricas, alertas ou dashboards para detectar problemas proativamente.",
+  "Erro de Configuração ou Capacidade": "Configuração incorreta de infraestrutura, autoscaling, regras de firewall, certificados ou thresholds de alerta.",
+  "Dependência Externa Instável": "Fornecedor, bureau de crédito, DETRAN ou outro sistema externo com SLA inadequado ou instabilidade."
+ },
+ "regua_severidade": [
+  "Sem impacto operacional ou financeiro imediato; apenas ruído ou incômodo.",
+  "Impacto localizado em um time ou processo, com retrabalho ou atraso de até 1 dia.",
+  "Impacto em múltiplos times ou clientes, com atraso de dias, perda de dados ou risco de multa.",
+  "Impacto crítico: sistema fora do ar para todos os usuários, perda massiva de dados, violação de segurança ou multa iminente."
+ ],
+ "regua_impacto": [
+  "Ganho marginal: melhoria de conforto ou redução de ruído, sem impacto mensurável em tempo ou custo.",
+  "Ganho operacional: redução de retrabalho ou tempo de execução em até 50% para um time.",
+  "Ganho significativo: redução de retrabalho ou tempo de execução em mais de 50%, ou prevenção de incidentes recorrentes.",
+  "Ganho estratégico: evita multa, violação de segurança, perda de receita ou habilita novo modelo de negócio."
+ ],
+ "criterio_urgencia": "A frente precisa ser resolvida nas próximas 2 semanas para evitar um impacto maior (multa, perda de receita, violação de segurança)?"
+}

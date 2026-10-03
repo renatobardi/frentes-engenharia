@@ -1,0 +1,414 @@
+{
+ "n": 60,
+ "ids": [
+  "f00708",
+  "f00673",
+  "f01625",
+  "f00348",
+  "f00608",
+  "f00543",
+  "f02351",
+  "f01265",
+  "f01206",
+  "f02493",
+  "f00812",
+  "f00097",
+  "f02302",
+  "f02447",
+  "f00217",
+  "f01941",
+  "f02445",
+  "f00409",
+  "f02629",
+  "f00970",
+  "f00105",
+  "f00564",
+  "f01849",
+  "f02316",
+  "f00022",
+  "f01078",
+  "f02495",
+  "f02139",
+  "f00360",
+  "f00273",
+  "f02667",
+  "f01776",
+  "f01785",
+  "f02419",
+  "f01975",
+  "f00346",
+  "f01423",
+  "f01685",
+  "f01563",
+  "f01648",
+  "f00118",
+  "f01721",
+  "f01572",
+  "f00248",
+  "f00707",
+  "f02319",
+  "f00049",
+  "f01591",
+  "f00497",
+  "f00694",
+  "f02429",
+  "f01530",
+  "f00663",
+  "f00168",
+  "f02202",
+  "f00272",
+  "f02069",
+  "f00584",
+  "f00458",
+  "f00451"
+ ],
+ "uso": [
+  {
+   "latencia_s": 85.7,
+   "tok_in": 3846,
+   "tok_out": 2367,
+   "custo_usd": 0.0008074591
+  },
+  {
+   "latencia_s": 68.3,
+   "tok_in": 6060,
+   "tok_out": 2429,
+   "custo_usd": 0.0008164345
+  },
+  {
+   "latencia_s": 87.7,
+   "tok_in": 6068,
+   "tok_out": 2432,
+   "custo_usd": 0.0008177848
+  }
+ ],
+ "problemas_por_rodada": [
+  [
+   "subtipo de 'Dados e Conciliação' 'Gravame não Registrado' tem nome de área, time ou produto (gravame)",
+   "tipo 'Processo e Automação' é só de melhoria (o tipo é o assunto, e recebe o problema e a melhoria)",
+   "subtipos de 'Pessoas e Capacidade': 1 fora de 2–6"
+  ],
+  [
+   "tipo 'Processo e Automação' é só de melhoria (o tipo é o assunto, e recebe o problema e a melhoria)"
+  ]
+ ],
+ "problemas": [
+  "tipo 'Processo e Fluxo de Trabalho' é só de melhoria (o tipo é o assunto, e recebe o problema e a melhoria)"
+ ],
+ "bruto": {
+  "tipos": [
+   {
+    "nome": "Desempenho e Disponibilidade",
+    "descricao": "Frentes sobre lentidão, indisponibilidade, erros de timeout ou falhas em serviços, sistemas ou consultas, tanto reativas (já quebrou) quanto proativas (prevenir ou melhorar performance).",
+    "exemplo_reativo": "O time relatou que no horário de pico a consulta de dados fica lenta e chega a derrubar a tela do sistema de originação.",
+    "exemplo_proativo": "Sugiro implementarmos dashboards de monitoramento de gastos e alertas automáticos para identificar anomalias antes que se tornem um problema financeiro.",
+    "subtipos": [
+     {
+      "nome": "Lentidão e Timeout",
+      "descricao": "Frentes que relatam ou buscam evitar respostas lentas ou timeouts em serviços, consultas ou chamadas externas.",
+      "evidencias": [
+       1,
+       22,
+       23,
+       28,
+       60
+      ]
+     },
+     {
+      "nome": "Erro e Indisponibilidade",
+      "descricao": "Frentes sobre erros HTTP (5xx), falhas de serviço ou indisponibilidade total de sistemas ou endpoints.",
+      "evidencias": [
+       15,
+       16,
+       18,
+       20,
+       31,
+       35,
+       38,
+       39,
+       41,
+       46
+      ]
+     }
+    ]
+   },
+   {
+    "nome": "Dados e Conciliação",
+    "descricao": "Frentes sobre inconsistências, duplicidades, divergências ou falhas em cargas, conciliações e registros de dados, sejam reativas (dado errado) ou proativas (prevenir divergências).",
+    "exemplo_reativo": "job de conciliação de Antifraude terminou com 181 divergências",
+    "exemplo_proativo": "Precisamos corrigir o script de carga antes da próxima execução.",
+    "subtipos": [
+     {
+      "nome": "Divergência em Conciliação",
+      "descricao": "Frentes que apontam divergências entre sistemas ou jobs de conciliação que não batem.",
+      "evidencias": [
+       4,
+       13,
+       21
+      ]
+     },
+     {
+      "nome": "Registro Duplicado ou Incorreto",
+      "descricao": "Frentes sobre dados duplicados, registros com erro de conteúdo (ex: carnê com vencimento anterior) ou falhas em carga noturna.",
+      "evidencias": [
+       12,
+       51,
+       54
+      ]
+     },
+     {
+      "nome": "Registro de Garantia Pendente",
+      "descricao": "Frentes específicas sobre contratos sem registro de garantia (ex: gravame) no prazo esperado.",
+      "evidencias": [
+       2,
+       3,
+       11,
+       43
+      ]
+     }
+    ]
+   },
+   {
+    "nome": "Segurança e Conformidade",
+    "descricao": "Frentes sobre vulnerabilidades, exposição de segredos, achados de pentest, riscos de segurança ou conformidade regulatória (LGPD, regulador), tanto reativas (vazou) quanto proativas (prevenir).",
+    "exemplo_reativo": "possível segredo exposto em repositório de Boletos e Carnês: chave de acesso em arquivo de configuração",
+    "exemplo_proativo": "a gente podia colocar uma varredura automática de segredos e dependências no pipeline.",
+    "subtipos": [
+     {
+      "nome": "Achado de Pentest Vencido",
+      "descricao": "Frentes sobre achados de segurança (pentest) que passaram do prazo de correção.",
+      "evidencias": [
+       17,
+       25,
+       36,
+       40,
+       55
+      ]
+     },
+     {
+      "nome": "Exposição de Segredo ou Vulnerabilidade",
+      "descricao": "Frentes sobre segredos expostos, vulnerabilidades ativas ou riscos de segurança identificados.",
+      "evidencias": [
+       26,
+       33
+      ]
+     },
+     {
+      "nome": "Não Conformidade Regulatória",
+      "descricao": "Frentes sobre atrasos ou falhas em obrigações regulatórias (relatórios, LGPD, prazos de órgãos).",
+      "evidencias": [
+       5,
+       37,
+       53,
+       56
+      ]
+     }
+    ]
+   },
+   {
+    "nome": "Processo e Fluxo de Trabalho",
+    "descricao": "Frentes sobre processos manuais, falta de automação, retrabalho por falhas de comunicação ou fluxo, tanto reativas (processo quebrou) quanto proativas (automatizar).",
+    "exemplo_reativo": "Mudaram a regra de aprovação de contrato e mandaram só por e-mail, ninguém viu! Agora a gente aprovou com regra antiga e vai dar retrabalho.",
+    "exemplo_proativo": "Sugiro a implementação de uma esteira de CI/CD com feature flags para o time de Crédito.",
+    "subtipos": [
+     {
+      "nome": "Falha de Comunicação e Alinhamento",
+      "descricao": "Frentes sobre mudanças não comunicadas, conflitos de prioridade, falta de canal oficial ou alinhamento entre áreas.",
+      "evidencias": [
+       9,
+       42,
+       48,
+       57
+      ]
+     },
+     {
+      "nome": "Processo Manual e Automação",
+      "descricao": "Frentes sobre tarefas manuais que geram retrabalho, atrasos ou desperdício, e pedidos de automação.",
+      "evidencias": [
+       8,
+       10,
+       24,
+       27,
+       30,
+       49,
+       58
+      ]
+     },
+     {
+      "nome": "Gasto e Eficiência de Recursos",
+      "descricao": "Frentes sobre custos de nuvem, desperdício de recursos (ambientes ligados) ou necessidade de otimização financeira.",
+      "evidencias": [
+       6,
+       14,
+       29,
+       49,
+       52
+      ]
+     }
+    ]
+   },
+   {
+    "nome": "Incidente e Alerta",
+    "descricao": "Frentes sobre incidentes em produção, alertas (falsos ou reais), filas de exceção ou jobs com erro, que exigem ação imediata ou melhoria no monitoramento.",
+    "exemplo_reativo": "Toda madrugada dispara um alerta no sistema de cobrança que não tem como ser resolvido. É um falso positivo que ninguém arruma.",
+    "exemplo_proativo": "Sugiro implementarmos dashboards de monitoramento de gastos e alertas automáticos para identificar anomalias.",
+    "subtipos": [
+     {
+      "nome": "Fila de Exceção ou Job com Erro",
+      "descricao": "Frentes sobre itens parados em filas de exceção ou jobs que falharam e precisam de tratamento.",
+      "evidencias": [
+       32,
+       47,
+       50
+      ]
+     },
+     {
+      "nome": "Alerta Falso ou Incômodo",
+      "descricao": "Frentes sobre alertas que não são acionáveis, falsos positivos ou notificações inúteis que geram ruído.",
+      "evidencias": [
+       34
+      ]
+     }
+    ]
+   },
+   {
+    "nome": "Pessoas e Capacidade",
+    "descricao": "Frentes sobre sobrecarga de equipe, falta de pessoas, conflitos de prioridade que afetam a capacidade de entrega, tanto reativas (já sobrecarregou) quanto proativas (prevenir).",
+    "exemplo_reativo": "Estamos com 3 pessoas no plantão essa semana, mas ao mesmo tempo temos que entregar a sprint com 20 pontos. A sobrecarga já causou 2 atrasos.",
+    "exemplo_proativo": "Precisamos de apoio ou reduzir o escopo.",
+    "subtipos": [
+     {
+      "nome": "Sobrecarga e Falta de Recurso",
+      "descricao": "Frentes sobre equipe sobrecarregada, falta de pessoal ou necessidade de redistribuir carga.",
+      "evidencias": [
+       44
+      ]
+     },
+     {
+      "nome": "Conflito de Prioridades",
+      "descricao": "Frentes sobre disputa de prioridades entre áreas ou times, gerando retrabalho e desgaste.",
+      "evidencias": [
+       9,
+       48
+      ]
+     }
+    ]
+   }
+  ],
+  "causas_raiz": [
+   {
+    "nome": "Falta de Automação",
+    "descricao": "Processos manuais que poderiam ser automatizados, gerando retrabalho, atrasos ou erros."
+   },
+   {
+    "nome": "Acoplamento entre Serviços",
+    "descricao": "Dependência excessiva entre microsserviços ou sistemas, causando deploy em cascata ou falhas em cadeia."
+   },
+   {
+    "nome": "Falha de Comunicação",
+    "descricao": "Mudanças ou decisões não comunicadas adequadamente, gerando retrabalho ou desalinhamento."
+   },
+   {
+    "nome": "Capacidade ou Escalabilidade Insuficiente",
+    "descricao": "Recursos de infraestrutura ou equipe aquém da demanda, causando lentidão, timeout ou sobrecarga."
+   },
+   {
+    "nome": "Falta de Governança de Dados",
+    "descricao": "Ausência de regras ou validações para garantir qualidade, unicidade e consistência dos dados."
+   },
+   {
+    "nome": "Processo de Segurança Negligenciado",
+    "descricao": "Achados de segurança não tratados no prazo, segredos expostos ou falta de varredura preventiva."
+   },
+   {
+    "nome": "Falta de Monitoramento e Alertas Eficazes",
+    "descricao": "Inexistência de dashboards, alertas ou métricas que permitam detectar anomalias proativamente."
+   }
+  ],
+  "regua_severidade": [
+   "Sem impacto perceptível ao usuário ou ao negócio (ex: alerta falso, ruído).",
+   "Impacto localizado, afeta time interno ou poucos registros, sem perda financeira imediata.",
+   "Impacto operacional significativo: atraso em entregas, retrabalho em lote, exposição a risco moderado.",
+   "Impacto crítico: perda financeira, multa regulatória, indisponibilidade generalizada, vazamento de dados."
+  ],
+  "regua_impacto": [
+   "Ganho marginal: reduz ruído ou esforço mínimo, sem impacto mensurável.",
+   "Ganho operacional: reduz retrabalho ou tempo de execução em tarefas internas.",
+   "Ganho estratégico: acelera entregas, reduz riscos de conformidade ou segurança, melhora experiência do parceiro.",
+   "Ganho transformacional: viabiliza novo modelo de operação, elimina dependência crítica ou reduz custos significativamente."
+  ],
+  "criterio_urgencia": "A frente precisa ser resolvida em até 2 semanas para evitar dano imediato ao negócio ou à operação?"
+ },
+ "taxonomia": {
+  "versao": 1,
+  "tipos": {
+   "Desempenho e Disponibilidade": {
+    "descricao": "Frentes sobre lentidão, indisponibilidade, erros de timeout ou falhas em serviços, sistemas ou consultas, tanto reativas (já quebrou) quanto proativas (prevenir ou melhorar performance).",
+    "subtipos": {
+     "Lentidão e Timeout": "Frentes que relatam ou buscam evitar respostas lentas ou timeouts em serviços, consultas ou chamadas externas.",
+     "Erro e Indisponibilidade": "Frentes sobre erros HTTP (5xx), falhas de serviço ou indisponibilidade total de sistemas ou endpoints."
+    }
+   },
+   "Dados e Conciliação": {
+    "descricao": "Frentes sobre inconsistências, duplicidades, divergências ou falhas em cargas, conciliações e registros de dados, sejam reativas (dado errado) ou proativas (prevenir divergências).",
+    "subtipos": {
+     "Divergência em Conciliação": "Frentes que apontam divergências entre sistemas ou jobs de conciliação que não batem.",
+     "Registro Duplicado ou Incorreto": "Frentes sobre dados duplicados, registros com erro de conteúdo (ex: carnê com vencimento anterior) ou falhas em carga noturna.",
+     "Registro de Garantia Pendente": "Frentes específicas sobre contratos sem registro de garantia (ex: gravame) no prazo esperado."
+    }
+   },
+   "Segurança e Conformidade": {
+    "descricao": "Frentes sobre vulnerabilidades, exposição de segredos, achados de pentest, riscos de segurança ou conformidade regulatória (LGPD, regulador), tanto reativas (vazou) quanto proativas (prevenir).",
+    "subtipos": {
+     "Achado de Pentest Vencido": "Frentes sobre achados de segurança (pentest) que passaram do prazo de correção.",
+     "Exposição de Segredo ou Vulnerabilidade": "Frentes sobre segredos expostos, vulnerabilidades ativas ou riscos de segurança identificados.",
+     "Não Conformidade Regulatória": "Frentes sobre atrasos ou falhas em obrigações regulatórias (relatórios, LGPD, prazos de órgãos)."
+    }
+   },
+   "Processo e Fluxo de Trabalho": {
+    "descricao": "Frentes sobre processos manuais, falta de automação, retrabalho por falhas de comunicação ou fluxo, tanto reativas (processo quebrou) quanto proativas (automatizar).",
+    "subtipos": {
+     "Falha de Comunicação e Alinhamento": "Frentes sobre mudanças não comunicadas, conflitos de prioridade, falta de canal oficial ou alinhamento entre áreas.",
+     "Processo Manual e Automação": "Frentes sobre tarefas manuais que geram retrabalho, atrasos ou desperdício, e pedidos de automação.",
+     "Gasto e Eficiência de Recursos": "Frentes sobre custos de nuvem, desperdício de recursos (ambientes ligados) ou necessidade de otimização financeira."
+    }
+   },
+   "Incidente e Alerta": {
+    "descricao": "Frentes sobre incidentes em produção, alertas (falsos ou reais), filas de exceção ou jobs com erro, que exigem ação imediata ou melhoria no monitoramento.",
+    "subtipos": {
+     "Fila de Exceção ou Job com Erro": "Frentes sobre itens parados em filas de exceção ou jobs que falharam e precisam de tratamento.",
+     "Alerta Falso ou Incômodo": "Frentes sobre alertas que não são acionáveis, falsos positivos ou notificações inúteis que geram ruído."
+    }
+   },
+   "Pessoas e Capacidade": {
+    "descricao": "Frentes sobre sobrecarga de equipe, falta de pessoas, conflitos de prioridade que afetam a capacidade de entrega, tanto reativas (já sobrecarregou) quanto proativas (prevenir).",
+    "subtipos": {
+     "Sobrecarga e Falta de Recurso": "Frentes sobre equipe sobrecarregada, falta de pessoal ou necessidade de redistribuir carga.",
+     "Conflito de Prioridades": "Frentes sobre disputa de prioridades entre áreas ou times, gerando retrabalho e desgaste."
+    }
+   }
+  },
+  "causas_raiz": {
+   "Falta de Automação": "Processos manuais que poderiam ser automatizados, gerando retrabalho, atrasos ou erros.",
+   "Acoplamento entre Serviços": "Dependência excessiva entre microsserviços ou sistemas, causando deploy em cascata ou falhas em cadeia.",
+   "Falha de Comunicação": "Mudanças ou decisões não comunicadas adequadamente, gerando retrabalho ou desalinhamento.",
+   "Capacidade ou Escalabilidade Insuficiente": "Recursos de infraestrutura ou equipe aquém da demanda, causando lentidão, timeout ou sobrecarga.",
+   "Falta de Governança de Dados": "Ausência de regras ou validações para garantir qualidade, unicidade e consistência dos dados.",
+   "Processo de Segurança Negligenciado": "Achados de segurança não tratados no prazo, segredos expostos ou falta de varredura preventiva.",
+   "Falta de Monitoramento e Alertas Eficazes": "Inexistência de dashboards, alertas ou métricas que permitam detectar anomalias proativamente."
+  },
+  "regua_severidade": [
+   "Sem impacto perceptível ao usuário ou ao negócio (ex: alerta falso, ruído).",
+   "Impacto localizado, afeta time interno ou poucos registros, sem perda financeira imediata.",
+   "Impacto operacional significativo: atraso em entregas, retrabalho em lote, exposição a risco moderado.",
+   "Impacto crítico: perda financeira, multa regulatória, indisponibilidade generalizada, vazamento de dados."
+  ],
+  "regua_impacto": [
+   "Ganho marginal: reduz ruído ou esforço mínimo, sem impacto mensurável.",
+   "Ganho operacional: reduz retrabalho ou tempo de execução em tarefas internas.",
+   "Ganho estratégico: acelera entregas, reduz riscos de conformidade ou segurança, melhora experiência do parceiro.",
+   "Ganho transformacional: viabiliza novo modelo de operação, elimina dependência crítica ou reduz custos significativamente."
+  ],
+  "criterio_urgencia": "A frente precisa ser resolvida em até 2 semanas para evitar dano imediato ao negócio ou à operação?"
+ }
+}

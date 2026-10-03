@@ -1,0 +1,888 @@
+{
+ "pessoas": [
+  {
+   "id": "p001",
+   "nome": "Karina Costa",
+   "cargo": "analista de sustentação",
+   "time": "Simulação",
+   "area": "Originação"
+  },
+  {
+   "id": "p002",
+   "nome": "Úrsula Souza",
+   "cargo": "dev",
+   "time": "Proposta",
+   "area": "Originação"
+  },
+  {
+   "id": "p003",
+   "nome": "Rodrigo Freitas",
+   "cargo": "dev",
+   "time": "Cadastro e KYC",
+   "area": "Originação"
+  },
+  {
+   "id": "p004",
+   "nome": "Lucas Souza",
+   "cargo": "gestor(a)",
+   "time": "Motor de Decisão",
+   "area": "Crédito"
+  },
+  {
+   "id": "p005",
+   "nome": "Gabriela Souza",
+   "cargo": "dev",
+   "time": "Políticas de Crédito",
+   "area": "Crédito"
+  },
+  {
+   "id": "p006",
+   "nome": "Nícolas Martins",
+   "cargo": "dev",
+   "time": "Antifraude",
+   "area": "Crédito"
+  },
+  {
+   "id": "p007",
+   "nome": "Heitor Oliveira",
+   "cargo": "gestor(a)",
+   "time": "Contratos",
+   "area": "Formalização"
+  },
+  {
+   "id": "p008",
+   "nome": "Nícolas Souza",
+   "cargo": "analista de negócio",
+   "time": "Documentação e Assinatura",
+   "area": "Formalização"
+  },
+  {
+   "id": "p009",
+   "nome": "Diego Nascimento",
+   "cargo": "analista de negócio",
+   "time": "Gravame",
+   "area": "Formalização"
+  },
+  {
+   "id": "p010",
+   "nome": "Bruno Gomes",
+   "cargo": "dev",
+   "time": "Portal do Lojista",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p011",
+   "nome": "Heitor Souza",
+   "cargo": "gestor(a)",
+   "time": "Correspondentes",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p012",
+   "nome": "Letícia Costa",
+   "cargo": "PO",
+   "time": "Comissionamento de Parceiros",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p013",
+   "nome": "Nícolas Costa",
+   "cargo": "gestor(a)",
+   "time": "App",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p014",
+   "nome": "Diego Araújo",
+   "cargo": "gestor(a)",
+   "time": "Jornada Online",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p015",
+   "nome": "Rodrigo Rodrigues",
+   "cargo": "dev",
+   "time": "Marketplace de Veículos",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p016",
+   "nome": "Sofia Almeida",
+   "cargo": "tech lead",
+   "time": "Boletos e Carnês",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p017",
+   "nome": "Diego Freitas",
+   "cargo": "dev",
+   "time": "Renegociação",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p018",
+   "nome": "Sofia Souza",
+   "cargo": "analista de negócio",
+   "time": "Quitação e Baixa",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p019",
+   "nome": "Gabriela Ribeiro",
+   "cargo": "gestor(a)",
+   "time": "Infra e Cloud",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p020",
+   "nome": "Nícolas Fernandes",
+   "cargo": "SRE",
+   "time": "Observabilidade",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p021",
+   "nome": "Sofia Rocha",
+   "cargo": "tech lead",
+   "time": "Suporte N2/N3",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p022",
+   "nome": "João Nascimento",
+   "cargo": "dev",
+   "time": "Engenharia de Dados",
+   "area": "Dados e Regulatório"
+  },
+  {
+   "id": "p023",
+   "nome": "Wanda Nascimento",
+   "cargo": "dev",
+   "time": "Relatórios Regulatórios",
+   "area": "Dados e Regulatório"
+  },
+  {
+   "id": "p024",
+   "nome": "Sofia Araújo",
+   "cargo": "gestor(a)",
+   "time": "Privacidade (LGPD)",
+   "area": "Dados e Regulatório"
+  },
+  {
+   "id": "p025",
+   "nome": "Paulo Fernandes",
+   "cargo": "SRE",
+   "time": "Simulação",
+   "area": "Originação"
+  },
+  {
+   "id": "p026",
+   "nome": "João Oliveira",
+   "cargo": "dev",
+   "time": "Proposta",
+   "area": "Originação"
+  },
+  {
+   "id": "p027",
+   "nome": "Queila Martins",
+   "cargo": "dev",
+   "time": "Cadastro e KYC",
+   "area": "Originação"
+  },
+  {
+   "id": "p028",
+   "nome": "Zeca Fernandes",
+   "cargo": "dev",
+   "time": "Motor de Decisão",
+   "area": "Crédito"
+  },
+  {
+   "id": "p029",
+   "nome": "Renata Ribeiro",
+   "cargo": "analista de sustentação",
+   "time": "Políticas de Crédito",
+   "area": "Crédito"
+  },
+  {
+   "id": "p030",
+   "nome": "Bruno Oliveira",
+   "cargo": "gestor(a)",
+   "time": "Antifraude",
+   "area": "Crédito"
+  },
+  {
+   "id": "p031",
+   "nome": "Sofia Fernandes",
+   "cargo": "tech lead",
+   "time": "Contratos",
+   "area": "Formalização"
+  },
+  {
+   "id": "p032",
+   "nome": "Wanda Carvalho",
+   "cargo": "analista de negócio",
+   "time": "Documentação e Assinatura",
+   "area": "Formalização"
+  },
+  {
+   "id": "p033",
+   "nome": "Paulo Rocha",
+   "cargo": "dev",
+   "time": "Gravame",
+   "area": "Formalização"
+  },
+  {
+   "id": "p034",
+   "nome": "Rodrigo Oliveira",
+   "cargo": "PO",
+   "time": "Portal do Lojista",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p035",
+   "nome": "Paulo Oliveira",
+   "cargo": "dev",
+   "time": "Correspondentes",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p036",
+   "nome": "Yasmin Araújo",
+   "cargo": "analista de negócio",
+   "time": "Comissionamento de Parceiros",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p037",
+   "nome": "Vinícius Rocha",
+   "cargo": "PO",
+   "time": "App",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p038",
+   "nome": "Wanda Gomes",
+   "cargo": "tech lead",
+   "time": "Jornada Online",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p039",
+   "nome": "Ana Rocha",
+   "cargo": "tech lead",
+   "time": "Marketplace de Veículos",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p040",
+   "nome": "Fábio Pereira",
+   "cargo": "SRE",
+   "time": "Boletos e Carnês",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p041",
+   "nome": "Bruno Almeida",
+   "cargo": "PO",
+   "time": "Renegociação",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p042",
+   "nome": "Elisa Nascimento",
+   "cargo": "analista de sustentação",
+   "time": "Quitação e Baixa",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p043",
+   "nome": "Mariana Ribeiro",
+   "cargo": "dev",
+   "time": "Infra e Cloud",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p044",
+   "nome": "Fábio Rocha",
+   "cargo": "analista de sustentação",
+   "time": "Observabilidade",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p045",
+   "nome": "Rafael Lima",
+   "cargo": "dev",
+   "time": "Suporte N2/N3",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p046",
+   "nome": "Rodrigo Martins",
+   "cargo": "gestor(a)",
+   "time": "Engenharia de Dados",
+   "area": "Dados e Regulatório"
+  },
+  {
+   "id": "p047",
+   "nome": "Isabela Martins",
+   "cargo": "tech lead",
+   "time": "Relatórios Regulatórios",
+   "area": "Dados e Regulatório"
+  },
+  {
+   "id": "p048",
+   "nome": "Vinícius Gomes",
+   "cargo": "QA",
+   "time": "Privacidade (LGPD)",
+   "area": "Dados e Regulatório"
+  },
+  {
+   "id": "p049",
+   "nome": "Elisa Oliveira",
+   "cargo": "dev",
+   "time": "Simulação",
+   "area": "Originação"
+  },
+  {
+   "id": "p050",
+   "nome": "Elisa Nascimento",
+   "cargo": "QA",
+   "time": "Proposta",
+   "area": "Originação"
+  },
+  {
+   "id": "p051",
+   "nome": "Ana Ribeiro",
+   "cargo": "analista de negócio",
+   "time": "Cadastro e KYC",
+   "area": "Originação"
+  },
+  {
+   "id": "p052",
+   "nome": "Fábio Lima",
+   "cargo": "PO",
+   "time": "Motor de Decisão",
+   "area": "Crédito"
+  },
+  {
+   "id": "p053",
+   "nome": "Ana Costa",
+   "cargo": "analista de sustentação",
+   "time": "Políticas de Crédito",
+   "area": "Crédito"
+  },
+  {
+   "id": "p054",
+   "nome": "Rafael Carvalho",
+   "cargo": "analista de negócio",
+   "time": "Antifraude",
+   "area": "Crédito"
+  },
+  {
+   "id": "p055",
+   "nome": "Sofia Fernandes",
+   "cargo": "dev",
+   "time": "Contratos",
+   "area": "Formalização"
+  },
+  {
+   "id": "p056",
+   "nome": "Wanda Barros",
+   "cargo": "analista de negócio",
+   "time": "Documentação e Assinatura",
+   "area": "Formalização"
+  },
+  {
+   "id": "p057",
+   "nome": "Úrsula Souza",
+   "cargo": "SRE",
+   "time": "Gravame",
+   "area": "Formalização"
+  },
+  {
+   "id": "p058",
+   "nome": "Marcelo Freitas",
+   "cargo": "analista de sustentação",
+   "time": "Portal do Lojista",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p059",
+   "nome": "Mariana Gomes",
+   "cargo": "analista de sustentação",
+   "time": "Correspondentes",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p060",
+   "nome": "Diego Ribeiro",
+   "cargo": "analista de sustentação",
+   "time": "Comissionamento de Parceiros",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p061",
+   "nome": "Bruno Almeida",
+   "cargo": "dev",
+   "time": "App",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p062",
+   "nome": "Gabriela Rocha",
+   "cargo": "dev",
+   "time": "Jornada Online",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p063",
+   "nome": "Diego Fernandes",
+   "cargo": "analista de negócio",
+   "time": "Marketplace de Veículos",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p064",
+   "nome": "Bruno Pereira",
+   "cargo": "dev",
+   "time": "Boletos e Carnês",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p065",
+   "nome": "Sofia Costa",
+   "cargo": "gestor(a)",
+   "time": "Renegociação",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p066",
+   "nome": "Diego Carvalho",
+   "cargo": "analista de negócio",
+   "time": "Quitação e Baixa",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p067",
+   "nome": "Ana Oliveira",
+   "cargo": "QA",
+   "time": "Infra e Cloud",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p068",
+   "nome": "Tiago Gomes",
+   "cargo": "dev",
+   "time": "Observabilidade",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p069",
+   "nome": "Úrsula Lima",
+   "cargo": "tech lead",
+   "time": "Suporte N2/N3",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p070",
+   "nome": "Tiago Carvalho",
+   "cargo": "SRE",
+   "time": "Engenharia de Dados",
+   "area": "Dados e Regulatório"
+  },
+  {
+   "id": "p071",
+   "nome": "Diego Pereira",
+   "cargo": "SRE",
+   "time": "Relatórios Regulatórios",
+   "area": "Dados e Regulatório"
+  },
+  {
+   "id": "p072",
+   "nome": "Olívia Ribeiro",
+   "cargo": "SRE",
+   "time": "Privacidade (LGPD)",
+   "area": "Dados e Regulatório"
+  },
+  {
+   "id": "p073",
+   "nome": "João Oliveira",
+   "cargo": "dev",
+   "time": "Simulação",
+   "area": "Originação"
+  },
+  {
+   "id": "p074",
+   "nome": "Diego Fernandes",
+   "cargo": "PO",
+   "time": "Proposta",
+   "area": "Originação"
+  },
+  {
+   "id": "p075",
+   "nome": "Paulo Rodrigues",
+   "cargo": "gestor(a)",
+   "time": "Cadastro e KYC",
+   "area": "Originação"
+  },
+  {
+   "id": "p076",
+   "nome": "Ana Almeida",
+   "cargo": "gestor(a)",
+   "time": "Motor de Decisão",
+   "area": "Crédito"
+  },
+  {
+   "id": "p077",
+   "nome": "Lucas Costa",
+   "cargo": "gestor(a)",
+   "time": "Políticas de Crédito",
+   "area": "Crédito"
+  },
+  {
+   "id": "p078",
+   "nome": "Renata Silva",
+   "cargo": "gestor(a)",
+   "time": "Antifraude",
+   "area": "Crédito"
+  },
+  {
+   "id": "p079",
+   "nome": "João Oliveira",
+   "cargo": "PO",
+   "time": "Contratos",
+   "area": "Formalização"
+  },
+  {
+   "id": "p080",
+   "nome": "Queila Carvalho",
+   "cargo": "dev",
+   "time": "Documentação e Assinatura",
+   "area": "Formalização"
+  },
+  {
+   "id": "p081",
+   "nome": "Lucas Nascimento",
+   "cargo": "gestor(a)",
+   "time": "Gravame",
+   "area": "Formalização"
+  },
+  {
+   "id": "p082",
+   "nome": "Rafael Barros",
+   "cargo": "tech lead",
+   "time": "Portal do Lojista",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p083",
+   "nome": "Úrsula Nascimento",
+   "cargo": "analista de negócio",
+   "time": "Correspondentes",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p084",
+   "nome": "Patrícia Almeida",
+   "cargo": "QA",
+   "time": "Comissionamento de Parceiros",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p085",
+   "nome": "Rodrigo Gomes",
+   "cargo": "QA",
+   "time": "App",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p086",
+   "nome": "Gabriela Barros",
+   "cargo": "SRE",
+   "time": "Jornada Online",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p087",
+   "nome": "Lucas Silva",
+   "cargo": "dev",
+   "time": "Marketplace de Veículos",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p088",
+   "nome": "Patrícia Lima",
+   "cargo": "SRE",
+   "time": "Boletos e Carnês",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p089",
+   "nome": "Isabela Almeida",
+   "cargo": "analista de negócio",
+   "time": "Renegociação",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p090",
+   "nome": "Lucas Rocha",
+   "cargo": "tech lead",
+   "time": "Quitação e Baixa",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p091",
+   "nome": "Lucas Oliveira",
+   "cargo": "QA",
+   "time": "Infra e Cloud",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p092",
+   "nome": "Diego Nascimento",
+   "cargo": "SRE",
+   "time": "Observabilidade",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p093",
+   "nome": "Gabriela Fernandes",
+   "cargo": "QA",
+   "time": "Suporte N2/N3",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p094",
+   "nome": "Paulo Silva",
+   "cargo": "SRE",
+   "time": "Engenharia de Dados",
+   "area": "Dados e Regulatório"
+  },
+  {
+   "id": "p095",
+   "nome": "Renata Carvalho",
+   "cargo": "dev",
+   "time": "Relatórios Regulatórios",
+   "area": "Dados e Regulatório"
+  },
+  {
+   "id": "p096",
+   "nome": "Rodrigo Pereira",
+   "cargo": "analista de sustentação",
+   "time": "Privacidade (LGPD)",
+   "area": "Dados e Regulatório"
+  },
+  {
+   "id": "p097",
+   "nome": "Patrícia Almeida",
+   "cargo": "SRE",
+   "time": "Simulação",
+   "area": "Originação"
+  },
+  {
+   "id": "p098",
+   "nome": "Marcelo Rodrigues",
+   "cargo": "analista de sustentação",
+   "time": "Proposta",
+   "area": "Originação"
+  },
+  {
+   "id": "p099",
+   "nome": "Patrícia Fernandes",
+   "cargo": "dev",
+   "time": "Cadastro e KYC",
+   "area": "Originação"
+  },
+  {
+   "id": "p100",
+   "nome": "Patrícia Gomes",
+   "cargo": "SRE",
+   "time": "Motor de Decisão",
+   "area": "Crédito"
+  },
+  {
+   "id": "p101",
+   "nome": "Mariana Oliveira",
+   "cargo": "dev",
+   "time": "Políticas de Crédito",
+   "area": "Crédito"
+  },
+  {
+   "id": "p102",
+   "nome": "Fábio Costa",
+   "cargo": "dev",
+   "time": "Antifraude",
+   "area": "Crédito"
+  },
+  {
+   "id": "p103",
+   "nome": "Elisa Rocha",
+   "cargo": "dev",
+   "time": "Contratos",
+   "area": "Formalização"
+  },
+  {
+   "id": "p104",
+   "nome": "Tiago Ribeiro",
+   "cargo": "tech lead",
+   "time": "Documentação e Assinatura",
+   "area": "Formalização"
+  },
+  {
+   "id": "p105",
+   "nome": "Elisa Freitas",
+   "cargo": "gestor(a)",
+   "time": "Gravame",
+   "area": "Formalização"
+  },
+  {
+   "id": "p106",
+   "nome": "Elisa Silva",
+   "cargo": "dev",
+   "time": "Portal do Lojista",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p107",
+   "nome": "Patrícia Pereira",
+   "cargo": "gestor(a)",
+   "time": "Correspondentes",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p108",
+   "nome": "Yasmin Costa",
+   "cargo": "analista de sustentação",
+   "time": "Comissionamento de Parceiros",
+   "area": "Canal Parceiro"
+  },
+  {
+   "id": "p109",
+   "nome": "Letícia Almeida",
+   "cargo": "QA",
+   "time": "App",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p110",
+   "nome": "Ana Lima",
+   "cargo": "QA",
+   "time": "Jornada Online",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p111",
+   "nome": "João Barros",
+   "cargo": "QA",
+   "time": "Marketplace de Veículos",
+   "area": "Canal Digital"
+  },
+  {
+   "id": "p112",
+   "nome": "Zeca Fernandes",
+   "cargo": "PO",
+   "time": "Boletos e Carnês",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p113",
+   "nome": "Rafael Martins",
+   "cargo": "dev",
+   "time": "Renegociação",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p114",
+   "nome": "Bruno Carvalho",
+   "cargo": "SRE",
+   "time": "Quitação e Baixa",
+   "area": "Pós-venda e Cobrança"
+  },
+  {
+   "id": "p115",
+   "nome": "Vinícius Barros",
+   "cargo": "analista de sustentação",
+   "time": "Infra e Cloud",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p116",
+   "nome": "Rodrigo Barros",
+   "cargo": "dev",
+   "time": "Observabilidade",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p117",
+   "nome": "Rafael Costa",
+   "cargo": "gestor(a)",
+   "time": "Suporte N2/N3",
+   "area": "Plataforma e Sustentação"
+  },
+  {
+   "id": "p118",
+   "nome": "Queila Silva",
+   "cargo": "SRE",
+   "time": "Engenharia de Dados",
+   "area": "Dados e Regulatório"
+  },
+  {
+   "id": "p119",
+   "nome": "Zeca Rodrigues",
+   "cargo": "analista de negócio",
+   "time": "Relatórios Regulatórios",
+   "area": "Dados e Regulatório"
+  },
+  {
+   "id": "p120",
+   "nome": "Ana Costa",
+   "cargo": "dev",
+   "time": "Privacidade (LGPD)",
+   "area": "Dados e Regulatório"
+  }
+ ],
+ "sistemas": {
+  "log": {
+   "Simulação": "svc-simulacao",
+   "Proposta": "svc-proposta",
+   "Cadastro e KYC": "svc-cadastro-e-kyc",
+   "Motor de Decisão": "svc-motor-de-decisao",
+   "Políticas de Crédito": "svc-politicas-de-credito",
+   "Antifraude": "svc-antifraude",
+   "Contratos": "svc-contratos",
+   "Documentação e Assinatura": "svc-documentacao-e-assinatura",
+   "Gravame": "svc-gravame",
+   "Portal do Lojista": "svc-portal-do-lojista",
+   "Correspondentes": "svc-correspondentes",
+   "Comissionamento de Parceiros": "svc-comissionamento-de-parceiros",
+   "App": "svc-app",
+   "Jornada Online": "svc-jornada-online",
+   "Marketplace de Veículos": "svc-marketplace-de-veiculos",
+   "Boletos e Carnês": "svc-boletos-e-carnes",
+   "Renegociação": "svc-renegociacao",
+   "Quitação e Baixa": "svc-quitacao-e-baixa",
+   "Infra e Cloud": "svc-infra-e-cloud",
+   "Observabilidade": "svc-observabilidade",
+   "Suporte N2/N3": "svc-suporte-n2-n3",
+   "Engenharia de Dados": "svc-engenharia-de-dados",
+   "Relatórios Regulatórios": "svc-relatorios-regulatorios",
+   "Privacidade (LGPD)": "svc-privacidade-lgpd"
+  },
+  "webhook": [
+   "monitoria-apm",
+   "scanner-seguranca",
+   "ci-cd",
+   "atendimento-lojista",
+   "finops-nuvem"
+  ],
+  "banco": [
+   "job-conciliacao",
+   "fila-excecoes"
+  ],
+  "mcp": [
+   "agente-resumo-chat",
+   "agente-resumo-retro",
+   "agente-chamados-lojista"
+  ]
+ }
+}
