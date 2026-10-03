@@ -12,7 +12,8 @@ Forma de uma versão da taxonomia (só a parte da LLM; área › time é nossa e
  "tipos": {"<Tipo>": {"descricao": "...", "subtipos": {"<Subtipo>": "<descrição>"}}},
  "causas_raiz": {"<Causa>": "<descrição>"},
  "regua_severidade": ["nível 0", ..., "nível 3"], "regua_impacto": [...4 níveis],
- "criterio_urgencia": "<pergunta de sim ou não>"}
+ "criterio_urgencia": "<pergunta de sim ou não>",
+ "problemas": {"<Problema>": "<descrição>"}}   # oitava dimensão (#8): lista única, teto 40, só objeto concreto da empresa
 """
 import copy
 import re
@@ -130,6 +131,89 @@ def da_descoberta(js, versao=1):
             "criterio_urgencia": js["criterio_urgencia"].strip()}
 
 
+# ------------------------------------------------------------------ problemas (oitava dimensão, resolução do #8)
+
+TETO_PROBLEMAS = 40
+MIN_PROBLEMA = 3  # frentes de evidência para um problema entrar na lista (recorrente = 3 ou mais dias distintos, #8)
+
+SISTEMA_PROBLEMAS = """Você monta a LISTA DE PROBLEMAS de uma empresa a partir das suas FRENTES (relatos de pessoas e eventos de sistemas \
+sobre algo que quebrou ou sobre uma vontade de melhorar). A empresa é a unidade de tecnologia de uma financeira \
+(financiamento de veículos, bens e empréstimo pessoal).
+
+Um PROBLEMA é a mesma coisa voltando em frentes diferentes, e só vale se nomeia um OBJETO CONCRETO da empresa: \
+um sistema, uma integração, um processo ou um fornecedor específico. Exemplo que vale: "registro de gravame no Detran".
+NÃO é problema a mesma espécie de queixa em times diferentes: "code review lento", "senha em planilha", "alerta falso", \
+"timeout em serviço", "carga com duplicatas", "ambiente de teste instável". Se trocar o nome do serviço ou do time e a frase \
+continuar valendo, é espécie de queixa, não problema.
+A mesma lista serve para a frente que relata a falha e para a que propõe a melhoria do mesmo objeto.
+
+Quem vai atribuir o problema a cada frente é um classificador que lê só o texto da frente e a descrição do problema. \
+A descrição diz qual é o objeto e como ele aparece nos textos."""
+
+TAREFA_PROBLEMAS = """
+
+TAREFA. Liste os problemas que aparecem nas frentes acima. No máximo {teto}. A lista pode ser curta: a maioria das frentes não tem problema nenhum.
+- Cada problema cita em "evidencias" os números de TODAS as frentes da amostra que tratam dele. Com menos de {min_ev} frentes, não entra.
+- "objeto" diz o que é o objeto concreto: "sistema", "integração", "processo" ou "fornecedor", e o nome dele.
+- Nome curto (até 6 palavras) que um diretor reconheça.
+- NÃO faça um problema por serviço ("timeout em svc-x", "erros em svc-y"): erro técnico solto num serviço é espécie de queixa. \
+Os alertas e logs só contam quando apontam para o mesmo objeto de negócio que os relatos (ex.: erros em /propostas + relatos da esteira de propostas fora do ar).
+- Nenhum nome se repete.{vigentes}
+
+Responda só JSON:
+{{"problemas": [{{"nome": "", "objeto": "<sistema|integração|processo|fornecedor>: <qual>", "descricao": "", "evidencias": [0]}}]}}"""
+
+VIGENTES_PROBLEMAS = """
+- Esta é uma REVISÃO. A lista vigente está abaixo. Problema vigente continua na lista com o MESMO nome e descrição, mesmo sem frente nesta amostra \
+(o histórico inteiro é reclassificado). Acrescente só os problemas NOVOS que aparecem nas frentes acima e não estão na lista. \
+Devolva só os novos.
+
+LISTA VIGENTE:
+{lista}"""
+
+
+SISTEMA_PENEIRA = """Você recebe candidatos a PROBLEMA de uma empresa (a unidade de tecnologia de uma financeira). \
+Para cada um, decida se ele nomeia um OBJETO CONCRETO E ÚNICO da empresa ou se é uma ESPÉCIE DE QUEIXA que qualquer time poderia ter.
+
+Teste: "isto existe uma vez só na empresa, e eu saberia a quem ligar?"
+- concreto: um sistema, uma integração, um fornecedor ou um processo de negócio específico. Ex.: "registro de gravame no Detran", \
+"emissão de boletos e carnês", "bureau de crédito", "portal do lojista", "esteira de propostas".
+- espécie de queixa: prática de engenharia ou sintoma que se repete em vários serviços e times. Ex.: "timeout em serviços", "code review lento", \
+"alerta falso", "segredo em repositório", "CVE em dependência", "carga com duplicatas", "fila de exceções parada", "job de conciliação com divergência", \
+"acoplamento entre serviços", "massa de teste", "gasto de nuvem", "comunicação de mudanças", "falta de tracing", "pipeline lento".
+Na dúvida, é espécie de queixa.
+
+Responda só JSON: {"candidatos": [{"n": 1, "concreto": true, "porque": "<até 8 palavras>"}]}"""
+
+
+def prompt_peneira(candidatos):
+    """Segundo passo: julgar candidato por candidato é mais fácil para a LLM sem raciocínio do que obedecer à regra enquanto lista."""
+    return SISTEMA_PENEIRA, "\n".join(f"{i + 1}. {p.get('nome')} [{p.get('objeto')}]: {p.get('descricao')}" for i, p in enumerate(candidatos))
+
+
+def prompt_problemas(frentes, vigentes=None):
+    v = VIGENTES_PROBLEMAS.format(lista="\n".join(f"- {n}: {d}" for n, d in vigentes.items())) if vigentes else ""
+    return SISTEMA_PROBLEMAS, _amostra(frentes) + TAREFA_PROBLEMAS.format(teto=TETO_PROBLEMAS, min_ev=MIN_PROBLEMA, vigentes=v)
+
+
+def da_problemas(js, n_frentes, vigentes=None):
+    """Resposta da LLM -> (lista {nome: descrição}, descartados). O mínimo de evidências é imposto em código.
+    Na revisão, os vigentes ficam como estão e só entram os novos, até o teto."""
+    lista, fora = dict(vigentes or {}), []
+    for p in js.get("problemas") or []:
+        nome = (p.get("nome") or "").strip()
+        ev = {e for e in (p.get("evidencias") or []) if isinstance(e, int) and 1 <= e <= n_frentes}
+        if not nome or nome in lista or SEP.strip() in nome or not p.get("descricao"):
+            fora.append((nome, "nome repetido, vazio ou sem descrição"))
+        elif len(ev) < MIN_PROBLEMA:
+            fora.append((nome, f"{len(ev)} evidências < {MIN_PROBLEMA}"))
+        elif len(lista) >= TETO_PROBLEMAS:
+            fora.append((nome, f"teto de {TETO_PROBLEMAS}"))
+        else:
+            lista[nome] = p["descricao"].strip()
+    return lista, fora
+
+
 # ------------------------------------------------------------------ validação
 
 def validar(tax, organograma=None):
@@ -182,6 +266,12 @@ def validar(tax, organograma=None):
         faixa(r, len(tax[r]), "niveis_regua")
     if not tax["criterio_urgencia"].rstrip().endswith("?"):
         p.append("critério de urgência não é uma pergunta")
+    if len(tax.get("problemas", {})) > TETO_PROBLEMAS:
+        p.append(f"problemas: {len(tax['problemas'])} acima do teto de {TETO_PROBLEMAS}")
+    for n, d in tax.get("problemas", {}).items():
+        nome_ok(n, "problema")
+        if not d:
+            p.append(f"problema {n!r} sem descrição")
     n_opcoes = sum(len(d["subtipos"]) for d in tax["tipos"].values()) + 1
     if n_opcoes > 255:
         p.append(f"choice de tipo › subtipo com {n_opcoes} opções (limite do Jev: 255)")

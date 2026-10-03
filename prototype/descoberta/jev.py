@@ -15,7 +15,7 @@ def questions(tax, organograma):
     tipo[NENHUM] = "A frente não é nenhum destes tipos de problema ou oportunidade"
     causas = dict(tax["causas_raiz"])
     causas[NENHUM] = "Nenhuma destas causas explica a frente"
-    return {
+    q = {
         "area_time": {"type": "choice", "instructions": "Qual time de tecnologia da empresa é o mais afetado por esta frente?", "criteria": area},
         "tipo_subtipo": {"type": "choice", "instructions": "Que tipo de problema ou oportunidade esta frente descreve?", "criteria": tipo},
         "natureza": {"type": "choice", "instructions": "A frente relata uma falha ou um dano, ou propõe uma melhoria?", "criteria": NATUREZA},
@@ -25,6 +25,11 @@ def questions(tax, organograma):
         "urgencia": {"type": "noul", "instructions": tax["criterio_urgencia"]},
         "texto_claro": {"type": "noul", "instructions": "O texto diz o bastante para saber qual time é afetado?"},
     }
+    if tax.get("problemas"):  # oitava dimensão (#8). "Nenhum destes" é a resposta normal e não conta no sinal de encaixe
+        prob = dict(tax["problemas"])
+        prob[NENHUM] = "A frente não trata de nenhum destes problemas específicos"
+        q["problema"] = {"type": "choice", "instructions": "De qual destes problemas conhecidos da empresa esta frente trata?", "criteria": prob}
+    return q
 
 
 def jev_request(frente, tax, organograma, model="jev-latest"):
@@ -53,6 +58,8 @@ def interpretar(resp):
         out[dim] = round(a[dim]["score"] / (len(a[dim]["probabilities"]) - 1), 2)
     out["urgencia"] = a["urgencia"]["noul"]
     out["texto_claro"] = a["texto_claro"]["noul"]
+    if "problema" in a:  # abaixo de 0,5 a frente fica sem problema (#8); quem aplica o corte é quem lê
+        out["problema"] = {"valor": a["problema"]["choice"], "conf": a["problema"]["confidence"]}
     return out
 
 

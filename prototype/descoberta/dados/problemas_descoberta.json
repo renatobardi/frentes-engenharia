@@ -1,0 +1,558 @@
+{
+ "uso": {
+  "lista": {
+   "latencia_s": 41.3,
+   "tok_in": 11688,
+   "tok_out": 3117,
+   "custo_usd": 0.0008420433
+  },
+  "peneira": {
+   "latencia_s": 14.2,
+   "tok_in": 2140,
+   "tok_out": 1158,
+   "custo_usd": 0.000429639
+  }
+ },
+ "frentes": 240,
+ "relatorio": [
+  {
+   "nome": "Registro de gravame no Detran",
+   "objeto": "processo: registro de gravame",
+   "entrou": true,
+   "evidencias": 11,
+   "de_onde": {
+    "H2": 11
+   }
+  },
+  {
+   "nome": "Carga noturna com duplicatas",
+   "objeto": "processo: carga noturna",
+   "entrou": false,
+   "evidencias": 12,
+   "de_onde": {
+    "fundo:fornecedor": 5,
+    "fundo:qualidade de dados": 3,
+    "fundo:regulatório": 2,
+    "fundo:operação e atendimento": 1,
+    "fundo:processo manual": 1
+   }
+  },
+  {
+   "nome": "Timeout em chamadas ao bureau de crédito",
+   "objeto": "integração: bureau de crédito",
+   "entrou": true,
+   "evidencias": 9,
+   "de_onde": {
+    "fundo:fornecedor": 9
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-infra-e-cloud",
+   "objeto": "sistema: svc-infra-e-cloud",
+   "entrou": true,
+   "evidencias": 8,
+   "de_onde": {
+    "H1": 7,
+    "fundo:arquitetura": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-correspondentes",
+   "objeto": "sistema: svc-correspondentes",
+   "entrou": true,
+   "evidencias": 3,
+   "de_onde": {
+    "fundo:performance": 1,
+    "fundo:observabilidade": 1,
+    "fundo:dívida técnica": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-renegociacao",
+   "objeto": "sistema: svc-renegociacao",
+   "entrou": true,
+   "evidencias": 6,
+   "de_onde": {
+    "fundo:observabilidade": 2,
+    "fundo:arquitetura": 2,
+    "fundo:dívida técnica": 1,
+    "fundo:performance": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-jornada-online",
+   "objeto": "sistema: svc-jornada-online",
+   "entrou": true,
+   "evidencias": 3,
+   "de_onde": {
+    "fundo:arquitetura": 3
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-politicas-de-credito",
+   "objeto": "sistema: svc-politicas-de-credito",
+   "entrou": true,
+   "evidencias": 5,
+   "de_onde": {
+    "fundo:observabilidade": 4,
+    "fundo:arquitetura": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-quitacao-e-baixa",
+   "objeto": "sistema: svc-quitacao-e-baixa",
+   "entrou": true,
+   "evidencias": 4,
+   "de_onde": {
+    "fundo:performance": 2,
+    "fundo:arquitetura": 1,
+    "fundo:dívida técnica": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-portal-do-lojista",
+   "objeto": "sistema: svc-portal-do-lojista",
+   "entrou": true,
+   "evidencias": 3,
+   "de_onde": {
+    "fundo:observabilidade": 2,
+    "fundo:dívida técnica": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-app",
+   "objeto": "sistema: svc-app",
+   "entrou": false,
+   "evidencias": 2,
+   "de_onde": {
+    "fundo:arquitetura": 1,
+    "fundo:observabilidade": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-motor-de-decisao",
+   "objeto": "sistema: svc-motor-de-decisao",
+   "entrou": false,
+   "evidencias": 2,
+   "de_onde": {
+    "fundo:dívida técnica": 1,
+    "fundo:observabilidade": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-simulacao",
+   "objeto": "sistema: svc-simulacao",
+   "entrou": false,
+   "evidencias": 2,
+   "de_onde": {
+    "fundo:observabilidade": 1,
+    "fundo:dívida técnica": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-antifraude",
+   "objeto": "sistema: svc-antifraude",
+   "entrou": false,
+   "evidencias": 2,
+   "de_onde": {
+    "fundo:dívida técnica": 2
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-observabilidade",
+   "objeto": "sistema: svc-observabilidade",
+   "entrou": false,
+   "evidencias": 2,
+   "de_onde": {
+    "fundo:arquitetura": 1,
+    "fundo:performance": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-privacidade-lgpd",
+   "objeto": "sistema: svc-privacidade-lgpd",
+   "entrou": false,
+   "evidencias": 2,
+   "de_onde": {
+    "fundo:performance": 1,
+    "fundo:observabilidade": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-relatorios-regulatorios",
+   "objeto": "sistema: svc-relatorios-regulatorios",
+   "entrou": false,
+   "evidencias": 2,
+   "de_onde": {
+    "fundo:performance": 1,
+    "fundo:observabilidade": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-gravame",
+   "objeto": "sistema: svc-gravame",
+   "entrou": false,
+   "evidencias": 2,
+   "de_onde": {
+    "fundo:observabilidade": 1,
+    "fundo:performance": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-boletos-e-carnes",
+   "objeto": "sistema: svc-boletos-e-carnes",
+   "entrou": false,
+   "evidencias": 2,
+   "de_onde": {
+    "fundo:fornecedor": 1,
+    "fundo:observabilidade": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-contratos",
+   "objeto": "sistema: svc-contratos",
+   "entrou": false,
+   "evidencias": 2,
+   "de_onde": {
+    "fundo:fornecedor": 2
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-marketplace-de-veiculos",
+   "objeto": "sistema: svc-marketplace-de-veiculos",
+   "entrou": false,
+   "evidencias": 2,
+   "de_onde": {
+    "fundo:performance": 1,
+    "fundo:observabilidade": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-documentacao-e-assinatura",
+   "objeto": "sistema: svc-documentacao-e-assinatura",
+   "entrou": false,
+   "evidencias": 1,
+   "de_onde": {
+    "fundo:observabilidade": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-suporte-n2-n3",
+   "objeto": "sistema: svc-suporte-n2-n3",
+   "entrou": false,
+   "evidencias": 1,
+   "de_onde": {
+    "fundo:arquitetura": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-engenharia-de-dados",
+   "objeto": "sistema: svc-engenharia-de-dados",
+   "entrou": false,
+   "evidencias": 1,
+   "de_onde": {
+    "fundo:fornecedor": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-relatorios-regulatorios",
+   "objeto": "sistema: svc-relatorios-regulatorios",
+   "entrou": false,
+   "evidencias": 1,
+   "de_onde": {
+    "fundo:fornecedor": 1
+   }
+  },
+  {
+   "nome": "Erros e timeout em svc-motor-de-decisao",
+   "objeto": "sistema: svc-motor-de-decisao",
+   "entrou": false,
+   "evidencias": 1,
+   "de_onde": {
+    "fundo:fornecedor": 1
+   }
+  },
+  {
+   "nome": "Fila de exceções parada",
+   "objeto": "processo: fila de exceções",
+   "entrou": false,
+   "evidencias": 12,
+   "de_onde": {
+    "fundo:qualidade de dados": 7,
+    "fundo:processo manual": 3,
+    "fundo:operação e atendimento": 2
+   }
+  },
+  {
+   "nome": "Job de conciliação com divergências",
+   "objeto": "processo: conciliação",
+   "entrou": false,
+   "evidencias": 10,
+   "de_onde": {
+    "fundo:regulatório": 4,
+    "fundo:processo manual": 3,
+    "fundo:qualidade de dados": 2,
+    "fundo:operação e atendimento": 1
+   }
+  },
+  {
+   "nome": "Pentest vencido sem correção",
+   "objeto": "processo: correção de pentest",
+   "entrou": false,
+   "evidencias": 7,
+   "de_onde": {
+    "H7": 4,
+    "fundo:segurança (ruído)": 3
+   }
+  },
+  {
+   "nome": "Dependência com CVE crítica",
+   "objeto": "processo: atualização de dependências",
+   "entrou": false,
+   "evidencias": 3,
+   "de_onde": {
+    "fundo:segurança (ruído)": 2,
+    "H7": 1
+   }
+  },
+  {
+   "nome": "Segredo exposto em repositório",
+   "objeto": "processo: gestão de segredos",
+   "entrou": false,
+   "evidencias": 4,
+   "de_onde": {
+    "fundo:segurança (ruído)": 3,
+    "H7": 1
+   }
+  },
+  {
+   "nome": "Massa de teste perdida na homologação",
+   "objeto": "processo: gestão de massa de teste",
+   "entrou": false,
+   "evidencias": 6,
+   "de_onde": {
+    "fundo:ambiente de dev": 6
+   }
+  },
+  {
+   "nome": "Comunicação de mudanças falha",
+   "objeto": "processo: comunicação de mudanças",
+   "entrou": false,
+   "evidencias": 5,
+   "de_onde": {
+    "fundo:comunicação entre áreas": 5
+   }
+  },
+  {
+   "nome": "Relatório regulatório atrasado",
+   "objeto": "processo: geração de relatório regulatório",
+   "entrou": true,
+   "evidencias": 6,
+   "de_onde": {
+    "fundo:regulatório": 6
+   }
+  },
+  {
+   "nome": "Custo de nuvem elevado",
+   "objeto": "processo: gestão de custos de nuvem",
+   "entrou": false,
+   "evidencias": 8,
+   "de_onde": {
+    "fundo:custo de nuvem": 8
+   }
+  },
+  {
+   "nome": "Alerta falso noturno",
+   "objeto": "processo: gestão de alertas",
+   "entrou": false,
+   "evidencias": 4,
+   "de_onde": {
+    "fundo:observabilidade": 4
+   }
+  },
+  {
+   "nome": "Acoplamento entre serviços",
+   "objeto": "processo: arquitetura de serviços",
+   "entrou": false,
+   "evidencias": 4,
+   "de_onde": {
+    "fundo:arquitetura": 4
+   }
+  },
+  {
+   "nome": "Code review lento",
+   "objeto": "processo: code review",
+   "entrou": false,
+   "evidencias": 3,
+   "de_onde": {
+    "fundo:sdlc (ruído)": 3
+   }
+  },
+  {
+   "nome": "Dados divergentes entre sistemas",
+   "objeto": "processo: sincronização de dados",
+   "entrou": false,
+   "evidencias": 6,
+   "de_onde": {
+    "fundo:qualidade de dados": 5,
+    "fundo:processo manual": 1
+   }
+  },
+  {
+   "nome": "Falta de tracing",
+   "objeto": "processo: observabilidade",
+   "entrou": false,
+   "evidencias": 3,
+   "de_onde": {
+    "fundo:observabilidade": 3
+   }
+  },
+  {
+   "nome": "Onboarding lento",
+   "objeto": "processo: onboarding",
+   "entrou": false,
+   "evidencias": 2,
+   "de_onde": {
+    "fundo:pessoas": 2
+   }
+  }
+ ],
+ "descartados": [
+  [
+   "Carga noturna com duplicatas",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Fila de exceções parada",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Job de conciliação com divergências",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Pentest vencido sem correção",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Dependência com CVE crítica",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Segredo exposto em repositório",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Massa de teste perdida na homologação",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Comunicação de mudanças falha",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Custo de nuvem elevado",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Alerta falso noturno",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Acoplamento entre serviços",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Code review lento",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Dados divergentes entre sistemas",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Falta de tracing",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Onboarding lento",
+   "espécie de queixa, sem objeto concreto"
+  ],
+  [
+   "Erros e timeout em svc-app",
+   "2 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-motor-de-decisao",
+   "2 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-simulacao",
+   "2 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-antifraude",
+   "2 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-observabilidade",
+   "2 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-privacidade-lgpd",
+   "2 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-relatorios-regulatorios",
+   "2 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-gravame",
+   "2 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-boletos-e-carnes",
+   "2 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-contratos",
+   "2 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-marketplace-de-veiculos",
+   "2 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-documentacao-e-assinatura",
+   "1 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-suporte-n2-n3",
+   "1 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-engenharia-de-dados",
+   "1 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-relatorios-regulatorios",
+   "1 evidências < 3"
+  ],
+  [
+   "Erros e timeout em svc-motor-de-decisao",
+   "1 evidências < 3"
+  ]
+ ],
+ "lista": {
+  "Registro de gravame no Detran": "Contratos sem gravame registrado há vários dias, retornos de rejeição do registrador, e relatos de atraso na integração com o Detran.",
+  "Timeout em chamadas ao bureau de crédito": "Chamadas ao bureau de crédito com timeout em diversos serviços, indicando lentidão ou falha na integração.",
+  "Erros e timeout em svc-infra-e-cloud": "Erros 500 e timeout em /infra-e-cloud/v1 e /propostas, com latência alta e taxa de erro elevada.",
+  "Erros e timeout em svc-correspondentes": "Erros 504 e timeout em /correspondentes/v1, com latência elevada.",
+  "Erros e timeout em svc-renegociacao": "Erros 500 e 503 em /renegociacao/v1, com latência e taxa de erro altas.",
+  "Erros e timeout em svc-jornada-online": "Erros 503 e 504 em /jornada-online/v1, com latência elevada.",
+  "Erros e timeout em svc-politicas-de-credito": "Erros 500 e timeout em /politicas-de-credito/v1, com latência e taxa de erro altas.",
+  "Erros e timeout em svc-quitacao-e-baixa": "Erros 500 e timeout em /quitacao-e-baixa/v1, com latência e taxa de erro altas.",
+  "Erros e timeout em svc-portal-do-lojista": "Erros 500 e timeout em /portal-do-lojista/v1, com latência elevada.",
+  "Relatório regulatório atrasado": "Prazo apertado para gerar relatório ao regulador, processo manual e lento."
+ }
+}

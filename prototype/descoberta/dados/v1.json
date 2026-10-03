@@ -73,5 +73,17 @@
   "Ganho significativo: redução de retrabalho ou tempo de execução em mais de 50%, ou prevenção de incidentes recorrentes.",
   "Ganho estratégico: evita multa, violação de segurança, perda de receita ou habilita novo modelo de negócio."
  ],
- "criterio_urgencia": "A frente precisa ser resolvida nas próximas 2 semanas para evitar um impacto maior (multa, perda de receita, violação de segurança)?"
+ "criterio_urgencia": "A frente precisa ser resolvida nas próximas 2 semanas para evitar um impacto maior (multa, perda de receita, violação de segurança)?",
+ "problemas": {
+  "Registro de gravame no Detran": "Contratos sem gravame registrado há vários dias, retornos de rejeição do registrador, e relatos de atraso na integração com o Detran.",
+  "Timeout em chamadas ao bureau de crédito": "Chamadas ao bureau de crédito com timeout em diversos serviços, indicando lentidão ou falha na integração.",
+  "Erros e timeout em svc-infra-e-cloud": "Erros 500 e timeout em /infra-e-cloud/v1 e /propostas, com latência alta e taxa de erro elevada.",
+  "Erros e timeout em svc-correspondentes": "Erros 504 e timeout em /correspondentes/v1, com latência elevada.",
+  "Erros e timeout em svc-renegociacao": "Erros 500 e 503 em /renegociacao/v1, com latência e taxa de erro altas.",
+  "Erros e timeout em svc-jornada-online": "Erros 503 e 504 em /jornada-online/v1, com latência elevada.",
+  "Erros e timeout em svc-politicas-de-credito": "Erros 500 e timeout em /politicas-de-credito/v1, com latência e taxa de erro altas.",
+  "Erros e timeout em svc-quitacao-e-baixa": "Erros 500 e timeout em /quitacao-e-baixa/v1, com latência e taxa de erro altas.",
+  "Erros e timeout em svc-portal-do-lojista": "Erros 500 e timeout em /portal-do-lojista/v1, com latência elevada.",
+  "Relatório regulatório atrasado": "Prazo apertado para gerar relatório ao regulador, processo manual e lento."
+ }
 }

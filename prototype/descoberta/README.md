@@ -5,7 +5,8 @@ Não é código de produção. Vive só no branch `prototype/9-descoberta` e nun
 **Pergunta.** Como a LLM faz a descoberta (v1) e as revisões da taxonomia, de modo que a saída vire `questions`
 válidas do Jev e mostre os pontos quentes plantados na seed? Que limites do sinal de encaixe disparam a revisão?
 
-**Estado (2026-10-03).** Descoberta, classificação da v1 no Jev, sinal de encaixe e revisão rodaram.
+**Estado (2026-10-03).** Descoberta, classificação da v1 no Jev, sinal de encaixe, revisão e lista de problemas rodaram.
+A classificação da v1 no Jev foi feita **antes** de a lista de problemas existir (7 dimensões + pergunta de controle).
 **Falta reclassificar na v2 no Jev** (a `TYPESAFE_API_KEY` foi trocada; o pedido está pronto, ver "Rodar").
 Sem isso não há a avaliação contra o gabarito depois da revisão.
 
@@ -20,6 +21,7 @@ Sem isso não há a avaliação contra o gabarito depois da revisão.
 | `jev_run.py`, `montar_pedido.py` | classificação no Jev, pelo canal de aprovação (a chave só existe no host) |
 | `classificar.py` | regra de confiança do #6 + fallback da LLM |
 | `revisar.py` | revisão: a LLM devolve operações, o código filtra, aplica, valida e mostra o diff |
+| `problemas.py` | lista de problemas, a oitava dimensão (resolução do #8): lista → peneira do objeto concreto → mínimo de evidências em código |
 | `avaliar.py` | avaliação contra o gabarito e sinal de encaixe projetado por mês |
 | `dados/` | tudo o que foi gravado: amostra, gabarito, `v1.json`, `v2.json`, saída do Jev, revisões |
 
@@ -96,6 +98,27 @@ python3 prototype/descoberta/classificar.py prototype/descoberta/dados/v2.json p
   A amostra é ~1/12 do volume, então o sorteio simples traz poucas frentes do tema. O reforço deixa a entrada perto da da seed inteira
   (no mês 7 já seriam 9 frentes do tema entre 58 de encaixe fraco).
 - Cada revisão custa ~US$0,0006 e leva 20 a 45 s.
+
+### Problema, a oitava dimensão (resolução do #8)
+
+A descoberta e a revisão geram também a lista única de problemas (teto 40, só objeto concreto da empresa), que entra como mais um
+`choice` na mesma chamada ao Jev. **Aqui só se gera a lista; medir a atribuição do Jev contra o gabarito é do #11.**
+
+- **Como:** uma chamada à parte lista os candidatos com as frentes de evidência; uma segunda chamada (a peneira) julga candidato por
+  candidato se é objeto concreto ou espécie de queixa; o código exige 3 frentes de evidência e o teto. Custa ~US$0,0013.
+- **v1 (meses 1–6, `dados/v1.json`): 10 problemas.** "Registro de gravame no Detran" (11 evidências, todas da H2) e
+  "Erros e timeout em svc-infra-e-cloud" (7 de 8 da H1) são das histórias. Os outros 8 são do fundo: bureau de crédito,
+  relatório regulatório e 6 do tipo "erros e timeout em svc-X".
+- **O risco que o #8 apontou se confirma na lista:** os logs de template do fundo citam um serviço por time (`svc-<time>`), e para a LLM
+  cada serviço é um objeto concreto. A peneira tira bem a espécie de queixa (code review lento, CVE, fila de exceções, custo de nuvem:
+  15 candidatos fora), mas deixa passar o problema por serviço.
+- **Instável entre rodadas:** numa rodada a LLM entrou em laço e listou só "timeout em svc-X" (a peneira descartou tudo, lista vazia);
+  noutra, sem a peneira, saíram 26 problemas, 20 do fundo. Boletos (H3) apareceu numa rodada e sumiu na outra.
+  H4 e H6 têm 2 frentes cada nos meses 1–6 da amostra e não entram.
+- **Na revisão** (meses 7–9 com o reforço, `dados/v2.json`): os 10 vigentes ficam como estão e entram 3 novos: dois do assistente de IA
+  (4 evidências cada, todas da H5) e um segundo de gravame (5, todas da H2), que duplica o vigente. Total 13.
+- **Custo no Jev:** a lista de 10 a 13 problemas soma ~370 a 500 tokens por frente (o #8 estimou ~1,5 mil para 40).
+- O "Nenhum destes" do problema não entra no sinal de encaixe, que olha só o tipo.
 
 ## Custo total do protótipo
 
