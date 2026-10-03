@@ -67,6 +67,17 @@ _Avoid_: motivo, origem (origem é a porta de entrada)
 **Natureza**:
 A dimensão que diz se a frente é reativa ou proativa.
 
+**Problema**:
+O assunto concreto e específico de que várias frentes tratam, seja uma dor ou um pedido, numa lista única gerada pela LLM. Nomeia um objeto da empresa (sistema, integração, processo ou fornecedor); a mesma espécie de queixa em times diferentes não é um problema. Não é eixo do mapa, e um problema pode ter frentes em várias células.
+_Avoid_: história (é do gabarito), tema, assunto
+
+**Problema recorrente**:
+Problema com frentes em dias diferentes, acima de um corte, dentro do período do filtro. Aparece só no drill-down e não muda a severidade.
+_Avoid_: reincidência, duplicata
+
+**Episódio**:
+Várias frentes sobre a mesma ocorrência, no mesmo dia. Não é recorrência: cada frente conta no índice de dor.
+
 **Severidade**:
 O quanto uma frente reativa dói, numa escala de 0 a 1 medida contra a régua de severidade.
 
@@ -86,17 +97,17 @@ A LLM reavalia a versão vigente contra as frentes recentes, por sinal de encaix
 _Avoid_: retreino, atualização
 
 **Sinal de encaixe**:
-O indício de que a versão vigente não cabe mais nas frentes, como incertas acima de um limite ou um tipo grande demais.
+O indício de que a versão vigente não cabe mais nas frentes, como incertas acima de um limite ou um tipo grande demais. A dimensão problema não conta para ele.
 
 **Gabarito**:
 A história plantada numa frente da seed (o que aconteceu e em que área), descrita sem os nomes de tipo da taxonomia. O processo de classificação não a vê.
 
 **Nenhum destes**:
-A resposta, presente em toda dimensão de lista, que diz que a frente não cabe em nenhum valor da versão vigente. Não é um valor da taxonomia.
+A resposta, presente em toda dimensão de lista, que diz que a frente não cabe em nenhum valor da versão vigente. Não é um valor da taxonomia. Na dimensão problema é a resposta normal: a maioria das frentes não trata de um problema da lista.
 _Avoid_: outros, diversos
 
 **Não classificada**:
-Frente cuja resposta numa dimensão de lista foi "Nenhum destes". Aparece na linha ou coluna própria do mapa e é o sinal de encaixe mais forte.
+Frente cuja resposta em área ou tipo foi "Nenhum destes". Aparece na linha ou coluna própria do mapa e é o sinal de encaixe mais forte.
 
 ### Mapa de calor
 
