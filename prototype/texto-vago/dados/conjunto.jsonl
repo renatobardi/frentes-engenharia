@@ -1,0 +1,169 @@
+{"id": "f00027", "origem": "mcp", "texto": "Alguém sabe a senha do wifi da sala 3?"}
+{"id": "f00076", "origem": "webhook", "texto": "[apm] svc-gravame: latência p95 29s e taxa de erro 13% desde 05:13"}
+{"id": "f00177", "origem": "relato", "texto": "Está tudo muito lento, parece que ninguém resolve nada. Precisamos de uma melhoria urgente, algo que realmente funcione."}
+{"id": "f00222", "origem": "banco", "texto": "30 registros duplicados na carga noturna de politicas-de-credito"}
+{"id": "f00264", "origem": "webhook", "texto": "[scanner] dependência com CVE crítica em svc-politicas-de-credito: openssl sem correção há 136 dias"}
+{"id": "f00407", "origem": "banco", "texto": "job de conciliação de Correspondentes terminou com 248 divergências"}
+{"id": "f00458", "origem": "relato", "texto": "Como marco férias no sistema de RH?"}
+{"id": "f00564", "origem": "log", "texto": "244 chamadas ao bureau de crédito com timeout (> 8s) entre 14:25 e 15:08 em svc-app"}
+{"id": "f00568", "origem": "relato", "texto": "- Cliente enviou proposta há 5 dias e não tivemos retorno. - Poderíamos criar um lembrete automático no sistema de pós-venda. - Isso agilizaria o follow-up e melhoraria a conversão de propostas paradas."}
+{"id": "f00577", "origem": "webhook", "texto": "[apm] svc-infra-e-cloud: latência p95 32s e taxa de erro 32% desde 09:56"}
+{"id": "f00663", "origem": "relato", "texto": "Já era! Perdemos o prazo do relatório pro regulador de novo por causa desse processo manual idiota. Agora vamos levar multa e ainda ter que justificar. Isso é incompetência, precisamos automatizar isso antes que vire uma crise maior."}
+{"id": "f00690", "origem": "relato", "texto": "ok obrigado"}
+{"id": "f00694", "origem": "banco", "texto": "62 itens parados na fila de exceções de Contratos há mais de 48h"}
+{"id": "f00707", "origem": "relato", "texto": "Alguém sabe o wifi da sala 3?"}
+{"id": "f00721", "origem": "log", "texto": "163 erros timeout em /propostas (svc-infra-e-cloud) entre 19:49 e 20:01; p95 29s"}
+{"id": "f00788", "origem": "mcp", "texto": "O time de pós-venda e cobrança relatou que os code reviews estão demorando dias para serem concluídos, o que atrasa as entregas. Eles sugerem que seja definido um prazo máximo ou uma esteira mais ágil."}
+{"id": "f00840", "origem": "relato", "texto": "Alerta dispara toda madrugada. Não tem ação possível. A gente só ignora porque não dá pra fazer nada. Já tentaram desligar, mas volta sozinho."}
+{"id": "f00861", "origem": "banco", "texto": "19 itens parados na fila de exceções de Proposta há mais de 48h"}
+{"id": "f01093", "origem": "webhook", "texto": "[atendimento-lojista] 10 chamados abertos hoje sobre comissão (Documentação e Assinatura)"}
+{"id": "f01106", "origem": "banco", "texto": "345 contratos sem gravame registrado há mais de 6 dias"}
+{"id": "f01134", "origem": "log", "texto": "196 erros timeout em /quitacao-e-baixa/v1 (svc-quitacao-e-baixa) entre 14:48 e 15:09; p95 15s"}
+{"id": "f01138", "origem": "log", "texto": "333 erros 500 em /renegociacao/v1 (svc-renegociacao) entre 02:34 e 02:51; p95 16s"}
+{"id": "f01152", "origem": "webhook", "texto": "[ci-cd] rollback executado em produção: svc-motor-de-decisao versão 71.8"}
+{"id": "f01190", "origem": "log", "texto": "312 chamadas ao bureau de crédito com timeout (> 8s) entre 05:17 e 05:52 em svc-engenharia-de-dados"}
+{"id": "f01206", "origem": "relato", "texto": "Prezados, venho por meio deste registrar um conflito recorrente de prioridades entre as áreas de Produto e Sustentação no Canal Digital. Isso tem gerado retrabalho e atrasos nas entregas. Sugiro a criação de um comitê semanal de alinhamento para definir prioridades de forma colaborativa e evitar sobreposição de esforços."}
+{"id": "f01331", "origem": "banco", "texto": "5 retornos de rejeição do registrador de gravame no lote de 06/01"}
+{"id": "f01353", "origem": "relato", "texto": "Não temos rastreamento nenhum nas requisições, não dá pra saber onde tá demorando. Precisamos de tracing urgente pra conseguir investigar."}
+{"id": "f01418", "origem": "banco", "texto": "job de conciliação de Jornada Online terminou com 391 divergências"}
+{"id": "f01429", "origem": "webhook", "texto": "[apm] svc-politicas-de-credito: latência p95 21s e taxa de erro 43% desde 18:22"}
+{"id": "f01498", "origem": "log", "texto": "60 erros 503 em /privacidade-lgpd/v1 (svc-privacidade-lgpd) entre 07:40 e 08:04; p95 9s"}
+{"id": "f01530", "origem": "webhook", "texto": "[finops] gasto de nuvem de Infra e Cloud 45% acima da média dos últimos 3 meses"}
+{"id": "f01552", "origem": "banco", "texto": "boletos com valor divergente do contrato: 306"}
+{"id": "f01572", "origem": "banco", "texto": "348 contratos sem gravame registrado há mais de 3 dias"}
+{"id": "f01591", "origem": "mcp", "texto": "O time relatou que as prioridades entre produto e sustentação estão sempre em choque, ninguém consegue definir o que é mais urgente. Isso gera retrabalho e desgaste, mas não há uma métrica clara para decidir."}
+{"id": "f01756", "origem": "log", "texto": "321 erros 504 em /observabilidade/v1 (svc-observabilidade) entre 16:10 e 16:43; p95 13s"}
+{"id": "f01845", "origem": "mcp", "texto": "O time relatou que existe um trecho de código legado na plataforma que não possui testes automatizados e que, por esse motivo, ninguém se sente seguro para alterá-lo. A sugestão é criar um plano de refatoração gradual com cobertura de testes para reduzir o débito técnico e permitir evoluções futuras."}
+{"id": "f02074", "origem": "mcp", "texto": "alguém sabe o wifi da sala 3?"}
+{"id": "f02351", "origem": "relato", "texto": "Como marco férias no sistema de RH?"}
+{"id": "f02371", "origem": "relato", "texto": "Como marco férias no sistema de RH?"}
+{"id": "f02629", "origem": "relato", "texto": "Como marco férias no sistema de RH?"}
+{"id": "f02733", "origem": "webhook", "texto": "[atendimento-lojista] 32 chamados abertos hoje sobre status de proposta (Políticas de Crédito)"}
+{"id": "f02740", "origem": "mcp", "texto": "O time de Dados e Regulatório informou que dois serviços precisam ser deployados juntos devido a acoplamento no banco de dados. Isso causou uma indisponibilidade de 30 minutos na última sexta-feira. Eles sugerem separar as tabelas e usar eventos para sincronia."}
+{"id": "f02774", "origem": "relato", "texto": "Cara, o pipeline tá demorando 40 minutos! Isso é um absurdo, a gente perde tempo demais esperando. Precisamos urgentemente otimizar isso, não é possível que não tenha como melhorar."}
+{"id": "f02817", "origem": "log", "texto": "52 erros 500 em /boletos-e-carnes/v1 (svc-boletos-e-carnes) entre 05:31 e 05:53; p95 6s"}
+{"id": "f02831", "origem": "mcp", "texto": "O time relatou que subir o ambiente local leva cerca de meio dia, o que impacta a produtividade. Foi sugerido revisar o processo de setup e documentar as dependências. A melhoria poderia reduzir o tempo para menos de uma hora."}
+{"id": "f02850", "origem": "banco", "texto": "84 retornos de rejeição do registrador de gravame no lote de 14/04"}
+{"id": "f02852", "origem": "mcp", "texto": "O assistente de IA passou informações incorretas sobre regras de quitação antecipada, gerando reclamações de clientes. O time de Crédito reportou que os clientes estão cobrando valores errados. É necessário corrigir o modelo para evitar novos incidentes."}
+{"id": "f02870", "origem": "banco", "texto": "17 itens parados na fila de exceções de Políticas de Crédito há mais de 48h"}
+{"id": "f02926", "origem": "relato", "texto": "Isso é um teste."}
+{"id": "f02951", "origem": "relato", "texto": "Rapaz, descobri que tão usando senha compartilhada numa planilha. Isso é um perigo, alguém já vazou? Temos que parar com isso urgente."}
+{"id": "f02952", "origem": "mcp", "texto": "O time relatou que a massa de teste utilizada nos ambientes de homologação desaparece a cada refresh, o que inviabiliza a continuidade dos testes. Seria interessante automatizar a recriação ou preservar os dados após o refresh."}
+{"id": "f02976", "origem": "log", "texto": "342 erros 504 em /boletos-e-carnes/v1 (svc-boletos-e-carnes) entre 09:49 e 09:57; p95 19s"}
+{"id": "f03016", "origem": "relato", "texto": "Pô, o contrato com o fornecedor de serviços de formalização não aguenta mais o volume que a gente tem hoje. Toda semana estoura o limite e fica tudo travado. Alguém precisa rever isso urgentemente, porque não dá pra ficar nesse sufoco."}
+{"id": "f03043", "origem": "log", "texto": "218 erros 504 em /relatorios-regulatorios/v1 (svc-relatorios-regulatorios) entre 21:44 e 21:50; p95 16s"}
+{"id": "f03057", "origem": "banco", "texto": "354 contratos sem gravame registrado há mais de 10 dias"}
+{"id": "f03087", "origem": "mcp", "texto": "O time relatou que o assistente de IA tem fornecido informações incorretas sobre regras de quitação antecipada, o que leva clientes a cobrarem após a transação. É necessário ajustar o conhecimento base do assistente."}
+{"id": "f03097", "origem": "webhook", "texto": "[finops] gasto de nuvem de Renegociação 95% acima da média dos últimos 3 meses"}
+{"id": "f03133", "origem": "relato", "texto": "No último final de semana, os ambientes de teste da Originação ficaram ligados do sábado às 8h até domingo às 22h, gerando um custo extra de aproximadamente R$ 3.500. Já é a terceira vez em dois meses. Precisamos de um mecanismo automático de desligamento programado."}
+{"id": "f03156", "origem": "webhook", "texto": "[scanner] possível segredo exposto em repositório de Proposta: chave de acesso em arquivo de configuração"}
+{"id": "f03202", "origem": "banco", "texto": "296 contratos sem gravame registrado há mais de 9 dias"}
+{"id": "f03241", "origem": "relato", "texto": "Tem contrato de veículo pesado saindo sem o gravame registrado no Detran faz mais de uma semana. A fila de pendências só cresce e o financeiro já está cobrando. Alguém precisa arrumar isso logo."}
+{"id": "f03275", "origem": "log", "texto": "356 erros 500 em /simulacao/v1 (svc-simulacao) entre 20:58 e 21:06; p95 18s"}
+{"id": "f03319", "origem": "log", "texto": "36 chamadas ao bureau de crédito com timeout (> 8s) entre 13:25 e 14:03 em svc-privacidade-lgpd"}
+{"id": "f03409", "origem": "relato", "texto": "Precisamos de uma esteira de CI/CD e feature flags pra liberar regras de crédito sem depender de janela de deploy. Hoje cada alteração leva em média 3 dias e exige aprovação de 2 squads, o que atrasa em 40% as entregas do time de crédito."}
+{"id": "f03453", "origem": "relato", "texto": "Pelo amor de Deus, o certificado SSL do sistema de cobrança vai vencer daqui 10 dias e ninguém sabe quem é o dono! Já mandei 3 e-mails e ninguém responde, é um descaso total. Vai ficar fora do ar e a culpa vai sobrar pra gente."}
+{"id": "f03474", "origem": "banco", "texto": "10 itens parados na fila de exceções de Antifraude há mais de 48h"}
+{"id": "f03475", "origem": "mcp", "texto": "O time relatou que há divergência de dados de cliente entre o sistema de originação e o sistema legado de contratos. Embora nenhuma falha tenha ocorrido ainda, a diferença nos campos de CPF e endereço pode gerar retrabalho na análise de crédito. Sugerem alinhar a base antes do próximo fechamento mensal."}
+{"id": "f03483", "origem": "relato", "texto": "Bom dia. Venho reportar que a carga noturna do dia 19/05 apresentou 1.234 registros duplicados na tabela de propostas. Isso está gerando inconsistência nos relatórios de originação e exigindo correção manual. Solicito prioridade na investigação da rotina de ETL."}
+{"id": "f03485", "origem": "webhook", "texto": "[finops] gasto de nuvem de Simulação 24% acima da média dos últimos 3 meses"}
+{"id": "f03492", "origem": "mcp", "texto": "O time do Canal Digital relatou que o assistente virtual está escalando aproximadamente 90% das conversas para atendimento humano. Como consequência, a fila de atendimento explodiu e o tempo médio de espera subiu para mais de 40 minutos."}
+{"id": "f03532", "origem": "banco", "texto": "job de conciliação de Engenharia de Dados terminou com 199 divergências"}
+{"id": "f03566", "origem": "relato", "texto": "- Ex-funcionário desligado em março ainda tem acesso ao console AWS.\n- Já identificamos 3 logins ativos.\n- Risco de vazamento de dados sensíveis de cobrança.\n- Solicito revogação imediata e auditoria de acessos."}
+{"id": "f03575", "origem": "relato", "texto": "O pipeline de dados tá demorando uns 40 minutos pra rodar, isso atrasa o pessoal. Precisamos reduzir esse tempo."}
+{"id": "f03614", "origem": "banco", "texto": "70 itens parados na fila de exceções de Motor de Decisão há mais de 48h"}
+{"id": "f03657", "origem": "relato", "texto": "Queremos testar um copiloto de código no time de desenvolvimento, mas não temos política sobre o que pode ser enviado pro modelo. O time tem 12 devs e estimamos um ganho de 20% na produtividade, porém sem diretrizes de segurança a gente não pode avançar. Precisamos de uma definição urgente."}
+{"id": "f03658", "origem": "log", "texto": "245 respostas do assistente marcadas como 'escalar para humano' e 35 com 'taxa_informada' fora da tabela entre 20:45 e 21:13"}
+{"id": "f03706", "origem": "webhook", "texto": "[ci-cd] pipeline de svc-correspondentes falhou em teste instável pela 4ª vez na semana"}
+{"id": "f03723", "origem": "relato", "texto": "o alerta dispara td madrugada mas nao tem nada pra fazer, ja verificamos q é falso positivo mas ninguem desativa ou ajusta, fica poluindo o slack, podemos parar com isso ou configurar melhor?"}
+{"id": "f03729", "origem": "mcp", "texto": "O time relatou que o assistente virtual do aplicativo informou a um cliente uma taxa de juros que não existe na base. O cliente abriu uma reclamação e a equipe precisou corrigir manualmente. A causa está sendo investigada."}
+{"id": "f03748", "origem": "banco", "texto": "job de conciliação de Suporte N2/N3 terminou com 318 divergências"}
+{"id": "f03761", "origem": "relato", "texto": "a fila de atendimento parou pq o sistema nao mostra a info q precisamos, o povo fica sem saber o q fazer, ja pedimos pra arrumar mas nada, atrasa tudo, precisa de uma melhoria urgente"}
+{"id": "f03838", "origem": "banco", "texto": "117 carnês com vencimento anterior à data de emissão no lote 12/06"}
+{"id": "f03940", "origem": "banco", "texto": "62 itens parados na fila de exceções de Quitação e Baixa há mais de 48h"}
+{"id": "f03950", "origem": "banco", "texto": "12 retornos de rejeição do registrador de gravame no lote de 18/06"}
+{"id": "f03952", "origem": "mcp", "texto": "O time de plataforma e sustentação reportou que o assistente virtual do app forneceu a um cliente uma taxa de juros incorreta. O erro foi identificado e corrigido manualmente, mas a causa raiz ainda não foi encontrada. A equipe está analisando os logs."}
+{"id": "f04001", "origem": "relato", "texto": "Carga noturna duplicando registro de novo! Isso já aconteceu na semana passada e ninguém arrumou de vez. Toda manhã tenho que limpar manualmente, um absurdo. Precisamos de uma solução definitiva."}
+{"id": "f04011", "origem": "webhook", "texto": "[finops] gasto de nuvem de Quitação e Baixa 21% acima da média dos últimos 3 meses"}
+{"id": "f04027", "origem": "mcp", "texto": "O time de formalização relatou que as prioridades entre produto e sustentação estão conflitantes, gerando retrabalho. A equipe não consegue atender ambas as demandas e aguarda uma definição da liderança."}
+{"id": "f04040", "origem": "webhook", "texto": "[apm] assistente-app: taxa de escalonamento para humano em 53% (média 9%) desde 01:49"}
+{"id": "f04060", "origem": "log", "texto": "165 erros 500 em /propostas (svc-infra-e-cloud) entre 00:38 e 01:04; p95 6s"}
+{"id": "f04078", "origem": "relato", "texto": "Teste."}
+{"id": "f04139", "origem": "webhook", "texto": "[finops] gasto de nuvem de Documentação e Assinatura 134% acima da média dos últimos 3 meses"}
+{"id": "f04158", "origem": "webhook", "texto": "[ci-cd] pipeline de svc-correspondentes falhou em teste instável pela 3ª vez na semana"}
+{"id": "f04164", "origem": "log", "texto": "226 erros timeout em /engenharia-de-dados/v1 (svc-engenharia-de-dados) entre 18:16 e 18:28; p95 4s"}
+{"id": "f04204", "origem": "relato", "texto": "Fico preocupada com a demora no retorno ao cliente sobre a proposta. Sinto que perdemos oportunidades porque ninguém acompanha o status direito. Precisamos de algo que avise automaticamente ou dê visibilidade para todo mundo."}
+{"id": "f04224", "origem": "relato", "texto": "o pipeline ta demorando 40 minutos isso prejudica nosso trabalho. qria saber se da pra melhora alguma coisa. abraços marcelo."}
+{"id": "f04231", "origem": "webhook", "texto": "[atendimento-lojista] 30 chamados abertos hoje sobre status de proposta (Cadastro e KYC)"}
+{"id": "f04287", "origem": "mcp", "texto": "O time relatou que concessionárias estão enviando documentos por WhatsApp porque o portal não aceita upload pelo celular. Isso gera retrabalho e risco de perda de dados. Solicitam que a funcionalidade seja habilitada para dispositivos móveis."}
+{"id": "f04332", "origem": "relato", "texto": "Pessoal, a gente quer testar aquele copiloto de código, mas não tem regra do que pode ou não mandar. Alguém pode criar uma política logo? Valeu."}
+{"id": "f04417", "origem": "mcp", "texto": "O time do Canal Digital relatou que a fila de atendimento fica parada por falta de informação no sistema. Eles sugerem implementar um mecanismo que forneça automaticamente os dados necessários para prosseguir com o atendimento. A ausência dessa informação causa retrabalho e atrasos."}
+{"id": "f04470", "origem": "log", "texto": "256 respostas do assistente marcadas como 'escalar para humano' e 36 com 'taxa_informada' fora da tabela entre 14:41 e 15:12"}
+{"id": "f04496", "origem": "mcp", "texto": "O time relatou que há uma sensação de que algo poderia ser mais rápido, mas não conseguiram detalhar o problema. Eles gostariam de uma melhoria, porém sem especificar o que exatamente."}
+{"id": "f04542", "origem": "mcp", "texto": "O time de Plataforma e Sustentação relatou que um pipeline de dados está levando cerca de 40 minutos para ser executado. Eles propõem a otimização do processamento, seja por paralelismo ou redução de etapas desnecessárias. A demora impacta a disponibilidade de informações para outras equipes."}
+{"id": "f04560", "origem": "log", "texto": "336 erros timeout em /propostas (svc-proposta) entre 06:21 e 06:55; p95 24s"}
+{"id": "f04602", "origem": "log", "texto": "164 erros 504 em /renegociacao/v1 (svc-renegociacao) entre 10:03 e 10:34; p95 16s"}
+{"id": "f04610", "origem": "log", "texto": "128 erros timeout em /quitacao-e-baixa/v1 (svc-quitacao-e-baixa) entre 10:59 e 11:14; p95 17s"}
+{"id": "f04625", "origem": "banco", "texto": "48 itens parados na fila de exceções de Comissionamento de Parceiros há mais de 48h"}
+{"id": "f04637", "origem": "relato", "texto": "a biblioteca q a gente usava no servico principal foi descontinuada faz 3 semanas e ja deu 2 erros de compilacao. ngm avisou a gente, tivemo q correr atras de alternativa mas ainda nao conseguimos migrar tudo. o pior é q o time de plataforma ja sabia mas nao falou nada."}
+{"id": "f04658", "origem": "mcp", "texto": "O time relatou que lojistas frequentemente perguntam sobre o valor e a data de pagamento das comissões. Sugeriram a criação de um painel onde o lojista possa consultar essas informações de forma transparente e em tempo real."}
+{"id": "f04725", "origem": "relato", "texto": "Precisamos alinhar as prioridades entre produto e sustentação para não ficarmos empacados com demandas concorrentes."}
+{"id": "f04742", "origem": "relato", "texto": "Um pedido de titular LGPD foi atendido fora do prazo legal, gerando risco de multa."}
+{"id": "f04864", "origem": "mcp", "texto": "O time sugeriu utilizar inteligência artificial generativa para gerar resumos dos contratos antes da análise jurídica, com o objetivo de acelerar a revisão e reduzir o tempo de formalização. A proposta visa diminuir o retrabalho dos revisores."}
+{"id": "f04891", "origem": "mcp", "texto": "O time manifestou interesse em testar um copiloto de código, porém não existe uma política clara sobre quais informações podem ser compartilhadas com o modelo. Eles solicitaram diretrizes para viabilizar o uso da ferramenta sem expor dados sensíveis."}
+{"id": "f04904", "origem": "webhook", "texto": "[apm] svc-renegociacao: latência p95 13s e taxa de erro 38% desde 02:31"}
+{"id": "f04938", "origem": "banco", "texto": "57 itens parados na fila de exceções de Contratos há mais de 48h"}
+{"id": "f04951", "origem": "webhook", "texto": "[ci-cd] pipeline de svc-gravame falhou em teste instável pela 4ª vez na semana"}
+{"id": "f05018", "origem": "mcp", "texto": "O time relatou que o processo de subir o ambiente local de desenvolvimento está demorando cerca de meio dia. Isso impacta a produtividade, embora não seja um problema crítico no momento. Seria interessante investigar formas de agilizar esse setup."}
+{"id": "f05039", "origem": "banco", "texto": "24 retornos de rejeição do registrador de gravame no lote de 14/08"}
+{"id": "f05151", "origem": "relato", "texto": "Prezados, estamos recebendo reclamações de clientes que foram informados pelo assistente de IA sobre regras de quitação antecipada que não correspondem às nossas políticas. Solicitamos uma revisão urgente do comportamento do assistente para evitar novos problemas."}
+{"id": "f05156", "origem": "webhook", "texto": "[apm] svc-comissionamento-de-parceiros: latência p95 25s e taxa de erro 6% desde 18:35"}
+{"id": "f05190", "origem": "webhook", "texto": "[finops] gasto de nuvem de Quitação e Baixa 103% acima da média dos últimos 3 meses"}
+{"id": "f05212", "origem": "webhook", "texto": "[apm] svc-antifraude: latência p95 23s e taxa de erro 40% desde 04:16"}
+{"id": "f05222", "origem": "mcp", "texto": "O time relatou que o assistente de IA do canal digital está encaminhando a maioria das conversas para atendimento humano, mesmo quando poderia resolver. Isso fez a fila de atendimento crescer exponencialmente, gerando insatisfação dos clientes e sobrecarga da equipe."}
+{"id": "f05260", "origem": "log", "texto": "369 erros 500 em /correspondentes/v1 (svc-correspondentes) entre 05:57 e 06:29; p95 21s"}
+{"id": "f05272", "origem": "relato", "texto": "Alguém sabe o wifi da sala 3?"}
+{"id": "f05277", "origem": "webhook", "texto": "[apm] svc-infra-e-cloud: latência p95 26s e taxa de erro 36% desde 22:30"}
+{"id": "f05280", "origem": "relato", "texto": "Poxa, a gente quer testar um copiloto de código pra ganhar produtividade, mas ninguém define o que pode ou não ser enviado pro modelo. Fica esse impasse, o time trava e a inovação não anda. É frustrante! Precisamos de uma política clara logo."}
+{"id": "f05310", "origem": "log", "texto": "253 erros 500 em /engenharia-de-dados/v1 (svc-engenharia-de-dados) entre 08:11 e 08:43; p95 4s"}
+{"id": "f05456", "origem": "log", "texto": "231 respostas do assistente marcadas como 'escalar para humano' e 33 com 'taxa_informada' fora da tabela entre 04:52 e 05:34"}
+{"id": "f05481", "origem": "mcp", "texto": "O time relatou que o assistente virtual está encaminhando quase todas as conversas para o atendimento humano, o que fez a fila de formalização crescer 50% em uma semana."}
+{"id": "f05507", "origem": "banco", "texto": "7 itens parados na fila de exceções de Observabilidade há mais de 48h"}
+{"id": "f05592", "origem": "mcp", "texto": "O time sugeriu incluir uma validação de unicidade na carga noturna para evitar registros duplicados, já que isso tem gerado inconsistências nos relatórios regulatórios."}
+{"id": "f05715", "origem": "webhook", "texto": "[apm] assistente-app: taxa de escalonamento para humano em 67% (média 11%) desde 17:45"}
+{"id": "f05793", "origem": "mcp", "texto": "O time relatou que a integração com o registrador de gravame caiu e ninguém foi alertado. A descoberta veio por reclamação de um lojista. A falha ficou um bom tempo sem detecção, gerando retrabalho e insatisfação do parceiro."}
+{"id": "f05830", "origem": "log", "texto": "130 chamadas ao bureau de crédito com timeout (> 8s) entre 13:09 e 13:26 em svc-privacidade-lgpd"}
+{"id": "f05837", "origem": "mcp", "texto": "O time comentou que as code reviews estão demorando dias, o que atrasa a entrega de alterações. Eles gostariam de agilizar esse processo, talvez com revisões mais curtas ou pareamento, para evitar gargalos futuros e manter o fluxo contínuo."}
+{"id": "f05917", "origem": "relato", "texto": "O cliente fez a proposta e não recebe retorno nenhum. Fica no vácuo, aí liga reclamando e a gente tem que correr atrás do status."}
+{"id": "f05931", "origem": "log", "texto": "376 erros 504 em /gravame/v1 (svc-gravame) entre 13:25 e 14:00; p95 26s"}
+{"id": "f05988", "origem": "relato", "texto": "O assistente de IA inventou umas regras de quitação antecipada que não são reais, e agora o cliente tá cobrando a diferença, dando um trabalhão pra desfazer o erro."}
+{"id": "v001", "origem": "relato", "texto": "Gostaria de registrar que, em algumas situações, sinto falta de informações mais claras para conseguir realizar meu trabalho. Não tenho detalhes sobre o que está acontecendo, e isso acaba gerando retrabalho e dúvidas que poderiam ser evitadas."}
+{"id": "v002", "origem": "relato", "texto": "Cara, não tô dando conta. Todo dia chega demanda nova, a gente mal termina uma e já tem outra pilha. O time tá exausto, ninguém aguenta mais esse ritmo, parece que não enxergam o quanto a gente tá sobrecarregado."}
+{"id": "v003", "origem": "relato", "texto": "A comunicação entre as áreas é um caos, ninguém se entende."}
+{"id": "v004", "origem": "relato", "texto": "Toda entrega atrasa e ninguém avisa antes."}
+{"id": "v005", "origem": "relato", "texto": "É impressionante como a gente nunca sabe o que o outro time está fazendo. Parece que cada um trabalha no seu mundinho, aí na hora de alinhar tudo vira uma bagunça. Já perdi as contas de quantas vezes tive que refazer algo porque a informação não chegou direito."}
+{"id": "v006", "origem": "relato", "texto": "Atender o pessoal de fora tá cada vez mais difícil. A gente não tem resposta na hora, o sistema não ajuda, e o cliente fica puto. No fim, quem ouve a reclamação somos nós, e não temos como resolver."}
+{"id": "v007", "origem": "relato", "texto": "Percebo que o atendimento ao cliente poderia ser mais ágil. Muitas vezes não consigo dar uma resposta rápida porque falta informação ou ferramenta adequada, e isso acaba gerando insatisfação."}
+{"id": "v008", "origem": "relato", "texto": "Tenho notado que os dados que utilizamos nem sempre são confiáveis. Já aconteceu de basearmos uma decisão em uma informação e depois descobrirmos que estava errada. Isso prejudica a qualidade do nosso trabalho."}
+{"id": "v009", "origem": "relato", "texto": "Gostaria de sugerir uma revisão na distribuição das atividades do time. Atualmente, percebo que alguns colegas estão com uma carga excessiva de trabalho, enquanto outros têm mais disponibilidade. Uma redistribuição poderia melhorar a produtividade e o bem-estar de todos."}
+{"id": "v010", "origem": "relato", "texto": "A galera não se fala, cada um faz do seu jeito e no final ninguém se entende."}
+{"id": "v011", "origem": "relato", "texto": "Podia ser mais fácil de ajudar o cliente, mas do jeito que tá a gente só enrola."}
+{"id": "v012", "origem": "relato", "texto": "Observo que a equipe está constantemente sobrecarregada, o que tem impactado negativamente a qualidade das entregas e a motivação dos colaboradores. Seria importante repensarmos as prioridades e a alocação de recursos."}
+{"id": "v013", "origem": "relato", "texto": "As ferramentas que utilizamos no dia a dia poderiam ser mais eficientes. Muitas vezes preciso executar tarefas manuais que poderiam ser automatizadas, o que consome um tempo precioso."}
+{"id": "v014", "origem": "relato", "texto": "Nunca sei onde encontrar o que preciso, fico perdido."}
+{"id": "v015", "origem": "relato", "texto": "Acredito que poderíamos nos comunicar melhor entre os times. Muitas vezes descobrimos informações importantes tardiamente, o que poderia ser evitado com um alinhamento mais frequente."}
+{"id": "v016", "origem": "relato", "texto": "Sugiro que seja implementado um processo mais estruturado para o atendimento ao cliente. Atualmente, cada caso é tratado de forma muito reativa, e acredito que com um fluxo definido ganharíamos em eficiência e qualidade."}
+{"id": "v017", "origem": "relato", "texto": "Tenho percebido que os prazos combinados nem sempre são cumpridos, e isso gera uma expectativa errada para quem está aguardando. Seria bom se houvesse mais previsibilidade nas entregas."}
+{"id": "v018", "origem": "relato", "texto": "Parece que tudo é prioridade, mas na prática nada anda. A gente fica correndo atrás do rabo, muda o foco toda hora e no final não entrega nada direito. Isso desgasta demais."}
+{"id": "v019", "origem": "relato", "texto": "Constato que a falta de informações precisas tem gerado retrabalho e atrasos. Seria benéfico para todos se houvesse um repositório centralizado e atualizado das informações necessárias para a execução das atividades."}
+{"id": "v020", "origem": "relato", "texto": "Sinto que o time está com uma carga de trabalho muito alta ultimamente. Isso tem refletido na qualidade do que entregamos e também no clima entre a equipe. Acho que precisamos de um apoio extra ou de uma melhor distribuição das tarefas."}
+{"id": "v021", "origem": "mcp", "texto": "O time relatou que a comunicação entre as áreas está falha, com informações se perdendo e gerando retrabalho."}
+{"id": "v022", "origem": "mcp", "texto": "O time desabafou que está sobrecarregado, com muitas demandas simultâneas e sem conseguir dar conta de tudo, o que tem afetado o moral."}
+{"id": "v023", "origem": "mcp", "texto": "Foi reportado que a performance do sistema está abaixo do esperado, impactando a produtividade da equipe e a satisfação dos usuários."}
+{"id": "v024", "origem": "mcp", "texto": "O pessoal comentou que as ferramentas atuais são limitadas e que uma atualização poderia ajudar bastante no dia a dia."}
+{"id": "v025", "origem": "mcp", "texto": "A equipe mencionou que o retrabalho tem sido frequente devido a falhas de comunicação e falta de padronização nos processos."}
+{"id": "v026", "origem": "mcp", "texto": "As ferramentas disponíveis são lentas e atrapalham o andamento do trabalho."}
+{"id": "v027", "origem": "mcp", "texto": "O time observou que a qualidade dos dados utilizados precisa ser melhorada, pois inconsistências têm gerado decisões equivocadas."}
+{"id": "v028", "origem": "mcp", "texto": "O time reclamou que os prazos de entrega estão cada vez mais apertados e que isso está gerando estresse e retrabalho."}
+{"id": "v029", "origem": "mcp", "texto": "Os prazos nunca são cumpridos e isso desgasta a equipe."}
+{"id": "v030", "origem": "mcp", "texto": "O pessoal disse que falta informação na hora de tomar decisão, o que atrasa tudo."}
