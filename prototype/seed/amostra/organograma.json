@@ -1,0 +1,42 @@
+{
+ "Originação": [
+  "Simulação",
+  "Proposta",
+  "Cadastro e KYC"
+ ],
+ "Crédito": [
+  "Motor de Decisão",
+  "Políticas de Crédito",
+  "Antifraude"
+ ],
+ "Formalização": [
+  "Contratos",
+  "Documentação e Assinatura",
+  "Gravame"
+ ],
+ "Canal Parceiro": [
+  "Portal do Lojista",
+  "Correspondentes",
+  "Comissionamento de Parceiros"
+ ],
+ "Canal Digital": [
+  "App",
+  "Jornada Online",
+  "Marketplace de Veículos"
+ ],
+ "Pós-venda e Cobrança": [
+  "Boletos e Carnês",
+  "Renegociação",
+  "Quitação e Baixa"
+ ],
+ "Plataforma e Sustentação": [
+  "Infra e Cloud",
+  "Observabilidade",
+  "Suporte N2/N3"
+ ],
+ "Dados e Regulatório": [
+  "Engenharia de Dados",
+  "Relatórios Regulatórios",
+  "Privacidade (LGPD)"
+ ]
+}
