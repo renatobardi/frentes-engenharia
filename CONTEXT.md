@@ -90,14 +90,18 @@ Os níveis de uma escala da taxonomia, com o critério escrito de cada um. Há d
 _Avoid_: rubrica, escala de notas
 
 **Descoberta**:
-A geração da primeira versão da taxonomia, em que a LLM lê uma amostra das frentes brutas antes de qualquer classificação.
+A geração da primeira versão da taxonomia, em que a LLM lê as frentes brutas do começo do período, em lotes, antes de qualquer classificação. Roda uma vez, e o resultado fica gravado.
 
 **Revisão da taxonomia**:
-A LLM reavalia a versão vigente contra as frentes recentes, por sinal de encaixe ou por comando manual. Pode terminar sem mudança ou numa versão nova.
+A LLM reavalia a versão vigente contra as frentes recentes, por sinal de encaixe, todo mês ou por comando manual. Ela propõe operações (criar, dividir, juntar, renomear, remover), e só valem as que têm frentes de evidência suficientes. Pode terminar sem mudança ou numa versão nova.
 _Avoid_: retreino, atualização
 
 **Sinal de encaixe**:
-O indício de que a versão vigente não cabe mais nas frentes, como incertas acima de um limite ou um tipo grande demais. A dimensão problema não conta para ele.
+O indício de que a versão vigente não cabe mais nas frentes. O principal é o encaixe fraco acima de um limite; não classificadas, incertas e um tipo grande demais são secundários. A dimensão problema não conta para ele.
+
+**Encaixe fraco**:
+Frente em que o Jev respondeu "Nenhum destes" no tipo ou ficou com confiança baixa no tipo, contada antes do desempate da LLM. É onde um tema novo se esconde, porque o desempate encaixa quase tudo num tipo vigente.
+_Avoid_: incerta (é o estado final da frente, depois do desempate)
 
 **Gabarito**:
 A história plantada numa frente da seed (o que aconteceu e em que área), descrita sem os nomes de tipo da taxonomia. O processo de classificação não a vê.
@@ -107,7 +111,7 @@ A resposta, presente em toda dimensão de lista, que diz que a frente não cabe 
 _Avoid_: outros, diversos
 
 **Não classificada**:
-Frente cuja resposta em área ou tipo foi "Nenhum destes". Aparece na linha ou coluna própria do mapa e é o sinal de encaixe mais forte.
+Frente cuja resposta em área ou tipo foi "Nenhum destes". Aparece na linha ou coluna própria do mapa. Na prática é rara, porque o desempate da LLM encaixa a maioria num valor vigente.
 
 ### Mapa de calor
 
