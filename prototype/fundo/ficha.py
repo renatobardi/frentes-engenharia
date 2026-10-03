@@ -71,3 +71,34 @@ CENARIO_PRESO = {
     "pedido de titular LGPD atendido fora do prazo": ["Privacidade (LGPD)"],
     "cliente sem retorno sobre a proposta": ["Proposta", "Simulação", "Jornada Online", "Correspondentes", "Portal do Lojista"],
 }
+
+# o que cada time faz, em uma frase: vira o critério da opção na pergunta de área do Jev (variante "frase")
+FRASE = {
+    "Simulação": "calcula parcelas, taxas e prazos de um financiamento antes de a proposta existir",
+    "Proposta": "recebe e acompanha a proposta de financiamento, da digitação até o envio para análise",
+    "Cadastro e KYC": "cadastra o cliente e confere a identidade, o CPF e a renda dele",
+    "Motor de Decisão": "decide automaticamente se o crédito é aprovado, com score e consulta a bureaus",
+    "Políticas de Crédito": "define e mantém as regras e as alçadas de aprovação de crédito",
+    "Antifraude": "detecta fraude em propostas e documentos e mantém as listas de bloqueio",
+    "Contratos": "gera o contrato de financiamento (a CCB), as minutas e os aditivos",
+    "Documentação e Assinatura": "recebe e confere os documentos do cliente e colhe a assinatura eletrônica",
+    "Gravame": "registra a alienação do veículo nos Detrans e mantém os dados do veículo financiado",
+    "Portal do Lojista": "mantém o portal em que lojistas e concessionárias entram, cadastram vendedores e operam",
+    "Correspondentes": "credencia, certifica e acompanha os correspondentes que visitam as lojas",
+    "Comissionamento de Parceiros": "calcula e paga comissões e bônus a lojistas e correspondentes",
+    "App": "mantém o aplicativo do cliente final: login, notificações, consulta de parcelas",
+    "Jornada Online": "mantém a contratação pelo site: ofertas, pré-análise e funil de conversão",
+    "Marketplace de Veículos": "mantém a vitrine de veículos à venda: anúncios, busca, fotos e laudos",
+    "Boletos e Carnês": "emite e entrega boletos e carnês e cuida do débito automático das parcelas",
+    "Renegociação": "cobra clientes em atraso e monta acordos e descontos de renegociação",
+    "Quitação e Baixa": "calcula o saldo devedor, quita o financiamento e dá baixa no contrato",
+    "Infra e Cloud": "opera a infraestrutura comum a todos os times: nuvem, clusters, rede e backup",
+    "Observabilidade": "mantém as ferramentas comuns de monitoria: coleta de logs, dashboards e central de alertas",
+    "Suporte N2/N3": "atende os chamados de sustentação e mantém a escala de plantão",
+    "Engenharia de Dados": "mantém o data lake, o DW e as cargas de dados usadas por toda a empresa",
+    "Relatórios Regulatórios": "gera e envia os relatórios obrigatórios ao Banco Central e o fechamento contábil",
+    "Privacidade (LGPD)": "atende os pedidos de titulares de dados e controla consentimento e dados pessoais",
+}
+INSTRUCAO_AREA = ("Qual time de tecnologia é o DONO do sistema, da tela ou da rotina de que esta frente fala? "
+                  "Escolha o time dono do que está com problema ou vai ser melhorado, mesmo que outro time (infraestrutura, dados, "
+                  "segurança) seja quem conserta. Só escolha um time de plataforma quando o próprio objeto da frente for dele.")
