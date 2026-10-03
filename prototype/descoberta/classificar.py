@@ -32,7 +32,7 @@ def prompt(f, c):
 
 
 def precisa(c):
-    if c["texto_claro"] < 0.5:
+    if c["texto_claro"] < tx.CONTROLE:
         return False
     return tx.NENHUM in (c["area"]["valor"], c["tipo"]["valor"]) or c["area"]["conf"] < 0.5 or c["tipo"]["conf"] < 0.5
 
@@ -63,6 +63,7 @@ with ThreadPoolExecutor(8) as ex:
 for i, c in classif.items():
     c["estado"] = tx.estado(c)
     c["celula"] = tx.celula(c)
+    c["estado_controle_05"] = tx.estado(c, controle=0.5)   # como ficaria com o corte 0,5 do #6
 toks = [c["tok"] for c in classif.values()]
 resumo = {"versao": tax["versao"], "frentes": len(classif), "erros_jev": len(erros), "parede_jev_s": jev["parede_s"],
           "tok_medio": round(sum(toks) / len(toks)), "custo_jev_usd": round(sum(toks) * 0.042 / 1e6, 4),

@@ -1,0 +1,126 @@
+{
+ "janela_meses": [
+  7,
+  12
+ ],
+ "grupos": "AB",
+ "medidas": {
+  "n": 160,
+  "nenhum_pct": 2.5,
+  "incertas_pct": 7.5,
+  "texto_vago_pct": 0.0,
+  "maior_tipo": "Disponibilidade e Performance",
+  "maior_tipo_pct": 38.2,
+  "motivos": [
+   "tipo 'Disponibilidade e Performance' com 38.2% ≥ 35.0%"
+  ],
+  "fraco_pct": 14.4
+ },
+ "entrada": {
+  "nao_classificadas": 4,
+  "encaixe_fraco": 20,
+  "do_tema_novo_no_encaixe_fraco": 8,
+  "tipo_grande": "Disponibilidade e Performance"
+ },
+ "uso": {
+  "latencia_s": 22.5,
+  "tok_in": 6851,
+  "tok_out": 569,
+  "custo_usd": 0.0005742191
+ },
+ "resposta": {
+  "decisao": "nova_versao",
+  "resumo": "Criado subtipo 'Falso Positivo de Alerta' em Disponibilidade e Performance para capturar alertas que disparam sem ação necessária, e subtipo 'IA Generativa e Assistentes' em Processo e Fluxo de Trabalho para frentes de alucinação de IA e falta de política de uso, resolvendo encaixes fracos recorrentes. Ajustada descrição de 'Falha em Componente Externo' para incluir SLA estourado, e criada causa raiz 'Falta de Governança de Conhecimento' para perda de conhecimento por saída de pessoas.",
+  "operacoes": [
+   {
+    "op": "criar_subtipo",
+    "tipo": "Disponibilidade e Performance",
+    "nome": "Falso Positivo de Alerta",
+    "descricao": "Alertas que disparam sem ação necessária, falsos positivos conhecidos que ninguém desativa ou ajusta, poluindo canais de comunicação.",
+    "evidencias": [
+     10,
+     43
+    ]
+   },
+   {
+    "op": "criar_subtipo",
+    "tipo": "Processo e Fluxo de Trabalho",
+    "nome": "IA Generativa e Assistentes",
+    "descricao": "Frentes sobre alucinação de assistentes de IA, informações incorretas geradas por modelo, falta de política de uso de copilotos de código, e necessidade de diretrizes para evitar riscos de vazamento.",
+    "evidencias": [
+     5,
+     8,
+     11,
+     12,
+     18,
+     19,
+     21,
+     22
+    ]
+   },
+   {
+    "op": "reescrever_descricao",
+    "alvo": "subtipo",
+    "tipo": "Disponibilidade e Performance",
+    "nome": "Falha em Componente Externo",
+    "descricao": "Problemas de disponibilidade, performance ou SLA estourado causados por dependências externas (bureau de crédito, fornecedores, DETRAN). Inclui retornos de rejeição de registrador de gravame.",
+    "evidencias": [
+     7,
+     13,
+     14,
+     15
+    ]
+   },
+   {
+    "op": "criar_causa",
+    "nome": "Falta de Governança de Conhecimento",
+    "descricao": "Perda de conhecimento por saída de pessoas-chave sem passagem de conhecimento, documentação ausente ou desatualizada, falta de onboarding estruturado.",
+    "evidencias": [
+     3,
+     16,
+     17
+    ]
+   }
+  ]
+ },
+ "operacoes_descartadas": [
+  {
+   "op": "criar_subtipo",
+   "tipo": "Disponibilidade e Performance",
+   "nome": "Falso Positivo de Alerta",
+   "descricao": "Alertas que disparam sem ação necessária, falsos positivos conhecidos que ninguém desativa ou ajusta, poluindo canais de comunicação.",
+   "evidencias": [
+    10,
+    43
+   ]
+  },
+  {
+   "op": "reescrever_descricao",
+   "alvo": "subtipo",
+   "tipo": "Disponibilidade e Performance",
+   "nome": "Falha em Componente Externo",
+   "descricao": "Problemas de disponibilidade, performance ou SLA estourado causados por dependências externas (bureau de crédito, fornecedores, DETRAN). Inclui retornos de rejeição de registrador de gravame.",
+   "evidencias": [
+    7,
+    13,
+    14,
+    15
+   ]
+  },
+  {
+   "op": "criar_causa",
+   "nome": "Falta de Governança de Conhecimento",
+   "descricao": "Perda de conhecimento por saída de pessoas-chave sem passagem de conhecimento, documentação ausente ou desatualizada, falta de onboarding estruturado.",
+   "evidencias": [
+    3,
+    16,
+    17
+   ]
+  }
+ ],
+ "resultado": "nova_versao",
+ "problemas": [],
+ "diff": [
+  "+ subtipo Processo e Fluxo de Trabalho › IA Generativa e Assistentes: Frentes sobre alucinação de assistentes de IA, informações incorretas geradas por modelo, falta de política de uso de copilotos de código, e necessidade de diretrizes para evitar riscos de vazamento."
+ ]
+}

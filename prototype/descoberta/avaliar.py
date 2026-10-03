@@ -13,7 +13,10 @@ HIST = ["H1", "H2", "H3", "H4", "H5", "H6", "H7"]
 
 
 def carrega(v):
-    return json.load(open(DADOS / f"classif_v{v}.json"))["classif"]
+    cl = json.load(open(DADOS / f"classif_v{v}.json"))["classif"]
+    for c in cl.values():
+        c["celula"] = tuple(c["celula"])
+    return cl
 
 
 def por_historia(cl):
@@ -79,6 +82,7 @@ def sinal_por_mes(cl, limites=tx.LIMITES):
         ids = [i for i in cl if grupo(i) == gname]
         est = collections.Counter(cl[i]["estado"] for i in ids)
         taxa[gname] = {k: v / len(ids) for k, v in est.items()} if ids else {}
+        taxa[gname]["fraco"] = sum(tx.encaixe_fraco(cl[i]) for i in ids) / len(ids) if ids else 0
         taxa[gname]["_n"] = len(ids)
     linhas = []
     for mes in range(1, 13):
@@ -87,8 +91,10 @@ def sinal_por_mes(cl, limites=tx.LIMITES):
         n = sum(vol.values())
         nen = sum(vol[g] * taxa[g].get("não classificada", 0) for g in vol) / n * 100
         inc = sum(vol[g] * taxa[g].get("incerta", 0) for g in vol) / n * 100
-        dispara = n >= limites["min_frentes"] and (nen >= limites["nenhum_pct"] or inc >= limites["incertas_pct"])
-        linhas.append(dict(mes=mes, frentes=n, h5=vol["H5"], nao_classificadas_pct=round(nen, 1), incertas_pct=round(inc, 1), dispara=dispara))
+        fr = sum(vol[g] * taxa[g].get("fraco", 0) for g in vol) / n * 100
+        dispara = n >= limites["min_frentes"] and (nen >= limites["nenhum_pct"] or inc >= limites["incertas_pct"] or fr >= limites["fraco_pct"])
+        linhas.append(dict(mes=mes, frentes=n, h5=vol["H5"], nao_classificadas_pct=round(nen, 1), incertas_pct=round(inc, 1),
+                           fraco_pct=round(fr, 1), fracas=round(fr * n / 100), fracas_h5=round(vol["H5"] * taxa["H5"].get("fraco", 0)), dispara=dispara))
     return taxa, linhas
 
 
@@ -99,6 +105,8 @@ if __name__ == "__main__":
         est = collections.Counter(c["estado"] for i, c in cl.items() if gab[i]["grupo"] != "R")
         n = sum(est.values())
         print("ESTADOS (grupos A+B):", {k: f"{x} ({100 * x / n:.0f}%)" for k, x in est.most_common()})
+        e05 = collections.Counter(c["estado_controle_05"] for i, c in cl.items() if gab[i]["grupo"] != "R")
+        print(f"  com o corte 0,5 da pergunta de controle (#6): texto vago = {e05['incerta: texto vago']}/{n}")
         print("TIPOS (A+B, das que pintam):", dict(collections.Counter(c["celula"][1] for i, c in cl.items() if gab[i]["grupo"] != "R" and c["estado"].startswith("classificada")).most_common()))
         nat = [(gab[i]["natureza"], c["natureza"]["valor"]) for i, c in cl.items() if gab[i]["natureza"]]
         print(f"NATUREZA certa: {sum(a == b for a, b in nat)}/{len(nat)}")
@@ -116,4 +124,4 @@ if __name__ == "__main__":
         print("\nSINAL DE ENCAIXE projetado por mês (janela de 30 dias, volume da seed inteira):")
         print("  taxas medidas na amostra:", {g: {k: (round(x, 2) if k != "_n" else x) for k, x in t.items()} for g, t in taxa.items()})
         for l in linhas:
-            print(f"  mês {l['mes']:2}: {l['frentes']} frentes, H5={l['h5']:2} · não classificadas {l['nao_classificadas_pct']:4}% · incertas {l['incertas_pct']:4}%{'  ← DISPARA' if l['dispara'] else ''}")
+            print(f"  mês {l['mes']:2}: {l['frentes']} frentes, H5={l['h5']:2} · não classificadas {l['nao_classificadas_pct']:4}% · incertas {l['incertas_pct']:4}% · encaixe fraco {l['fraco_pct']:4}% ({l['fracas']} frentes, {l['fracas_h5']} do tema novo){'  ← DISPARA' if l['dispara'] else ''}")

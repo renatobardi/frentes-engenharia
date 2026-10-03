@@ -190,9 +190,12 @@ def validar(tax, organograma=None):
 
 # ------------------------------------------------------------------ estados de classificação (#6)
 
-def estado(c, limiar=0.5):
+CONTROLE = 0.0  # corte da pergunta de controle "texto vago". O #6 decidiu 0,5; na seed isso derruba 88% das frentes (ver README)
+
+
+def estado(c, limiar=0.5, controle=None):
     """Estado de classificação do #6, olhando só área, tipo e natureza. `c["llm"]` é o fallback, se houve."""
-    if c["texto_claro"] < 0.5:
+    if c["texto_claro"] < (CONTROLE if controle is None else controle):
         return "incerta: texto vago"
     fb = c.get("llm") or {}
     area, tipo = fb.get("area", c["area"]["valor"]), fb.get("tipo", c["tipo"]["valor"])
@@ -211,7 +214,13 @@ def celula(c):
 
 # ------------------------------------------------------------------ sinal de encaixe
 
-LIMITES = {"janela_dias": 30, "min_frentes": 100, "nenhum_pct": 5.0, "incertas_pct": 15.0, "tipo_max_pct": 35.0}
+LIMITES = {"janela_dias": 30, "min_frentes": 100, "nenhum_pct": 5.0, "incertas_pct": 15.0, "fraco_pct": 12.0, "tipo_max_pct": 45.0}
+FRACO = 0.7  # confiança do tipo (Jev) abaixo disto = encaixe fraco
+
+
+def encaixe_fraco(c):
+    """O Jev respondeu "Nenhum destes" no tipo ou hesitou, ANTES do desempate da LLM (que encaixa quase tudo num tipo vigente)."""
+    return c["tipo"]["valor"] == NENHUM or c["tipo"]["conf"] < FRACO
 
 
 def sinal_de_encaixe(estados_tipos, limites=LIMITES):
@@ -245,26 +254,30 @@ SISTEMA_REVISAO = SISTEMA_BASE + """
 
 Agora você REVISA a versão vigente da taxonomia contra as frentes recentes. Você recebe: a versão vigente, \
 a distribuição das frentes recentes por tipo, as frentes que ficaram NÃO CLASSIFICADAS (não couberam em nenhum tipo), \
-as INCERTAS (o classificador ficou em dúvida entre tipos) e, se algum tipo ficou grande demais, uma amostra dele.
+as de ENCAIXE FRACO (o classificador respondeu "Nenhum destes" ou hesitou entre tipos; depois elas foram encaixadas à força \
+num tipo vigente, e é aí que um tema novo se esconde) e, se algum tipo ficou grande demais, uma amostra dele.
 
 Como decidir:
 - "Sem mudança" é a resposta certa quando as não classificadas são mensagens sem conteúdo ou casos isolados sem tema comum.
 - Mude o mínimo. Cada versão nova obriga a reclassificar todo o histórico, e o que não muda mantém o nome e a descrição.
-- Só crie tipo ou subtipo para um tema que aparece em pelo menos {min_tema} frentes das listas. Diga quais em "evidencias".
-- Tema novo que é uma espécie nova de frente vira TIPO. Tema novo que é um caso de um tipo vigente vira SUBTIPO dele.
-- Incertas divididas sempre entre os mesmos dois tipos pedem "reescrever_descricao" (o critério está ambíguo) ou "juntar_tipos".
+- Toda operação cita em "evidencias" os números de pelo menos {min_tema} frentes das listas abaixo que a justificam. \
+Operação com menos de {min_tema} evidências é descartada: um ou dois casos não mudam a taxonomia.
+- Tema novo cujas frentes foram parar em DOIS OU MAIS tipos vigentes vira TIPO novo (com 2 ou mais subtipos), porque nenhum tipo vigente é o dono dele. \
+Tema novo concentrado num tipo vigente vira SUBTIPO desse tipo.
+- Procure nas de encaixe fraco um ASSUNTO que se repete e que a versão vigente não nomeia (uma tecnologia, uma prática ou um risco novo), mesmo que cada frente tenha ido parar num tipo diferente.
+- Frentes de encaixe fraco divididas sempre entre os mesmos dois tipos pedem "reescrever_descricao" (o critério está ambíguo) ou "juntar_tipos".
 - Tipo grande demais pede "dividir_tipo" ou "criar_subtipo".
 - O resultado tem de respeitar os tetos. Para criar acima do teto, junte ou remova antes.
 
 Operações que você pode usar (cada uma com "motivo"):
 - {{"op": "criar_tipo", "nome": "", "descricao": "", "subtipos": [{{"nome": "", "descricao": ""}}], "evidencias": [0]}}
 - {{"op": "criar_subtipo", "tipo": "", "nome": "", "descricao": "", "evidencias": [0]}}
-- {{"op": "dividir_tipo", "tipo": "", "em": [{{"nome": "", "descricao": "", "subtipos": [{{"nome": "", "descricao": ""}}]}}]}}
-- {{"op": "juntar_tipos", "tipos": ["", ""], "nome": "", "descricao": "", "subtipos": [{{"nome": "", "descricao": ""}}]}}
-- {{"op": "renomear", "alvo": "tipo|subtipo|causa", "tipo": "(só para subtipo)", "de": "", "para": ""}}
-- {{"op": "reescrever_descricao", "alvo": "tipo|subtipo|causa", "tipo": "(só para subtipo)", "nome": "", "descricao": ""}}
-- {{"op": "remover", "alvo": "tipo|subtipo|causa", "tipo": "(só para subtipo)", "nome": ""}}
-- {{"op": "criar_causa", "nome": "", "descricao": ""}}
+- {{"op": "dividir_tipo", "tipo": "", "em": [{{"nome": "", "descricao": "", "subtipos": [{{"nome": "", "descricao": ""}}]}}], "evidencias": [0]}}
+- {{"op": "juntar_tipos", "tipos": ["", ""], "nome": "", "descricao": "", "subtipos": [{{"nome": "", "descricao": ""}}], "evidencias": [0]}}
+- {{"op": "renomear", "alvo": "tipo|subtipo|causa", "tipo": "(só para subtipo)", "de": "", "para": "", "evidencias": [0]}}
+- {{"op": "reescrever_descricao", "alvo": "tipo|subtipo|causa", "tipo": "(só para subtipo)", "nome": "", "descricao": "", "evidencias": [0]}}
+- {{"op": "remover", "alvo": "tipo|subtipo|causa", "tipo": "(só para subtipo)", "nome": "", "evidencias": [0]}}
+- {{"op": "criar_causa", "nome": "", "descricao": "", "evidencias": [0]}}
 As réguas e o critério de urgência não mudam na revisão.
 
 Responda só JSON:
@@ -287,14 +300,14 @@ def prompt_revisao(tax, medidas, dist_tipo, nao_classificadas, incertas, amostra
     """nao_classificadas: [frente]; incertas: [(frente, top3)]; numeradas em sequência para as evidências."""
     p = [f"VERSÃO VIGENTE (v{tax['versao']}):", texto_versao(tax), "",
          f"MOTIVO DA REVISÃO: {motivo}",
-         f"FRENTES RECENTES: {medidas['n']} · não classificadas {medidas['nenhum_pct']}% · incertas {medidas['incertas_pct']}% · texto vago {medidas['texto_vago_pct']}% (à parte)",
+         f"FRENTES RECENTES: {medidas['n']} · não classificadas {medidas['nenhum_pct']}% · encaixe fraco {medidas.get('fraco_pct', '?')}% · incertas {medidas['incertas_pct']}%",
          "DISTRIBUIÇÃO POR TIPO (das que pintam o mapa): " + "; ".join(f"{t} {v}%" for t, v in dist_tipo), ""]
     n = 0
     p.append(f"NÃO CLASSIFICADAS ({len(nao_classificadas)}):")
     for f in nao_classificadas:
         n += 1
         p.append(linha_frente(f, n))
-    p.append(f"\nINCERTAS NO TIPO ({len(incertas)}), com os tipos entre os quais o classificador hesitou:")
+    p.append(f"\nENCAIXE FRACO ({len(incertas)}), com os tipos entre os quais o classificador hesitou:")
     for f, top3 in incertas:
         n += 1
         p.append(linha_frente(f, n) + "  → " + " / ".join(f"{k} {v}" for k, v in top3))
@@ -305,6 +318,16 @@ def prompt_revisao(tax, medidas, dist_tipo, nao_classificadas, incertas, amostra
             n += 1
             p.append(linha_frente(f, n))
     return SISTEMA_REVISAO.format(min_tema=MIN_TEMA, **_tetos_fmt()), "\n".join(p)
+
+
+def filtrar_operacoes(ops, total_listado, min_tema=MIN_TEMA):
+    """A LLM sem raciocínio muda a taxonomia por um ou dois casos mesmo com a regra no prompt: quem impõe o mínimo é o código.
+    Fica a operação com pelo menos `min_tema` evidências distintas e existentes. Sem nenhuma, a revisão termina sem mudança."""
+    ficam, saem = [], []
+    for o in ops:
+        ev = {e for e in (o.get("evidencias") or []) if isinstance(e, int) and 1 <= e <= total_listado}
+        (ficam if len(ev) >= min_tema else saem).append(o)
+    return ficam, saem
 
 
 def _subs(lista):

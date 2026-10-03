@@ -1,0 +1,139 @@
+{
+ "janela_meses": [
+  7,
+  12
+ ],
+ "grupos": "ABR",
+ "medidas": {
+  "n": 190,
+  "nenhum_pct": 2.6,
+  "incertas_pct": 7.4,
+  "texto_vago_pct": 0.0,
+  "maior_tipo": "Disponibilidade e Performance",
+  "maior_tipo_pct": 32.9,
+  "motivos": [],
+  "fraco_pct": 23.2
+ },
+ "entrada": {
+  "nao_classificadas": 5,
+  "encaixe_fraco": 41,
+  "do_tema_novo_no_encaixe_fraco": 29,
+  "tipo_grande": null
+ },
+ "uso": {
+  "latencia_s": 35.1,
+  "tok_in": 7028,
+  "tok_out": 854,
+  "custo_usd": 0.0008038758
+ },
+ "resposta": {
+  "decisao": "nova_versao",
+  "resumo": "Criado o tipo 'Inteligência Artificial e Modelos' com dois subtipos para abrigar as frentes sobre comportamento inadequado de assistentes de IA (alucinações, escalonamento excessivo) e sobre governança de ferramentas de IA (copiloto de código sem política), que antes se espalhavam por 'Processo e Fluxo de Trabalho', 'Experiência do Parceiro e do Cliente', 'Segurança e Conformidade' e 'Nenhum destes'. Ajustada a descrição de 'Processo e Fluxo de Trabalho' para remover ambiguidade com o novo tipo.",
+  "operacoes": [
+   {
+    "op": "criar_tipo",
+    "nome": "Inteligência Artificial e Modelos",
+    "descricao": "Frentes sobre comportamento, qualidade e governança de modelos de IA e assistentes virtuais. Inclui alucinações (informações incorretas geradas pelo modelo), escalonamento excessivo para humano, falta de política de uso de ferramentas de IA (copiloto de código, LLMs) e necessidade de revisão de conhecimento base. Tanto problemas reativos quanto melhorias proativas.",
+    "subtipos": [
+     {
+      "nome": "Alucinação e Erro de Modelo",
+      "descricao": "Assistente de IA ou modelo gera informações incorretas, inventa regras (ex.: taxas de juros, regras de quitação) ou fornece dados que não existem na base. Inclui correção do conhecimento base e ajuste do modelo."
+     },
+     {
+      "nome": "Governança e Política de IA",
+      "descricao": "Frentes sobre falta de diretrizes para uso de ferramentas de IA (copiloto de código, LLMs), riscos de vazamento de dados por ausência de política, e necessidade de criação de regras de uso seguro."
+     }
+    ],
+    "evidencias": [
+     6,
+     11,
+     12,
+     15,
+     16,
+     19,
+     24,
+     36,
+     38,
+     42,
+     43,
+     44,
+     45
+    ]
+   },
+   {
+    "op": "criar_subtipo",
+    "tipo": "Inteligência Artificial e Modelos",
+    "nome": "Escalonamento Excessivo e Fila",
+    "descricao": "Assistente virtual encaminha volume anormalmente alto de conversas para atendimento humano, gerando filas e aumento de tempo de espera. Inclui revisão de configuração do modelo, thresholds e causas do escalonamento.",
+    "evidencias": [
+     8,
+     10,
+     20,
+     25,
+     26,
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33,
+     35,
+     37,
+     39,
+     41
+    ]
+   },
+   {
+    "op": "reescrever_descricao",
+    "alvo": "tipo",
+    "tipo": "",
+    "nome": "Processo e Fluxo de Trabalho",
+    "descricao": "Frentes sobre ineficiências, retrabalho, falta de automação, gargalos de comunicação ou conflitos de prioridade entre áreas. Inclui tanto o processo quebrado quanto a proposta de melhoria do fluxo. Exclui problemas específicos de comportamento de modelos de IA (ver tipo 'Inteligência Artificial e Modelos').",
+    "evidencias": [
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     17,
+     18,
+     20,
+     21,
+     22,
+     23,
+     25,
+     26,
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33,
+     34,
+     35,
+     37,
+     39,
+     40,
+     41,
+     46
+    ]
+   }
+  ]
+ },
+ "operacoes_descartadas": [],
+ "resultado": "nova_versao",
+ "problemas": [],
+ "diff": [
+  "~ tipo Processo e Fluxo de Trabalho: Frentes sobre ineficiências, retrabalho, falta de automação, gargalos de comunicação ou conflitos de prioridade entre áreas. Inclui tanto o processo quebrado quanto a proposta de melhoria do fluxo. Exclui problemas específicos de comportamento de modelos de IA (ver tipo 'Inteligência Artificial e Modelos').",
+  "+ tipo Inteligência Artificial e Modelos: Frentes sobre comportamento, qualidade e governança de modelos de IA e assistentes virtuais. Inclui alucinações (informações incorretas geradas pelo modelo), escalonamento excessivo para humano, falta de política de uso de ferramentas de IA (copiloto de código, LLMs) e necessidade de revisão de conhecimento base. Tanto problemas reativos quanto melhorias proativas.",
+  "    + Alucinação e Erro de Modelo: Assistente de IA ou modelo gera informações incorretas, inventa regras (ex.: taxas de juros, regras de quitação) ou fornece dados que não existem na base. Inclui correção do conhecimento base e ajuste do modelo.",
+  "    + Governança e Política de IA: Frentes sobre falta de diretrizes para uso de ferramentas de IA (copiloto de código, LLMs), riscos de vazamento de dados por ausência de política, e necessidade de criação de regras de uso seguro.",
+  "    + Escalonamento Excessivo e Fila: Assistente virtual encaminha volume anormalmente alto de conversas para atendimento humano, gerando filas e aumento de tempo de espera. Inclui revisão de configuração do modelo, thresholds e causas do escalonamento."
+ ]
+}

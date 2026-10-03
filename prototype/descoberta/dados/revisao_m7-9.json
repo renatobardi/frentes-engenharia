@@ -1,0 +1,202 @@
+{
+ "janela_meses": [
+  7,
+  9
+ ],
+ "grupos": "AB",
+ "medidas": {
+  "n": 85,
+  "nenhum_pct": 2.4,
+  "incertas_pct": 8.2,
+  "texto_vago_pct": 0.0,
+  "maior_tipo": "Disponibilidade e Performance",
+  "maior_tipo_pct": 34.2,
+  "motivos": [],
+  "fraco_pct": 14.1
+ },
+ "entrada": {
+  "nao_classificadas": 2,
+  "encaixe_fraco": 10,
+  "do_tema_novo_no_encaixe_fraco": 3,
+  "tipo_grande": null
+ },
+ "uso": {
+  "latencia_s": 43.1,
+  "tok_in": 3958,
+  "tok_out": 1345,
+  "custo_usd": 0.0006412553
+ },
+ "resposta": {
+  "decisao": "nova_versao",
+  "resumo": "Criado subtipo 'Gestão de Certificados e Renovações' em Infraestrutura e Operação para capturar frentes de certificados vencendo sem dono; criado subtipo 'Falso Positivo e Ruído de Alerta' em Processo e Fluxo de Trabalho para alertas falsos que poluem canais; criado subtipo 'Uso de IA e Dados Sensíveis' em Segurança e Conformidade para riscos de vazamento com ferramentas de IA; criado subtipo 'Conhecimento e Documentação de Sistemas' em Processo e Fluxo de Trabalho para perda de conhecimento por saída de pessoas; criado subtipo 'Rejeição de Gravame em Lote' em Integridade e Consistência de Dados para rejeições de registrador; criado subtipo 'Assistente de IA com Informação Incorreta' em Experiência do Parceiro e do Cliente para erros de assistente; criado subtipo 'Pipeline Lento' em Infraestrutura e Operação para pipelines demorados; criado subtipo 'Falta de Informação em Tela' em Experiência do Parceiro e do Cliente para sistema que não mostra dados necessários; criado subtipo 'Escalação de Assistente e Taxa Incorreta' em Processo e Fluxo de Trabalho para respostas de assistente marcadas para humano.",
+  "operacoes": [
+   {
+    "op": "criar_subtipo",
+    "tipo": "Infraestrutura e Operação",
+    "nome": "Gestão de Certificados e Renovações",
+    "descricao": "Frentes sobre certificados SSL, TLS ou outros vencendo ou prestes a vencer, sem dono claro, sem processo de renovação, ou com risco de indisponibilidade por vencimento. Inclui tanto a correção emergencial quanto a proposta de automação de renovação.",
+    "evidencias": [
+     3
+    ]
+   },
+   {
+    "op": "criar_subtipo",
+    "tipo": "Processo e Fluxo de Trabalho",
+    "nome": "Falso Positivo e Ruído de Alerta",
+    "descricao": "Frentes sobre alertas que disparam sem ação necessária (falso positivo), que poluem canais de comunicação sem valor, ou que precisam ser ajustados/desativados. Inclui proposta de melhoria na configuração de alertas.",
+    "evidencias": [
+     4
+    ]
+   },
+   {
+    "op": "criar_subtipo",
+    "tipo": "Segurança e Conformidade",
+    "nome": "Uso de IA e Dados Sensíveis",
+    "descricao": "Frentes sobre riscos de vazamento de dados sensíveis ao usar ferramentas de IA (copilotos, assistentes, modelos de linguagem), falta de política de uso, ou necessidade de diretrizes de segurança para dados enviados a modelos externos.",
+    "evidencias": [
+     5
+    ]
+   },
+   {
+    "op": "criar_subtipo",
+    "tipo": "Processo e Fluxo de Trabalho",
+    "nome": "Conhecimento e Documentação de Sistemas",
+    "descricao": "Frentes sobre perda de conhecimento técnico ou de negócio devido à saída de pessoas sem passagem de conhecimento, falta de documentação de arquitetura, sistemas críticos sem dono, ou dificuldade de configurar ferramentas por falta de expertise.",
+    "evidencias": [
+     9
+    ]
+   },
+   {
+    "op": "criar_subtipo",
+    "tipo": "Integridade e Consistência de Dados",
+    "nome": "Rejeição de Gravame em Lote",
+    "descricao": "Frentes sobre retornos de rejeição de registrador de gravame em lotes de processamento, indicando dados incorretos ou divergentes que impedem o registro. Inclui correção dos dados e melhoria no processo de envio.",
+    "evidencias": [
+     7,
+     8
+    ]
+   },
+   {
+    "op": "criar_subtipo",
+    "tipo": "Experiência do Parceiro e do Cliente",
+    "nome": "Assistente de IA com Informação Incorreta",
+    "descricao": "Frentes sobre assistentes de IA (chatbots, copilotos) que fornecem informações incorretas sobre regras de negócio, produtos ou processos, gerando reclamações de clientes ou parceiros. Inclui correção da base de conhecimento e melhoria do modelo.",
+    "evidencias": [
+     6
+    ]
+   },
+   {
+    "op": "criar_subtipo",
+    "tipo": "Infraestrutura e Operação",
+    "nome": "Pipeline Lento",
+    "descricao": "Frentes sobre pipelines de CI/CD que estão com tempo de execução excessivo, prejudicando a produtividade do time. Inclui proposta de otimização, paralelização ou melhoria de infraestrutura.",
+    "evidencias": [
+     12
+    ]
+   },
+   {
+    "op": "criar_subtipo",
+    "tipo": "Experiência do Parceiro e do Cliente",
+    "nome": "Falta de Informação em Tela",
+    "descricao": "Frentes sobre sistemas ou portais que não exibem informações necessárias para o atendimento ou operação, forçando o usuário a buscar dados em outros lugares ou paralisando o fluxo de trabalho.",
+    "evidencias": [
+     10
+    ]
+   },
+   {
+    "op": "criar_subtipo",
+    "tipo": "Processo e Fluxo de Trabalho",
+    "nome": "Escalação de Assistente e Taxa Incorreta",
+    "descricao": "Frentes sobre respostas de assistentes de IA que são marcadas para escalonamento humano em volume anormal, ou taxas de juros/prazos informadas incorretamente pelo assistente, indicando falha no modelo ou na base de conhecimento.",
+    "evidencias": [
+     11
+    ]
+   }
+  ]
+ },
+ "operacoes_descartadas": [
+  {
+   "op": "criar_subtipo",
+   "tipo": "Infraestrutura e Operação",
+   "nome": "Gestão de Certificados e Renovações",
+   "descricao": "Frentes sobre certificados SSL, TLS ou outros vencendo ou prestes a vencer, sem dono claro, sem processo de renovação, ou com risco de indisponibilidade por vencimento. Inclui tanto a correção emergencial quanto a proposta de automação de renovação.",
+   "evidencias": [
+    3
+   ]
+  },
+  {
+   "op": "criar_subtipo",
+   "tipo": "Processo e Fluxo de Trabalho",
+   "nome": "Falso Positivo e Ruído de Alerta",
+   "descricao": "Frentes sobre alertas que disparam sem ação necessária (falso positivo), que poluem canais de comunicação sem valor, ou que precisam ser ajustados/desativados. Inclui proposta de melhoria na configuração de alertas.",
+   "evidencias": [
+    4
+   ]
+  },
+  {
+   "op": "criar_subtipo",
+   "tipo": "Segurança e Conformidade",
+   "nome": "Uso de IA e Dados Sensíveis",
+   "descricao": "Frentes sobre riscos de vazamento de dados sensíveis ao usar ferramentas de IA (copilotos, assistentes, modelos de linguagem), falta de política de uso, ou necessidade de diretrizes de segurança para dados enviados a modelos externos.",
+   "evidencias": [
+    5
+   ]
+  },
+  {
+   "op": "criar_subtipo",
+   "tipo": "Processo e Fluxo de Trabalho",
+   "nome": "Conhecimento e Documentação de Sistemas",
+   "descricao": "Frentes sobre perda de conhecimento técnico ou de negócio devido à saída de pessoas sem passagem de conhecimento, falta de documentação de arquitetura, sistemas críticos sem dono, ou dificuldade de configurar ferramentas por falta de expertise.",
+   "evidencias": [
+    9
+   ]
+  },
+  {
+   "op": "criar_subtipo",
+   "tipo": "Integridade e Consistência de Dados",
+   "nome": "Rejeição de Gravame em Lote",
+   "descricao": "Frentes sobre retornos de rejeição de registrador de gravame em lotes de processamento, indicando dados incorretos ou divergentes que impedem o registro. Inclui correção dos dados e melhoria no processo de envio.",
+   "evidencias": [
+    7,
+    8
+   ]
+  },
+  {
+   "op": "criar_subtipo",
+   "tipo": "Experiência do Parceiro e do Cliente",
+   "nome": "Assistente de IA com Informação Incorreta",
+   "descricao": "Frentes sobre assistentes de IA (chatbots, copilotos) que fornecem informações incorretas sobre regras de negócio, produtos ou processos, gerando reclamações de clientes ou parceiros. Inclui correção da base de conhecimento e melhoria do modelo.",
+   "evidencias": [
+    6
+   ]
+  },
+  {
+   "op": "criar_subtipo",
+   "tipo": "Infraestrutura e Operação",
+   "nome": "Pipeline Lento",
+   "descricao": "Frentes sobre pipelines de CI/CD que estão com tempo de execução excessivo, prejudicando a produtividade do time. Inclui proposta de otimização, paralelização ou melhoria de infraestrutura.",
+   "evidencias": [
+    12
+   ]
+  },
+  {
+   "op": "criar_subtipo",
+   "tipo": "Experiência do Parceiro e do Cliente",
+   "nome": "Falta de Informação em Tela",
+   "descricao": "Frentes sobre sistemas ou portais que não exibem informações necessárias para o atendimento ou operação, forçando o usuário a buscar dados em outros lugares ou paralisando o fluxo de trabalho.",
+   "evidencias": [
+    10
+   ]
+  },
+  {
+   "op": "criar_subtipo",
+   "tipo": "Processo e Fluxo de Trabalho",
+   "nome": "Escalação de Assistente e Taxa Incorreta",
+   "descricao": "Frentes sobre respostas de assistentes de IA que são marcadas para escalonamento humano em volume anormal, ou taxas de juros/prazos informadas incorretamente pelo assistente, indicando falha no modelo ou na base de conhecimento.",
+   "evidencias": [
+    11
+   ]
+  }
+ ],
+ "resultado": "sem_mudanca"
+}

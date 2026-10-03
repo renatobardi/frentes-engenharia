@@ -1,0 +1,94 @@
+{
+ "janela_meses": [
+  7,
+  9
+ ],
+ "grupos": "ABR",
+ "medidas": {
+  "n": 96,
+  "nenhum_pct": 2.1,
+  "incertas_pct": 8.3,
+  "texto_vago_pct": 0.0,
+  "maior_tipo": "Disponibilidade e Performance",
+  "maior_tipo_pct": 31.8,
+  "motivos": [],
+  "fraco_pct": 22.9
+ },
+ "entrada": {
+  "nao_classificadas": 2,
+  "encaixe_fraco": 20,
+  "do_tema_novo_no_encaixe_fraco": 13,
+  "tipo_grande": null
+ },
+ "uso": {
+  "latencia_s": 22.2,
+  "tok_in": 4938,
+  "tok_out": 588,
+  "custo_usd": 0.0005902008
+ },
+ "resposta": {
+  "decisao": "nova_versao",
+  "resumo": "Criado o tipo 'IA e Assistentes Virtuais' com 2 subtipos para capturar o tema novo de assistentes de IA (alucinação, escalonamento excessivo, falta de política de uso), que apareceu em 10 frentes de encaixe fraco espalhadas por 4 tipos vigentes. Ajustada descrição de 'Processo e Fluxo de Trabalho' para reduzir ambiguidade com o novo tipo.",
+  "operacoes": [
+   {
+    "op": "criar_tipo",
+    "nome": "IA e Assistentes Virtuais",
+    "descricao": "Frentes sobre comportamento inadequado de assistentes de IA (alucinação, escalonamento excessivo, informações incorretas) e falta de política ou governança para uso de IA generativa. Inclui correção de modelo e proposta de melhoria.",
+    "subtipos": [
+     {
+      "nome": "Alucinação e Informação Incorreta",
+      "descricao": "Assistente de IA fornece informação errada (taxa, regra, prazo) que não existe na base ou contradiz a política oficial."
+     },
+     {
+      "nome": "Escalonamento Excessivo e Configuração",
+      "descricao": "Assistente virtual encaminha para humano percentual muito acima do esperado, ou logs mostram taxa de escalonamento anômala. Inclui ajuste de modelo, configuração ou conhecimento base."
+     },
+     {
+      "nome": "Falta de Política de Uso de IA",
+      "descricao": "Time quer adotar ferramenta de IA (copiloto, assistente) mas não há diretriz de segurança, privacidade ou governança aprovada."
+     }
+    ],
+    "evidencias": [
+     5,
+     7,
+     8,
+     12,
+     13,
+     14,
+     16,
+     17,
+     18,
+     19,
+     21,
+     22
+    ]
+   },
+   {
+    "op": "reescrever_descricao",
+    "alvo": "tipo",
+    "tipo": "",
+    "nome": "Processo e Fluxo de Trabalho",
+    "descricao": "Frentes sobre ineficiências, retrabalho, falta de automação, gargalos de comunicação ou conflitos de prioridade entre áreas. Inclui tanto o processo quebrado quanto a proposta de melhoria do fluxo. Exclui problemas específicos de assistentes de IA (alucinação, escalonamento, política de uso) que têm tipo próprio.",
+    "evidencias": [
+     4,
+     6,
+     9,
+     10,
+     11,
+     15,
+     20
+    ]
+   }
+  ]
+ },
+ "operacoes_descartadas": [],
+ "resultado": "nova_versao",
+ "problemas": [],
+ "diff": [
+  "~ tipo Processo e Fluxo de Trabalho: Frentes sobre ineficiências, retrabalho, falta de automação, gargalos de comunicação ou conflitos de prioridade entre áreas. Inclui tanto o processo quebrado quanto a proposta de melhoria do fluxo. Exclui problemas específicos de assistentes de IA (alucinação, escalonamento, política de uso) que têm tipo próprio.",
+  "+ tipo IA e Assistentes Virtuais: Frentes sobre comportamento inadequado de assistentes de IA (alucinação, escalonamento excessivo, informações incorretas) e falta de política ou governança para uso de IA generativa. Inclui correção de modelo e proposta de melhoria.",
+  "    + Alucinação e Informação Incorreta: Assistente de IA fornece informação errada (taxa, regra, prazo) que não existe na base ou contradiz a política oficial.",
+  "    + Escalonamento Excessivo e Configuração: Assistente virtual encaminha para humano percentual muito acima do esperado, ou logs mostram taxa de escalonamento anômala. Inclui ajuste de modelo, configuração ou conhecimento base.",
+  "    + Falta de Política de Uso de IA: Time quer adotar ferramenta de IA (copiloto, assistente) mas não há diretriz de segurança, privacidade ou governança aprovada."
+ ]
+}

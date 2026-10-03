@@ -1,0 +1,114 @@
+{
+ "janela_meses": [
+  1,
+  6
+ ],
+ "grupos": "AB",
+ "medidas": {
+  "n": 62,
+  "nenhum_pct": 1.6,
+  "incertas_pct": 4.8,
+  "texto_vago_pct": 0.0,
+  "maior_tipo": "Disponibilidade e Performance",
+  "maior_tipo_pct": 37.9,
+  "motivos": [],
+  "fraco_pct": 8.1
+ },
+ "entrada": {
+  "nao_classificadas": 1,
+  "encaixe_fraco": 4,
+  "do_tema_novo_no_encaixe_fraco": 0,
+  "tipo_grande": "Disponibilidade e Performance"
+ },
+ "uso": {
+  "latencia_s": 21.9,
+  "tok_in": 4292,
+  "tok_out": 460,
+  "custo_usd": 0.0003060372
+ },
+ "resposta": {
+  "decisao": "nova_versao",
+  "resumo": "Criado subtipo 'Alarme sem Ação' em Disponibilidade e Performance para frentes de alertas que não podem ser resolvidos, e subtipo 'Onboarding e Acesso' em Processo e Fluxo de Trabalho para frentes de demora na liberação de acesso a parceiros. Ajustada descrição de 'Falha em Componente Externo' para incluir rejeições de registradores de gravame. Removida causa raiz 'Falta de Monitoramento e Observabilidade' por não ter evidências suficientes.",
+  "operacoes": [
+   {
+    "op": "criar_subtipo",
+    "tipo": "Disponibilidade e Performance",
+    "nome": "Alarme sem Ação",
+    "descricao": "Alertas que disparam recorrentemente sem ação possível de mitigação, sendo ignorados ou desligados sem solução definitiva.",
+    "evidencias": [
+     5,
+     10
+    ]
+   },
+   {
+    "op": "criar_subtipo",
+    "tipo": "Processo e Fluxo de Trabalho",
+    "nome": "Onboarding e Acesso",
+    "descricao": "Demora excessiva no processo de liberação de acesso a sistemas, portais ou ferramentas para novos colaboradores ou parceiros, incluindo etapas manuais e burocráticas.",
+    "evidencias": [
+     4
+    ]
+   },
+   {
+    "op": "reescrever_descricao",
+    "alvo": "subtipo",
+    "tipo": "Disponibilidade e Performance",
+    "nome": "Falha em Componente Externo",
+    "descricao": "Problemas de disponibilidade, performance ou rejeição de dados causados por dependências externas (bureau de crédito, fornecedores, DETRAN, registradores de gravame).",
+    "evidencias": [
+     2
+    ]
+   },
+   {
+    "op": "remover",
+    "alvo": "causa",
+    "nome": "Falta de Monitoramento e Observabilidade",
+    "evidencias": [
+     5,
+     10
+    ]
+   }
+  ]
+ },
+ "operacoes_descartadas": [
+  {
+   "op": "criar_subtipo",
+   "tipo": "Disponibilidade e Performance",
+   "nome": "Alarme sem Ação",
+   "descricao": "Alertas que disparam recorrentemente sem ação possível de mitigação, sendo ignorados ou desligados sem solução definitiva.",
+   "evidencias": [
+    5,
+    10
+   ]
+  },
+  {
+   "op": "criar_subtipo",
+   "tipo": "Processo e Fluxo de Trabalho",
+   "nome": "Onboarding e Acesso",
+   "descricao": "Demora excessiva no processo de liberação de acesso a sistemas, portais ou ferramentas para novos colaboradores ou parceiros, incluindo etapas manuais e burocráticas.",
+   "evidencias": [
+    4
+   ]
+  },
+  {
+   "op": "reescrever_descricao",
+   "alvo": "subtipo",
+   "tipo": "Disponibilidade e Performance",
+   "nome": "Falha em Componente Externo",
+   "descricao": "Problemas de disponibilidade, performance ou rejeição de dados causados por dependências externas (bureau de crédito, fornecedores, DETRAN, registradores de gravame).",
+   "evidencias": [
+    2
+   ]
+  },
+  {
+   "op": "remover",
+   "alvo": "causa",
+   "nome": "Falta de Monitoramento e Observabilidade",
+   "evidencias": [
+    5,
+    10
+   ]
+  }
+ ],
+ "resultado": "sem_mudanca"
+}
