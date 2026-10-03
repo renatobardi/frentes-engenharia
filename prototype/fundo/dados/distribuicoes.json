@@ -1,0 +1,95 @@
+{
+ "total": 5999,
+ "times_trocados": 517,
+ "por_area_antes": {
+  "Formalização": 823,
+  "Plataforma e Sustentação": 802,
+  "Canal Parceiro": 763,
+  "Pós-venda e Cobrança": 761,
+  "Canal Digital": 739,
+  "Crédito": 732,
+  "Originação": 638,
+  "Dados e Regulatório": 621
+ },
+ "por_area_depois": {
+  "Crédito": 790,
+  "Plataforma e Sustentação": 785,
+  "Formalização": 766,
+  "Canal Digital": 754,
+  "Pós-venda e Cobrança": 744,
+  "Canal Parceiro": 736,
+  "Dados e Regulatório": 671,
+  "Originação": 633
+ },
+ "origens_pct": {
+  "webhook": 15.0,
+  "log": 20.0,
+  "relato": 40.0,
+  "banco": 15.0,
+  "mcp": 10.0
+ },
+ "natureza_pct": {
+  "reativa": 64.6,
+  "proativa": 33.4,
+  "None": 2.0
+ },
+ "par_servico_sintoma_meses_1a6": {
+  "pares": 812,
+  "mediana": 1,
+  "p90": 2,
+  "maximo": 8,
+  "top": [
+   [
+    "segunda-via · log:fornecedor:0",
+    8
+   ],
+   [
+    "docs-upload · log:fornecedor:0",
+    7
+   ],
+   [
+    "score-calc · banco:fornecedor:0",
+    6
+   ],
+   [
+    "cadastro-cliente · log:fornecedor:0",
+    5
+   ],
+   [
+    "correspondente-cadastro · banco:fornecedor:0",
+    5
+   ]
+  ]
+ },
+ "servico_meses_1a6": {
+  "servicos": 48,
+  "mediana": 25,
+  "maximo": 37,
+  "top": [
+   [
+    "fraude-score",
+    37
+   ],
+   [
+    "credenciamento-api",
+    36
+   ],
+   [
+    "app-bff",
+    34
+   ],
+   [
+    "score-calc",
+    34
+   ],
+   [
+    "correspondente-cadastro",
+    34
+   ]
+  ]
+ },
+ "par_no_ano": {
+  "maximo": 12,
+  "max_dias_distintos": 12
+ }
+}
