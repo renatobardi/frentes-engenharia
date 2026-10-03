@@ -15,6 +15,7 @@ Jev na v2 (8 dimensões). As decisões com o Bardi ainda não foram tomadas.
 | `amostra.py` | amplia a amostra do #7 com o mesmo roteiro (`prototype/seed/gerar.py`, seed 7): 430 frentes = 240 dos meses 1–6 (grupo A), 160 dos meses 7–12 (B) e 30 a mais do tema novo H5 (R, reforço) |
 | `taxonomia.py` | **lógica pura**: prompts, validação dos tetos, operações da revisão, diff, estados do #6, sinal de encaixe |
 | `jev.py` | pedido ao Jev (8 perguntas numa chamada) e leitura da resposta; é o que vai ao host |
+| `amostra_lotes.py`, `descobrir_lotes.py` | descoberta em lotes: mais 480 frentes dos meses 1–6, uma proposta por lote e uma chamada de consolidação |
 | `descobrir.py` | descoberta: proposta → validação em código → conserto dirigido (até 2 vezes) |
 | `jev_run.py`, `montar_pedido.py` | classificação no Jev, pelo canal de aprovação (a chave só existe no host) |
 | `classificar.py` | regra de confiança do #6 + fallback da LLM |
@@ -49,6 +50,17 @@ python3 prototype/descoberta/montar_pedido.py prototype/descoberta/dados/v2.json
 - **Tamanho da amostra:** com 60, 120 e 240 frentes, 4 tipos se repetem (disponibilidade e performance, dados, segurança e
   conformidade, processo). Os outros mudam: com 60 aparece "Pessoas e Capacidade"; com 240, "Experiência do Parceiro e do Cliente"
   (onde a história H4 cai) e "Infraestrutura e Operação". A descoberta não é determinística nem com temperatura 0.
+
+### Descoberta em lotes com consolidação (teste pedido pelo Bardi)
+
+- Mais 480 frentes dos meses 1–6 escritas (`amostra_lotes.py`, US$0,013). Três lotes de 240: o lote 1 é a v1; os lotes 2 e 3 são novos.
+- Cada lote propõe a sua taxonomia (6, 8 e 8 tipos, todas válidas). Uma chamada junta as três (`descobrir_lotes.py`).
+- **A consolidada saiu válida na primeira tentativa: 7 tipos, 30 subtipos, 8 causas raiz** (`dados/descoberta_lotes.json`). US$0,0044 por lote e US$0,0015 na consolidação (75 s).
+- **O que ela ganhou sobre a v1:** o tipo "Pessoas e Conhecimento" (que os lotes 2 e 3 viram e o lote 1 não) e "Fornecedor e Parceiro"
+  (junta fornecedores com as demandas de lojistas). Os 5 tipos restantes mantêm o nome e a descrição da v1.
+- **Ressalvas:** uma rodada só, com 3 lotes (a seed inteira daria ~12); há sobreposição entre subtipos de tipos diferentes
+  ("Conflito de Prioridades" em Pessoas × "Gargalo de Comunicação e Alinhamento" em Processo; "Falha em Componente Externo" em
+  Disponibilidade × "Erro em Integração com Terceiro" em Fornecedor); **não foi classificada no Jev**, então não se sabe o efeito no encaixe fraco.
 
 ### Classificação da v1 no Jev (`jev-1.13.0`, 252 frentes, pedido `20261003-210307`)
 

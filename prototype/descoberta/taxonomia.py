@@ -94,6 +94,62 @@ Responda só JSON:
 """ + FORMATO_DESCOBERTA
 
 
+TAREFA_CONSOLIDACAO = """A amostra de frentes foi lida em {n} LOTES, e cada lote propôs uma taxonomia. As propostas estão abaixo. \
+Junte-as numa taxonomia só.
+
+Como juntar:
+- Tipos de lotes diferentes que falam do mesmo assunto são UM tipo: escolha um nome e escreva uma descrição que cubra os dois.
+- Tipo que aparece em 2 ou mais lotes fica. Assunto que só um lote viu fica se couber nos tetos: como tipo, se nenhum outro tipo o cobre; senão, como subtipo.
+- Os subtipos do tipo juntado são a união dos subtipos dos lotes, sem repetir e sem passar do teto: junte os parecidos, fique com os que têm mais evidências.
+- Causas raiz: a união, sem repetir, dentro do teto.
+- Réguas e critério de urgência: escolha a redação mais observável no texto de uma frente.
+- Valem as mesmas regras de sempre: o tipo é o assunto e recebe o problema e a melhoria (todo tipo traz um exemplo reativo e um proativo); \
+nada de "Melhoria", "Outros" ou nome de produto, sistema, time ou área; os tipos não se sobrepõem.
+- Em "evidencias" de cada subtipo, ponha os números dos lotes em que ele apareceu.
+
+{propostas}
+
+Responda só JSON:
+""" + FORMATO_DESCOBERTA
+
+TAREFA_CONSERTO_SEM_AMOSTRA = """A conferência automática achou problemas na taxonomia abaixo. Corrija SÓ o que foi apontado, \
+mantenha o resto igual e devolva a taxonomia inteira no mesmo formato JSON.
+
+PROBLEMAS:
+{problemas}
+
+Como corrigir:
+- "só de melhoria": apague o tipo e distribua os subtipos dele pelos tipos do seu ASSUNTO, reescrevendo as descrições para valerem para o problema e para a melhoria.
+- "nome de área, time ou produto": troque pelo nome da espécie do problema.
+- fora dos tetos: junte, divida ou remova até caber.
+
+PROPOSTA:
+{proposta}
+
+Responda só JSON:
+""" + FORMATO_DESCOBERTA
+
+
+def prompt_consolidacao(brutos):
+    """brutos: a resposta crua da LLM em cada lote (com exemplos e evidências). As evidências viram só uma contagem."""
+    import json
+    blocos = []
+    for k, js in enumerate(brutos):
+        enxuto = {"tipos": [{"nome": t["nome"], "descricao": t["descricao"],
+                             "subtipos": [{"nome": s["nome"], "descricao": s["descricao"], "n_evidencias": len(s.get("evidencias") or [])}
+                                          for s in t["subtipos"]]} for t in js["tipos"]],
+                  "causas_raiz": js["causas_raiz"], "regua_severidade": js["regua_severidade"],
+                  "regua_impacto": js["regua_impacto"], "criterio_urgencia": js["criterio_urgencia"]}
+        blocos.append(f"PROPOSTA DO LOTE {k + 1}:\n" + json.dumps(enxuto, ensure_ascii=False))
+    return SISTEMA_BASE.format(**_tetos_fmt()), TAREFA_CONSOLIDACAO.format(n=len(brutos), propostas="\n\n".join(blocos), **_tetos_fmt())
+
+
+def prompt_conserto_sem_amostra(proposta, problemas):
+    import json
+    return SISTEMA_BASE.format(**_tetos_fmt()), TAREFA_CONSERTO_SEM_AMOSTRA.format(
+        problemas="\n".join(f"- {p}" for p in problemas), proposta=json.dumps(proposta, ensure_ascii=False), **_tetos_fmt())
+
+
 def _tetos_fmt():
     return dict(tmin=TETOS["tipos"][0], tmax=TETOS["tipos"][1], smin=TETOS["subtipos"][0], smax=TETOS["subtipos"][1],
                 cmin=TETOS["causas_raiz"][0], cmax=TETOS["causas_raiz"][1])

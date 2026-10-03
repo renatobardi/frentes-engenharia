@@ -1,0 +1,394 @@
+{
+ "lotes": [
+  {
+   "versao": 1,
+   "tipos": {
+    "Disponibilidade e Performance": {
+     "descricao": "Frentes sobre serviço fora do ar, lento, com erros de timeout, 5xx, latência alta ou degradação de performance. Inclui tanto a quebra quanto a melhoria proativa para evitar ou mitigar esses problemas.",
+     "subtipos": {
+      "Indisponibilidade": "Serviço ou sistema completamente fora do ar ou com erros 5xx em massa.",
+      "Lentidão e Degradação": "Serviço operando, mas com latência acima do esperado ou degradação gradual de performance.",
+      "Falha em Componente Externo": "Problemas de disponibilidade ou performance causados por dependências externas (bureau de crédito, fornecedores, DETRAN)."
+     }
+    },
+    "Integridade e Consistência de Dados": {
+     "descricao": "Frentes sobre dados incorretos, divergentes, duplicados, perdidos ou com falha de conciliação. Inclui correção de dados corrompidos e propostas de validação ou sincronização automática.",
+     "subtipos": {
+      "Divergência entre Sistemas": "Dados de um mesmo cliente ou entidade não batem entre sistemas de origem e destino.",
+      "Duplicidade e Inconsistência em Lotes": "Registros duplicados, valores divergentes ou dados incorretos em cargas noturnas, lotes de boletos ou carnês.",
+      "Falha em Conciliação": "Jobs de conciliação terminam com divergências entre sistemas."
+     }
+    },
+    "Segurança e Conformidade": {
+     "descricao": "Frentes sobre vulnerabilidades, exposição de segredos, certificados vencendo, riscos de acesso, prazos de atendimento a titulares de dados e riscos de multa regulatória. Inclui correção de falha e proposta de automação de segurança.",
+     "subtipos": {
+      "Vulnerabilidade em Dependência": "CVE crítica ou vulnerabilidade conhecida em biblioteca ou dependência de software.",
+      "Exposição de Segredo ou Acesso Indevido": "Senhas, chaves de API ou tokens expostos em repositórios, planilhas ou acessos não revogados.",
+      "Achado de Pentest Vencido": "Itens de segurança identificados em pentest que não foram corrigidos dentro do prazo.",
+      "Risco Regulatório e Prazo Legal": "Frentes sobre prazos de atendimento a titulares de dados, relatórios para órgãos reguladores e riscos de multa."
+     }
+    },
+    "Infraestrutura e Operação": {
+     "descricao": "Frentes sobre ambientes, pipelines, deploys, custos de nuvem, certificados, acoplamento de serviços e ferramentas de desenvolvimento. Inclui quebra de pipeline e proposta de melhoria de infra.",
+     "subtipos": {
+      "Pipeline e Deploy": "Problemas ou melhorias em pipelines de CI/CD, deploys travados, testes instáveis, rollbacks.",
+      "Custo de Nuvem": "Gastos de nuvem acima do esperado, sem causa identificada, ou propostas de monitoramento de custos.",
+      "Ambiente de Desenvolvimento e Teste": "Problemas com ambientes locais, de homologação ou teste (setup demorado, massa perdida, refresh).",
+      "Acoplamento e Dívida Técnica": "Serviços acoplados que impedem deploys independentes, código legado sem testes, bibliotecas descontinuadas."
+     }
+    },
+    "Experiência do Parceiro e do Cliente": {
+     "descricao": "Frentes originadas de parceiros (lojistas, correspondentes) ou clientes finais, sobre falta de informação, lentidão em consultas, painéis de comissão, notificações de status. Inclui reclamação e pedido de funcionalidade.",
+     "subtipos": {
+      "Falta de Informação ou Transparência": "Parceiro ou cliente não consegue obter status, extrato, retorno sobre proposta ou comissão.",
+      "Lentidão em Interface do Parceiro": "Sistema ou portal usado por parceiro está lento, travando ou com tempo de resposta alto."
+     }
+    },
+    "Processo e Fluxo de Trabalho": {
+     "descricao": "Frentes sobre ineficiências, retrabalho, falta de automação, gargalos de comunicação ou conflitos de prioridade entre áreas. Inclui tanto o processo quebrado quanto a proposta de melhoria do fluxo.",
+     "subtipos": {
+      "Retrabalho por Dados Incompletos": "Etapa a montante envia dados incompletos ou inválidos, forçando correção manual a jusante.",
+      "Gargalo de Comunicação e Alinhamento": "Mudanças não são comunicadas adequadamente, áreas não se alinham, code review demora, prioridades conflitam.",
+      "Processo Manual e Falta de Automação": "Atividade repetitiva e manual que poderia ser automatizada (conferência, extração de dados, follow-up).",
+      "Fila de Exceções e Itens Parados": "Itens parados em filas de exceção ou backoffice por mais de 48h, sem tratamento."
+     }
+    }
+   },
+   "causas_raiz": {
+    "Falta de Automação": "Processo manual que deveria ser automatizado (validação, extração, comunicação, deploy).",
+    "Falta de Testes e Cobertura": "Código sem testes, massa de teste perdida, testes instáveis, falta de validação.",
+    "Dívida Técnica e Acoplamento": "Serviços acoplados, código legado, bibliotecas descontinuadas, falta de refatoração.",
+    "Falha de Comunicação e Alinhamento": "Mudanças não comunicadas, áreas desalinhadas, falta de canal oficial, prioridades conflitantes.",
+    "Falta de Monitoramento e Observabilidade": "Ausência de tracing, métricas, alertas ou dashboards para detectar problemas proativamente.",
+    "Erro de Configuração ou Capacidade": "Configuração incorreta de infraestrutura, autoscaling, regras de firewall, certificados ou thresholds de alerta.",
+    "Dependência Externa Instável": "Fornecedor, bureau de crédito, DETRAN ou outro sistema externo com SLA inadequado ou instabilidade."
+   },
+   "regua_severidade": [
+    "Sem impacto operacional ou financeiro imediato; apenas ruído ou incômodo.",
+    "Impacto localizado em um time ou processo, com retrabalho ou atraso de até 1 dia.",
+    "Impacto em múltiplos times ou clientes, com atraso de dias, perda de dados ou risco de multa.",
+    "Impacto crítico: sistema fora do ar para todos os usuários, perda massiva de dados, violação de segurança ou multa iminente."
+   ],
+   "regua_impacto": [
+    "Ganho marginal: melhoria de conforto ou redução de ruído, sem impacto mensurável em tempo ou custo.",
+    "Ganho operacional: redução de retrabalho ou tempo de execução em até 50% para um time.",
+    "Ganho significativo: redução de retrabalho ou tempo de execução em mais de 50%, ou prevenção de incidentes recorrentes.",
+    "Ganho estratégico: evita multa, violação de segurança, perda de receita ou habilita novo modelo de negócio."
+   ],
+   "criterio_urgencia": "A frente precisa ser resolvida nas próximas 2 semanas para evitar um impacto maior (multa, perda de receita, violação de segurança)?"
+  },
+  {
+   "versao": 1,
+   "tipos": {
+    "Instabilidade e Erro em Serviço": {
+     "descricao": "Frente que relata erro, latência alta, timeout ou indisponibilidade de um serviço, API ou sistema. Inclui tanto a ocorrência reativa (o serviço quebrou) quanto a proativa (prevenir ou corrigir instabilidade).",
+     "subtipos": {
+      "Erro HTTP (5xx)": "Erros de servidor (500, 503, 504) em endpoints de API ou serviço.",
+      "Timeout e Latência Alta": "Chamadas com timeout ou latência acima do esperado (p95 elevado), sem necessariamente gerar erro HTTP.",
+      "Degradação Gradual": "Aumento progressivo de latência ou taxa de erro ao longo de dias ou semanas, sem pico claro."
+     }
+    },
+    "Inconsistência e Qualidade de Dados": {
+     "descricao": "Frente sobre dados incorretos, duplicados, divergentes ou fora de conformidade em bases, cargas ou processos. Inclui correção reativa e melhoria proativa de validação.",
+     "subtipos": {
+      "Registro Duplicado": "Registros duplicados em cargas noturnas ou processos batch.",
+      "Divergência de Valor": "Valores financeiros ou de contrato divergentes entre sistemas ou documentos (ex: boleto com valor diferente do contrato).",
+      "Dados Incompletos ou Fora do Padrão": "Dados faltantes, com vencimento anterior à emissão, ou que não atendem a regras de negócio.",
+      "Fila de Exceção e Conciliação": "Itens parados em filas de exceção ou divergências apontadas por jobs de conciliação."
+     }
+    },
+    "Segurança e Vulnerabilidade": {
+     "descricao": "Frente sobre riscos de segurança: vulnerabilidades em dependências, exposição de segredos, certificados expirando, achados de pentest. Inclui correção reativa e ação proativa.",
+     "subtipos": {
+      "Vulnerabilidade em Dependência": "Bibliotecas ou pacotes com CVE crítica sem correção.",
+      "Segredo Exposto": "Chaves, tokens ou senhas expostos em repositórios ou arquivos de configuração.",
+      "Certificado Expirando": "Certificados SSL ou digitais próximos ao vencimento sem responsável definido.",
+      "Achado de Pentest Pendente": "Resultados de pentest ou scanner de segurança não tratados dentro do prazo."
+     }
+    },
+    "Processo e Fluxo de Trabalho": {
+     "descricao": "Frente sobre ineficiências, gargalos ou falta de automação em processos operacionais ou de desenvolvimento. Inclui tanto o relato de um processo quebrado quanto a proposta de melhoria.",
+     "subtipos": {
+      "Automação de Processo": "Processos manuais que poderiam ser automatizados para reduzir retrabalho e erros.",
+      "Gargalo de Revisão (Code Review)": "Code reviews demorados que atrasam entregas.",
+      "Falta de Rastreabilidade": "Ausência de logs, dashboards ou informações que permitam acompanhar o status de um processo.",
+      "Ambiente de Desenvolvimento Lento": "Preparação ou execução de ambiente local ou pipeline de CI/CD muito demorada."
+     }
+    },
+    "Pessoas e Conhecimento": {
+     "descricao": "Frente sobre questões de equipe: sobrecarga, falta de documentação, saída de pessoas, conflitos de prioridade. Inclui tanto o problema reativo (time sobrecarregado) quanto a proposta proativa (plano de retenção).",
+     "subtipos": {
+      "Sobrecarga e Falta de Foco": "Time sobrecarregado por múltiplas responsabilidades (plantão + projeto), gerando desgaste e atrasos.",
+      "Perda de Conhecimento": "Saída de pessoas sem documentação ou passagem de conhecimento, gerando lacunas.",
+      "Conflito de Prioridades": "Desalinhamento entre produto e sustentação sobre o que priorizar, gerando retrabalho."
+     }
+    },
+    "Fornecedor e Terceiros": {
+     "descricao": "Frente sobre problemas ou oportunidades relacionados a fornecedores externos (bureau, Detran, etc.), incluindo SLA, contrato e dependência.",
+     "subtipos": {
+      "SLA do Fornecedor": "Fornecedor descumprindo prazos ou níveis de serviço acordados.",
+      "Erro em Integração com Terceiro": "Erros ou rejeições em integrações com sistemas externos (ex: Detran, registrador de gravame)."
+     }
+    },
+    "Custo e Eficiência de Infraestrutura": {
+     "descricao": "Frente sobre gastos excessivos ou desperdício de recursos de nuvem ou infraestrutura. Inclui tanto o alerta de custo alto quanto a proposta de otimização.",
+     "subtipos": {
+      "Gasto Acima da Média": "Custo de nuvem significativamente acima da média histórica, sem aumento de volume correspondente.",
+      "Desperdício de Recurso": "Recursos ociosos ou mal configurados gerando custo desnecessário (ex: ambientes ligados sem uso)."
+     }
+    },
+    "Alerta e Monitoramento": {
+     "descricao": "Frente sobre problemas com alertas ou monitoramento: alarmes falsos, ruído, falta de ação possível. Inclui tanto o alerta incômodo quanto a proposta de melhoria.",
+     "subtipos": {
+      "Falso Positivo ou Alerta sem Ação": "Alertas que disparam sem que haja ação possível, gerando ruído e cansaço.",
+      "Falta de Métricas e Logs": "Ausência de métricas, logs ou dashboards para diagnosticar problemas."
+     }
+    }
+   },
+   "causas_raiz": {
+    "Falta de Automação": "Processos manuais que poderiam ser automatizados, gerando retrabalho e erros.",
+    "Dívida Técnica": "Código legado, falta de testes, dependências desatualizadas ou arquitetura que dificulta evolução.",
+    "Falta de Responsável (Dono)": "Ausência de um proprietário claro para processos, certificados, bibliotecas ou ações corretivas.",
+    "Sobrecarga de Time": "Equipe com múltiplas responsabilidades (plantão + projeto) sem capacidade adequada.",
+    "Falta de Documentação": "Ausência de registros, passagem de conhecimento ou documentação de processos.",
+    "Dependência Externa": "Dependência de fornecedores, sistemas legados ou integrações com terceiros sem controle interno.",
+    "Falta de Governança de Dados": "Ausência de validações, regras de unicidade ou consistência em cargas e bases de dados.",
+    "Configuração Inadequada": "Recursos de nuvem, alertas ou pipelines mal configurados, gerando desperdício ou ruído."
+   },
+   "regua_severidade": [
+    "Sem impacto perceptível ao usuário ou ao negócio (ex: alerta falso, ruído).",
+    "Impacto baixo, sem perda financeira ou de cliente, mas gera retrabalho ou insatisfação interna.",
+    "Impacto moderado: afeta um processo ou um número limitado de clientes, com potencial de perda financeira ou de SLA.",
+    "Impacto crítico: indisponibilidade de serviço, perda de dados, violação de segurança ou impacto direto em receita/cliente."
+   ],
+   "regua_impacto": [
+    "Ganho marginal: melhoria de conforto ou redução de ruído, sem impacto mensurável em produtividade ou receita.",
+    "Ganho operacional: redução de retrabalho ou tempo de espera, com impacto mensurável em produtividade de um time.",
+    "Ganho estratégico: aumento de capacidade de entrega, redução de risco de segurança ou melhoria de SLA com parceiros.",
+    "Ganho transformacional: desbloqueio de novo modelo de negócio, redução significativa de custos ou vantagem competitiva."
+   ],
+   "criterio_urgencia": "A frente precisa ser resolvida nas próximas duas semanas para evitar impacto significativo (perda financeira, violação de SLA, risco de segurança ou paralisação de processo)?"
+  },
+  {
+   "versao": 1,
+   "tipos": {
+    "Desempenho e Capacidade": {
+     "descricao": "Frentes sobre lentidão, timeout, alta latência, gargalos de capacidade ou degradação de performance em sistemas, APIs ou processos. Inclui tanto a quebra reativa (lentidão já impactando) quanto a proativa (preocupação com tendência de degradação).",
+     "subtipos": {
+      "Lentidão e Timeout": "Frentes que relatam erros de timeout, latência alta (p95, p99) ou degradação de performance em serviços, APIs ou consultas a sistemas externos.",
+      "Pico e Sobrecarga": "Frentes que mencionam degradação ou queda de sistema em horários de pico, sobrecarga de capacidade ou instabilidade recorrente em momentos de alta demanda.",
+      "Pipeline e Processo Lento": "Frentes sobre processos batch, pipelines de dados ou jobs que demoram mais que o esperado, impactando prazos de entrega ou análise."
+     }
+    },
+    "Falha e Instabilidade": {
+     "descricao": "Frentes sobre erros HTTP (5xx), quebras de serviço, indisponibilidade, falhas em jobs, duplicidade de registros, divergências em conciliação ou comportamento inesperado de sistemas. Inclui tanto a quebra reativa (sistema fora do ar) quanto a proativa (preocupação com estabilidade).",
+     "subtipos": {
+      "Erro e Indisponibilidade": "Frentes que relatam erros HTTP 5xx, timeout de serviço, queda de sistema ou indisponibilidade de API ou funcionalidade.",
+      "Inconsistência de Dados": "Frentes sobre duplicidade de registros, divergências em conciliação, dados incorretos ou corrompidos em bases, jobs ou processos batch.",
+      "Falha em Pipeline/Job": "Frentes sobre falhas em pipelines de CI/CD, jobs de carga noturna, jobs de conciliação ou processos automatizados que quebram ou falham."
+     }
+    },
+    "Segurança e Risco": {
+     "descricao": "Frentes sobre vulnerabilidades, exposição de credenciais, certificados expirados, achados de pentest vencidos, riscos de vazamento de dados ou falhas de controle de acesso. Inclui tanto a quebra reativa (vulnerabilidade já explorada) quanto a proativa (preocupação com risco futuro).",
+     "subtipos": {
+      "Vulnerabilidade e Pentest": "Frentes sobre achados de pentest vencidos, dependências com CVE crítica, bibliotecas descontinuadas ou vulnerabilidades de segurança em sistemas.",
+      "Credencial e Acesso": "Frentes sobre senhas, tokens ou chaves expostas em locais inseguros (planilhas, repositórios), acessos não revogados ou compartilhamento inadequado de credenciais.",
+      "Certificado e Prazo de Segurança": "Frentes sobre certificados SSL prestes a expirar, prazos de segurança vencidos ou falta de responsável por renovação."
+     }
+    },
+    "Processo e Fluxo de Trabalho": {
+     "descricao": "Frentes sobre ineficiências, retrabalho, falta de automação, burocracia, dependências entre times ou processos manuais que poderiam ser otimizados. Inclui tanto a quebra reativa (processo quebrado causando retrabalho) quanto a proativa (sugestão de melhoria no fluxo).",
+     "subtipos": {
+      "Retrabalho e Dados Incompletos": "Frentes sobre retrabalho causado por dados incompletos, informações inconsistentes entre sistemas ou etapas anteriores que enviam dados errados.",
+      "Automação e Agilidade": "Frentes que sugerem automatizar processos manuais, reduzir burocracia, desacoplar serviços ou melhorar a eficiência de fluxos de trabalho.",
+      "Fluxo de Atendimento e Comunicação": "Frentes sobre filas de atendimento paradas, falta de informação na tela, comunicação ineficiente com cliente ou entre times, e necessidade de consolidar dados para o analista."
+     }
+    },
+    "Infraestrutura e Custo": {
+     "descricao": "Frentes sobre recursos de infraestrutura (ambientes, nuvem, certificados, bancos), custos inesperados, desperdício de recursos ou configuração inadequada de ambientes. Inclui tanto a quebra reativa (custo disparou) quanto a proativa (sugestão de economia).",
+     "subtipos": {
+      "Custo e Gasto Anormal": "Frentes sobre aumento inesperado de custos de nuvem, estouro de orçamento, ou necessidade de auditoria de recursos.",
+      "Ambiente e Recurso": "Frentes sobre ambientes de teste ligados sem necessidade, falta de desligamento automático, desperdício de recursos ou configuração inadequada de ambientes.",
+      "Massa de Teste e Homologação": "Frentes sobre perda de massa de teste após refresh de ambiente, dificuldade em manter dados de homologação ou necessidade de backup automático."
+     }
+    },
+    "Pessoas e Conhecimento": {
+     "descricao": "Frentes sobre falta de documentação, perda de conhecimento com saída de pessoas, onboarding lento, sobrecarga de trabalho, conflitos entre times ou falta de alinhamento. Inclui tanto a quebra reativa (pessoa saiu sem passar conhecimento) quanto a proativa (sugestão de processo de transição).",
+     "subtipos": {
+      "Onboarding e Ambientação": "Frentes sobre demora no onboarding de novos colaboradores, falta de materiais de ambientação ou processo ineficiente de integração.",
+      "Documentação e Passagem de Conhecimento": "Frentes sobre falta de documentação, perda de conhecimento com saída de pessoas, ausência de processo de transição ou necessidade de registro de sistemas e rotinas.",
+      "Sobrecarga e Alinhamento": "Frentes sobre sobrecarga de trabalho, conflitos entre times (produto vs sustentação), falta de alinhamento de prioridades ou dificuldade de foco."
+     }
+    },
+    "Fornecedor e Parceiro": {
+     "descricao": "Frentes sobre problemas com fornecedores externos (bureau de crédito, nuvem, dados), SLA não cumprido, estouro de contrato, ou necessidades de parceiros (lojistas, correspondentes) que dependem de sistemas internos. Inclui tanto a quebra reativa (fornecedor fora do SLA) quanto a proativa (sugestão de painel para parceiro).",
+     "subtipos": {
+      "SLA e Contrato": "Frentes sobre fornecedor fora do SLA, estouro de limite contratual, necessidade de renegociação ou problemas com volume de consultas.",
+      "Demanda de Parceiro": "Frentes sobre necessidades de lojistas, correspondentes ou parceiros que desejam funcionalidades no portal, como consulta de status, comissão ou simulação."
+     }
+    },
+    "Regulatório e Conformidade": {
+     "descricao": "Frentes sobre prazos regulatórios, relatórios para órgãos (BACEN, ANPD), LGPD, conformidade de dados ou processos que envolvem exigências legais. Inclui tanto a quebra reativa (prazo estourado) quanto a proativa (sugestão de automação para cumprir prazos).",
+     "subtipos": {
+      "Prazo e Relatório Regulatório": "Frentes sobre prazos apertados para envio de relatórios a órgãos reguladores, necessidade de automação de coleta de dados ou atrasos recorrentes.",
+      "Pedido de Titular e Prazo": "Frentes sobre pedidos de titular LGPD, prazos de atendimento, alertas de prazo ou conformidade com privacidade de dados."
+     }
+    }
+   },
+   "causas_raiz": {
+    "Falta de Testes": "Ausência de testes automatizados, testes instáveis ou código legado sem cobertura, gerando retrabalho e risco de quebra.",
+    "Dívida Técnica": "Acoplamento entre serviços, banco compartilhado, código legado sem manutenção, falta de documentação técnica ou arquitetura inadequada.",
+    "Falta de Automação": "Processos manuais que poderiam ser automatizados, como provisionamento de ambiente, geração de relatórios, notificações ou desligamento de recursos.",
+    "Falta de Monitoramento": "Ausência de tracing, alertas ineficazes, falta de visibilidade de gargalos ou monitoramento de SLA de fornecedores.",
+    "Falta de Governança": "Ausência de políticas de segurança, gestão de credenciais, renovação de certificados, controle de acesso ou processo de passagem de conhecimento.",
+    "Falha de Comunicação": "Comunicação ineficaz entre times, falta de alinhamento de prioridades, avisos perdidos ou ausência de canais adequados.",
+    "Dependência Externa": "Problemas causados por fornecedores, parceiros ou sistemas externos fora do controle da empresa, como bureau de crédito, nuvem ou bibliotecas descontinuadas.",
+    "Falta de Capacidade": "Recursos insuficientes (pessoas, infraestrutura, orçamento) para atender à demanda, resultando em sobrecarga, lentidão ou atrasos."
+   },
+   "regua_severidade": [
+    "A frente menciona apenas uma preocupação ou tendência, sem impacto atual mensurável (ex.: 'p95 subiu, mas ainda dentro do aceitável').",
+    "A frente relata um problema que causa retrabalho, atraso ou insatisfação, mas sem perda financeira ou de cliente imediata (ex.: 'demora de 40 minutos no pipeline').",
+    "A frente relata um problema que impacta diretamente clientes, parceiros ou prazos regulatórios, com perda de receita ou risco de multa (ex.: 'boletos com valor errado, cliente ligando pra reclamar').",
+    "A frente relata um problema que causa indisponibilidade total de sistema crítico, vazamento de dados ou risco iminente de colapso (ex.: 'API fora do ar por 3 horas no fechamento do mês')."
+   ],
+   "regua_impacto": [
+    "A melhoria proposta reduziria desconforto ou retrabalho interno, sem impacto mensurável em métricas de negócio (ex.: 'seria bom ter um painel').",
+    "A melhoria proposta reduziria tempo de processo ou retrabalho em até 30%, com ganho de produtividade mensurável (ex.: 'reduziria em 30% as ligações').",
+    "A melhoria proposta evitaria perda de receita, multa regulatória ou insatisfação de cliente em escala (ex.: 'evitaria duplicidade de pagamento').",
+    "A melhoria proposta desbloquearia capacidade de crescimento, reduziria risco de colapso ou geraria economia significativa (ex.: 'desacoplar serviços para deploys independentes')."
+   ],
+   "criterio_urgencia": "A frente menciona um prazo iminente (dias ou semanas) para ação, como vencimento de certificado, prazo regulatório, ou SLA de fornecedor prestes a expirar?"
+  }
+ ],
+ "uso_lotes": [
+  {
+   "latencia_s": 91.4,
+   "tok_in": 12729,
+   "tok_out": 3590,
+   "custo_usd": 0.0019206964
+  },
+  {
+   "latencia_s": 87.4,
+   "tok_in": 16129,
+   "tok_out": 3590,
+   "custo_usd": 0.0022491364
+  },
+  {
+   "latencia_s": 204.4,
+   "tok_in": 12706,
+   "tok_out": 4561,
+   "custo_usd": 0.0021053921
+  },
+  {
+   "latencia_s": 110.7,
+   "tok_in": 17063,
+   "tok_out": 4563,
+   "custo_usd": 0.0025266633
+  }
+ ],
+ "uso_consolidacao": [
+  {
+   "latencia_s": 75.1,
+   "tok_in": 8707,
+   "tok_out": 3261,
+   "custo_usd": 0.0014688387
+  }
+ ],
+ "problemas_por_rodada": [
+  []
+ ],
+ "problemas": [],
+ "taxonomia": {
+  "versao": 1,
+  "tipos": {
+   "Disponibilidade e Performance": {
+    "descricao": "Frentes sobre serviço fora do ar, lento, com erros de timeout, 5xx, latência alta ou degradação de performance. Inclui tanto a quebra quanto a melhoria proativa para evitar ou mitigar esses problemas.",
+    "subtipos": {
+     "Indisponibilidade e Erro 5xx": "Serviço ou sistema completamente fora do ar ou com erros 5xx em massa.",
+     "Lentidão e Degradação": "Serviço operando, mas com latência acima do esperado ou degradação gradual de performance.",
+     "Falha em Componente Externo": "Problemas de disponibilidade ou performance causados por dependências externas (bureau de crédito, fornecedores, DETRAN).",
+     "Pico e Sobrecarga": "Degradação ou queda de sistema em horários de pico, sobrecarga de capacidade ou instabilidade recorrente em momentos de alta demanda."
+    }
+   },
+   "Integridade e Consistência de Dados": {
+    "descricao": "Frentes sobre dados incorretos, divergentes, duplicados, perdidos ou com falha de conciliação. Inclui correção de dados corrompidos e propostas de validação ou sincronização automática.",
+    "subtipos": {
+     "Divergência entre Sistemas": "Dados de um mesmo cliente ou entidade não batem entre sistemas de origem e destino.",
+     "Duplicidade e Inconsistência em Lotes": "Registros duplicados, valores divergentes ou dados incorretos em cargas noturnas, lotes de boletos ou carnês.",
+     "Falha em Conciliação": "Jobs de conciliação terminam com divergências entre sistemas.",
+     "Dados Incompletos ou Fora do Padrão": "Dados faltantes, com vencimento anterior à emissão, ou que não atendem a regras de negócio."
+    }
+   },
+   "Segurança e Conformidade": {
+    "descricao": "Frentes sobre vulnerabilidades, exposição de segredos, certificados vencendo, riscos de acesso, prazos de atendimento a titulares de dados e riscos de multa regulatória. Inclui correção de falha e proposta de automação de segurança.",
+    "subtipos": {
+     "Vulnerabilidade em Dependência": "CVE crítica ou vulnerabilidade conhecida em biblioteca ou dependência de software.",
+     "Exposição de Segredo ou Acesso Indevido": "Senhas, chaves de API ou tokens expostos em repositórios, planilhas ou acessos não revogados.",
+     "Achado de Pentest Vencido": "Itens de segurança identificados em pentest que não foram corrigidos dentro do prazo.",
+     "Risco Regulatório e Prazo Legal": "Frentes sobre prazos de atendimento a titulares de dados, relatórios para órgãos reguladores e riscos de multa.",
+     "Certificado Expirando": "Certificados SSL ou digitais próximos ao vencimento sem responsável definido."
+    }
+   },
+   "Infraestrutura e Operação": {
+    "descricao": "Frentes sobre ambientes, pipelines, deploys, custos de nuvem, certificados, acoplamento de serviços e ferramentas de desenvolvimento. Inclui quebra de pipeline e proposta de melhoria de infra.",
+    "subtipos": {
+     "Pipeline e Deploy": "Problemas ou melhorias em pipelines de CI/CD, deploys travados, testes instáveis, rollbacks.",
+     "Custo de Nuvem": "Gastos de nuvem acima do esperado, sem causa identificada, ou propostas de monitoramento de custos.",
+     "Ambiente de Desenvolvimento e Teste": "Problemas com ambientes locais, de homologação ou teste (setup demorado, massa perdida, refresh).",
+     "Acoplamento e Dívida Técnica": "Serviços acoplados que impedem deploys independentes, código legado sem testes, bibliotecas descontinuadas.",
+     "Alerta e Monitoramento": "Problemas com alertas ou monitoramento: alarmes falsos, ruído, falta de ação possível."
+    }
+   },
+   "Processo e Fluxo de Trabalho": {
+    "descricao": "Frentes sobre ineficiências, retrabalho, falta de automação, gargalos de comunicação ou conflitos de prioridade entre áreas. Inclui tanto o processo quebrado quanto a proposta de melhoria do fluxo.",
+    "subtipos": {
+     "Retrabalho por Dados Incompletos": "Etapa a montante envia dados incompletos ou inválidos, forçando correção manual a jusante.",
+     "Gargalo de Comunicação e Alinhamento": "Mudanças não são comunicadas adequadamente, áreas não se alinham, code review demora, prioridades conflitam.",
+     "Processo Manual e Falta de Automação": "Atividade repetitiva e manual que poderia ser automatizada (conferência, extração de dados, follow-up).",
+     "Fila de Exceções e Itens Parados": "Itens parados em filas de exceção ou backoffice por mais de 48h, sem tratamento.",
+     "Falta de Rastreabilidade": "Ausência de logs, dashboards ou informações que permitam acompanhar o status de um processo."
+    }
+   },
+   "Pessoas e Conhecimento": {
+    "descricao": "Frentes sobre questões de equipe: sobrecarga, falta de documentação, saída de pessoas, conflitos de prioridade. Inclui tanto o problema reativo (time sobrecarregado) quanto a proposta proativa (plano de retenção).",
+    "subtipos": {
+     "Sobrecarga e Falta de Foco": "Time sobrecarregado por múltiplas responsabilidades (plantão + projeto), gerando desgaste e atrasos.",
+     "Perda de Conhecimento": "Saída de pessoas sem documentação ou passagem de conhecimento, gerando lacunas.",
+     "Conflito de Prioridades": "Desalinhamento entre produto e sustentação sobre o que priorizar, gerando retrabalho.",
+     "Onboarding e Ambientação": "Demora no onboarding de novos colaboradores, falta de materiais de ambientação ou processo ineficiente de integração."
+    }
+   },
+   "Fornecedor e Parceiro": {
+    "descricao": "Frentes sobre problemas ou oportunidades relacionados a fornecedores externos (bureau, Detran, etc.), incluindo SLA, contrato e dependência, bem como necessidades de parceiros (lojistas, correspondentes).",
+    "subtipos": {
+     "SLA e Contrato do Fornecedor": "Fornecedor descumprindo prazos ou níveis de serviço acordados, estouro de limite contratual.",
+     "Erro em Integração com Terceiro": "Erros ou rejeições em integrações com sistemas externos (ex: Detran, registrador de gravame).",
+     "Demanda de Parceiro": "Necessidades de lojistas, correspondentes ou parceiros que desejam funcionalidades no portal, como consulta de status, comissão ou simulação."
+    }
+   }
+  },
+  "causas_raiz": {
+   "Falta de Automação": "Processo manual que deveria ser automatizado (validação, extração, comunicação, deploy).",
+   "Falta de Testes e Cobertura": "Código sem testes, massa de teste perdida, testes instáveis, falta de validação.",
+   "Dívida Técnica e Acoplamento": "Serviços acoplados, código legado, bibliotecas descontinuadas, falta de refatoração.",
+   "Falha de Comunicação e Alinhamento": "Mudanças não comunicadas, áreas desalinhadas, falta de canal oficial, prioridades conflitantes.",
+   "Falta de Monitoramento e Observabilidade": "Ausência de tracing, métricas, alertas ou dashboards para detectar problemas proativamente.",
+   "Erro de Configuração ou Capacidade": "Configuração incorreta de infraestrutura, autoscaling, regras de firewall, certificados ou thresholds de alerta.",
+   "Dependência Externa Instável": "Fornecedor, bureau de crédito, DETRAN ou outro sistema externo com SLA inadequado ou instabilidade.",
+   "Falta de Governança e Dono": "Ausência de políticas de segurança, gestão de credenciais, renovação de certificados, controle de acesso ou proprietário claro para processos."
+  },
+  "regua_severidade": [
+   "Sem impacto operacional ou financeiro imediato; apenas ruído ou incômodo.",
+   "Impacto localizado em um time ou processo, com retrabalho ou atraso de até 1 dia.",
+   "Impacto em múltiplos times ou clientes, com atraso de dias, perda de dados ou risco de multa.",
+   "Impacto crítico: sistema fora do ar para todos os usuários, perda massiva de dados, violação de segurança ou multa iminente."
+  ],
+  "regua_impacto": [
+   "Ganho marginal: melhoria de conforto ou redução de ruído, sem impacto mensurável em tempo ou custo.",
+   "Ganho operacional: redução de retrabalho ou tempo de execução em até 50% para um time.",
+   "Ganho significativo: redução de retrabalho ou tempo de execução em mais de 50%, ou prevenção de incidentes recorrentes.",
+   "Ganho estratégico: evita multa, violação de segurança, perda de receita ou habilita novo modelo de negócio."
+  ],
+  "criterio_urgencia": "A frente precisa ser resolvida nas próximas 2 semanas para evitar um impacto maior (multa, perda de receita, violação de segurança)?"
+ }
+}
