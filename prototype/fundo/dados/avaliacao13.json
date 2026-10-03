@@ -1,0 +1,203 @@
+{
+ "resumo": {
+  "frentes": 216,
+  "tok_medio": 3088,
+  "custo_jev_usd": 0.028,
+  "fallback_llm": 71,
+  "custo_fallback_usd": 0.0039
+ },
+ "fundo": {
+  "frentes": 170,
+  "pintam": {
+   "antes": 156,
+   "depois": 156
+  },
+  "estados_depois": {
+   "classificada (Jev)": 113,
+   "incerta": 12,
+   "classificada via LLM": 43,
+   "não classificada": 2
+  },
+  "area_certa": {
+   "antes": {
+    "total": "108/156"
+   },
+   "depois": {
+    "total": "77/156"
+   }
+  },
+  "por_origem": {
+   "antes": {
+    "banco": "17/17",
+    "log": "45/47",
+    "mcp": "7/11",
+    "relato": "19/55",
+    "webhook": "20/26"
+   },
+   "depois": {
+    "banco": "11/17",
+    "log": "19/46",
+    "mcp": "6/9",
+    "relato": "34/58",
+    "webhook": "7/26"
+   }
+  },
+  "so_jev_area_top1": {
+   "antes": "112/170",
+   "depois": "86/170"
+  },
+  "por_tema_depois": {
+   "ambiente de dev": "4/6",
+   "arquitetura": "4/15",
+   "comunicação entre áreas": "3/6",
+   "custo de nuvem": "3/11",
+   "dívida técnica": "7/15",
+   "fornecedor": "13/15",
+   "observabilidade": "5/18",
+   "operação e atendimento": "7/12",
+   "performance": "6/14",
+   "pessoas": "1/2",
+   "processo manual": "4/7",
+   "qualidade de dados": "4/9",
+   "regulatório": "6/7",
+   "sdlc (ruído)": "7/12",
+   "segurança (ruído)": "3/7"
+  },
+  "por_ambigua_depois": {
+   "False": "69/146",
+   "mal escrita": "4/4",
+   "multi-faceta": "4/6"
+  },
+  "linha_do_mapa": {
+   "Originação": {
+    "gabarito": 19,
+    "jev_antes": 14,
+    "jev_depois": 18
+   },
+   "Crédito": {
+    "gabarito": 19,
+    "jev_antes": 15,
+    "jev_depois": 9
+   },
+   "Formalização": {
+    "gabarito": 16,
+    "jev_antes": 13,
+    "jev_depois": 12
+   },
+   "Canal Parceiro": {
+    "gabarito": 17,
+    "jev_antes": 13,
+    "jev_depois": 6
+   },
+   "Canal Digital": {
+    "gabarito": 17,
+    "jev_antes": 10,
+    "jev_depois": 9
+   },
+   "Pós-venda e Cobrança": {
+    "gabarito": 27,
+    "jev_antes": 18,
+    "jev_depois": 15
+   },
+   "Plataforma e Sustentação": {
+    "gabarito": 20,
+    "jev_antes": 45,
+    "jev_depois": 67
+   },
+   "Dados e Regulatório": {
+    "gabarito": 21,
+    "jev_antes": 28,
+    "jev_depois": 20
+   }
+  },
+  "erros_depois_vao_para": {
+   "Plataforma e Sustentação": 51,
+   "Originação": 7,
+   "Dados e Regulatório": 7,
+   "Formalização": 5,
+   "Pós-venda e Cobrança": 4,
+   "Canal Parceiro": 3,
+   "Canal Digital": 1,
+   "Crédito": 1
+  },
+  "conf_area_media": {
+   "antes": 0.85,
+   "depois": 0.74
+  },
+  "tipo_modal_mudou": 52,
+  "encaixe_fraco": {
+   "antes": 11,
+   "depois": 37
+  }
+ },
+ "H5": {
+  "frentes": 40,
+  "pintam": {
+   "antes": 35,
+   "depois": 40
+  },
+  "estados_depois": {
+   "classificada via LLM": 20,
+   "classificada (Jev)": 20
+  },
+  "area_certa": {
+   "antes": {
+    "total": "17/35"
+   },
+   "depois": {
+    "total": "20/40"
+   }
+  },
+  "por_origem": {
+   "antes": {
+    "log": "1/9",
+    "mcp": "7/11",
+    "relato": "6/11",
+    "webhook": "3/4"
+   },
+   "depois": {
+    "log": "0/9",
+    "mcp": "8/13",
+    "relato": "8/14",
+    "webhook": "4/4"
+   }
+  },
+  "so_jev_area_top1": {
+   "antes": "18/40",
+   "depois": "19/40"
+  }
+ },
+ "H7": {
+  "frentes": 6,
+  "pintam": {
+   "antes": 6,
+   "depois": 6
+  },
+  "estados_depois": {
+   "classificada (Jev)": 3,
+   "classificada via LLM": 3
+  },
+  "area_certa": {
+   "antes": {
+    "total": "3/6"
+   },
+   "depois": {
+    "total": "4/6"
+   }
+  },
+  "por_origem": {
+   "antes": {
+    "relato": "0/3",
+    "webhook": "3/3"
+   },
+   "depois": {
+    "relato": "2/3",
+    "webhook": "2/3"
+   }
+  },
+  "so_jev_area_top1": {
+   "antes": "3/6",
+   "depois": "3/6"
+  }
+ }
+}
