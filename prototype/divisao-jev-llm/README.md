@@ -45,9 +45,12 @@ Incertas em área ou tipo, por limiar: 0,4 → 1 (+ f18 Nenhum) · 0,5–0,6 →
 |---|---|---|---|---|
 | `deepseek/deepseek-v4-flash` | 18/20 (f19 inglês → Nenhum) | **19 s / 61 s** (raciocina) | 561 | ~US$0,00015 |
 | `qwen/qwen3-235b-a22b-2507` | 18/20 (f11 → KYC, f14 → Contratos) | **4 s / 6 s** | 75 | ~US$0,00015 |
+| **`deepseek/deepseek-v4-flash` sem raciocínio** (escolhido) | 18/20 (f17 vaga, f19 inglês) | **4,5 s / 9 s** | — | **~US$0,00006** |
 
 Painel "por que está quente" + sugestão (1 célula): DeepSeek 22 s, Qwen 16 s, ~US$0,00015 cada.
 O DeepSeek foi mais concreto. As duas respeitaram a lista e não inventaram valor.
 
 **Leitura.** O Jev acerta mais que as duas LLMs na área e é ~10× a 60× mais rápido. O fallback da
 LLM não melhora a classificação. O risco real é a frente errada e confiante (f17, f13), e limiar nenhum pega isso.
+
+**Decisão (Bardi): um modelo só e barato, porque é um PoC.** O `deepseek/deepseek-v4-flash` com `reasoning.enabled=false` faz tudo: fallback, painel, descoberta e revisão. O painel dele levou 17 s e US$0,00007.

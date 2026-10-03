@@ -862,5 +862,437 @@
     "Risco regulatório e segurança"
    ]
   }
+ },
+ "deepseek/deepseek-v4-flash#sem-raciocinio": {
+  "fallbacks": {
+   "f01": {
+    "json": {
+     "area_time": "Crédito › Motor de Decisão",
+     "tipo_subtipo": "Incidente em produção › Erro de dados ou cálculo",
+     "porque": "Após atualização do motor de decisão, propostas de motos com entrada abaixo de 20% estão sendo recusadas incorretamente, mesmo para clientes com score alto, indicando erro de lógica ou cálculo."
+    },
+    "bruto": "{\"area_time\": \"Crédito › Motor de Decisão\", \"tipo_subtipo\": \"Incidente em produção › Erro de dados ou cálculo\", \"porque\": \"Após atualização do motor de decisão, propostas de motos com entrada abaixo de 20% estão sendo recusadas incorretamente, mesmo para clientes com score alto, indicando erro de lógica ou cálculo.\"}",
+    "latencia_s": 3.65,
+    "tok_in": 983,
+    "tok_out": 90,
+    "custo_usd": 7.28588e-05,
+    "fallback": {
+     "area": "Crédito",
+     "time": "Motor de Decisão",
+     "tipo": "Incidente em produção",
+     "subtipo": "Erro de dados ou cálculo",
+     "porque": "Após atualização do motor de decisão, propostas de motos com entrada abaixo de 20% estão sendo recusadas incorretamente, mesmo para clientes com score alto, indicando erro de lógica ou cálculo."
+    },
+    "valido": true
+   },
+   "f02": {
+    "json": {
+     "area_time": "Originação › Simulação",
+     "tipo_subtipo": "Incidente em produção › Indisponibilidade",
+     "porque": "Os erros HTTP 503 indicam que o endpoint de simulação ficou indisponível, e o aumento de latência confirma degradação do serviço."
+    },
+    "bruto": "{\"area_time\": \"Originação › Simulação\", \"tipo_subtipo\": \"Incidente em produção › Indisponibilidade\", \"porque\": \"Os erros HTTP 503 indicam que o endpoint de simulação ficou indisponível, e o aumento de latência confirma degradação do serviço.\"}",
+    "latencia_s": 3.45,
+    "tok_in": 966,
+    "tok_out": 70,
+    "custo_usd": 4.76546e-05,
+    "fallback": {
+     "area": "Originação",
+     "time": "Simulação",
+     "tipo": "Incidente em produção",
+     "subtipo": "Indisponibilidade",
+     "porque": "Os erros HTTP 503 indicam que o endpoint de simulação ficou indisponível, e o aumento de latência confirma degradação do serviço."
+    },
+    "valido": true
+   },
+   "f03": {
+    "json": {
+     "area_time": "Formalização › Gravame",
+     "tipo_subtipo": "Risco regulatório e segurança › Prazo ou obrigação regulatória",
+     "porque": "O problema afeta diretamente o registro de gravame no Detran, com 1.200 contratos parados e prazo legal de 30 dias em risco, caracterizando uma obrigação regulatória."
+    },
+    "bruto": "{\"area_time\": \"Formalização › Gravame\", \"tipo_subtipo\": \"Risco regulatório e segurança › Prazo ou obrigação regulatória\", \"porque\": \"O problema afeta diretamente o registro de gravame no Detran, com 1.200 contratos parados e prazo legal de 30 dias em risco, caracterizando uma obrigação regulatória.\"}",
+    "latencia_s": 3.54,
+    "tok_in": 967,
+    "tok_out": 87,
+    "custo_usd": 7.07357e-05,
+    "fallback": {
+     "area": "Formalização",
+     "time": "Gravame",
+     "tipo": "Risco regulatório e segurança",
+     "subtipo": "Prazo ou obrigação regulatória",
+     "porque": "O problema afeta diretamente o registro de gravame no Detran, com 1.200 contratos parados e prazo legal de 30 dias em risco, caracterizando uma obrigação regulatória."
+    },
+    "valido": true
+   },
+   "f04": {
+    "json": {
+     "area_time": "Canal Parceiro › Portal do Lojista",
+     "tipo_subtipo": "Incidente em produção › Indisponibilidade",
+     "porque": "O problema é um deslogamento forçado no portal do lojista, caracterizando indisponibilidade funcional que impede o uso do sistema."
+    },
+    "bruto": "{\"area_time\": \"Canal Parceiro › Portal do Lojista\", \"tipo_subtipo\": \"Incidente em produção › Indisponibilidade\", \"porque\": \"O problema é um deslogamento forçado no portal do lojista, caracterizando indisponibilidade funcional que impede o uso do sistema.\"}",
+    "latencia_s": 3.44,
+    "tok_in": 950,
+    "tok_out": 73,
+    "custo_usd": 6.63985e-05,
+    "fallback": {
+     "area": "Canal Parceiro",
+     "time": "Portal do Lojista",
+     "tipo": "Incidente em produção",
+     "subtipo": "Indisponibilidade",
+     "porque": "O problema é um deslogamento forçado no portal do lojista, caracterizando indisponibilidade funcional que impede o uso do sistema."
+    },
+    "valido": true
+   },
+   "f05": {
+    "json": {
+     "area_time": "Canal Parceiro › Comissionamento de Parceiros",
+     "tipo_subtipo": "Processo manual › Retrabalho e conferência",
+     "porque": "A conciliação manual em planilha e a conferência linha a linha por duas pessoas caracterizam retrabalho e processo manual, diretamente ligado ao comissionamento de parceiros."
+    },
+    "bruto": "{\"area_time\": \"Canal Parceiro › Comissionamento de Parceiros\", \"tipo_subtipo\": \"Processo manual › Retrabalho e conferência\", \"porque\": \"A conciliação manual em planilha e a conferência linha a linha por duas pessoas caracterizam retrabalho e processo manual, diretamente ligado ao comissionamento de parceiros.\"}",
+    "latencia_s": 3.64,
+    "tok_in": 966,
+    "tok_out": 88,
+    "custo_usd": 7.08316e-05,
+    "fallback": {
+     "area": "Canal Parceiro",
+     "time": "Comissionamento de Parceiros",
+     "tipo": "Processo manual",
+     "subtipo": "Retrabalho e conferência",
+     "porque": "A conciliação manual em planilha e a conferência linha a linha por duas pessoas caracterizam retrabalho e processo manual, diretamente ligado ao comissionamento de parceiros."
+    },
+    "valido": true
+   },
+   "f06": {
+    "json": {
+     "area_time": "Canal Digital › App",
+     "tipo_subtipo": "Melhoria e modernização › Nova funcionalidade para cliente",
+     "porque": "A fala descreve uma funcionalidade desejada para o app, que hoje exige um passo manual do cliente indo a um parceiro."
+    },
+    "bruto": "{\"area_time\": \"Canal Digital › App\", \"tipo_subtipo\": \"Melhoria e modernização › Nova funcionalidade para cliente\", \"porque\": \"A fala descreve uma funcionalidade desejada para o app, que hoje exige um passo manual do cliente indo a um parceiro.\"}",
+    "latencia_s": 7.71,
+    "tok_in": 963,
+    "tok_out": 73,
+    "custo_usd": 4.79423e-05,
+    "fallback": {
+     "area": "Canal Digital",
+     "time": "App",
+     "tipo": "Melhoria e modernização",
+     "subtipo": "Nova funcionalidade para cliente",
+     "porque": "A fala descreve uma funcionalidade desejada para o app, que hoje exige um passo manual do cliente indo a um parceiro."
+    },
+    "valido": true
+   },
+   "f07": {
+    "json": {
+     "area_time": "Dados e Regulatório › Relatórios Regulatórios",
+     "tipo_subtipo": "Risco regulatório e segurança › Prazo ou obrigação regulatória",
+     "porque": "O job de carga noturna do CADOC 3040 gerou contratos sem código de modalidade, e o envio ao Banco Central na sexta-feira caracteriza uma obrigação regulatória em risco."
+    },
+    "bruto": "{\"area_time\": \"Dados e Regulatório › Relatórios Regulatórios\", \"tipo_subtipo\": \"Risco regulatório e segurança › Prazo ou obrigação regulatória\", \"porque\": \"O job de carga noturna do CADOC 3040 gerou contratos sem código de modalidade, e o envio ao Banco Central na sexta-feira caracteriza uma obrigação regulatória em risco.\"}",
+    "latencia_s": 9.07,
+    "tok_in": 958,
+    "tok_out": 95,
+    "custo_usd": 7.14063e-05,
+    "fallback": {
+     "area": "Dados e Regulatório",
+     "time": "Relatórios Regulatórios",
+     "tipo": "Risco regulatório e segurança",
+     "subtipo": "Prazo ou obrigação regulatória",
+     "porque": "O job de carga noturna do CADOC 3040 gerou contratos sem código de modalidade, e o envio ao Banco Central na sexta-feira caracteriza uma obrigação regulatória em risco."
+    },
+    "valido": true
+   },
+   "f08": {
+    "json": {
+     "area_time": "Pós-venda e Cobrança › Renegociação",
+     "tipo_subtipo": "Pessoas e capacidade › Rotatividade e conhecimento concentrado",
+     "porque": "O relato descreve saída de três devs e conhecimento concentrado em uma pessoa, caracterizando rotatividade e conhecimento concentrado."
+    },
+    "bruto": "{\"area_time\": \"Pós-venda e Cobrança › Renegociação\", \"tipo_subtipo\": \"Pessoas e capacidade › Rotatividade e conhecimento concentrado\", \"porque\": \"O relato descreve saída de três devs e conhecimento concentrado em uma pessoa, caracterizando rotatividade e conhecimento concentrado.\"}",
+    "latencia_s": 6.02,
+    "tok_in": 964,
+    "tok_out": 77,
+    "custo_usd": 4.88089e-05,
+    "fallback": {
+     "area": "Pós-venda e Cobrança",
+     "time": "Renegociação",
+     "tipo": "Pessoas e capacidade",
+     "subtipo": "Rotatividade e conhecimento concentrado",
+     "porque": "O relato descreve saída de três devs e conhecimento concentrado em uma pessoa, caracterizando rotatividade e conhecimento concentrado."
+    },
+    "valido": true
+   },
+   "f09": {
+    "json": {
+     "area_time": "Plataforma e Sustentação › Observabilidade",
+     "tipo_subtipo": "Pessoas e capacidade › Sobrecarga e plantão",
+     "porque": "Alertas falsos positivos em excesso levam a equipe de plantão a ignorá-los, indicando sobrecarga e inefetividade do sistema de observabilidade."
+    },
+    "bruto": "{\"area_time\": \"Plataforma e Sustentação › Observabilidade\", \"tipo_subtipo\": \"Pessoas e capacidade › Sobrecarga e plantão\", \"porque\": \"Alertas falsos positivos em excesso levam a equipe de plantão a ignorá-los, indicando sobrecarga e inefetividade do sistema de observabilidade.\"}",
+    "latencia_s": 7.51,
+    "tok_in": 965,
+    "tok_out": 82,
+    "custo_usd": 4.9868e-05,
+    "fallback": {
+     "area": "Plataforma e Sustentação",
+     "time": "Observabilidade",
+     "tipo": "Pessoas e capacidade",
+     "subtipo": "Sobrecarga e plantão",
+     "porque": "Alertas falsos positivos em excesso levam a equipe de plantão a ignorá-los, indicando sobrecarga e inefetividade do sistema de observabilidade."
+    },
+    "valido": true
+   },
+   "f10": {
+    "json": {
+     "area_time": "Originação › Proposta",
+     "tipo_subtipo": "Melhoria e modernização › Automação interna",
+     "porque": "A automação da análise de documentos de renda com OCR visa eliminar o processo manual de análise de holerites, que hoje é feito à mão e causa atraso de 2 dias."
+    },
+    "bruto": "{\"area_time\": \"Originação › Proposta\", \"tipo_subtipo\": \"Melhoria e modernização › Automação interna\", \"porque\": \"A automação da análise de documentos de renda com OCR visa eliminar o processo manual de análise de holerites, que hoje é feito à mão e causa atraso de 2 dias.\"}",
+    "latencia_s": 8.05,
+    "tok_in": 970,
+    "tok_out": 81,
+    "custo_usd": 6.98705e-05,
+    "fallback": {
+     "area": "Originação",
+     "time": "Proposta",
+     "tipo": "Melhoria e modernização",
+     "subtipo": "Automação interna",
+     "porque": "A automação da análise de documentos de renda com OCR visa eliminar o processo manual de análise de holerites, que hoje é feito à mão e causa atraso de 2 dias."
+    },
+    "valido": true
+   },
+   "f11": {
+    "json": {
+     "area_time": "Crédito › Antifraude",
+     "tipo_subtipo": "Risco regulatório e segurança › Fraude e segurança",
+     "porque": "A suspeita de quadrilha usando selfie reaproveitada e documentos de terceiros é um claro indício de fraude, que deve ser tratada pelo time de Antifraude."
+    },
+    "bruto": "{\"area_time\": \"Crédito › Antifraude\", \"tipo_subtipo\": \"Risco regulatório e segurança › Fraude e segurança\", \"porque\": \"A suspeita de quadrilha usando selfie reaproveitada e documentos de terceiros é um claro indício de fraude, que deve ser tratada pelo time de Antifraude.\"}",
+    "latencia_s": 4.66,
+    "tok_in": 967,
+    "tok_out": 83,
+    "custo_usd": 5.02537e-05,
+    "fallback": {
+     "area": "Crédito",
+     "time": "Antifraude",
+     "tipo": "Risco regulatório e segurança",
+     "subtipo": "Fraude e segurança",
+     "porque": "A suspeita de quadrilha usando selfie reaproveitada e documentos de terceiros é um claro indício de fraude, que deve ser tratada pelo time de Antifraude."
+    },
+    "valido": true
+   },
+   "f12": {
+    "json": {
+     "area_time": "Pós-venda e Cobrança › Boletos e Carnês",
+     "tipo_subtipo": "Incidente em produção › Erro de dados ou cálculo",
+     "porque": "O boleto da segunda via no app exibe valor incorreto (sem desconto de antecipação), causando pagamento a maior e necessidade de estorno."
+    },
+    "bruto": "{\"area_time\": \"Pós-venda e Cobrança › Boletos e Carnês\", \"tipo_subtipo\": \"Incidente em produção › Erro de dados ou cálculo\", \"porque\": \"O boleto da segunda via no app exibe valor incorreto (sem desconto de antecipação), causando pagamento a maior e necessidade de estorno.\"}",
+    "latencia_s": 2.94,
+    "tok_in": 959,
+    "tok_out": 83,
+    "custo_usd": 0.0001086169,
+    "fallback": {
+     "area": "Pós-venda e Cobrança",
+     "time": "Boletos e Carnês",
+     "tipo": "Incidente em produção",
+     "subtipo": "Erro de dados ou cálculo",
+     "porque": "O boleto da segunda via no app exibe valor incorreto (sem desconto de antecipação), causando pagamento a maior e necessidade de estorno."
+    },
+    "valido": true
+   },
+   "f13": {
+    "json": {
+     "area_time": "Plataforma e Sustentação › Infra e Cloud",
+     "tipo_subtipo": "Melhoria e modernização › Plataforma e custo de TI",
+     "porque": "A demanda é por um painel de custos de cloud, que visa melhorar a visibilidade e gestão de gastos de infraestrutura, enquadrando-se em melhoria de plataforma e custo de TI."
+    },
+    "bruto": "{\"area_time\": \"Plataforma e Sustentação › Infra e Cloud\", \"tipo_subtipo\": \"Melhoria e modernização › Plataforma e custo de TI\", \"porque\": \"A demanda é por um painel de custos de cloud, que visa melhorar a visibilidade e gestão de gastos de infraestrutura, enquadrando-se em melhoria de plataforma e custo de TI.\"}",
+    "latencia_s": 2.96,
+    "tok_in": 964,
+    "tok_out": 97,
+    "custo_usd": 0.0001117949,
+    "fallback": {
+     "area": "Plataforma e Sustentação",
+     "time": "Infra e Cloud",
+     "tipo": "Melhoria e modernização",
+     "subtipo": "Plataforma e custo de TI",
+     "porque": "A demanda é por um painel de custos de cloud, que visa melhorar a visibilidade e gestão de gastos de infraestrutura, enquadrando-se em melhoria de plataforma e custo de TI."
+    },
+    "valido": true
+   },
+   "f14": {
+    "json": {
+     "area_time": "Formalização › Documentação e Assinatura",
+     "tipo_subtipo": "Processo manual › Etapa manual no fluxo do cliente",
+     "porque": "O relato descreve uma etapa manual (imprimir e escanear) que causa abandono de 40% dos clientes, correspondendo exatamente ao subtipo de processo manual no fluxo do cliente."
+    },
+    "bruto": "{\"area_time\": \"Formalização › Documentação e Assinatura\", \"tipo_subtipo\": \"Processo manual › Etapa manual no fluxo do cliente\", \"porque\": \"O relato descreve uma etapa manual (imprimir e escanear) que causa abandono de 40% dos clientes, correspondendo exatamente ao subtipo de processo manual no fluxo do cliente.\"}",
+    "latencia_s": 3.47,
+    "tok_in": 956,
+    "tok_out": 91,
+    "custo_usd": 5.07311e-05,
+    "fallback": {
+     "area": "Formalização",
+     "time": "Documentação e Assinatura",
+     "tipo": "Processo manual",
+     "subtipo": "Etapa manual no fluxo do cliente",
+     "porque": "O relato descreve uma etapa manual (imprimir e escanear) que causa abandono de 40% dos clientes, correspondendo exatamente ao subtipo de processo manual no fluxo do cliente."
+    },
+    "valido": true
+   },
+   "f15": {
+    "json": {
+     "area_time": "Dados e Regulatório › Privacidade (LGPD)",
+     "tipo_subtipo": "Risco regulatório e segurança › Privacidade de dados",
+     "porque": "A proposta visa atender pedidos de exclusão da LGPD, enquadrando-se diretamente em privacidade de dados e no time responsável por esse tema."
+    },
+    "bruto": "{\"area_time\": \"Dados e Regulatório › Privacidade (LGPD)\", \"tipo_subtipo\": \"Risco regulatório e segurança › Privacidade de dados\", \"porque\": \"A proposta visa atender pedidos de exclusão da LGPD, enquadrando-se diretamente em privacidade de dados e no time responsável por esse tema.\"}",
+    "latencia_s": 2.63,
+    "tok_in": 966,
+    "tok_out": 82,
+    "custo_usd": 4.99646e-05,
+    "fallback": {
+     "area": "Dados e Regulatório",
+     "time": "Privacidade (LGPD)",
+     "tipo": "Risco regulatório e segurança",
+     "subtipo": "Privacidade de dados",
+     "porque": "A proposta visa atender pedidos de exclusão da LGPD, enquadrando-se diretamente em privacidade de dados e no time responsável por esse tema."
+    },
+    "valido": true
+   },
+   "f16": {
+    "json": {
+     "area_time": "Canal Digital › Marketplace de Veículos",
+     "tipo_subtipo": "Integração e terceiros › Integração interna",
+     "porque": "O problema é de sincronização entre sistemas internos (estoque das concessionárias e o marketplace), causando exibição de dados desatualizados."
+    },
+    "bruto": "{\"area_time\": \"Canal Digital › Marketplace de Veículos\", \"tipo_subtipo\": \"Integração e terceiros › Integração interna\", \"porque\": \"O problema é de sincronização entre sistemas internos (estoque das concessionárias e o marketplace), causando exibição de dados desatualizados.\"}",
+    "latencia_s": 4.01,
+    "tok_in": 951,
+    "tok_out": 73,
+    "custo_usd": 4.67831e-05,
+    "fallback": {
+     "area": "Canal Digital",
+     "time": "Marketplace de Veículos",
+     "tipo": "Integração e terceiros",
+     "subtipo": "Integração interna",
+     "porque": "O problema é de sincronização entre sistemas internos (estoque das concessionárias e o marketplace), causando exibição de dados desatualizados."
+    },
+    "valido": true
+   },
+   "f17": {
+    "json": {
+     "area_time": "Plataforma e Sustentação › Observabilidade",
+     "tipo_subtipo": "Incidente em produção › Lentidão",
+     "porque": "O relato descreve lentidão no sistema, o que é um incidente em produção, e a área mais provável é Plataforma e Sustentação, especificamente Observabilidade, para monitorar e resolver a performance."
+    },
+    "bruto": "{\"area_time\": \"Plataforma e Sustentação › Observabilidade\", \"tipo_subtipo\": \"Incidente em produção › Lentidão\", \"porque\": \"O relato descreve lentidão no sistema, o que é um incidente em produção, e a área mais provável é Plataforma e Sustentação, especificamente Observabilidade, para monitorar e resolver a performance.\"}",
+    "latencia_s": 3.99,
+    "tok_in": 929,
+    "tok_out": 89,
+    "custo_usd": 4.77379e-05,
+    "fallback": {
+     "area": "Plataforma e Sustentação",
+     "time": "Observabilidade",
+     "tipo": "Incidente em produção",
+     "subtipo": "Lentidão",
+     "porque": "O relato descreve lentidão no sistema, o que é um incidente em produção, e a área mais provável é Plataforma e Sustentação, especificamente Observabilidade, para monitorar e resolver a performance."
+    },
+    "valido": true
+   },
+   "f18": {
+    "json": {
+     "area_time": "Nenhum destes",
+     "tipo_subtipo": "Nenhum destes",
+     "porque": "O relato trata de infraestrutura física do prédio (estacionamento), não de tecnologia, sistemas ou processos da financeira."
+    },
+    "bruto": "{\"area_time\": \"Nenhum destes\", \"tipo_subtipo\": \"Nenhum destes\", \"porque\": \"O relato trata de infraestrutura física do prédio (estacionamento), não de tecnologia, sistemas ou processos da financeira.\"}",
+    "latencia_s": 2.9,
+    "tok_in": 955,
+    "tok_out": 62,
+    "custo_usd": 4.5052e-05,
+    "fallback": {
+     "area": "Nenhum destes",
+     "time": "Nenhum destes",
+     "tipo": "Nenhum destes",
+     "subtipo": "Nenhum destes",
+     "porque": "O relato trata de infraestrutura física do prédio (estacionamento), não de tecnologia, sistemas ou processos da financeira."
+    },
+    "valido": true
+   },
+   "f19": {
+    "json": {
+     "area_time": "Plataforma e Sustentação › Infra e Cloud",
+     "tipo_subtipo": "Incidente em produção › Indisponibilidade",
+     "porque": "O pod do contract-service foi morto por falta de memória (OOMKilled) repetidamente, causando indisponibilidade e rollback de deployments."
+    },
+    "bruto": "{\"area_time\": \"Plataforma e Sustentação › Infra e Cloud\", \"tipo_subtipo\": \"Incidente em produção › Indisponibilidade\", \"porque\": \"O pod do contract-service foi morto por falta de memória (OOMKilled) repetidamente, causando indisponibilidade e rollback de deployments.\"}",
+    "latencia_s": 3.62,
+    "tok_in": 946,
+    "tok_out": 77,
+    "custo_usd": 4.70701e-05,
+    "fallback": {
+     "area": "Plataforma e Sustentação",
+     "time": "Infra e Cloud",
+     "tipo": "Incidente em produção",
+     "subtipo": "Indisponibilidade",
+     "porque": "O pod do contract-service foi morto por falta de memória (OOMKilled) repetidamente, causando indisponibilidade e rollback de deployments."
+    },
+    "valido": true
+   },
+   "f20": {
+    "json": {
+     "area_time": "Pós-venda e Cobrança › Quitação e Baixa",
+     "tipo_subtipo": "Risco regulatório e segurança › Prazo ou obrigação regulatória",
+     "porque": "Atraso na baixa do gravame gera reclamações no Procon, caracterizando risco regulatório e de prazo."
+    },
+    "bruto": "{\"area_time\": \"Pós-venda e Cobrança › Quitação e Baixa\", \"tipo_subtipo\": \"Risco regulatório e segurança › Prazo ou obrigação regulatória\", \"porque\": \"Atraso na baixa do gravame gera reclamações no Procon, caracterizando risco regulatório e de prazo.\"}",
+    "latencia_s": 3.7,
+    "tok_in": 978,
+    "tok_out": 79,
+    "custo_usd": 5.05463e-05,
+    "fallback": {
+     "area": "Pós-venda e Cobrança",
+     "time": "Quitação e Baixa",
+     "tipo": "Risco regulatório e segurança",
+     "subtipo": "Prazo ou obrigação regulatória",
+     "porque": "Atraso na baixa do gravame gera reclamações no Procon, caracterizando risco regulatório e de prazo."
+    },
+    "valido": true
+   }
+  },
+  "painel": {
+   "json": {
+    "porque": "A célula está quente porque o erro de layout no registro de gravame do Detran de SP, causado por mudança não validada da registradora, gerou um bloqueio severo (severidade 0.98) em 1.200 contratos, com risco iminente de descumprimento do prazo legal de 30 dias. Isso evidencia falha no processo de validação de mudanças de fornecedor (padrão de causa raiz) e expõe vulnerabilidade regulatória e operacional (facetas secundárias: risco legal e impacto em escala).",
+    "sugestoes": [
+     {
+      "acao": "Implementar validação automática de layout de arquivos de remessa antes do envio ao Detran, com alertas em caso de divergência.",
+      "tipo_solucao": "ferramenta/automação"
+     },
+     {
+      "acao": "Criar um processo de homologação obrigatória de mudanças de fornecedor com checklist de impacto regulatório e testes em ambiente controlado.",
+      "tipo_solucao": "processo"
+     },
+     {
+      "acao": "Estabelecer um canal de comunicação direto com a registradora para notificação prévia de alterações e validação conjunta.",
+      "tipo_solucao": "fornecedor"
+     }
+    ]
+   },
+   "bruto": "{\"porque\": \"A célula está quente porque o erro de layout no registro de gravame do Detran de SP, causado por mudança não validada da registradora, gerou um bloqueio severo (severidade 0.98) em 1.200 contratos, com risco iminente de descumprimento do prazo legal de 30 dias. Isso evidencia falha no processo de validação de mudanças de fornecedor (padrão de causa raiz) e expõe vulnerabilidade regulatória e operacional (facetas secundárias: risco legal e impacto em escala).\", \"sugestoes\": [{\"acao\": \"Implementar validação automática de layout de arquivos de remessa antes do envio ao Detran, com ale",
+   "latencia_s": 16.7,
+   "tok_in": 225,
+   "tok_out": 293,
+   "custo_usd": 7.299e-05,
+   "celula": [
+    "Formalização",
+    "Risco regulatório e segurança"
+   ]
+  }
  }
 }

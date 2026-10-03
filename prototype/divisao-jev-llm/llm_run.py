@@ -5,7 +5,7 @@ import json, os, re, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 import pipeline as p
 
-MODELOS = ["deepseek/deepseek-v4-flash", "qwen/qwen3-235b-a22b-2507"]  # Gemini e GLM bloqueados pelo guardrail do workspace
+MODELOS = ["deepseek/deepseek-v4-flash", "qwen/qwen3-235b-a22b-2507", "deepseek/deepseek-v4-flash#sem-raciocinio"]  # Gemini e GLM bloqueados pelo guardrail do workspace
 here = os.path.dirname(os.path.abspath(__file__))
 frentes = {f["id"]: f for f in json.load(open(os.path.join(here, "frentes.json")))}
 tax = json.load(open(os.path.join(here, "taxonomia_v1.json")))
@@ -15,9 +15,11 @@ key = os.environ["OPENROUTER_API_KEY"]
 
 
 def chat(modelo, prompt):
-    body = json.dumps({"model": modelo, "messages": [{"role": "user", "content": prompt}],
+    mid, _, var = modelo.partition("#")
+    reasoning = {"enabled": False} if var == "sem-raciocinio" else {"effort": "low"}
+    body = json.dumps({"model": mid, "messages": [{"role": "user", "content": prompt}],
                        "response_format": {"type": "json_object"}, "usage": {"include": True},
-                       "temperature": 0, "reasoning": {"effort": "low"}}).encode()
+                       "temperature": 0, "reasoning": reasoning}).encode()
     req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=body, method="POST",
                                  headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
     t0 = time.time()
@@ -37,8 +39,8 @@ def chat(modelo, prompt):
             "tok_in": u.get("prompt_tokens"), "tok_out": u.get("completion_tokens"), "custo_usd": u.get("cost")}
 
 
-out = {}
-for modelo in MODELOS:
+out = json.load(open(os.path.join(here, "llm_out.json"))) if os.path.exists(os.path.join(here, "llm_out.json")) else {}
+for modelo in [m for m in MODELOS if m not in out]:
     def fb(fid):
         r = chat(modelo, p.fallback_prompt(frentes[fid], tax, classifs[fid]))
         if "json" in r:
