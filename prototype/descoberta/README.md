@@ -5,10 +5,8 @@ Não é código de produção. Vive só no branch `prototype/9-descoberta` e nun
 **Pergunta.** Como a LLM faz a descoberta (v1) e as revisões da taxonomia, de modo que a saída vire `questions`
 válidas do Jev e mostre os pontos quentes plantados na seed? Que limites do sinal de encaixe disparam a revisão?
 
-**Estado (2026-10-03).** Descoberta, classificação da v1 no Jev, sinal de encaixe, revisão e lista de problemas rodaram.
-A classificação da v1 no Jev foi feita **antes** de a lista de problemas existir (7 dimensões + pergunta de controle).
-**Falta reclassificar na v2 no Jev** (a `TYPESAFE_API_KEY` foi trocada; o pedido está pronto, ver "Rodar").
-Sem isso não há a avaliação contra o gabarito depois da revisão.
+**Estado (2026-10-03).** Tudo rodou: descoberta, Jev na v1 (7 dimensões), sinal de encaixe, revisão, lista de problemas e
+Jev na v2 (8 dimensões). As decisões com o Bardi ainda não foram tomadas.
 
 ## Arquivos
 
@@ -31,10 +29,9 @@ Sem isso não há a avaliação contra o gabarito depois da revisão.
 python3 prototype/descoberta/avaliar.py 1                     # sem rede: lê dados/classif_v1.json
 python3 prototype/descoberta/descobrir.py 240                 # descoberta de novo (OPENROUTER_API_KEY)
 python3 prototype/descoberta/revisar.py prototype/descoberta/dados/v1.json prototype/descoberta/dados/classif_v1.json 7 9 teste ABR
-# falta (precisa da TYPESAFE_API_KEY nova, no host):
+python3 prototype/descoberta/avaliar.py 1 2                   # v1 × v2 contra o gabarito
+# para classificar de novo no Jev (a chave só existe no host; o script a pede no terminal):
 python3 prototype/descoberta/montar_pedido.py prototype/descoberta/dados/v2.json | OUTE_PROPOSE_AGENT=claude oute-propose "frentes-engenharia #9: Jev, taxonomia v2"
-#   depois: salvar o JSON da saída em dados/jev_v2.json, e
-python3 prototype/descoberta/classificar.py prototype/descoberta/dados/v2.json prototype/descoberta/dados/jev_v2.json && python3 prototype/descoberta/avaliar.py 1 2
 ```
 
 ## O que saiu
@@ -120,6 +117,17 @@ A descoberta e a revisão geram também a lista única de problemas (teto 40, s�
 - **Custo no Jev:** a lista de 10 a 13 problemas soma ~370 a 500 tokens por frente (o #8 estimou ~1,5 mil para 40).
 - O "Nenhum destes" do problema não entra no sinal de encaixe, que olha só o tipo.
 
+### Depois da revisão: Jev na v2 (240 frentes, pedido `20261003-220815`, 8 dimensões)
+
+- 240 frentes em 6,3 s, 0 erros, **3.954 tokens por frente** (v1: 3.083; os 871 a mais são 3 subtipos novos e a lista de 13 problemas), US$0,040.
+- **O tema novo passa a ter coluna:** 34 das 37 frentes da H5 que pintam caem em "IA e Assistentes Virtuais" (92%).
+  Na v1 elas se espalhavam: 23 em Processo e Fluxo de Trabalho, 5 em Segurança, 3 em Dados.
+- **O encaixe fraco da H5 cai de 72% para 0%**, e o sinal projetado volta à base (8–9% nos meses 7–12, contra 12–15% na v1).
+- As outras histórias ficam onde estavam (H1, H3, H6 e H7 em 100% no mesmo tipo; H2 em 70%). Estados: 79% Jev, 10% via LLM, 9% incerta, 2% não classificada.
+- **Célula quente, com ressalva:** nos meses 10–12 do sorteio simples, "Canal Digital × IA e Assistentes Virtuais" fica em 9º de 23 na visão de dor,
+  1,7× a mediana, com só 3 frentes. A amostra tem ~1/25 do volume dessa janela; a posição no mapa só se mede com a seed inteira.
+- A área da H5 acerta só 16 de 37: o roteiro espalha o tema por 6 times e os textos de log e webhook não dizem qual.
+
 ## Custo total do protótipo
 
-Amostra US$0,012 · descobertas (várias rodadas) ~US$0,03 · Jev US$0,033 · fallback e revisões ~US$0,01. **Menos de US$0,10.**
+Amostra US$0,012 · descobertas e listas de problemas (várias rodadas) ~US$0,04 · Jev US$0,073 (v1 + v2) · fallback e revisões ~US$0,01. **Cerca de US$0,14.**
