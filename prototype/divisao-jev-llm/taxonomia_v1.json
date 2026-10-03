@@ -1,0 +1,32 @@
+{
+ "versao": "v1-STUB-prototipo (escrita a mão; a real sai da descoberta, ticket #9)",
+ "organograma": {
+  "Originação": ["Simulação","Proposta","Cadastro e KYC"],
+  "Crédito": ["Motor de Decisão","Políticas de Crédito","Antifraude"],
+  "Formalização": ["Contratos","Documentação e Assinatura","Gravame"],
+  "Canal Parceiro": ["Portal do Lojista","Correspondentes","Comissionamento de Parceiros"],
+  "Canal Digital": ["App","Jornada Online","Marketplace de Veículos"],
+  "Pós-venda e Cobrança": ["Boletos e Carnês","Renegociação","Quitação e Baixa"],
+  "Plataforma e Sustentação": ["Infra e Cloud","Observabilidade","Suporte N2/N3"],
+  "Dados e Regulatório": ["Engenharia de Dados","Relatórios Regulatórios","Privacidade (LGPD)"]
+ },
+ "tipos": {
+  "Incidente em produção": {"Indisponibilidade":"Sistema ou funcionalidade fora do ar","Lentidão":"Sistema funcionando, mas lento demais","Erro de dados ou cálculo":"Valor, cálculo ou dado errado entregue a cliente ou relatório"},
+  "Integração e terceiros": {"Parceiro ou fornecedor":"Problema causado por lojista, registradora, bureau ou outro terceiro","Integração interna":"Sistemas internos que não conversam ou sincronizam mal"},
+  "Processo manual": {"Retrabalho e conferência":"Pessoas conferindo ou refazendo trabalho à mão","Etapa manual no fluxo do cliente":"Cliente ou parceiro obrigado a um passo manual que causa abandono"},
+  "Pessoas e capacidade": {"Rotatividade e conhecimento concentrado":"Saída de pessoas ou conhecimento em poucas cabeças","Sobrecarga e plantão":"Time sobrecarregado, plantão insustentável"},
+  "Risco regulatório e segurança": {"Prazo ou obrigação regulatória":"Obrigação com regulador, Detran, Procon ou prazo legal em risco","Fraude e segurança":"Fraude, ataque ou falha de segurança","Privacidade de dados":"Tratamento de dados pessoais e LGPD"},
+  "Melhoria e modernização": {"Nova funcionalidade para cliente":"Ideia de produto ou jornada nova","Automação interna":"Automatizar trabalho interno hoje feito à mão","Plataforma e custo de TI":"Melhorar infraestrutura, observabilidade ou custo de TI"}
+ },
+ "causas_raiz": {
+  "Mudança sem validação suficiente":"Deploy, regra ou versão nova que entrou sem teste suficiente",
+  "Dependência externa instável":"Terceiro mudou ou falhou",
+  "Sistema legado ou débito técnico":"Arquitetura antiga, sincronização em lote, limites técnicos acumulados",
+  "Processo não automatizado":"Trabalho feito à mão por falta de sistema",
+  "Falta de capacidade ou conhecimento":"Pessoas de menos ou conhecimento concentrado",
+  "Exigência regulatória ou externa":"Regra de regulador, órgão público ou cliente que impõe a mudança"
+ },
+ "regua_severidade": ["Incômodo sem efeito em cliente ou operação","Operação degradada, mas existe contorno","Clientes ou operação impedidos em parte, sem contorno","Parada ampla, perda financeira relevante ou risco regulatório"],
+ "regua_impacto": ["Ganho marginal ou só de conforto","Melhora local num time","Ganho mensurável numa área: tempo, custo ou conversão","Ganho estratégico em várias áreas ou em receita"],
+ "criterio_urgencia": "É preciso agir nas próximas duas semanas para não perder algo concreto (prazo legal, clientes, dinheiro, uma janela de oportunidade)?"
+}
