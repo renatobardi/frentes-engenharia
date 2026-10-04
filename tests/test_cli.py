@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -201,11 +202,12 @@ def test_python_m_frentes_servir_sobe_e_o_healthz_responde(tmp_path: Path) -> No
                 time.sleep(0.1)
         with resposta:
             assert resposta.status == 200
-            assert json.load(resposta) == {
-                "commit": "c2408d7",
-                "versao_vigente": None,
-                "dia_snapshot": None,
-            }
+            saude = json.load(resposta)
+        # sem banco no caminho, o processo carrega sozinho o snapshot do repo (#65)
+        assert saude["commit"] == "c2408d7"
+        assert isinstance(saude["versao_vigente"], int) and saude["versao_vigente"] >= 1
+        assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", saude["dia_snapshot"])
+        assert (tmp_path / "frentes.sqlite").is_file()
     finally:
         processo.terminate()
         processo.wait(timeout=10)

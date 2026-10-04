@@ -38,3 +38,14 @@ def sem_rede(monkeypatch: pytest.MonkeyPatch) -> None:
         conectar(sock, endereco)
 
     monkeypatch.setattr(socket.socket, "connect", conectar_so_local)
+
+
+@pytest.fixture(autouse=True)
+def sem_snapshot_do_repo(monkeypatch: pytest.MonkeyPatch, tmp_path_factory) -> None:
+    """A aplicação que sobe sem banco carrega o snapshot do repo (`data/snapshot/`). No teste,
+    o caminho padrão aponta para um arquivo que não existe: quem quer um snapshot grava o seu,
+    e nenhum teste depende do conteúdo do snapshot da demo sem pedir por ele."""
+    from frentes.snapshot import arquivo
+
+    ausente = tmp_path_factory.getbasetemp() / "sem-snapshot" / "frentes.sqlite.gz"
+    monkeypatch.setattr(arquivo, "CAMINHO_PADRAO", ausente)

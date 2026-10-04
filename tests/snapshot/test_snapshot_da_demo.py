@@ -12,6 +12,8 @@ from frentes import config, store
 from frentes.snapshot import arquivo
 from frentes.web.app import criar_app
 
+# o arquivo de verdade: nos testes o `arquivo.CAMINHO_PADRAO` aponta para um que não existe
+SNAPSHOT = config.RAIZ / "data" / "snapshot" / "frentes.sqlite.gz"
 AGORA = datetime(2026, 11, 20, 15, 0, tzinfo=UTC)
 FRENTES = 6000
 LIMITE_MB = 50
@@ -20,7 +22,7 @@ LIMITE_MB = 50
 @pytest.fixture(scope="module")
 def banco(tmp_path_factory: pytest.TempPathFactory) -> Path:
     caminho = tmp_path_factory.mktemp("demo") / "frentes.sqlite"
-    arquivo.carregar(caminho, arquivo.CAMINHO_PADRAO, agora=AGORA)
+    arquivo.carregar(caminho, SNAPSHOT, agora=AGORA)
     return caminho
 
 
@@ -30,7 +32,7 @@ def _um(banco: Path, sql: str) -> object:
 
 
 def test_o_arquivo_cabe_no_repo() -> None:
-    assert arquivo.CAMINHO_PADRAO.stat().st_size < LIMITE_MB * 1024 * 1024
+    assert SNAPSHOT.stat().st_size < LIMITE_MB * 1024 * 1024
 
 
 def test_a_seed_inteira_esta_classificada_na_v1_e_na_v2(banco: Path) -> None:
