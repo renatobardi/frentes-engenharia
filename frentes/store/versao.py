@@ -18,6 +18,7 @@ from frentes.store import Conexao, ErroDeIntegridade, versao_vigente
 
 __all__ = [
     "VersaoJaGravada",
+    "ativadas",
     "ativar",
     "chaves_usadas",
     "frentes_sem_classificacao",
@@ -41,6 +42,15 @@ def proximo_numero(con: Conexao) -> int:
 
 def numeros(con: Conexao) -> list[int]:
     linhas = con.execute("SELECT numero FROM versao_taxonomia ORDER BY numero")
+    return [linha["numero"] for linha in linhas]
+
+
+def ativadas(con: Conexao) -> list[int]:
+    """Os números das versões com `ativada_em` preenchido, em ordem. Uma versão pulada (sem
+    ativação, entre duas ativadas) não entra."""
+    linhas = con.execute(
+        "SELECT numero FROM versao_taxonomia WHERE ativada_em IS NOT NULL ORDER BY numero"
+    )
     return [linha["numero"] for linha in linhas]
 
 
