@@ -19,7 +19,7 @@ DIAS = {Periodo.D30: 30, Periodo.D90: 90, Periodo.D180: 180, Periodo.M12: 365}
 TOP = 3
 
 # visão → (natureza das frentes que pintam, coluna do score somada)
-_VISAO = {
+VISAO = {
     Visao.DOR: (Natureza.REATIVA, "severidade"),
     Visao.OPORTUNIDADE: (Natureza.PROATIVA, "impacto"),
 }
@@ -66,13 +66,13 @@ class PontoMensal:
     indice: float
 
 
-def _fim_do_dia(referencia: date) -> datetime:
+def fim_do_dia(referencia: date) -> datetime:
     return datetime(referencia.year, referencia.month, referencia.day, tzinfo=UTC) + timedelta(
         days=1
     )
 
 
-def _versao(con: Conexao, versao: int | None) -> int:
+def resolver_versao(con: Conexao, versao: int | None) -> int:
     if versao is None:
         vigente = consultas.versao_vigente(con)
         if vigente is None:
@@ -83,7 +83,7 @@ def _versao(con: Conexao, versao: int | None) -> int:
     return versao
 
 
-def _origens(origens: Sequence[Origem | str] | None) -> list[str]:
+def origens_validas(origens: Sequence[Origem | str] | None) -> list[str]:
     return [Origem(o).value for o in origens or ()]
 
 
@@ -103,12 +103,12 @@ def ler(
     versao: int | None = None,
 ) -> Mapa:
     """O mapa da visão: grade área × tipo, tendência, "+N incertas", contadores e Top 3."""
-    numero = _versao(con, versao)
+    numero = resolver_versao(con, versao)
     periodo = Periodo(periodo)
-    natureza, score = _VISAO[Visao(visao)]
-    filtro = _origens(origens)
+    natureza, score = VISAO[Visao(visao)]
+    filtro = origens_validas(origens)
     dias = timedelta(days=DIAS[periodo])
-    ate = _fim_do_dia(referencia or contratos.agora().date())
+    ate = fim_do_dia(referencia or contratos.agora().date())
     desde = ate - dias
     d, a = contratos.para_iso(desde), contratos.para_iso(ate)
 
@@ -186,8 +186,8 @@ def serie_mensal(
     """O índice da célula mês a mês, do mais antigo ao mês da referência, com 0 nos vazios."""
     if meses < 1:
         raise ValueError("meses precisa ser ao menos 1")
-    numero = _versao(con, versao)
-    natureza, score = _VISAO[Visao(visao)]
+    numero = resolver_versao(con, versao)
+    natureza, score = VISAO[Visao(visao)]
     ref = referencia or contratos.agora().date()
     contagem = ref.year * 12 + ref.month - 1  # meses desde o ano 0
     inicio = contagem - (meses - 1)
@@ -200,8 +200,8 @@ def serie_mensal(
         area,
         tipo,
         contratos.para_iso(primeiro),
-        contratos.para_iso(_fim_do_dia(ref)),
-        _origens(origens),
+        contratos.para_iso(fim_do_dia(ref)),
+        origens_validas(origens),
     )
     meses_da_serie = [f"{m // 12:04d}-{m % 12 + 1:02d}" for m in range(inicio, contagem + 1)]
     return [PontoMensal(m, por_mes.get(m, 0.0)) for m in meses_da_serie]
