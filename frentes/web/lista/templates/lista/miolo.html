@@ -1,0 +1,104 @@
+<section id="lista" class="lista">
+  <h1>Frentes</h1>
+  <form class="filtros" action="/frentes" method="get"
+        hx-get="/frentes" hx-trigger="change, input delay:400ms from:[name=busca]"
+        hx-target="#lista" hx-swap="outerHTML" hx-push-url="true">
+    <label>Período
+      <select name="periodo">
+        <option value="">Todo o período</option>
+        {% for valor, nome in periodos %}
+        <option value="{{ valor.value }}"{% if valor == periodo %} selected{% endif %}>{{ nome }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <fieldset class="origens">
+      <legend>Origem</legend>
+      {% for valor, nome in origens_possiveis %}
+      <label><input type="checkbox" name="origem" value="{{ valor.value }}"{% if valor in origens %} checked{% endif %}> {{ nome }}</label>
+      {% endfor %}
+    </fieldset>
+    <label>Natureza
+      <select name="natureza">
+        <option value="">Todas</option>
+        {% for valor, nome in naturezas %}
+        <option value="{{ valor.value }}"{% if valor == natureza %} selected{% endif %}>{{ nome }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Estado
+      <select name="estado">
+        <option value="">Todos</option>
+        {% for valor, nome in estados %}
+        <option value="{{ valor }}"{% if valor == estado %} selected{% endif %}>{{ nome }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Ordem
+      <select name="ordem">
+        {% for valor, nome in ordens %}
+        <option value="{{ valor }}"{% if valor == ordem %} selected{% endif %}>{{ nome }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Taxonomia
+      <select name="versao">
+        {% for n in versoes %}
+        <option value="{{ n }}"{% if n == versao %} selected{% endif %}>v{{ n }}{% if n == vigente %} vigente{% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Busca no texto
+      <input type="search" name="busca" value="{{ busca }}">
+    </label>
+    {% if contexto.area %}<input type="hidden" name="area" value="{{ contexto.area }}"><input type="hidden" name="tipo" value="{{ contexto.tipo }}">{% endif %}
+    {% if contexto.problema %}<input type="hidden" name="problema" value="{{ contexto.problema }}">{% endif %}
+    <noscript><button type="submit">Aplicar</button></noscript>
+  </form>
+
+  {% if chips %}
+  <ul class="chips" aria-label="Filtros de contexto">
+    {% for rotulo, sair in chips %}
+    <li class="chip">{{ rotulo }} <a href="{{ sair }}" aria-label="Tirar o filtro: {{ rotulo }}">✕</a></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <p class="total">{{ total }} {{ "frente" if total == 1 else "frentes" }}</p>
+
+  {% if linhas %}
+  <table class="tabela">
+    <thead>
+      <tr>
+        <th scope="col">Data</th><th scope="col">Origem</th><th scope="col">Emissor</th>
+        <th scope="col">Texto</th><th scope="col">Área › tipo</th><th scope="col">Natureza</th>
+        <th scope="col">Sev. / impacto</th><th scope="col">Confiança</th><th scope="col">Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in linhas %}
+      <tr>
+        <td>{{ l.data }}</td>
+        <td>{{ l.origem }}</td>
+        <td>{{ l.emissor }}</td>
+        <td class="texto"><a href="/frentes/{{ l.id }}">{{ l.texto }}</a></td>
+        <td>{{ l.area_tipo }}</td>
+        <td>{{ l.natureza }}</td>
+        <td>{{ l.score }}</td>
+        <td>{{ l.confianca }}</td>
+        <td>{{ l.estado }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% elif total %}
+  <p class="vazio">Esta página não tem frentes. <a href="{{ primeira }}">Voltar à primeira</a></p>
+  {% else %}
+  <p class="vazio">Nenhuma frente com estes filtros.</p>
+  {% endif %}
+
+  <nav class="paginas" aria-label="Páginas">
+    {% if anterior %}<a href="{{ anterior }}" rel="prev">← Anterior</a>{% endif %}
+    <span>Página {{ pagina }} de {{ total_paginas }}</span>
+    {% if proxima %}<a href="{{ proxima }}" rel="next">Próxima →</a>{% endif %}
+  </nav>
+</section>
