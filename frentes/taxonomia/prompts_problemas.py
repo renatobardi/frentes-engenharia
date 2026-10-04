@@ -70,8 +70,14 @@ certeza, até {MAX_EVIDENCIAS_NA_PENEIRA}). Candidato sem evidência não entra.
 Responda só JSON:
 {FORMATO_CANDIDATOS}"""
 
+# "queixa" e "mesmo_assunto" entraram com a seed inteira (#65): com 12 lotes, 282 de 362
+# candidatos passavam só por repetir o nome de um serviço, cada frente com uma queixa sem
+# relação com a outra, e a lista de 40 saía quase toda do fundo. A leitura só usa "objetos" e
+# "mesmo_objeto".
 FORMATO_PENEIRA = (
-    '{"objetos": [{"frente": 1, "objeto": "<o objeto que a frente cita>"}], "mesmo_objeto": true}'
+    '{"objetos": [{"frente": 1, "objeto": "<o objeto que a frente cita>", '
+    '"queixa": "<a dor ou o pedido da frente, em poucas palavras>"}], '
+    '"mesmo_assunto": true, "mesmo_objeto": true}'
 )
 
 INSTRUCAO_PENEIRA = f"""Você confere se um candidato a PROBLEMA de uma financeira é de fato um \
@@ -88,10 +94,16 @@ Nome: {nome}
 Descrição: {descricao}
 
 Para CADA frente da amostra acima, em ordem, escreva o objeto concreto da empresa que ela cita \
-(o sistema, a integração, o processo ou o fornecedor), como está no texto. Depois responda \
-"mesmo_objeto": true SÓ se todas as frentes citam o MESMO objeto. Se alguma frente cita outro \
-objeto, não cita objeto nenhum, ou se o que as une é só o sintoma (a mesma espécie de queixa em \
-sistemas diferentes), responda false. Na dúvida, false.
+(o sistema, a integração, o processo ou o fornecedor), como está no texto, e a queixa dela (a \
+dor ou o pedido). Depois responda "mesmo_assunto": true SÓ se as queixas são do mesmo assunto: \
+a mesma dor, o mesmo pedido ou faces do mesmo defeito ou da mesma necessidade desse objeto. Se \
+cada frente se queixa de uma coisa sem relação com as outras (uma de custo, outra de \
+documentação, outra de prazo) e só o nome do objeto coincide, é false: um problema é um assunto, \
+não um nome que se repete.
+Por fim responda "mesmo_objeto": true SÓ se todas as frentes citam o MESMO objeto E \
+"mesmo_assunto" é true. Se alguma frente cita outro objeto, não cita objeto nenhum, ou se o que \
+as une é só o sintoma (a mesma espécie de queixa em sistemas diferentes), responda false. Na \
+dúvida, false.
 
 Responda só JSON:
 {formato}"""

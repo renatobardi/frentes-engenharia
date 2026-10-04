@@ -584,3 +584,16 @@ def test_descricao_acima_do_teto_e_cortada_na_ultima_frase_sem_pedir_correcao() 
     assert lidos[0][1] == "Frentes que citam o conciliador. " + "x" * 300 + "."
     assert problemas._no_teto("curta") == "curta"
     assert len(problemas._no_teto("palavra " * 100)) <= 500  # sem frase que caiba: na palavra
+
+
+def test_peneira_reprova_o_mesmo_objeto_com_queixas_sem_relacao() -> None:
+    """Medido com a seed inteira (#65): o nome de um serviço do fundo se repetia com queixas sem
+    relação e passava na peneira (282 de 362 candidatos)."""
+    objetos = [{"frente": n, "objeto": "conciliador", "queixa": "q"} for n in (1, 2)]
+    assert problemas._passou({"objetos": objetos, "mesmo_objeto": True}, 2)
+    assert problemas._passou({"objetos": objetos, "mesmo_assunto": True, "mesmo_objeto": True}, 2)
+    assert not problemas._passou(
+        {"objetos": objetos, "mesmo_assunto": False, "mesmo_objeto": True}, 2
+    )
+    _, entrada = prompts_problemas.peneira("Nome", "Descrição", [("log", "a"), ("log", "b")])
+    assert '"mesmo_assunto": true' in entrada and "um problema é um assunto" in entrada

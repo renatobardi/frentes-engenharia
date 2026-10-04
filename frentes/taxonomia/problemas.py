@@ -196,7 +196,7 @@ def _ler_candidatos(
 
 def _passou(conteudo: Mapping[str, Any], n_frentes: int) -> bool:
     """Só `mesmo_objeto: true`, com um objeto citado por frente lida, aprova."""
-    if conteudo.get("mesmo_objeto") is not True:
+    if conteudo.get("mesmo_objeto") is not True or conteudo.get("mesmo_assunto") is False:
         return False
     objetos = conteudo.get("objetos")
     return (
