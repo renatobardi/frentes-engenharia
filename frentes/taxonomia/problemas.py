@@ -153,10 +153,6 @@ def _ler_candidatos(
         except _Formato as erro:
             return None, [Violacao("formato", str(erro))]
         violacoes: list[Violacao] = []
-        if len(brutos) > MAX_PROBLEMAS:
-            violacoes.append(
-                Violacao("candidatos", f"candidatos: {len(brutos)}, o teto é {MAX_PROBLEMAS}")
-            )
         saida = []
         for nome, descricao, numeros in brutos:
             violacoes += _do_nome(nome, descricao, "candidato")
@@ -174,6 +170,9 @@ def _ler_candidatos(
                 : prompts.MAX_EVIDENCIAS_NA_PENEIRA
             ]
             saida.append(Candidato(nome, descricao, ids, lote))
+        # Lote com candidatos demais (54 num lote real, #65): ficam os de mais evidências, em
+        # vez de pedir correção. O teto da lista vale na regra em código, depois da peneira.
+        saida = sorted(saida, key=lambda c: -len(c.evidencias))[:MAX_PROBLEMAS]
         return saida, violacoes
 
     return ler

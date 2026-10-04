@@ -117,16 +117,21 @@ Responda só JSON:
 
 FORMATO_CONSOLIDACAO = """{"problemas": [{"nome": "", "descricao": "", "candidatos": [1]}]}"""
 
+# A resposta vem antes dos problemas, e o pedido diz que repetir é erro: com a ordem inversa a
+# LLM real devolvia a mesma resposta nas correções (medido na descoberta, #65).
 TAREFA_DE_CORRECAO = """
 
-Você respondeu o JSON abaixo, e a conferência automática achou problemas. Corrija SÓ o que foi \
-apontado e devolva a resposta inteira no mesmo formato JSON.
-
-PROBLEMAS:
-{problemas}
+Você respondeu o JSON abaixo, e a conferência automática o RECUSOU. Devolver a mesma resposta \
+é erro: ela será recusada de novo.
 
 RESPOSTA ANTERIOR:
 {resposta}
+
+PROBLEMAS (cada um tem de sumir na nova resposta):
+{problemas}
+
+Corrija SÓ o que foi apontado e devolva a resposta inteira no mesmo formato JSON. O item que \
+não der para corrigir sai da lista.
 
 Responda só JSON."""
 
