@@ -3,7 +3,7 @@
   <thead>
     <tr>
       <th scope="col"><span class="visually-hidden">Área</span></th>
-      {% for t in tipos %}<th scope="col">{{ t.nome }}</th>{% endfor %}
+      {% for t in tipos %}<th scope="col">{{ t.nome }}{% if t.chave in tipos_novos %} <span class="nova">nova</span>{% endif %}</th>{% endfor %}
       {% if nc_coluna %}<th scope="col" class="nao-classificadas">Não classificadas</th>{% endif %}
     </tr>
   </thead>

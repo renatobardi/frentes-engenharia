@@ -28,11 +28,15 @@
         </select>
       </label>
       {% if painel %}<input type="hidden" name="area" value="{{ celula_aberta[0] }}"><input type="hidden" name="tipo" value="{{ celula_aberta[1] }}">{% endif %}
-      <noscript><button type="submit">Aplicar</button></noscript>
+      {# sem JavaScript o formulário não manda o HX-Current-URL: `de` diz de que versão se veio #}
+      <noscript><input type="hidden" name="de" value="{{ mapa.versao }}"><button type="submit">Aplicar</button></noscript>
     </form>
 
     {% include "mapa/contadores.html" %}
   </div>
+
+  {% if aviso_da_celula %}<p class="aviso-versao" role="status">{{ aviso_da_celula }}</p>{% endif %}
+  {% include "mapa/faixa_versao.html" %}
 
   <p id="aviso-enderecar" class="erro-enderecar" role="alert" hidden></p>
 

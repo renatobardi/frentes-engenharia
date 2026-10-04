@@ -598,3 +598,22 @@ def test_conteudo_da_llm_que_nao_e_objeto_nao_derruba_a_tela(banco: Path, http: 
 
 def test_id_longo_demais_e_422(http: TestClient) -> None:
     assert http.get("/frentes/" + "a" * 201).status_code == 422
+
+
+def test_versao_pulada_nao_e_oferecida_nem_aberta(tmp_path: Path) -> None:
+    # a v2 ficou sem ativação entre a v1 e a v3, ambas ativadas: o seletor não a mostra
+    caminho = tmp_path / "frentes.db"
+    con = store.abrir(caminho)
+    _versao(con, 1, _documento(" v1"))
+    _versao(con, 2, _documento(), ativada=False)
+    _versao(con, 3, _documento(" v3"))
+    _frente(con, "p1")
+    con.commit()
+    con.close()
+    http = TestClient(criar_app(config.carregar({"FRENTES_DB": str(caminho)})))
+
+    html = _pagina(http, "p1")
+
+    assert 'href="/frentes/p1?versao=1"' in html and 'href="/frentes/p1?versao=3"' in html
+    assert "versao=2" not in html
+    assert http.get("/frentes/p1?versao=2").status_code == 404
