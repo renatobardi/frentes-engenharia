@@ -3,11 +3,11 @@ trocado por chamadas diretas a `varrer()`. Nada toca a rede."""
 
 import asyncio
 import json
+import logging
 import time
 from collections.abc import Iterator
 from contextlib import closing
 from dataclasses import replace
-from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -18,20 +18,14 @@ from fastapi.testclient import TestClient
 from frentes import config, fila, store
 from frentes.contratos import (
     NENHUM_DESTES,
-    AreaDoOrganograma,
     Classificacao,
-    DocumentoTaxonomia,
     Estado,
     FrenteBruta,
     MotivoIncerta,
-    Natureza,
-    NivelDaRegua,
     Origem,
     Pergunta,
     RespostaDeLista,
     RespostaDeNumero,
-    TimeDoOrganograma,
-    ValorDoDocumento,
     VersaoTaxonomia,
     para_iso,
 )
@@ -41,39 +35,14 @@ from frentes.store import classificacao as armazem
 from frentes.store import frente as armazem_frente
 from frentes.store import versao as armazem_versao
 from frentes.web.app import criar_app
+from tests.fila.documento import DOCUMENTO, QUANDO
 from tests.jev.falso import JevFalso, resposta_jev
 from tests.llm.falso import LlmFalsa, resposta_llm
+from tests.store.test_classificacao import classificacao as classificacao_pronta
 
-QUANDO = datetime(2026, 10, 3, 12, 0, 0, tzinfo=UTC)
 CFG = config.carregar({})
 OPERACAO = replace(CFG.operacao, varredura_s=0.05, espera_inicial_s=0.001)
 
-
-def _valor(chave: str, *filhos: ValorDoDocumento) -> ValorDoDocumento:
-    return ValorDoDocumento(chave, chave.upper(), f"descrição de {chave}", filhos)
-
-
-def _area(chave: str, *times: str) -> AreaDoOrganograma:
-    return AreaDoOrganograma(
-        chave, chave.upper(), tuple(TimeDoOrganograma(t, t.upper(), "faz algo") for t in times)
-    )
-
-
-DOCUMENTO = DocumentoTaxonomia(
-    organograma=(_area("plat", "plat_a", "plat_b"), _area("dados", "dados_a")),
-    tipos=(
-        _valor("incidente", _valor("inc_disp"), _valor("inc_perf")),
-        _valor("melhoria", _valor("mel_proc")),
-    ),
-    causas_raiz=(_valor("c1"),),
-    problemas=(_valor("p1"),),
-    regua_severidade=(NivelDaRegua("baixa", "pouco"), NivelDaRegua("alta", "muito")),
-    regua_impacto=(NivelDaRegua("baixo", "pouco"), NivelDaRegua("alto", "muito")),
-    criterio_urgencia="quão cedo agir",
-    criterio_natureza={Natureza.REATIVA: "quebrou", Natureza.PROATIVA: "melhorar"},
-    pergunta_de_controle="O texto cita algo específico?",
-    instrucoes={p: f"instrução de {p.value}" for p in Pergunta},
-)
 
 AREA_CLARA = {"plat_a": 0.7, "plat_b": 0.2, "dados_a": 0.1}
 AREA_BAIXA = {"plat_a": 0.3, "plat_b": 0.1, "dados_a": 0.45, NENHUM_DESTES: 0.15}
@@ -408,7 +377,7 @@ def test_a_varredura_nao_duplica_a_tarefa_que_ja_roda_na_frente(banco: Path) -> 
     f = montar(banco, falso, LlmFalsa({}))
 
     async def cenario() -> None:
-        async with f._trava("f1"):  # uma tarefa "em andamento" na frente
+        async with f._exclusiva("f1"):  # uma tarefa "em andamento" na frente
             await f.varrer()
         assert len(falso.chamadas) == 0
         await f.varrer()
@@ -630,3 +599,272 @@ def test_aguardando_llm_que_com_o_limiar_novo_nao_precisa_mais_da_llm_fecha_sem_
 
     assert ler(banco, "f1").estado is Estado.CLASSIFICADA
     assert len(llm.chamadas) == 1 and len(falso.chamadas) == 1
+
+
+# ---------------------------------------------------------------------------- log
+
+
+def _avisos(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
+    return [r for r in caplog.records if r.name == "frentes.fila"]
+
+
+def test_falha_esperada_do_jev_e_da_llm_vai_ao_log_como_aviso(
+    banco: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    gravar_frente(banco, "f1", "texto")
+    gravar_frente(banco, "f2", "outro")
+    falso = JevFalso({"texto": ErroJev("fora do ar"), "outro": jev(AREA_BAIXA)})
+    llm = LlmPorTexto({"outro": ErroLlmEsgotado("sem resposta")})
+
+    with caplog.at_level(logging.DEBUG, logger="frentes.fila"):
+        varrer(montar(banco, falso, llm))
+
+    registros = _avisos(caplog)
+    mensagens = {r.getMessage(): r for r in registros}
+    assert all(r.levelno == logging.WARNING and r.exc_info is None for r in registros)
+    assert any("f1" in m and "fora do ar" in m for m in mensagens)
+    assert any("f2" in m and "LLM" in m for m in mensagens)
+
+
+def test_resposta_invalida_do_jev_vai_ao_log_como_aviso(
+    banco: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    gravar_frente(banco, "f1", "texto")
+
+    with caplog.at_level(logging.DEBUG, logger="frentes.fila"):
+        varrer(montar(banco, JevFalso({"texto": jev({"area_inexistente_a": 1.0})}), LlmFalsa({})))
+
+    assert [r.levelno for r in _avisos(caplog)] == [logging.WARNING]
+    assert "inválida" in _avisos(caplog)[0].getMessage()
+
+
+def test_excecao_inesperada_do_jev_e_da_llm_vai_ao_log_com_traceback(
+    banco: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    gravar_frente(banco, "f1", "texto")
+    gravar_frente(banco, "f2", "outro")
+    falso = JevFalso({"texto": RuntimeError("bug no jev"), "outro": jev(AREA_BAIXA)})
+    llm = LlmPorTexto({"outro": KeyError("bug na llm")})
+
+    with caplog.at_level(logging.DEBUG, logger="frentes.fila"):
+        varrer(montar(banco, falso, llm))
+
+    registros = _avisos(caplog)
+    assert len(registros) == 2 and all(r.levelno == logging.ERROR for r in registros)
+    assert {type(r.exc_info[1]) for r in registros} == {RuntimeError, KeyError}
+
+
+def test_erro_de_banco_na_tarefa_vai_ao_log_com_traceback_e_deixa_pendente(
+    banco: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    gravar_frente(banco, "f1", "texto")
+    f = montar(banco, JevFalso({}), LlmFalsa({}))
+
+    def quebrar(_: str) -> None:
+        raise OSError("disco")
+
+    monkeypatch.setattr(f, "_carregar", quebrar)
+
+    with caplog.at_level(logging.DEBUG, logger="frentes.fila"):
+        asyncio.run(f.classificar("f1"))
+
+    assert f.motivo_pendente("f1") == "erro ao classificar: OSError"
+    assert _avisos(caplog)[0].levelno == logging.ERROR
+
+
+def test_varredura_que_levanta_vai_ao_log_e_o_laco_continua(
+    banco: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    f = montar(banco, JevFalso({}), LlmFalsa({}))
+    original = f.varrer
+    rodadas: list[int] = []
+
+    async def varrer_quebrada() -> None:
+        rodadas.append(1)
+        if len(rodadas) == 1:
+            raise RuntimeError("varredura quebrou")
+        await original()
+
+    monkeypatch.setattr(f, "varrer", varrer_quebrada)
+
+    async def cenario() -> None:
+        f.partir()
+        while len(rodadas) < 3:
+            await asyncio.sleep(0.01)
+        await f.parar()
+
+    with caplog.at_level(logging.DEBUG, logger="frentes.fila"):
+        asyncio.run(asyncio.wait_for(cenario(), 10))
+
+    assert any(r.levelno == logging.ERROR and r.exc_info for r in _avisos(caplog))
+
+
+# ---------------------------------------------------------------------------- POST /frentes
+
+
+def test_post_frentes_agenda_a_classificacao_sem_esperar_a_varredura(
+    banco: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(fila, "ao_partir", lambda app: None)  # sem varredura: só o agendar
+    app = criar_app(config.carregar({"FRENTES_DB": str(banco), "FRENTES_WEBHOOK_TOKEN": "t"}))
+    falso = JevFalso({"o simulador caiu": jev()})
+    corpo = {"texto": "o simulador caiu", "ref_externa": "r-1"}
+
+    with TestClient(app) as cliente:
+        app.state.fila = fila.Fila(
+            app, banco, CFG.limiares, OPERACAO, lambda m: falso, LlmFalsa({})
+        )
+        resposta = cliente.post("/frentes", json=corpo, headers={"x-webhook-token": "t"})
+        assert resposta.status_code == 202
+        id_ = resposta.json()["id"]
+        esperar(lambda: ler(banco, id_) is not None)
+        # o reenvio (mesma ref_externa) devolve o mesmo id e não classifica de novo
+        reenvio = cliente.post("/frentes", json=corpo, headers={"x-webhook-token": "t"})
+        assert reenvio.json()["id"] == id_
+        time.sleep(0.2)
+
+    assert ler(banco, id_).estado is Estado.CLASSIFICADA
+    assert len(falso.chamadas) == 1
+
+
+# ---------------------------------------------------------------------------- reclassificar
+
+
+def test_reclassificar_avisa_quem_chamou_e_a_varredura_repete(banco: Path) -> None:
+    gravar_frente(banco, "f1", "texto")
+    falso = JevFalso({"texto": [jev(controle=0.1), ErroJev("fora"), jev()]})
+    f = montar(banco, falso, LlmFalsa({}))
+    varrer(f)
+    assert ler(banco, "f1").motivo is MotivoIncerta.TEXTO_VAGO
+
+    assert asyncio.run(f.reclassificar("f1")) is False
+    assert "Jev" in f.motivo_pendente("f1")
+    assert ler(banco, "f1").motivo is MotivoIncerta.TEXTO_VAGO  # a antiga continua
+
+    varrer(f)  # a varredura repete a reclassificação
+
+    assert ler(banco, "f1").estado is Estado.CLASSIFICADA
+    assert f.motivo_pendente("f1") is None and f._refazer == set()
+    assert len(falso.chamadas) == 3
+
+
+def test_reclassificar_devolve_true_quando_refaz(banco: Path) -> None:
+    gravar_frente(banco, "f1", "texto")
+    f = montar(banco, JevFalso({"texto": [jev(), jev()]}), LlmFalsa({}))
+    varrer(f)
+
+    assert asyncio.run(f.reclassificar("f1")) is True
+
+
+# ---------------------------------------------------------------------------- memória
+
+
+def test_travas_e_motivos_nao_crescem_sem_fim(banco: Path) -> None:
+    for i in range(5):
+        gravar_frente(banco, f"f{i}", f"t{i}")
+    falso = JevFalso({f"t{i}": [ErroJev("fora"), jev()] for i in range(5)})
+    f = montar(banco, falso, LlmFalsa({}))
+
+    varrer(f)
+    assert len(f._motivos) == 5 and f._travas == {}  # trava solta ao fim de cada tarefa
+
+    # f0 é classificada por outro caminho: o motivo dela não vale mais
+    with closing(store.abrir(banco)) as con:
+        armazem.gravar(con, classificacao_pronta("f0"))
+    varrer(f)
+
+    assert f._motivos == {} and f._travas == {}
+
+
+# ---------------------------------------------------------------------------- parar e rajada
+
+
+class JevTravado:
+    """Segura a chamada até o teste soltar, para ter tarefa em andamento."""
+
+    def __init__(self, resposta: Any) -> None:
+        self.resposta = resposta
+        self.chamadas = 0
+
+    async def perguntar(self, texto: str, perguntas: Any) -> Any:
+        self.chamadas += 1
+        await asyncio.sleep(3600)
+        return self.resposta
+
+
+def test_parar_com_tarefa_no_meio_do_jev_volta_logo_e_a_fila_nova_retoma(banco: Path) -> None:
+    gravar_frente(banco, "f1", "texto")
+    travado = JevTravado(jev())
+
+    async def cenario() -> None:
+        f = fila.Fila(None, banco, CFG.limiares, OPERACAO, lambda m: travado, LlmFalsa({}))
+        f.agendar("f1")
+        while travado.chamadas == 0:
+            await asyncio.sleep(0.01)
+        await f.parar()
+        assert not f._tarefas and f._travas == {}
+
+    asyncio.run(asyncio.wait_for(cenario(), 5))
+    assert ler(banco, "f1") is None
+
+    varrer(montar(banco, JevFalso({"texto": jev()}), LlmFalsa({})))
+
+    assert ler(banco, "f1").estado is Estado.CLASSIFICADA
+
+
+class LlmTravada:
+    def __init__(self) -> None:
+        self.chamadas = 0
+
+    async def completar(self, instrucao: str, entrada: str) -> Any:
+        self.chamadas += 1
+        await asyncio.sleep(3600)
+
+
+def test_parar_com_tarefa_no_meio_da_llm_deixa_aguardando_llm_e_a_fila_nova_retoma(
+    banco: Path,
+) -> None:
+    gravar_frente(banco, "f1", "texto")
+    falso = JevFalso({"texto": jev(AREA_BAIXA)})
+    llm = LlmTravada()
+
+    async def cenario() -> None:
+        f = fila.Fila(None, banco, CFG.limiares, OPERACAO, lambda m: falso, llm)
+        f.agendar("f1")
+        while llm.chamadas == 0:
+            await asyncio.sleep(0.01)
+        await f.parar()
+
+    asyncio.run(asyncio.wait_for(cenario(), 5))
+    assert ler(banco, "f1").estado is Estado.AGUARDANDO_LLM
+
+    nova = LlmPorTexto({"texto": resposta_llm({"area": "plat"})})
+    varrer(montar(banco, falso, nova))
+
+    assert ler(banco, "f1").estado is Estado.VIA_LLM
+    assert len(falso.chamadas) == 1  # a retomada não voltou ao Jev
+
+
+def test_rajada_de_20_frentes_termina_com_20_linhas_e_uma_chamada_por_frente(
+    banco: Path,
+) -> None:
+    textos = [f"frente da rajada {i}" for i in range(20)]
+    for i, t in enumerate(textos):
+        gravar_frente(banco, f"r{i}", t)
+    # metade vai ao desempate
+    falso = JevFalso({t: jev(AREA_BAIXA if i % 2 else AREA_CLARA) for i, t in enumerate(textos)})
+    llm = LlmPorTexto({t: resposta_llm({"area": "plat"}) for t in textos[1::2]})
+    f = montar(banco, falso, llm)
+
+    async def cenario() -> None:
+        for i in range(20):
+            f.agendar(f"r{i}")  # o POST agenda; a varredura roda junto, sem duplicar
+        await f.varrer()
+
+    asyncio.run(asyncio.wait_for(cenario(), 20))
+
+    assert contar_linhas(banco) == 20
+    estados = [ler(banco, f"r{i}").estado for i in range(20)]
+    assert estados.count(Estado.CLASSIFICADA) == 10 and estados.count(Estado.VIA_LLM) == 10
+    assert len(falso.chamadas) == 20 and len(llm.chamadas) == 10
+    assert f._travas == {} and f._tarefas == set()

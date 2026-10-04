@@ -20,8 +20,8 @@ Quem fala com a fila:
 import asyncio
 import json
 import logging
-from collections.abc import Awaitable, Callable
-from contextlib import closing
+from collections.abc import AsyncIterator, Awaitable, Callable, Coroutine
+from contextlib import asynccontextmanager, closing
 from pathlib import Path
 from typing import Any
 
@@ -33,13 +33,15 @@ from frentes.contratos import (
     Classificacao,
     ClienteJev,
     ClienteLlm,
+    DocumentoTaxonomia,
     Estado,
     Frente,
     RespostaLlm,
     VersaoTaxonomia,
     agora,
 )
-from frentes.jev import montar_perguntas
+from frentes.jev import ErroJev, montar_perguntas
+from frentes.llm import ErroLlm
 from frentes.store import classificacao as armazem
 from frentes.store import versao as armazem_versao
 
@@ -62,7 +64,8 @@ _a_cada_varredura: list[Gancho] = []
 
 def registrar_depois_de_classificar(gancho: Gancho) -> None:
     """`gancho(app, classificacao)`, síncrono ou assíncrono, depois de cada classificação que
-    chega a um estado final (não vale para `aguardando_llm`). O painel usa."""
+    chega a um estado final (não vale para `aguardando_llm`). O painel usa. Roda dentro da
+    tarefa e a varredura a espera: o gancho tem de ser rápido (o painel só marca e agenda)."""
     if gancho not in _depois_de_classificar:
         _depois_de_classificar.append(gancho)
 
@@ -105,47 +108,82 @@ class Fila:
         self._jev_para = jev_para
         self._llm = llm
         self._motivos: dict[str, str] = {}
-        self._travas: dict[str, asyncio.Lock] = {}
+        # frente -> (trava, quantas tarefas a usam); a entrada some quando ninguém mais usa
+        self._travas: dict[str, tuple[asyncio.Lock, int]] = {}
+        # reclassificações que falharam: a varredura repete
+        self._refazer: set[str] = set()
         self._tarefas: set[asyncio.Task[None]] = set()
         self._laco: asyncio.Task[None] | None = None
 
     # ------------------------------------------------------------------ o que se pede à fila
 
     def motivo_pendente(self, frente_id: str) -> str | None:
-        """Por que a frente ainda não foi classificada, ou `None` se nada a segura agora."""
+        """Por que a frente ainda não foi classificada (ou reclassificada), ou `None`."""
         return self._motivos.get(frente_id)
 
     def agendar(self, frente_id: str) -> None:
         """Roda a classificação da frente em segundo plano. Precisa de um laço de eventos."""
-        tarefa = asyncio.get_running_loop().create_task(self.classificar(frente_id))
+        self._em_segundo_plano(self.classificar(frente_id))
+
+    def _em_segundo_plano(self, corrotina: Coroutine[Any, Any, Any]) -> None:
+        async def rodar() -> None:
+            await corrotina
+
+        tarefa = asyncio.get_running_loop().create_task(rodar())
         self._tarefas.add(tarefa)
         tarefa.add_done_callback(self._tarefas.discard)
 
     async def classificar(self, frente_id: str) -> None:
         """Leva a frente até o resultado final, se não há outra tarefa nela. Não levanta: a
         falha do Jev ou da LLM deixa a frente pendente, com o motivo, e a varredura retoma."""
-        async with self._trava(frente_id):
+        async with self._exclusiva(frente_id):
             await self._tentar(frente_id, refazer=False)
 
-    async def reclassificar(self, frente_id: str) -> None:
+    async def reclassificar(self, frente_id: str) -> bool:
         """Refaz a classificação da versão vigente com o texto atual (original + complemento).
-        Se o Jev falha, a classificação que já existia fica como está."""
-        async with self._trava(frente_id):
-            await self._tentar(frente_id, refazer=True)
 
-    def _trava(self, frente_id: str) -> asyncio.Lock:
-        return self._travas.setdefault(frente_id, asyncio.Lock())
+        Devolve se refez. Se o Jev falha, a classificação que já existia fica como está, o
+        motivo fica em `motivo_pendente` e a varredura repete a reclassificação."""
+        async with self._exclusiva(frente_id):
+            refeita = await self._tentar(frente_id, refazer=True)
+        if refeita:
+            self._refazer.discard(frente_id)
+        else:
+            self._refazer.add(frente_id)
+        return refeita
+
+    @asynccontextmanager
+    async def _exclusiva(self, frente_id: str) -> AsyncIterator[None]:
+        trava, usos = self._travas.get(frente_id, (asyncio.Lock(), 0))
+        self._travas[frente_id] = (trava, usos + 1)
+        try:
+            async with trava:
+                yield
+        finally:
+            trava, usos = self._travas[frente_id]
+            if usos == 1:
+                del self._travas[frente_id]
+            else:
+                self._travas[frente_id] = (trava, usos - 1)
 
     # ------------------------------------------------------------------ a varredura
 
     async def varrer(self) -> None:
-        """Uma varredura: classifica as sem classificação e retoma as `aguardando_llm`."""
-        for id_ in await self._pendentes():
-            if not self._trava(id_).locked():
+        """Uma varredura: classifica as sem classificação, retoma as `aguardando_llm` e repete
+        as reclassificações que falharam. O gancho `a_cada_varredura` roda ao fim, e a
+        varredura espera as tarefas (o período real é a duração dela mais `varredura_s`)."""
+        pendentes = await self._pendentes()
+        for id_ in pendentes:
+            if id_ not in self._travas:
                 self.agendar(id_)
-        # espera as tarefas desta rodada, para a próxima varredura não duplicar trabalho
+        for id_ in sorted(self._refazer - set(pendentes)):
+            if id_ not in self._travas:
+                self._em_segundo_plano(self.reclassificar(id_))
         while self._tarefas:
             await asyncio.gather(*list(self._tarefas), return_exceptions=True)
+        # o motivo só vale enquanto a frente está pendente: não cresce sem fim
+        ainda = set(await self._pendentes()) | self._refazer
+        self._motivos = {i: m for i, m in self._motivos.items() if i in ainda}
         for gancho in list(_a_cada_varredura):
             await _chamar(gancho, self._app)
 
@@ -187,15 +225,24 @@ class Fila:
 
     # ------------------------------------------------------------------ uma frente
 
-    async def _tentar(self, frente_id: str, *, refazer: bool) -> None:
+    async def _tentar(self, frente_id: str, *, refazer: bool) -> bool:
+        """Devolve se a frente chegou aonde devia; `False` deixa pendente, com o motivo."""
         try:
-            await self._classificar(frente_id, refazer=refazer)
+            return await self._classificar(frente_id, refazer=refazer)
         except asyncio.CancelledError:
             raise
         except Exception as erro:
             # Falha de verdade (banco, bug): a frente fica pendente e a varredura tenta de novo.
-            registro.exception("falha ao classificar a frente %s", frente_id)
-            self._motivos[frente_id] = f"erro ao classificar: {type(erro).__name__}"
+            return self._falhar(frente_id, f"erro ao classificar: {type(erro).__name__}", erro)
+
+    def _falhar(self, frente_id: str, motivo: str, erro: Exception | None = None) -> bool:
+        """Guarda o motivo e escreve no log: com `erro` inesperado, com o traceback."""
+        self._motivos[frente_id] = motivo
+        if erro is not None:
+            registro.error("frente %s pendente: %s", frente_id, motivo, exc_info=erro)
+        else:
+            registro.warning("frente %s pendente: %s", frente_id, motivo)
+        return False
 
     def _carregar(self, frente_id: str) -> tuple[Frente, VersaoTaxonomia, Classificacao | None]:
         with closing(store.abrir_existente(self._banco)) as con:
@@ -210,31 +257,21 @@ class Fila:
         with closing(store.abrir_existente(self._banco)) as con:
             armazem.gravar(con, c)
 
-    async def _classificar(self, frente_id: str, *, refazer: bool) -> None:
+    async def _classificar(self, frente_id: str, *, refazer: bool) -> bool:
         try:
             frente, versao, existente = await asyncio.to_thread(self._carregar, frente_id)
         except store.BancoAusente:
-            return
+            return True
         except _SemTrabalho as sem:
-            if str(sem):
-                self._motivos[frente_id] = str(sem)
-            return
+            if not str(sem):
+                return True
+            return self._falhar(frente_id, str(sem))
         documento = versao.documento
         if existente is not None and not refazer:
             if existente.estado is not Estado.AGUARDANDO_LLM:
                 self._motivos.pop(frente_id, None)
-                return
-            recalculo = regras.recalcular([existente], documento, self._limiares)
-            atual = recalculo.classificacoes[frente_id]
-            pedido = None
-            if atual.estado is Estado.AGUARDANDO_LLM:
-                colunas = regras.ler_jev(atual.resposta_jev, documento, self._limiares)
-                pedido = regras.resolver(
-                    colunas, documento, self._limiares, atual.resposta_llm
-                ).pedido
-            else:
-                # os limiares mudaram: a espera acabou sem precisar da LLM
-                await asyncio.to_thread(self._gravar, atual)
+                return True
+            atual, pedido = await self._retomar(existente, documento)
         else:
             try:
                 resposta = await self._jev_para(versao.modelo_jev).perguntar(
@@ -246,11 +283,11 @@ class Fila:
             except asyncio.CancelledError:
                 raise
             except regras.RespostaInvalida as erro:
-                self._motivos[frente_id] = f"resposta do Jev inválida: {erro}"
-                return
+                return self._falhar(frente_id, f"resposta do Jev inválida: {erro}")
+            except ErroJev as erro:
+                return self._falhar(frente_id, _motivo_da_falha("Jev", erro))
             except Exception as erro:
-                self._motivos[frente_id] = _motivo_da_falha("Jev", erro)
-                return
+                return self._falhar(frente_id, _motivo_da_falha("Jev", erro), erro)
             await asyncio.to_thread(self._gravar, atual)
 
         if pedido is not None:
@@ -258,10 +295,11 @@ class Fila:
                 resposta_llm = await self._desempatar(frente, pedido, atual.resposta_llm)
             except asyncio.CancelledError:
                 raise
-            except Exception as erro:
+            except ErroLlm as erro:
                 # fica `aguardando_llm` no banco: a varredura retoma
-                self._motivos[frente_id] = _motivo_da_falha("LLM", erro)
-                return
+                return self._falhar(frente_id, _motivo_da_falha("LLM", erro))
+            except Exception as erro:
+                return self._falhar(frente_id, _motivo_da_falha("LLM", erro), erro)
             atual, _ = regras.fechar(atual, resposta_llm, documento, self._limiares)
             await asyncio.to_thread(self._gravar, atual)
 
@@ -269,6 +307,22 @@ class Fila:
         if atual.estado is not Estado.AGUARDANDO_LLM:
             for gancho in list(_depois_de_classificar):
                 await _chamar(gancho, self._app, atual)
+        return True
+
+    async def _retomar(
+        self, existente: Classificacao, documento: DocumentoTaxonomia
+    ) -> tuple[Classificacao, regras.PedidoDeDesempate | None]:
+        """A classificação que esperava a LLM, refeita com os limiares de agora: ainda precisa
+        do desempate (devolve o pedido) ou a espera acabou e o resultado já é final (grava)."""
+        atual = regras.recalcular([existente], documento, self._limiares).classificacoes[
+            existente.frente_id
+        ]
+        if atual.estado is not Estado.AGUARDANDO_LLM:
+            await asyncio.to_thread(self._gravar, atual)
+            return atual, None
+        colunas = regras.ler_jev(atual.resposta_jev, documento, self._limiares)
+        pedido = regras.resolver(colunas, documento, self._limiares, atual.resposta_llm).pedido
+        return atual, pedido
 
     async def _desempatar(
         self, frente: Frente, pedido: regras.PedidoDeDesempate, anterior: RespostaLlm | None
@@ -323,10 +377,10 @@ def agendar(app: FastAPI, frente_id: str) -> None:
         fila.agendar(frente_id)
 
 
-async def reclassificar(app: FastAPI, frente_id: str) -> None:
+async def reclassificar(app: FastAPI, frente_id: str) -> bool:
+    """Devolve se refez. Sem fila, `False`; se o Jev falhou, `False` e a varredura repete."""
     fila = _fila(app)
-    if fila is not None:
-        await fila.reclassificar(frente_id)
+    return await fila.reclassificar(frente_id) if fila is not None else False
 
 
 def motivo_pendente(app: FastAPI, frente_id: str) -> str | None:
@@ -370,3 +424,5 @@ async def ao_parar(app: FastAPI) -> None:
     for cliente in getattr(app.state, "fila_clientes", {}).values():
         await cliente.aclose()
     del app.state.fila
+    if hasattr(app.state, "fila_clientes"):
+        del app.state.fila_clientes

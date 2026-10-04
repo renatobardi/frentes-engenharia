@@ -21,7 +21,7 @@ from frentes.contratos import (
 from frentes.store import classificacao as armazem
 from frentes.store import frente as armazem_frente
 from frentes.store import versao as armazem_versao
-from tests.fila.test_fila import DOCUMENTO, QUANDO
+from tests.fila.documento import DOCUMENTO, QUANDO
 
 
 def classificacao(frente_id: str = "f1", **trocas: object) -> Classificacao:
