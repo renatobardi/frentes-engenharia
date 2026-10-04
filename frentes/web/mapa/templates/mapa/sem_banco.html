@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block titulo %}Mapa de calor · frentes-engenharia{% endblock %}
+{% block conteudo %}
+<section id="mapa" class="aviso">
+  <h1>Mapa de calor</h1>
+  <p>{{ motivo or "Ainda não há banco: carregue o snapshot e abra a página de novo." }}</p>
+</section>
+{% endblock %}

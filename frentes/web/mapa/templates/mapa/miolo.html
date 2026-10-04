@@ -1,0 +1,81 @@
+<section id="mapa" class="mapa">
+  <div class="barra">
+    <form class="filtros" action="/" method="get"
+          hx-get="/" hx-trigger="change" hx-target="#mapa" hx-swap="outerHTML" hx-push-url="true">
+      <div class="visoes" role="radiogroup" aria-label="Visão">
+        {% for valor, nome in visoes %}
+        <label><input type="radio" name="visao" value="{{ valor.value }}"{% if valor == mapa.visao %} checked{% endif %}> {{ nome }}</label>
+        {% endfor %}
+      </div>
+      <label>Período
+        <select name="periodo">
+          {% for valor, nome in periodos %}
+          <option value="{{ valor.value }}"{% if valor == mapa.periodo %} selected{% endif %}>{{ nome }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <fieldset class="origens">
+        <legend>Origem</legend>
+        {% for valor, nome in origens_possiveis %}
+        <label><input type="checkbox" name="origem" value="{{ valor.value }}"{% if valor in origens %} checked{% endif %}> {{ nome }}</label>
+        {% endfor %}
+      </fieldset>
+      <label>Taxonomia
+        <select name="versao">
+          {% for n in versoes %}
+          <option value="{{ n }}"{% if n == mapa.versao %} selected{% endif %}>v{{ n }}{% if n == vigente %} vigente{% endif %}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <noscript><button type="submit">Aplicar</button></noscript>
+    </form>
+
+    <ul class="contadores" aria-label="Fora da grade">
+      {% for c in contadores %}
+      <li><a href="{{ c.destino }}"><strong>{{ c.total }}</strong> {{ c.nome }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <ol class="top3" aria-label="Top 3 onde investir">
+    <li class="top3-titulo">Top 3 onde investir</li>
+    {% for d in top3 %}
+    <li class="destaque"><span class="posicao">{{ d.posicao }}</span> {{ d.area }} × {{ d.tipo }}
+      <strong>{{ d.indice }}</strong>{% if d.seta %} <span class="seta">{{ d.seta }}{{ d.variacao }}</span>{% endif %}</li>
+    {% else %}
+    <li class="vazio">Nenhuma célula com índice neste recorte.</li>
+    {% endfor %}
+  </ol>
+
+  <table class="grade">
+    <thead>
+      <tr>
+        <th scope="col"><span class="visually-hidden">Área</span></th>
+        {% for t in tipos %}<th scope="col">{{ t.nome }}</th>{% endfor %}
+        {% if nc_coluna %}<th scope="col" class="nao-classificadas">Não classificadas</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in areas %}
+      <tr>
+        <th scope="row">{{ a.nome }}</th>
+        {% for t in tipos %}
+        {% set c = grade[(a.chave, t.chave)] %}
+        <td class="celula calor-{{ c.calor }}{% if c.vazia %} vazia{% endif %}">
+          {% if c.indice %}<span class="indice">{{ c.indice }}</span>{% if c.seta %} <span class="seta">{{ c.seta }}{{ c.variacao }}</span>{% endif %}{% endif %}
+          {% if c.incertas %}<span class="incertas">+{{ c.incertas }} incertas</span>{% endif %}
+        </td>
+        {% endfor %}
+        {% if nc_coluna %}<td class="celula nao-classificadas">{{ mapa.nao_classificadas_por_area.get(a.chave, "") }}</td>{% endif %}
+      </tr>
+      {% endfor %}
+      {% if nc_linha %}
+      <tr class="nao-classificadas">
+        <th scope="row">Não classificadas</th>
+        {% for t in tipos %}<td class="celula nao-classificadas">{{ mapa.nao_classificadas_por_tipo.get(t.chave, "") }}</td>{% endfor %}
+        {% if nc_coluna %}<td class="celula nao-classificadas">{{ mapa.nao_classificadas_sem_ambos or "" }}</td>{% endif %}
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</section>
