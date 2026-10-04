@@ -965,6 +965,27 @@
       "tipo": "sistema",
       "time": "suporte-n2-n3",
       "cargo": null
+    },
+    {
+      "id": "s19",
+      "nome": "Agregador de Logs",
+      "tipo": "sistema",
+      "time": null,
+      "cargo": null
+    },
+    {
+      "id": "s20",
+      "nome": "Gateway de Eventos",
+      "tipo": "sistema",
+      "time": null,
+      "cargo": null
+    },
+    {
+      "id": "s21",
+      "nome": "Auditoria de Banco",
+      "tipo": "sistema",
+      "time": null,
+      "cargo": null
     }
   ]
 }

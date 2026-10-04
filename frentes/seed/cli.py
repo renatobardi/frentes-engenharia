@@ -9,11 +9,15 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from frentes.seed import validador
+from frentes import config, store
+from frentes.seed import carga, validador
 from frentes.seed.roteiro import SEED, TOTAL, ErroDeRoteiro, gerar_roteiro
 from frentes.seed.saida import gravar
 
-USO = "uso: python -m frentes seed gerar [--seed N] [--total N] [--entrada PASTA] [--saida PASTA]"
+USO = (
+    "uso: python -m frentes seed gerar [--seed N] [--total N] [--entrada PASTA] [--saida PASTA]\n"
+    "     python -m frentes seed carregar [--entrada PASTA] [--gerado PASTA] [--banco CAMINHO]"
+)
 SAIDA = validador.PASTA / "gerado"
 
 
@@ -58,11 +62,50 @@ def gerar(argumentos: list[str]) -> int:
     return 0
 
 
+def carregar(argumentos: list[str]) -> int:
+    opcoes = {"--entrada": str(validador.PASTA), "--gerado": str(SAIDA)}
+    resto = list(argumentos)
+    banco = config.carregar().banco
+    while resto:
+        nome = resto.pop(0)
+        if nome not in (*opcoes, "--banco") or not resto:
+            print(USO, file=sys.stderr)
+            return 2
+        valor = resto.pop(0)
+        if nome == "--banco":
+            banco = Path(valor)
+        else:
+            opcoes[nome] = valor
+    try:
+        conferida = carga.ler(Path(opcoes["--gerado"]), Path(opcoes["--entrada"]))
+        con = store.abrir(banco)
+        try:
+            feito = carga.gravar(con, conferida)
+        finally:
+            con.close()
+    except carga.CargaInvalida as erro:
+        print(f"seed carregar: {erro}; nada foi gravado", file=sys.stderr)
+        return 1
+    print(
+        f"frentes: {feito.frentes_novas} novas, {feito.frentes_existentes} já existiam; "
+        f"emissores: {feito.emissores_novos} novos, {feito.emissores_existentes} já existiam "
+        f"({banco})"
+    )
+    return 0
+
+
 def seed(argumentos: list[str]) -> int:
     if argumentos[:1] == ["gerar"]:
         return gerar(argumentos[1:])
+    if argumentos[:1] == ["carregar"]:
+        return carregar(argumentos[1:])
     print(USO, file=sys.stderr)
     return 2
 
 
-COMANDOS = {"seed": ("seed gerar: roteiro com seed fixa → seed/gerado/", seed)}
+COMANDOS = {
+    "seed": (
+        "seed gerar: roteiro com seed fixa → seed/gerado/ | seed carregar: seed no banco",
+        seed,
+    )
+}
