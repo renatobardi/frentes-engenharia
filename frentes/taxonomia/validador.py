@@ -16,7 +16,7 @@ CAUSAS_RAIZ = (4, 8)
 MAX_PROBLEMAS = 40
 NIVEIS_DA_REGUA = 4
 
-NOMES_DE_NENHUM = {"nenhum destes", "nenhuma destas", "nenhum_destes", "nenhuma_destas"}
+NOMES_DE_NENHUM = {"nenhum destes", "nenhuma destas"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,7 +33,7 @@ class TaxonomiaInvalida(ValueError):
 
 def _normal(texto: str) -> str:
     sem_acento = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode()
-    return " ".join(sem_acento.casefold().replace("-", " ").split())
+    return " ".join(sem_acento.casefold().replace("-", " ").replace("_", " ").split())
 
 
 def _faixa(regra: str, o_que: str, n: int, minimo: int, maximo: int) -> list[Violacao]:
@@ -46,7 +46,9 @@ def _nenhum_destes(onde: str, valores: Iterable[ValorDoDocumento]) -> list[Viola
     return [
         Violacao("nenhum_destes", f"{onde}: {v.chave!r} ({v.nome!r}) não é valor da taxonomia")
         for v in valores
-        if v.chave == NENHUM_DESTES or _normal(v.nome) in NOMES_DE_NENHUM
+        if v.chave == NENHUM_DESTES
+        or _normal(v.chave) in NOMES_DE_NENHUM
+        or _normal(v.nome) in NOMES_DE_NENHUM
     ]
 
 

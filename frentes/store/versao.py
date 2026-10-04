@@ -45,7 +45,14 @@ def numeros(con: Conexao) -> list[int]:
 
 
 def inserir(con: Conexao, versao: VersaoTaxonomia, derivados: list[Valor]) -> None:
-    """Grava a versão e os valores derivados do documento, numa transação só."""
+    """Grava a versão e os valores derivados do documento, numa transação só.
+
+    A versão entra sem ativação (só `ativar` a preenche) e os valores têm de ser os dela.
+    """
+    if versao.ativada_em is not None:
+        raise ValueError("a versão entra sem ativação: use ativar")
+    if any(v.versao != versao.numero for v in derivados):
+        raise ValueError(f"há valor de outra versão entre os da versão {versao.numero}")
     try:
         with con:
             con.execute(
@@ -121,21 +128,27 @@ def chaves_usadas(con: Conexao, dimensao: Dimensao) -> set[str]:
 
 
 def frentes_sem_classificacao(con: Conexao, numero: int) -> int:
-    """Quantas frentes ainda não têm classificação na versão."""
+    """Quantas frentes não têm classificação pronta na versão (`aguardando_llm` não conta)."""
     linha = con.execute(
         "SELECT count(*) AS n FROM frente f WHERE NOT EXISTS "
-        "(SELECT 1 FROM classificacao c WHERE c.frente_id = f.id AND c.versao = ?)",
+        "(SELECT 1 FROM classificacao c WHERE c.frente_id = f.id AND c.versao = ? "
+        "AND c.estado <> 'aguardando_llm')",
         (numero,),
     )
     return linha.fetchone()["n"]
 
 
 def ativar(con: Conexao, numero: int, em: str) -> bool:
-    """Preenche `ativada_em` se estava vazio. Devolve False se a versão não existe ou já estava
-    ativada."""
+    """Preenche `ativada_em` se, no mesmo comando, a versão está sem ativação, é maior que a
+    vigente e o histórico inteiro tem classificação pronta nela. Devolve se ativou."""
     with con:
         cursor = con.execute(
-            "UPDATE versao_taxonomia SET ativada_em = ? WHERE numero = ? AND ativada_em IS NULL",
-            (em, numero),
+            "UPDATE versao_taxonomia SET ativada_em = ? WHERE numero = ? AND ativada_em IS NULL "
+            "AND numero > coalesce((SELECT max(numero) FROM versao_taxonomia "
+            "WHERE ativada_em IS NOT NULL), 0) "
+            "AND NOT EXISTS (SELECT 1 FROM frente f WHERE NOT EXISTS "
+            "(SELECT 1 FROM classificacao c WHERE c.frente_id = f.id AND c.versao = ? "
+            "AND c.estado <> 'aguardando_llm'))",
+            (em, numero, numero),
         )
     return cursor.rowcount == 1

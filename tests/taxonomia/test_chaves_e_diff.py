@@ -15,7 +15,8 @@ def test_chave_nova_nao_repete_chave_usada() -> None:
 
 
 def test_chave_nova_nunca_e_nenhum_destes() -> None:
-    assert chave_nova("nenhum_destes", set()) != "nenhum_destes"
+    assert chave_nova("Nenhum destes", set()) == "nenhum-destes-2"
+    assert chave_nova("nenhum_destes", set()) == "nenhum-destes-2"
     assert chave_nova("   ", set()) == "valor"
 
 

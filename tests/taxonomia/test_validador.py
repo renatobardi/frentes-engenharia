@@ -96,3 +96,9 @@ def test_exigir_levanta_com_todas_as_violacoes(documento, tipos, lista) -> None:
     with pytest.raises(TaxonomiaInvalida) as erro:
         exigir(documento(tipos=tipos(3), causas_raiz=lista("c", 2)))
     assert {v.regra for v in erro.value.violacoes} == {"tipos", "causas_raiz"}
+
+
+def test_chave_em_slug_de_nenhum_destes_e_recusada(documento, lista) -> None:
+    intruso = ValorDoDocumento("nenhum-destes", "Sem objeto", "x")
+
+    assert regras(documento(causas_raiz=(*lista("causa", 4), intruso))) == {"nenhum_destes"}
