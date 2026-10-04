@@ -1,0 +1,292 @@
+{
+ "rodada": 2,
+ "peneira_modo": "evidencias",
+ "v1": {
+  "Registro de gravame no Detran": "Problemas no registro de gravame de contratos no sistema do Detran, incluindo erros, atrasos e contratos sem registro, que travam a liberação e geram retrabalho e reclamações.",
+  "Emissão de boletos e carnês": "Problemas na emissão de boletos e carnês, como valores divergentes do contrato, vencimento errado ou anterior à emissão, e boletos antigos ativos após renegociação, gerando retrabalho, estornos e reclamações.",
+  "Cálculo de comissão": "Cálculo de comissão de parceiros feito manualmente em planilha, gerando contestações e retrabalho, e ausência de painel para consulta de comissão por lojistas.",
+  "Banco de dados compartilhado": "Banco de dados compartilhado entre múltiplos times ou serviços, causando conflitos de deploy, travamentos, transações abortadas e dificultando a evolução."
+ },
+ "v2": {
+  "Registro de gravame no Detran": "Problemas no registro de gravame de contratos no sistema do Detran, incluindo erros, atrasos e contratos sem registro, que travam a liberação e geram retrabalho e reclamações.",
+  "Emissão de boletos e carnês": "Problemas na emissão de boletos e carnês, como valores divergentes do contrato, vencimento errado ou anterior à emissão, e boletos antigos ativos após renegociação, gerando retrabalho, estornos e reclamações.",
+  "Cálculo de comissão": "Cálculo de comissão de parceiros feito manualmente em planilha, gerando contestações e retrabalho, e ausência de painel para consulta de comissão por lojistas.",
+  "Banco de dados compartilhado": "Banco de dados compartilhado entre múltiplos times ou serviços, causando conflitos de deploy, travamentos, transações abortadas e dificultando a evolução.",
+  "Uso de IA sem política": "Falta de política definida sobre o que pode ser enviado a modelos de IA, travando iniciativas de uso de copiloto de código.",
+  "API de propostas instável": "A API de propostas cai com frequência, especialmente em horários de pico, gerando indisponibilidade."
+ },
+ "grupos_v1": [
+  {
+   "nome": "Registro de gravame no Detran",
+   "descricao": "Problemas no registro de gravame de contratos no sistema do Detran, incluindo erros, atrasos e contratos sem registro, que travam a liberação e geram retrabalho e reclamações.",
+   "vigente": null,
+   "lotes": [
+    1,
+    2,
+    3
+   ],
+   "evidencias": 22,
+   "de_onde": {
+    "H2": 22
+   },
+   "membros": [
+    "Registro de gravame no Detran",
+    "Registro de gravame no Detran com erro",
+    "Registro de gravame no Detran",
+    "Contrato sem gravame registrado"
+   ],
+   "entrou": true,
+   "rotulo": "H2"
+  },
+  {
+   "nome": "Gestão de senhas",
+   "descricao": "Senhas de acesso a sistemas e dados sensíveis armazenadas em planilhas compartilhadas, representando risco de segurança.",
+   "vigente": null,
+   "lotes": [
+    1
+   ],
+   "evidencias": 4,
+   "de_onde": {
+    "fundo": 4
+   },
+   "membros": [
+    "Senha em planilha compartilhada"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  },
+  {
+   "nome": "Emissão de boletos e carnês",
+   "descricao": "Problemas na emissão de boletos e carnês, como valores divergentes do contrato, vencimento errado ou anterior à emissão, e boletos antigos ativos após renegociação, gerando retrabalho, estornos e reclamações.",
+   "vigente": null,
+   "lotes": [
+    1,
+    2,
+    3
+   ],
+   "evidencias": 29,
+   "de_onde": {
+    "H3": 29
+   },
+   "membros": [
+    "Boletos com valor divergente",
+    "Boleto antigo ativo após renegociação",
+    "Boletos com valor divergente do contrato",
+    "Carnês com vencimento anterior à emissão",
+    "Boletos com valor divergente",
+    "Carnê com data de vencimento errada"
+   ],
+   "entrou": true,
+   "rotulo": "H3"
+  },
+  {
+   "nome": "Cálculo de comissão",
+   "descricao": "Cálculo de comissão de parceiros feito manualmente em planilha, gerando contestações e retrabalho, e ausência de painel para consulta de comissão por lojistas.",
+   "vigente": null,
+   "lotes": [
+    1,
+    2
+   ],
+   "evidencias": 6,
+   "de_onde": {
+    "H4": 6
+   },
+   "membros": [
+    "Cálculo de comissão manual",
+    "Painel de comissão para lojista inexistente"
+   ],
+   "entrou": true,
+   "rotulo": "H4"
+  },
+  {
+   "nome": "Banco de dados compartilhado",
+   "descricao": "Banco de dados compartilhado entre múltiplos times ou serviços, causando conflitos de deploy, travamentos, transações abortadas e dificultando a evolução.",
+   "vigente": null,
+   "lotes": [
+    1,
+    2,
+    3
+   ],
+   "evidencias": 13,
+   "de_onde": {
+    "fundo": 13
+   },
+   "membros": [
+    "Banco de dados compartilhado",
+    "Transações abortadas por bloqueio no banco",
+    "Banco compartilhado trava evolução"
+   ],
+   "entrou": true,
+   "rotulo": "fundo"
+  },
+  {
+   "nome": "Onboarding de novos integrantes",
+   "descricao": "Processo de onboarding de novos integrantes demorado, impactando a capacidade de entrega do time.",
+   "vigente": null,
+   "lotes": [
+    1
+   ],
+   "evidencias": 3,
+   "de_onde": {
+    "fundo": 3
+   },
+   "membros": [
+    "Onboarding lento"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  },
+  {
+   "nome": "Coleta de logs",
+   "descricao": "Linhas de log descartadas devido a estouro de buffer do agente de coleta, prejudicando a observabilidade.",
+   "vigente": null,
+   "lotes": [
+    2
+   ],
+   "evidencias": 3,
+   "de_onde": {
+    "fundo": 3
+   },
+   "membros": [
+    "Logs descartados por estouro de buffer"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  }
+ ],
+ "grupos_revisao": [
+  {
+   "nome": "Registro de gravame no Detran",
+   "descricao": "Problemas no registro de gravame de contratos no sistema do Detran, incluindo erros, atrasos e contratos sem registro, que travam a liberação e geram retrabalho e reclamações.",
+   "vigente": "Registro de gravame no Detran",
+   "lotes": [
+    0
+   ],
+   "evidencias": 7,
+   "de_onde": {
+    "H2": 7
+   },
+   "membros": [
+    "Registro de gravame no Detran"
+   ],
+   "entrou": false,
+   "rotulo": "H2"
+  },
+  {
+   "nome": "Uso de IA sem política",
+   "descricao": "Falta de política definida sobre o que pode ser enviado a modelos de IA, travando iniciativas de uso de copiloto de código.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 5,
+   "de_onde": {
+    "H5": 5
+   },
+   "membros": [
+    "Falta de política para copiloto de código"
+   ],
+   "entrou": true,
+   "rotulo": "H5"
+  },
+  {
+   "nome": "Cálculo de comissão",
+   "descricao": "Cálculo de comissão de parceiros feito manualmente em planilha, gerando contestações e retrabalho, e ausência de painel para consulta de comissão por lojistas.",
+   "vigente": "Cálculo de comissão",
+   "lotes": [
+    0
+   ],
+   "evidencias": 4,
+   "de_onde": {
+    "H4": 4
+   },
+   "membros": [
+    "Comissão de parceiros calculada manualmente"
+   ],
+   "entrou": false,
+   "rotulo": "H4"
+  },
+  {
+   "nome": "API de propostas instável",
+   "descricao": "A API de propostas cai com frequência, especialmente em horários de pico, gerando indisponibilidade.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 5,
+   "de_onde": {
+    "H1": 5
+   },
+   "membros": [
+    "API de propostas com quedas frequentes"
+   ],
+   "entrou": true,
+   "rotulo": "H1"
+  },
+  {
+   "nome": "Banco de dados compartilhado",
+   "descricao": "Banco de dados compartilhado entre múltiplos times ou serviços, causando conflitos de deploy, travamentos, transações abortadas e dificultando a evolução.",
+   "vigente": "Banco de dados compartilhado",
+   "lotes": [
+    0
+   ],
+   "evidencias": 9,
+   "de_onde": {
+    "fundo": 9
+   },
+   "membros": [
+    "Serviços fortemente acoplados",
+    "Transações abortadas por bloqueio em banco compartilhado"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  }
+ ],
+ "custo_usd": 0.00593,
+ "peneira": {
+  "1": {
+   "candidatos": 31,
+   "concretos": [
+    "Registro de gravame no Detran",
+    "Senha em planilha compartilhada",
+    "Boletos com valor divergente",
+    "Cálculo de comissão manual",
+    "Banco de dados compartilhado",
+    "Onboarding lento",
+    "Boleto antigo ativo após renegociação"
+   ]
+  },
+  "2": {
+   "candidatos": 29,
+   "concretos": [
+    "Boletos com valor divergente do contrato",
+    "Registro de gravame no Detran com erro",
+    "Transações abortadas por bloqueio no banco",
+    "Logs descartados por estouro de buffer",
+    "Painel de comissão para lojista inexistente",
+    "Carnês com vencimento anterior à emissão"
+   ]
+  },
+  "3": {
+   "candidatos": 27,
+   "concretos": [
+    "Registro de gravame no Detran",
+    "Boletos com valor divergente",
+    "Carnê com data de vencimento errada",
+    "Banco compartilhado trava evolução",
+    "Contrato sem gravame registrado"
+   ]
+  },
+  "0": {
+   "candidatos": 36,
+   "concretos": [
+    "Registro de gravame no Detran",
+    "Falta de política para copiloto de código",
+    "Comissão de parceiros calculada manualmente",
+    "API de propostas com quedas frequentes",
+    "Serviços fortemente acoplados",
+    "Transações abortadas por bloqueio em banco compartilhado"
+   ]
+  }
+ }
+}

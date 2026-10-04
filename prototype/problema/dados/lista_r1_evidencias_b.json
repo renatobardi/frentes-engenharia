@@ -1,0 +1,258 @@
+{
+ "rodada": 1,
+ "peneira_modo": "evidencias",
+ "v1": {
+  "Emissão de boletos e carnês": "Frentes que citam a geração de boletos ou carnês (boletos, carnês, emissão de boletos, geração de boletos, geração de carnês): falhas como valor divergente do contrato, data de vencimento errada, duplicação na renegociação. Não vale para o mesmo sintoma em outro sistema.",
+  "Registro de gravame": "Frentes que citam o registro de gravame (registro de gravame, integração com Detran, Detran): falhas como registro sem registro por dias, erros e atrasos no Detran, travando contratos e liberação. Não vale para o mesmo sintoma em outro sistema."
+ },
+ "v2": {
+  "Emissão de boletos e carnês": "Frentes que citam a geração de boletos ou carnês (boletos, carnês, emissão de boletos, geração de boletos, geração de carnês): falhas como valor divergente do contrato, data de vencimento errada, duplicação na renegociação. Não vale para o mesmo sintoma em outro sistema.",
+  "Registro de gravame": "Frentes que citam o registro de gravame (registro de gravame, integração com Detran, Detran): falhas como registro sem registro por dias, erros e atrasos no Detran, travando contratos e liberação. Não vale para o mesmo sintoma em outro sistema.",
+  "API de propostas": "Frentes que citam a API de propostas (API de propostas): quedas frequentes e lentidão, impactando o fechamento de contratos. Não vale para o mesmo sintoma em outro sistema.",
+  "Uso de copiloto de código": "Frentes que citam o uso de copiloto de código (copiloto de código, uso de IA): falta de política e diretrizes sobre o que pode ser enviado ao modelo. Não vale para o mesmo sintoma em outro sistema.",
+  "Cálculo de comissão de parceiro": "Frentes que citam o cálculo de comissão de parceiro (comissão de parceiro, cálculo de comissão): cálculo manual em planilha, gerando contestações e retrabalho. Não vale para o mesmo sintoma em outro sistema.",
+  "Banco de dados compartilhado": "Frentes que citam o banco de dados compartilhado (banco compartilhado, banco de dados): transações abortadas por bloqueio, impactando múltiplos serviços. Não vale para o mesmo sintoma em outro sistema."
+ },
+ "grupos_v1": [
+  {
+   "nome": "Emissão de boletos e carnês",
+   "descricao": "Frentes que citam a geração de boletos ou carnês (boletos, carnês, emissão de boletos, geração de boletos, geração de carnês): falhas como valor divergente do contrato, data de vencimento errada, duplicação na renegociação. Não vale para o mesmo sintoma em outro sistema.",
+   "vigente": null,
+   "lotes": [
+    1,
+    2,
+    3
+   ],
+   "evidencias": 24,
+   "de_onde": {
+    "H3": 24
+   },
+   "membros": [
+    "Boleto duplicado na renegociação",
+    "Boletos com valor divergente do contrato",
+    "Boletos com valor divergente do contrato",
+    "Boletos com valor divergente",
+    "Carnê com data de vencimento errada"
+   ],
+   "entrou": true,
+   "rotulo": "H3"
+  },
+  {
+   "nome": "Registro de gravame",
+   "descricao": "Frentes que citam o registro de gravame (registro de gravame, integração com Detran, Detran): falhas como registro sem registro por dias, erros e atrasos no Detran, travando contratos e liberação. Não vale para o mesmo sintoma em outro sistema.",
+   "vigente": null,
+   "lotes": [
+    1,
+    2,
+    3
+   ],
+   "evidencias": 16,
+   "de_onde": {
+    "H2": 16
+   },
+   "membros": [
+    "Registro de gravame sem registro por dias",
+    "Registro de gravame no Detran",
+    "Registro de gravame no Detran"
+   ],
+   "entrou": true,
+   "rotulo": "H2"
+  },
+  {
+   "nome": "Cálculo de comissão de parceiros",
+   "descricao": "Frentes que citam o cálculo de comissão de parceiros (cálculo de comissão, comissão de parceiros): falha de processo manual em planilha gerando contestações e retrabalho. Não vale para o mesmo sintoma em outro sistema.",
+   "vigente": null,
+   "lotes": [
+    1
+   ],
+   "evidencias": 3,
+   "de_onde": {
+    "H4": 3
+   },
+   "membros": [
+    "Cálculo de comissão manual em planilha"
+   ],
+   "entrou": false,
+   "rotulo": "H4"
+  },
+  {
+   "nome": "Banco de dados compartilhado",
+   "descricao": "Frentes que citam o banco de dados compartilhado (banco de dados compartilhado, banco compartilhado): falha de travamento de evolução, conflitos e atrasos. Não vale para o mesmo sintoma em outro sistema.",
+   "vigente": null,
+   "lotes": [
+    1
+   ],
+   "evidencias": 5,
+   "de_onde": {
+    "fundo": 5
+   },
+   "membros": [
+    "Banco de dados compartilhado travando evolução"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  },
+  {
+   "nome": "Comunicação de mudanças",
+   "descricao": "Frentes que citam a comunicação de mudanças (comunicação de mudanças, mudanças críticas): falha de comunicação apenas por e-mail sem visualização, causando indisponibilidade e retrabalho. Não vale para o mesmo sintoma em outro sistema.",
+   "vigente": null,
+   "lotes": [
+    2
+   ],
+   "evidencias": 5,
+   "de_onde": {
+    "fundo": 4,
+    "H1": 1
+   },
+   "membros": [
+    "Comunicação de mudanças falha"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  }
+ ],
+ "grupos_revisao": [
+  {
+   "nome": "Registro de gravame",
+   "descricao": "Frentes que citam o registro de gravame (registro de gravame, integração com Detran, Detran): falhas como erros e lentidão no registro, contratos parados e retrabalho. Não vale para o mesmo sintoma em outro sistema.",
+   "vigente": "Registro de gravame",
+   "lotes": [
+    0
+   ],
+   "evidencias": 8,
+   "de_onde": {
+    "H2": 8
+   },
+   "membros": [
+    "Registro de gravame no Detran"
+   ],
+   "entrou": false,
+   "rotulo": "H2"
+  },
+  {
+   "nome": "API de propostas",
+   "descricao": "Frentes que citam a API de propostas (API de propostas): quedas frequentes e lentidão, impactando o fechamento de contratos. Não vale para o mesmo sintoma em outro sistema.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 8,
+   "de_onde": {
+    "H1": 8
+   },
+   "membros": [
+    "API de propostas instável"
+   ],
+   "entrou": true,
+   "rotulo": "H1"
+  },
+  {
+   "nome": "Uso de copiloto de código",
+   "descricao": "Frentes que citam o uso de copiloto de código (copiloto de código, uso de IA): falta de política e diretrizes sobre o que pode ser enviado ao modelo. Não vale para o mesmo sintoma em outro sistema.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 5,
+   "de_onde": {
+    "H5": 5
+   },
+   "membros": [
+    "Falta de política para copiloto de código"
+   ],
+   "entrou": true,
+   "rotulo": "H5"
+  },
+  {
+   "nome": "Cálculo de comissão de parceiro",
+   "descricao": "Frentes que citam o cálculo de comissão de parceiro (comissão de parceiro, cálculo de comissão): cálculo manual em planilha, gerando contestações e retrabalho. Não vale para o mesmo sintoma em outro sistema.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 7,
+   "de_onde": {
+    "H4": 7
+   },
+   "membros": [
+    "Comissão de parceiro calculada manualmente"
+   ],
+   "entrou": true,
+   "rotulo": "H4"
+  },
+  {
+   "nome": "Integração de eventos",
+   "descricao": "Frentes que citam a integração de eventos (integração de eventos, contrato de evento): rejeição de mensagens por incompatibilidade de contrato, gerando perda de dados. Não vale para o mesmo sintoma em outro sistema.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 3,
+   "de_onde": {
+    "fundo": 3
+   },
+   "membros": [
+    "Rejeição de mensagens por contrato de evento incompatível"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  },
+  {
+   "nome": "Banco de dados compartilhado",
+   "descricao": "Frentes que citam o banco de dados compartilhado (banco compartilhado, banco de dados): transações abortadas por bloqueio, impactando múltiplos serviços. Não vale para o mesmo sintoma em outro sistema.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 6,
+   "de_onde": {
+    "fundo": 6
+   },
+   "membros": [
+    "Transações abortadas por bloqueio em banco compartilhado"
+   ],
+   "entrou": true,
+   "rotulo": "fundo"
+  }
+ ],
+ "custo_usd": 0.00615,
+ "peneira": {
+  "1": {
+   "candidatos": 32,
+   "concretos": [
+    "Boleto duplicado na renegociação",
+    "Cálculo de comissão manual em planilha",
+    "Banco de dados compartilhado travando evolução",
+    "Registro de gravame sem registro por dias",
+    "Boletos com valor divergente do contrato"
+   ]
+  },
+  "2": {
+   "candidatos": 20,
+   "concretos": [
+    "Registro de gravame no Detran",
+    "Boletos com valor divergente do contrato",
+    "Comunicação de mudanças falha"
+   ]
+  },
+  "3": {
+   "candidatos": 28,
+   "concretos": [
+    "Registro de gravame no Detran",
+    "Boletos com valor divergente",
+    "Carnê com data de vencimento errada"
+   ]
+  },
+  "0": {
+   "candidatos": 37,
+   "concretos": [
+    "Registro de gravame no Detran",
+    "API de propostas instável",
+    "Falta de política para copiloto de código",
+    "Comissão de parceiro calculada manualmente",
+    "Rejeição de mensagens por contrato de evento incompatível",
+    "Transações abortadas por bloqueio em banco compartilhado"
+   ]
+  }
+ }
+}

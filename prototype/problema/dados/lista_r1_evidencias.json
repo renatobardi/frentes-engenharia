@@ -1,0 +1,239 @@
+{
+ "rodada": 1,
+ "peneira_modo": "evidencias",
+ "v1": {
+  "Emissão de boletos e carnês": "Problemas na geração de boletos e carnês, incluindo valores divergentes do contrato, duplicidade, vencimento errado e retrabalho. Aparece em relatos de clientes, reclamações e alertas de correção manual.",
+  "Registro de gravame no Detran": "Falhas e atrasos no registro de gravame no Detran, travando contratos e liberação de veículos. Aparece em relatos de lojistas, erros de integração e contratos sem registro."
+ },
+ "v2": {
+  "Emissão de boletos e carnês": "Problemas na geração de boletos e carnês, incluindo valores divergentes do contrato, duplicidade, vencimento errado e retrabalho. Aparece em relatos de clientes, reclamações e alertas de correção manual.",
+  "Registro de gravame no Detran": "Falhas e atrasos no registro de gravame no Detran, travando contratos e liberação de veículos. Aparece em relatos de lojistas, erros de integração e contratos sem registro.",
+  "API de propostas instável": "Quedas frequentes e lentidão na API de propostas, impactando o fechamento de contratos. Aparece em relatos de instabilidade e erros de integração.",
+  "Falta de política para copiloto de código": "Times querem usar copiloto de código, mas não há diretrizes sobre o que pode ser enviado ao modelo. Aparece em pedidos de melhoria e discussões sobre uso de IA.",
+  "Comissão de parceiro calculada manualmente": "Cálculo de comissão de parceiros é feito em planilha, gerando contestações e retrabalho. Aparece em relatos de erros manuais e reclamações de parceiros.",
+  "Transações abortadas por bloqueio em banco compartilhado": "Transações são abortadas devido a bloqueios em banco compartilhado, impactando múltiplos serviços. Aparece em alertas de banco de dados e relatos de instabilidade."
+ },
+ "grupos_v1": [
+  {
+   "nome": "Emissão de boletos e carnês",
+   "descricao": "Problemas na geração de boletos e carnês, incluindo valores divergentes do contrato, duplicidade, vencimento errado e retrabalho. Aparece em relatos de clientes, reclamações e alertas de correção manual.",
+   "vigente": null,
+   "lotes": [
+    1,
+    2,
+    3
+   ],
+   "evidencias": 24,
+   "de_onde": {
+    "H3": 24
+   },
+   "membros": [
+    "Boleto duplicado na renegociação",
+    "Boletos com valor divergente do contrato",
+    "Boletos com valor divergente do contrato",
+    "Boletos com valor divergente",
+    "Carnê com data de vencimento errada"
+   ],
+   "entrou": true,
+   "rotulo": "H3"
+  },
+  {
+   "nome": "Registro de gravame no Detran",
+   "descricao": "Falhas e atrasos no registro de gravame no Detran, travando contratos e liberação de veículos. Aparece em relatos de lojistas, erros de integração e contratos sem registro.",
+   "vigente": null,
+   "lotes": [
+    1,
+    2,
+    3
+   ],
+   "evidencias": 16,
+   "de_onde": {
+    "H2": 16
+   },
+   "membros": [
+    "Registro de gravame sem registro por dias",
+    "Registro de gravame no Detran",
+    "Registro de gravame no Detran"
+   ],
+   "entrou": true,
+   "rotulo": "H2"
+  },
+  {
+   "nome": "Banco de dados compartilhado",
+   "descricao": "Banco de dados compartilhado com outros times que trava evolução, gera conflitos e atrasos em alterações. Aparece em relatos de desenvolvedores e alertas de conflitos.",
+   "vigente": null,
+   "lotes": [
+    1
+   ],
+   "evidencias": 5,
+   "de_onde": {
+    "fundo": 5
+   },
+   "membros": [
+    "Banco de dados compartilhado travando evolução"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  },
+  {
+   "nome": "Gestão de custos de nuvem",
+   "descricao": "Custo de nuvem elevado sem explicação, falta de visibilidade de custos. Aparece em relatos de gestão financeira e alertas de conta.",
+   "vigente": null,
+   "lotes": [
+    1
+   ],
+   "evidencias": 4,
+   "de_onde": {
+    "fundo": 4
+   },
+   "membros": [
+    "Custo de nuvem elevado sem explicação"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  }
+ ],
+ "grupos_revisao": [
+  {
+   "nome": "Registro de gravame no Detran",
+   "descricao": "Falhas e atrasos no registro de gravame no Detran, travando contratos e liberação de veículos. Aparece em relatos de lojistas, erros de integração e contratos sem registro.",
+   "vigente": "Registro de gravame no Detran",
+   "lotes": [
+    0
+   ],
+   "evidencias": 8,
+   "de_onde": {
+    "H2": 8
+   },
+   "membros": [
+    "Registro de gravame no Detran"
+   ],
+   "entrou": false,
+   "rotulo": "H2"
+  },
+  {
+   "nome": "API de propostas instável",
+   "descricao": "Quedas frequentes e lentidão na API de propostas, impactando o fechamento de contratos. Aparece em relatos de instabilidade e erros de integração.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 8,
+   "de_onde": {
+    "H1": 8
+   },
+   "membros": [
+    "API de propostas instável"
+   ],
+   "entrou": true,
+   "rotulo": "H1"
+  },
+  {
+   "nome": "Falta de política para copiloto de código",
+   "descricao": "Times querem usar copiloto de código, mas não há diretrizes sobre o que pode ser enviado ao modelo. Aparece em pedidos de melhoria e discussões sobre uso de IA.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 5,
+   "de_onde": {
+    "H5": 5
+   },
+   "membros": [
+    "Falta de política para copiloto de código"
+   ],
+   "entrou": true,
+   "rotulo": "H5"
+  },
+  {
+   "nome": "Comissão de parceiro calculada manualmente",
+   "descricao": "Cálculo de comissão de parceiros é feito em planilha, gerando contestações e retrabalho. Aparece em relatos de erros manuais e reclamações de parceiros.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 7,
+   "de_onde": {
+    "H4": 7
+   },
+   "membros": [
+    "Comissão de parceiro calculada manualmente"
+   ],
+   "entrou": true,
+   "rotulo": "H4"
+  },
+  {
+   "nome": "Rejeição de mensagens por contrato de evento incompatível",
+   "descricao": "Mensagens são rejeitadas por incompatibilidade de contrato de evento, gerando perda de dados. Aparece em alertas de integração e logs de erro.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 3,
+   "de_onde": {
+    "fundo": 3
+   },
+   "membros": [
+    "Rejeição de mensagens por contrato de evento incompatível"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  },
+  {
+   "nome": "Transações abortadas por bloqueio em banco compartilhado",
+   "descricao": "Transações são abortadas devido a bloqueios em banco compartilhado, impactando múltiplos serviços. Aparece em alertas de banco de dados e relatos de instabilidade.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 6,
+   "de_onde": {
+    "fundo": 6
+   },
+   "membros": [
+    "Transações abortadas por bloqueio em banco compartilhado"
+   ],
+   "entrou": true,
+   "rotulo": "fundo"
+  }
+ ],
+ "custo_usd": 0.00609,
+ "peneira": {
+  "1": {
+   "candidatos": 32,
+   "concretos": [
+    "Boleto duplicado na renegociação",
+    "Banco de dados compartilhado travando evolução",
+    "Registro de gravame sem registro por dias",
+    "Boletos com valor divergente do contrato",
+    "Custo de nuvem elevado sem explicação"
+   ]
+  },
+  "2": {
+   "candidatos": 20,
+   "concretos": [
+    "Registro de gravame no Detran",
+    "Boletos com valor divergente do contrato"
+   ]
+  },
+  "3": {
+   "candidatos": 28,
+   "concretos": [
+    "Registro de gravame no Detran",
+    "Boletos com valor divergente",
+    "Carnê com data de vencimento errada"
+   ]
+  },
+  "0": {
+   "candidatos": 37,
+   "concretos": [
+    "Registro de gravame no Detran",
+    "API de propostas instável",
+    "Falta de política para copiloto de código",
+    "Comissão de parceiro calculada manualmente",
+    "Rejeição de mensagens por contrato de evento incompatível",
+    "Transações abortadas por bloqueio em banco compartilhado"
+   ]
+  }
+ }
+}

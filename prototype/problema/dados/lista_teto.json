@@ -1,0 +1,9 @@
+{"nota": "TETO, não é saída do pipeline: lista escrita à mão, conhecendo as histórias, para medir até onde o Jev vai com uma lista boa.",
+ "v2": {
+  "Esteira de propostas": "Frentes que citam a esteira de propostas ou a API de propostas (envio de propostas, /propostas, svc-proposta, fila de mensagens de propostas): quedas, lentidão, propostas presas, plantão por queda. Não vale para o mesmo sintoma em outro sistema.",
+  "Registro de gravame no Detran": "Frentes que citam o registro de gravame (gravame, integração com o Detran, contrato sem gravame registrado): erros, atrasos e contratos parados. Não vale para outros sistemas.",
+  "Emissão de boletos e carnês": "Frentes que citam a emissão de boletos e carnês (boleto, carnê, geração de boletos): valor divergente do contrato, vencimento errado, boleto antigo ativo depois da renegociação. Não vale para outros sistemas.",
+  "Portal do lojista": "Frentes que citam o portal do lojista ou das concessionárias (portal, lojista, concessionária, comissão do lojista): pedido de simular e acompanhar o status da proposta no portal, upload de documentos pelo celular, painel ou cálculo da comissão. Não vale para outros sistemas.",
+  "Assistente de IA": "Frentes que citam o assistente virtual de IA do app ou o uso de IA (assistente virtual, assistente-app, copiloto de código, modelo de IA): taxa ou regra inventada, conversa escalada para humano, falta de política de uso de IA. Não vale para outros sistemas.",
+  "Deploy de regras de crédito": "Frentes que citam a entrega de mudanças do motor de decisão e das políticas de crédito (svc-motor-de-decisao, svc-politicas-de-credito, regra de crédito, política de crédito): deploy lento ou com janela manual, rollback, testes instáveis do motor, pedido de CI/CD e feature flags. Não vale para o pipeline de outros sistemas."
+ }}

@@ -1,0 +1,4515 @@
+[
+ {
+  "rodada": 1,
+  "lote": 1,
+  "frentes": 232,
+  "erro": null,
+  "uso": {
+   "latencia_s": 135.9,
+   "tok_in": 11528,
+   "tok_out": 2967,
+   "custo_usd": 0.0007977123
+  },
+  "candidatos": [
+   {
+    "nome": "Gravame no Detran com erro",
+    "objeto": "integração: registro de gravame no Detran",
+    "descricao": "Erro genérico ao registrar gravame, contratos parados por dias, retornos de rejeição no lote.",
+    "evidencias": [
+     "f00073",
+     "f00305",
+     "f00549",
+     "f00812",
+     "f00874",
+     "f00895",
+     "f01858",
+     "f02193",
+     "f02420"
+    ],
+    "de_onde": {
+     "H2": 8,
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Boleto duplicado na renegociação",
+    "objeto": "processo: geração de boletos na renegociação",
+    "descricao": "Boleto antigo continua ativo após renegociação, cliente paga os dois e precisa de estorno.",
+    "evidencias": [
+     "f00517",
+     "f01234",
+     "f02628"
+    ],
+    "de_onde": {
+     "H3": 3
+    }
+   },
+   {
+    "nome": "Token e senha expostos em repositório",
+    "objeto": "processo: gestão de segredos e senhas",
+    "descricao": "Token de banco commitado, senhas em planilhas públicas, chave de acesso em arquivo de configuração.",
+    "evidencias": [
+     "f00040",
+     "f00362",
+     "f01266",
+     "f01277",
+     "f01294",
+     "f02170",
+     "f02207",
+     "f02705"
+    ],
+    "de_onde": {
+     "H7": 4,
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Carga noturna com registros duplicados",
+    "objeto": "processo: carga noturna de dados",
+    "descricao": "Registros duplicados em cargas noturnas de diversas bases, gerando retrabalho.",
+    "evidencias": [
+     "f00045",
+     "f00426",
+     "f01320",
+     "f01465",
+     "f01760"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Fila de exceções parada",
+    "objeto": "processo: fila de exceções de sistemas",
+    "descricao": "Itens parados na fila de exceções de múltiplos serviços há mais de 48h.",
+    "evidencias": [
+     "f00081",
+     "f00107",
+     "f00341",
+     "f00907",
+     "f01103",
+     "f02585",
+     "f02670"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Falta de rastreamento de requisição",
+    "objeto": "processo: rastreamento de requisições",
+    "descricao": "Não há visibilidade de onde a requisição trava no fluxo de documentos, validações e alertas.",
+    "evidencias": [
+     "f00122",
+     "f00144",
+     "f00317",
+     "f00463",
+     "f00556",
+     "f02387"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Cálculo de comissão manual em planilha",
+    "objeto": "processo: cálculo de comissão de parceiros",
+    "descricao": "Cálculo de comissão feito em planilha, gerando contestações e retrabalho.",
+    "evidencias": [
+     "f00146",
+     "f00242",
+     "f00411"
+    ],
+    "de_onde": {
+     "H4": 3
+    }
+   },
+   {
+    "nome": "Pipeline de CI/CD lento ou travado",
+    "objeto": "processo: pipeline de CI/CD",
+    "descricao": "Pipeline demorando 40 minutos, merge requests aguardando revisão por dias, deploy travado.",
+    "evidencias": [
+     "f00096",
+     "f00147",
+     "f00340",
+     "f00518",
+     "f00941",
+     "f01152",
+     "f01437",
+     "f01529",
+     "f01592",
+     "f01703",
+     "f02165",
+     "f02549"
+    ],
+    "de_onde": {
+     "fundo": 9,
+     "H6": 3
+    }
+   },
+   {
+    "nome": "Ambiente de teste ligado no fim de semana",
+    "objeto": "processo: gestão de ambientes de teste",
+    "descricao": "Ambientes de teste ficam ligados em finais de semana, gerando custos desnecessários.",
+    "evidencias": [
+     "f00656",
+     "f01340",
+     "f01507",
+     "f01949"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Biblioteca descontinuada em produção",
+    "objeto": "processo: gestão de dependências",
+    "descricao": "Bibliotecas descontinuadas ou com CVE crítica em produção, sem responsável para atualizar.",
+    "evidencias": [
+     "f00129",
+     "f00552",
+     "f01192",
+     "f01546",
+     "f01970",
+     "f02439",
+     "f02494"
+    ],
+    "de_onde": {
+     "fundo": 5,
+     "H7": 2
+    }
+   },
+   {
+    "nome": "Banco de dados compartilhado travando evolução",
+    "objeto": "processo: banco de dados compartilhado",
+    "descricao": "Banco compartilhado com outros times trava alterações, gera conflitos e atrasos.",
+    "evidencias": [
+     "f00973",
+     "f01590",
+     "f02099",
+     "f02229",
+     "f02569"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Código legado sem testes",
+    "objeto": "processo: manutenção de código legado",
+    "descricao": "Código legado sem testes, ninguém quer mexer, travando melhorias.",
+    "evidencias": [
+     "f01337",
+     "f01845",
+     "f02402",
+     "f02448"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Onboarding de novos integrantes lento",
+    "objeto": "processo: onboarding de novos integrantes",
+    "descricao": "Onboarding demora meses, impactando capacidade de entrega do time.",
+    "evidencias": [
+     "f01533",
+     "f02457",
+     "f02575"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Conhecimento perdido com saída de pessoas",
+    "objeto": "processo: transferência de conhecimento",
+    "descricao": "Saída de pessoas que dominavam processos sem passagem de conhecimento, causando dificuldades.",
+    "evidencias": [
+     "f00181",
+     "f01853"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Achados de pentest vencidos",
+    "objeto": "processo: correção de achados de pentest",
+    "descricao": "Achados de pentest vencidos e abertos, sem priorização para fechamento.",
+    "evidencias": [
+     "f00551",
+     "f00650",
+     "f01236",
+     "f01307",
+     "f02394"
+    ],
+    "de_onde": {
+     "H7": 3,
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Fornecedor de push e SMS fora do SLA",
+    "objeto": "fornecedor: provedor de push e SMS",
+    "descricao": "Provedor de push e SMS com erros 5xx, timeouts e fora do SLA.",
+    "evidencias": [
+     "f00123",
+     "f00313",
+     "f00435",
+     "f00801"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Fornecedor de tabela de preços fora do SLA",
+    "objeto": "fornecedor: tabela de preços de veículos",
+    "descricao": "Fornecedor da tabela de preços de veículos não cumpre SLA, atrasando atualizações.",
+    "evidencias": [
+     "f02566",
+     "f02673"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Registro de gravame sem registro por dias",
+    "objeto": "processo: registro de gravame",
+    "descricao": "Contratos sem gravame registrado há mais de uma semana, travando liberação.",
+    "evidencias": [
+     "f00073",
+     "f00305",
+     "f00895",
+     "f01572",
+     "f01858"
+    ],
+    "de_onde": {
+     "H2": 5
+    }
+   },
+   {
+    "nome": "Boletos com valor divergente do contrato",
+    "objeto": "processo: emissão de boletos",
+    "descricao": "Boletos emitidos com valor divergente do contrato, gerando retrabalho.",
+    "evidencias": [
+     "f00344",
+     "f01417",
+     "f01860"
+    ],
+    "de_onde": {
+     "H3": 3
+    }
+   },
+   {
+    "nome": "Conciliação com divergências",
+    "objeto": "processo: conciliação de dados",
+    "descricao": "Conciliações com fornecedores e parceiros terminam com divergências.",
+    "evidencias": [
+     "f01599",
+     "f02463",
+     "f02555"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Alerta falso positivo poluindo canal",
+    "objeto": "processo: alertas de sistema",
+    "descricao": "Alertas de latência alta disparando sem incidente, poluindo notificações.",
+    "evidencias": [
+     "f00088",
+     "f00734",
+     "f00810",
+     "f01392",
+     "f02044"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Timeout em chamadas a provedores",
+    "objeto": "integração: chamadas a provedores externos",
+    "descricao": "Timeouts em chamadas a provedores de push, SMS, biometria, banco liquidante, etc.",
+    "evidencias": [
+     "f00123",
+     "f00824",
+     "f00836",
+     "f01140",
+     "f01995",
+     "f02279"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Erro 504 em serviços",
+    "objeto": "sistema: serviços com erro 504",
+    "descricao": "Erros 504 em /propostas, /fraude, /busca, /lojas, indicando timeouts.",
+    "evidencias": [
+     "f00304",
+     "f00357",
+     "f00443",
+     "f02175"
+    ],
+    "de_onde": {
+     "fundo": 3,
+     "H1": 1
+    }
+   },
+   {
+    "nome": "Exceções não tratadas em módulo legado",
+    "objeto": "sistema: módulo legado com exceções",
+    "descricao": "Exceções não tratadas em módulos legados de diversos serviços.",
+    "evidencias": [
+     "f00111",
+     "f00801",
+     "f01352",
+     "f01724",
+     "f02501"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "API descontinuada em uso",
+    "objeto": "processo: uso de APIs descontinuadas",
+    "descricao": "Avisos de API descontinuada (lodash, jackson, log4j, openssl) em vários serviços.",
+    "evidencias": [
+     "f00065",
+     "f01279",
+     "f01338",
+     "f02647"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Fila de requisições acima do limite",
+    "objeto": "sistema: fila de requisições",
+    "descricao": "Filas de requisições acima do limite com tempo de resposta alto.",
+    "evidencias": [
+     "f00063",
+     "f00918"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Reinicialização por falta de memória",
+    "objeto": "sistema: serviços reiniciando por falta de memória",
+    "descricao": "Serviços reiniciando por falta de memória, com runtime sem suporte.",
+    "evidencias": [
+     "f00382",
+     "f01243",
+     "f01615"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Transações abortadas por bloqueio",
+    "objeto": "sistema: banco de dados com bloqueios",
+    "descricao": "Transações abortadas por bloqueio em banco compartilhado.",
+    "evidencias": [
+     "f01134",
+     "f02462"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Mensagens rejeitadas por contrato de evento",
+    "objeto": "integração: mensagens rejeitadas",
+    "descricao": "Mensagens rejeitadas por contrato de evento incompatível em várias integrações.",
+    "evidencias": [
+     "f00514",
+     "f01028",
+     "f01538",
+     "f01818"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Consulta lenta derrubando tela",
+    "objeto": "sistema: consulta lenta",
+    "descricao": "Consultas lentas em horário de pico, derrubando tela.",
+    "evidencias": [
+     "f00176",
+     "f00398",
+     "f01498",
+     "f01661"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Custo de nuvem elevado sem explicação",
+    "objeto": "processo: gestão de custos de nuvem",
+    "descricao": "Conta de nuvem subiu sem explicação, falta de visibilidade de custos.",
+    "evidencias": [
+     "f00758",
+     "f01400",
+     "f01673",
+     "f02644"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Certificado SSL próximo a vencer",
+    "objeto": "processo: renovação de certificados SSL",
+    "descricao": "Certificados SSL próximos a vencer sem responsável designado.",
+    "evidencias": [
+     "f01402",
+     "f01447",
+     "f01811"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Deploy lento ou com rollback",
+    "objeto": "processo: deploy de serviços",
+    "descricao": "Deploy lento, aguardando janela manual, rollback executado.",
+    "evidencias": [
+     "f00506",
+     "f00518",
+     "f00772",
+     "f01152",
+     "f02131",
+     "f02151"
+    ],
+    "de_onde": {
+     "H6": 6
+    }
+   },
+   {
+    "nome": "Fila de chamados de sustentação lenta",
+    "objeto": "processo: atendimento de chamados",
+    "descricao": "Fila de chamados de sustentação respondendo cada vez mais devagar.",
+    "evidencias": [
+     "f01384"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Dado incompleto de etapa anterior",
+    "objeto": "processo: fluxo de dados entre etapas",
+    "descricao": "Etapa anterior envia dado incompleto, gerando retrabalho.",
+    "evidencias": [
+     "f01066",
+     "f01634",
+     "f01803",
+     "f02692"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Ambiente local de desenvolvimento lento",
+    "objeto": "processo: setup de ambiente local",
+    "descricao": "Subir ambiente local leva horas, comprometendo ciclo de desenvolvimento.",
+    "evidencias": [
+     "f00389",
+     "f00469",
+     "f01939"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Falta de priorização entre produto e sustentação",
+    "objeto": "processo: priorização de demandas",
+    "descricao": "Conflito entre demandas de produto e correções de sustentação, sem priorização clara.",
+    "evidencias": [
+     "f00300",
+     "f00609",
+     "f01591",
+     "f02289"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Acesso de ex-colaborador não removido",
+    "objeto": "processo: gestão de acessos",
+    "descricao": "Ex-colaborador ainda possui acesso a sistemas após desligamento.",
+    "evidencias": [
+     "f01054"
+    ],
+    "de_onde": {
+     "H7": 1
+    }
+   },
+   {
+    "nome": "Prazo regulatório apertado",
+    "objeto": "processo: adequação regulatória",
+    "descricao": "Prazo regulatório apertado para adequar sistemas, risco de multa.",
+    "evidencias": [
+     "f02444",
+     "f02497"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Serviço fortemente acoplado",
+    "objeto": "sistema: serviços acoplados",
+    "descricao": "Serviços fortemente acoplados, obrigando deploy conjunto e aumentando risco.",
+    "evidencias": [
+     "f00632",
+     "f00746"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   }
+  ]
+ },
+ {
+  "rodada": 1,
+  "lote": 2,
+  "frentes": 232,
+  "erro": null,
+  "uso": {
+   "latencia_s": 82.6,
+   "tok_in": 11878,
+   "tok_out": 1801,
+   "custo_usd": 0.0014941073
+  },
+  "candidatos": [
+   {
+    "nome": "Registro de gravame no Detran",
+    "objeto": "integração: Detran",
+    "descricao": "Registro de gravame no Detran com erros e atrasos, impactando contratos de veículos pesados e liberação de veículos.",
+    "evidencias": [
+     "f01106",
+     "f01857",
+     "f02269",
+     "f02536"
+    ],
+    "de_onde": {
+     "H2": 4
+    }
+   },
+   {
+    "nome": "Boletos com valor divergente do contrato",
+    "objeto": "processo: geração de boletos",
+    "descricao": "Boletos de parcela gerados com valor diferente do contrato, causando reclamações de clientes e força-tarefa de correção.",
+    "evidencias": [
+     "f00167",
+     "f00276",
+     "f01457",
+     "f01931",
+     "f02018",
+     "f02451"
+    ],
+    "de_onde": {
+     "H3": 6
+    }
+   },
+   {
+    "nome": "Carga noturna com registros duplicados",
+    "objeto": "processo: carga noturna",
+    "descricao": "Cargas noturnas de diversos sistemas geram registros duplicados, impactando a consistência dos dados.",
+    "evidencias": [
+     "f00049",
+     "f00386",
+     "f00537",
+     "f00797",
+     "f00928",
+     "f01041",
+     "f01171",
+     "f01977",
+     "f02101"
+    ],
+    "de_onde": {
+     "fundo": 9
+    }
+   },
+   {
+    "nome": "Timeout em chamadas a fornecedores",
+    "objeto": "integração: fornecedores externos",
+    "descricao": "Chamadas a fornecedores externos (despachante, OCR, bureau de crédito, cartório) com timeout, causando erros e lentidão.",
+    "evidencias": [
+     "f00074",
+     "f00124",
+     "f00885",
+     "f01130",
+     "f01162",
+     "f01658",
+     "f01893",
+     "f02553"
+    ],
+    "de_onde": {
+     "fundo": 8
+    }
+   },
+   {
+    "nome": "Latência alta em serviços críticos",
+    "objeto": "sistema: serviços de infraestrutura",
+    "descricao": "Serviços como nf-parceiros, svc-infra-e-cloud e simulador-api apresentam latência alta e taxa de erro elevada.",
+    "evidencias": [
+     "f00058",
+     "f00971",
+     "f01645",
+     "f01662",
+     "f01839",
+     "f02331"
+    ],
+    "de_onde": {
+     "fundo": 3,
+     "H1": 3
+    }
+   },
+   {
+    "nome": "Fila de atendimento parada sem visibilidade",
+    "objeto": "processo: fila de atendimento",
+    "descricao": "Filas de atendimento (análise automática, ofertas-vitrine) param por falta de dados ou responsável, sem visibilidade de status.",
+    "evidencias": [
+     "f00092",
+     "f00581",
+     "f00732",
+     "f01189",
+     "f01205",
+     "f01511",
+     "f01633",
+     "f01994",
+     "f02599",
+     "f02659"
+    ],
+    "de_onde": {
+     "fundo": 10
+    }
+   },
+   {
+    "nome": "Massa de teste perdida em homologação",
+    "objeto": "processo: refresh de ambiente de homologação",
+    "descricao": "Massas de teste em ambientes de homologação são perdidas a cada refresh, gerando retrabalho constante.",
+    "evidencias": [
+     "f00731",
+     "f01046",
+     "f01275",
+     "f01623",
+     "f02500",
+     "f02580"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Certificado próximo ao vencimento sem dono",
+    "objeto": "processo: gestão de certificados",
+    "descricao": "Certificados digitais (SSL, tabela de preços, cadastro de lojas) próximos ao vencimento sem responsável designado para renovação.",
+    "evidencias": [
+     "f00259",
+     "f00478",
+     "f00757",
+     "f01022"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Custo de nuvem acima do esperado",
+    "objeto": "processo: gestão de custos de nuvem",
+    "descricao": "Gastos de nuvem de projetos (segunda-via, ccb-emissor, correspondente-cadastro) acima da média, sem explicação ou com desperdício.",
+    "evidencias": [
+     "f00114",
+     "f00315",
+     "f00430",
+     "f01063",
+     "f01119",
+     "f01515",
+     "f01562",
+     "f01584",
+     "f01660",
+     "f02240",
+     "f02311"
+    ],
+    "de_onde": {
+     "fundo": 11
+    }
+   },
+   {
+    "nome": "Onboarding lento de novos colaboradores",
+    "objeto": "processo: onboarding",
+    "descricao": "Onboarding de novos colaboradores (devs, operadores, consultores) demora meses devido a processos manuais e falta de documentação.",
+    "evidencias": [
+     "f00654",
+     "f00684",
+     "f01473",
+     "f02188"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Comunicação de mudanças falha",
+    "objeto": "processo: comunicação de mudanças",
+    "descricao": "Mudanças críticas (regras, backup, VPN) comunicadas apenas por e-mail, sem visualização, causando indisponibilidade e retrabalho.",
+    "evidencias": [
+     "f00102",
+     "f02338",
+     "f02431",
+     "f02523",
+     "f02576"
+    ],
+    "de_onde": {
+     "fundo": 4,
+     "H1": 1
+    }
+   },
+   {
+    "nome": "Code review lento",
+    "objeto": "processo: code review",
+    "descricao": "Code reviews demoram dias para serem aprovados, atrasando deploys e entregas.",
+    "evidencias": [
+     "f01356",
+     "f01982",
+     "f02518",
+     "f02587",
+     "f02700"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Alerta falso recorrente",
+    "objeto": "processo: alertas",
+    "descricao": "Alertas (latência, certificação de agentes, IOF) disparam repetidamente sem ação possível, gerando ruído e perda de sono do plantão.",
+    "evidencias": [
+     "f00349",
+     "f00560",
+     "f00575",
+     "f00756",
+     "f01719",
+     "f02091",
+     "f02094",
+     "f02127",
+     "f02558",
+     "f02687"
+    ],
+    "de_onde": {
+     "fundo": 7,
+     "H1": 3
+    }
+   },
+   {
+    "nome": "Dados divergentes entre sistemas",
+    "objeto": "processo: consistência de dados",
+    "descricao": "Dados de clientes, comissões, renda e limites divergem entre sistemas (CRM, planilha, crédito), gerando retrabalho e risco.",
+    "evidencias": [
+     "f00185",
+     "f00996",
+     "f01581",
+     "f02114",
+     "f02428"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Pipeline de CI/CD lento ou instável",
+    "objeto": "processo: pipeline de CI/CD",
+    "descricao": "Pipelines de CI/CD demoram muito ou falham em testes instáveis, atrasando entregas.",
+    "evidencias": [
+     "f01148",
+     "f01274",
+     "f01424",
+     "f02317",
+     "f02474",
+     "f02668"
+    ],
+    "de_onde": {
+     "fundo": 5,
+     "H6": 1
+    }
+   },
+   {
+    "nome": "Achados de pentest vencidos",
+    "objeto": "processo: correção de vulnerabilidades",
+    "descricao": "Achados de pentest e vulnerabilidades (CVE) em diversos sistemas permanecem vencidos e sem correção.",
+    "evidencias": [
+     "f00289",
+     "f00578",
+     "f00579",
+     "f01484",
+     "f01582",
+     "f01696",
+     "f01727",
+     "f01777",
+     "f02020",
+     "f02191",
+     "f02253"
+    ],
+    "de_onde": {
+     "fundo": 7,
+     "H7": 4
+    }
+   },
+   {
+    "nome": "Dependência de planilha manual",
+    "objeto": "processo: processos manuais",
+    "descricao": "Processos críticos (comissão de parceiros, liberação de acesso, cálculo de limite) dependem de planilhas manuais, causando erros e retrabalho.",
+    "evidencias": [
+     "f00215",
+     "f00404",
+     "f00587",
+     "f00642",
+     "f01053",
+     "f02290",
+     "f02320",
+     "f02510"
+    ],
+    "de_onde": {
+     "fundo": 6,
+     "H4": 2
+    }
+   },
+   {
+    "nome": "Falta de rastreamento em requisições",
+    "objeto": "processo: tracing",
+    "descricao": "Requisições sem trace ID ou rastreamento incompleto, dificultando identificação de gargalos.",
+    "evidencias": [
+     "f00153",
+     "f01291",
+     "f01297",
+     "f01339",
+     "f02211"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Banco compartilhado entre times",
+    "objeto": "sistema: banco de dados compartilhado",
+    "descricao": "Bancos de dados compartilhados entre times causam conflitos de dependência e bloqueiam evolução.",
+    "evidencias": [
+     "f00003",
+     "f00370",
+     "f00719",
+     "f02125",
+     "f02178",
+     "f02693"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Fila de requisições acima do limite",
+    "objeto": "sistema: filas de serviços",
+    "descricao": "Filas de requisições de serviços (log-coletor, alertas-central, portal-comunicados) acima do limite, com tempo de resposta alto.",
+    "evidencias": [
+     "f00743",
+     "f00886",
+     "f01271",
+     "f02005"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   }
+  ]
+ },
+ {
+  "rodada": 1,
+  "lote": 3,
+  "frentes": 235,
+  "erro": null,
+  "uso": {
+   "latencia_s": 91.3,
+   "tok_in": 12511,
+   "tok_out": 2993,
+   "custo_usd": 0.0008385391
+  },
+  "candidatos": [
+   {
+    "nome": "Registro de gravame no Detran",
+    "objeto": "integração: Detran",
+    "descricao": "Erro na integração com o Detran para registro de gravame, travando contratos e gerando reclamações de lojistas.",
+    "evidencias": [
+     "f00674",
+     "f00979",
+     "f01213",
+     "f01664",
+     "f02047",
+     "f02129",
+     "f02232"
+    ],
+    "de_onde": {
+     "H2": 7
+    }
+   },
+   {
+    "nome": "Boletos com valor divergente",
+    "objeto": "processo: geração de boletos",
+    "descricao": "Boletos gerados com valor diferente do contrato, causando retrabalho e reclamações de clientes.",
+    "evidencias": [
+     "f00021",
+     "f00168",
+     "f00306",
+     "f00870",
+     "f02364",
+     "f02515"
+    ],
+    "de_onde": {
+     "H3": 6
+    }
+   },
+   {
+    "nome": "Carga noturna com registros duplicados",
+    "objeto": "processo: carga noturna",
+    "descricao": "Cargas noturnas de diversos sistemas gerando registros duplicados, exigindo limpeza manual.",
+    "evidencias": [
+     "f00138",
+     "f00546",
+     "f00601",
+     "f01073",
+     "f02060",
+     "f02579",
+     "f02602"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Senha em planilha compartilhada",
+    "objeto": "processo: gestão de senhas",
+    "descricao": "Senhas de sistemas e bancos de dados armazenadas em planilhas compartilhadas, violando políticas de segurança.",
+    "evidencias": [
+     "f00170",
+     "f00254",
+     "f01517",
+     "f01992"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Alerta sem ação possível",
+    "objeto": "processo: alertas",
+    "descricao": "Alertas que disparam em horários sem possibilidade de ação, gerando ruído e frustração no plantão.",
+    "evidencias": [
+     "f00151",
+     "f00270",
+     "f01184",
+     "f01682",
+     "f01980"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Ambiente de teste ligado no fim de semana",
+    "objeto": "processo: gestão de ambientes",
+    "descricao": "Ambientes de teste permanecem ligados em fins de semana, gerando custos desnecessários.",
+    "evidencias": [
+     "f00360",
+     "f00806",
+     "f02085",
+     "f02423",
+     "f02646"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Dado incompleto de etapa anterior",
+    "objeto": "processo: fluxo de dados",
+    "descricao": "Dados enviados de uma etapa para outra chegam incompletos, causando retrabalho e atrasos.",
+    "evidencias": [
+     "f00320",
+     "f00353",
+     "f00406",
+     "f02517",
+     "f02625"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Código legado sem testes",
+    "objeto": "sistema: código legado",
+    "descricao": "Sistemas legados sem cobertura de testes, dificultando manutenção e evolução.",
+    "evidencias": [
+     "f01164",
+     "f01348",
+     "f01709",
+     "f02205",
+     "f02404"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Fornecedor com SLA estourado",
+    "objeto": "fornecedor: auditoria externa",
+    "descricao": "Fornecedor de auditoria externa fora do SLA, com entregas atrasadas e risco de não conformidade regulatória.",
+    "evidencias": [
+     "f00559",
+     "f01539"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Contrato de fornecedor com volume insuficiente",
+    "objeto": "fornecedor: bureau de crédito",
+    "descricao": "Contrato com fornecedor de dados não cobre o volume atual de consultas, causando recusas e gargalos.",
+    "evidencias": [
+     "f00274",
+     "f00297",
+     "f00414",
+     "f02618"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Custo de nuvem acima da média",
+    "objeto": "processo: custos de nuvem",
+    "descricao": "Gastos com infraestrutura de nuvem elevados sem causa identificada, impactando o orçamento.",
+    "evidencias": [
+     "f00301",
+     "f00539",
+     "f00543",
+     "f00991",
+     "f01397",
+     "f01790",
+     "f01952",
+     "f02123"
+    ],
+    "de_onde": {
+     "fundo": 8
+    }
+   },
+   {
+    "nome": "Mudança comunicada apenas por e-mail",
+    "objeto": "processo: comunicação de mudanças",
+    "descricao": "Mudanças importantes são comunicadas apenas por e-mail, não sendo vistas a tempo e causando retrabalho.",
+    "evidencias": [
+     "f00193",
+     "f01769",
+     "f02184",
+     "f02683"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Time sobrecarregado com plantão e projeto",
+    "objeto": "processo: alocação de equipe",
+    "descricao": "Times acumulam responsabilidades de plantão e projetos, comprometendo a qualidade e prazos.",
+    "evidencias": [
+     "f00159",
+     "f01583",
+     "f01657"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Onboarding lento de novos membros",
+    "objeto": "processo: onboarding",
+    "descricao": "Processo de integração de novos funcionários é demorado, deixando-os sem acesso e perdidos por meses.",
+    "evidencias": [
+     "f01757",
+     "f02347"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Certificado próximo do vencimento sem dono",
+    "objeto": "processo: gestão de certificados",
+    "descricao": "Certificados digitais próximos do vencimento sem responsável definido, risco de parada de serviços.",
+    "evidencias": [
+     "f00117",
+     "f01602",
+     "f01830",
+     "f02330"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Segredo exposto em repositório",
+    "objeto": "processo: segurança de código",
+    "descricao": "Tokens e chaves de acesso commitados em repositórios públicos ou de configuração, expondo dados sensíveis.",
+    "evidencias": [
+     "f00079",
+     "f00149",
+     "f01128",
+     "f01596",
+     "f02097",
+     "f02258"
+    ],
+    "de_onde": {
+     "H7": 5,
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Fila de atendimento parada sem informação",
+    "objeto": "processo: atendimento",
+    "descricao": "Sistemas não informam o status ou próximo passo de solicitações, travando o atendimento ao cliente.",
+    "evidencias": [
+     "f00977",
+     "f01695",
+     "f02132",
+     "f02417"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Solicitação sem resposta há dias",
+    "objeto": "processo: resposta a chamados",
+    "descricao": "Chamados e solicitações internas ficam sem resposta por mais de 5 dias, atrasando entregas.",
+    "evidencias": [
+     "f00154",
+     "f00484",
+     "f01027",
+     "f01363",
+     "f01650",
+     "f01694",
+     "f01720"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Carnê com data de vencimento errada",
+    "objeto": "processo: geração de carnês",
+    "descricao": "Carnês gerados com data de vencimento incorreta, causando reclamações e reemissão manual.",
+    "evidencias": [
+     "f00830",
+     "f00958",
+     "f01051",
+     "f02048",
+     "f02168",
+     "f02270"
+    ],
+    "de_onde": {
+     "H3": 6
+    }
+   },
+   {
+    "nome": "Serviço acoplado dificulta deploy",
+    "objeto": "sistema: acoplamento",
+    "descricao": "Serviços fortemente acoplados obrigam deploy conjunto, aumentando risco e atrasando entregas.",
+    "evidencias": [
+     "f01675",
+     "f01764",
+     "f01856",
+     "f02421"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Perda de conhecimento com saída de pessoas",
+    "objeto": "processo: passagem de conhecimento",
+    "descricao": "Saída de pessoas-chave sem documentação ou treinamento, deixando tarefas paradas.",
+    "evidencias": [
+     "f01368",
+     "f02617"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Pipeline de CI/CD lento",
+    "objeto": "processo: CI/CD",
+    "descricao": "Pipelines de integração e deploy demoram muito além da meta, atrasando entregas.",
+    "evidencias": [
+     "f02476"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Code review demorado",
+    "objeto": "processo: code review",
+    "descricao": "Revisões de código demoram dias, atrasando correções e melhorias simples.",
+    "evidencias": [
+     "f00103",
+     "f00263",
+     "f01403",
+     "f01905"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Dado divergente entre sistemas",
+    "objeto": "processo: consistência de dados",
+    "descricao": "Dados de clientes ou contratos divergem entre sistemas, gerando retrabalho e inconsistências em relatórios.",
+    "evidencias": [
+     "f00531",
+     "f02278",
+     "f02374",
+     "f02663"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Timeout em consulta no horário de pico",
+    "objeto": "processo: performance de consultas",
+    "descricao": "Consultas lentas ou com timeout em horários de pico, derrubando telas e prejudicando usuários.",
+    "evidencias": [
+     "f00372",
+     "f01928",
+     "f02196"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Fila de exceções parada",
+    "objeto": "processo: fila de exceções",
+    "descricao": "Itens parados em filas de exceção por mais de 48h, sem avanço no fluxo.",
+    "evidencias": [
+     "f01523",
+     "f01671"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Fornecedor de biometria com erro",
+    "objeto": "fornecedor: biometria facial",
+    "descricao": "Fornecedor de biometria facial retornando erros 5xx, impactando cadastro de clientes.",
+    "evidencias": [
+     "f00745"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Dependência com CVE crítica",
+    "objeto": "processo: gestão de dependências",
+    "descricao": "Bibliotecas com vulnerabilidades críticas conhecidas sem correção há dias, expondo sistemas a riscos.",
+    "evidencias": [
+     "f00960",
+     "f01082",
+     "f01863"
+    ],
+    "de_onde": {
+     "H7": 3
+    }
+   },
+   {
+    "nome": "Registro de consentimento com dados picados",
+    "objeto": "processo: registro de consentimento",
+    "descricao": "Registro de consentimento chega com dados incompletos, exigindo retrabalho com parceiros.",
+    "evidencias": [
+     "f00353"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Ambiente local demora meio dia para subir",
+    "objeto": "processo: setup de ambiente",
+    "descricao": "Subir ambiente local de desenvolvimento leva cerca de meio dia, impactando produtividade.",
+    "evidencias": [
+     "f00900",
+     "f01009",
+     "f02440"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Fila de chamados sobre gerenciador de segredos",
+    "objeto": "sistema: gerenciador de segredos",
+    "descricao": "Muitos chamados abertos sobre o gerenciador de segredos, indicando problemas de usabilidade ou configuração.",
+    "evidencias": [
+     "f00121"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Fila de chamados sobre nota fiscal de parceiros",
+    "objeto": "processo: nota fiscal de parceiros",
+    "descricao": "Muitos chamados sobre nota fiscal de parceiros, indicando problemas no processo.",
+    "evidencias": [
+     "f00318"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Fila de chamados sobre validação de selfie",
+    "objeto": "processo: validação de selfie",
+    "descricao": "Muitos chamados sobre validação de selfie com documento, indicando problemas no processo.",
+    "evidencias": [
+     "f00821"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Fila de chamados sobre status de proposta",
+    "objeto": "processo: status de proposta",
+    "descricao": "Muitos chamados sobre status de proposta, indicando falta de visibilidade para o lojista.",
+    "evidencias": [
+     "f02537"
+    ],
+    "de_onde": {
+     "H3": 1
+    }
+   },
+   {
+    "nome": "Conciliação com divergências",
+    "objeto": "processo: conciliação",
+    "descricao": "Conciliações com parceiros (agência, bureau, cartório) terminam com muitas divergências, exigindo retrabalho.",
+    "evidencias": [
+     "f00477",
+     "f01618",
+     "f01821",
+     "f01826"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Campo obrigatório vazio em envio regulatório",
+    "objeto": "processo: envio regulatório",
+    "descricao": "Registros com campos obrigatórios vazios na prévia de envio regulatório, risco de não conformidade.",
+    "evidencias": [
+     "f00459",
+     "f00768",
+     "f01072",
+     "f01806",
+     "f01901"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Retorno de fornecedor sem correspondência",
+    "objeto": "processo: correspondência de dados",
+    "descricao": "Retornos de fornecedores (score de fraude, plataforma de dados) sem correspondência em sistemas internos.",
+    "evidencias": [
+     "f00348",
+     "f02354"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Atendimento parado esperando retorno",
+    "objeto": "processo: atendimento",
+    "descricao": "Atendimentos parados por mais de 48h aguardando retorno de outros times ou sistemas.",
+    "evidencias": [
+     "f00172",
+     "f00240",
+     "f00442",
+     "f00861",
+     "f02385"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Log descartado por estouro de buffer",
+    "objeto": "processo: logging",
+    "descricao": "Linhas de log descartadas por estouro de buffer do agente, prejudicando rastreamento.",
+    "evidencias": [
+     "f00244",
+     "f00648",
+     "f00798",
+     "f02544",
+     "f02547"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Requisição sem trace ID",
+    "objeto": "processo: rastreamento",
+    "descricao": "Requisições sem trace ID, impossibilitando rastreamento completo de fluxos.",
+    "evidencias": [
+     "f00062",
+     "f00600",
+     "f00742",
+     "f00990",
+     "f01237",
+     "f01947",
+     "f02654"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   }
+  ]
+ },
+ {
+  "rodada": 1,
+  "lote": 0,
+  "frentes": 320,
+  "erro": null,
+  "uso": {
+   "latencia_s": 96.7,
+   "tok_in": 18086,
+   "tok_out": 3077,
+   "custo_usd": 0.0023197181
+  },
+  "candidatos": [
+   {
+    "nome": "Registro de gravame no Detran",
+    "objeto": "integração: Detran",
+    "descricao": "Erros e lentidão no registro de gravame, contratos parados e retrabalho.",
+    "evidencias": [
+     "f03045",
+     "f03057",
+     "f03309",
+     "f03488",
+     "f03728",
+     "f03862",
+     "f03869",
+     "f05278"
+    ],
+    "de_onde": {
+     "H2": 8
+    }
+   },
+   {
+    "nome": "Carga noturna com duplicatas",
+    "objeto": "processo: carga noturna",
+    "descricao": "Registros duplicados em cargas noturnas de diversos sistemas, gerando retrabalho e inconsistências.",
+    "evidencias": [
+     "f04054",
+     "f04074",
+     "f04182",
+     "f04433",
+     "f04442",
+     "f04767",
+     "f04939",
+     "f05700",
+     "f05718",
+     "f05843"
+    ],
+    "de_onde": {
+     "fundo": 10
+    }
+   },
+   {
+    "nome": "Senha exposta em planilha",
+    "objeto": "processo: gestão de senhas",
+    "descricao": "Senhas de sistemas críticos expostas em planilhas compartilhadas, risco de segurança.",
+    "evidencias": [
+     "f03078",
+     "f03238",
+     "f03272",
+     "f03328",
+     "f04449"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Code review lento",
+    "objeto": "processo: code review",
+    "descricao": "Pull requests demoram dias para serem revisados, travando entregas.",
+    "evidencias": [
+     "f02752",
+     "f03181",
+     "f03907",
+     "f05024",
+     "f05270",
+     "f05296",
+     "f05312",
+     "f05441"
+    ],
+    "de_onde": {
+     "fundo": 8
+    }
+   },
+   {
+    "nome": "Ambiente de teste ligado no fim de semana",
+    "objeto": "processo: gestão de ambientes de teste",
+    "descricao": "Ambientes de homologação e teste ficam ligados sem necessidade, gerando custos.",
+    "evidencias": [
+     "f02802",
+     "f02872",
+     "f04011",
+     "f04031",
+     "f05403",
+     "f05648",
+     "f05966"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Massa de teste perdida no refresh",
+    "objeto": "processo: refresh de homologação",
+    "descricao": "Dados de teste são perdidos a cada atualização do ambiente de homologação, exigindo recriação manual.",
+    "evidencias": [
+     "f02959",
+     "f03716",
+     "f03823",
+     "f04736",
+     "f05806"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Assistente virtual com taxa incorreta",
+    "objeto": "sistema: assistente virtual",
+    "descricao": "Assistente informa taxas de juros incorretas, gerando reclamações e retrabalho.",
+    "evidencias": [
+     "f03607",
+     "f04192",
+     "f04308",
+     "f04789",
+     "f05481"
+    ],
+    "de_onde": {
+     "H5": 5
+    }
+   },
+   {
+    "nome": "API de propostas instável",
+    "objeto": "sistema: API de propostas",
+    "descricao": "Quedas frequentes e lentidão na API de propostas, impactando o fechamento de contratos.",
+    "evidencias": [
+     "f03056",
+     "f03628",
+     "f03987",
+     "f04211",
+     "f04462",
+     "f05103",
+     "f05134",
+     "f05859"
+    ],
+    "de_onde": {
+     "H1": 8
+    }
+   },
+   {
+    "nome": "Código legado sem testes",
+    "objeto": "processo: manutenção de legado",
+    "descricao": "Sistemas legados sem testes automatizados, gerando medo de alterar e incidentes.",
+    "evidencias": [
+     "f03622",
+     "f03831",
+     "f03833",
+     "f04043",
+     "f04199",
+     "f04590",
+     "f05147"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Falta de rastreamento ponta a ponta",
+    "objeto": "processo: rastreamento de requisições",
+    "descricao": "Impossibilidade de rastrear requisições entre sistemas, dificultando diagnóstico de gargalos.",
+    "evidencias": [
+     "f02859",
+     "f03369",
+     "f04878"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Contrato de fornecedor estourado",
+    "objeto": "fornecedor: contrato de serviço",
+    "descricao": "Contratos com fornecedores não cobrem o volume atual, gerando custos extras e risco de paralisação.",
+    "evidencias": [
+     "f03022",
+     "f03850",
+     "f04146",
+     "f04451",
+     "f04614",
+     "f04771",
+     "f05553"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Certificado SSL próximo ao vencimento",
+    "objeto": "processo: gestão de certificados",
+    "descricao": "Certificados de serviços estão perto de vencer sem responsável definido para renovação.",
+    "evidencias": [
+     "f03007",
+     "f03065",
+     "f04925",
+     "f05120",
+     "f05265"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Dado incompleto de etapa anterior",
+    "objeto": "processo: integração entre sistemas",
+    "descricao": "Sistemas recebem dados incompletos de etapas anteriores, gerando retrabalho manual.",
+    "evidencias": [
+     "f02973",
+     "f03089",
+     "f03300",
+     "f04112",
+     "f05333",
+     "f05484"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Banco compartilhado trava evolução",
+    "objeto": "sistema: banco de dados compartilhado",
+    "descricao": "Banco de dados usado por múltiplos times gera contenção e impede evoluções independentes.",
+    "evidencias": [
+     "f03617",
+     "f04531",
+     "f04928",
+     "f05516"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Pipeline de CI lento",
+    "objeto": "processo: pipeline de CI",
+    "descricao": "Pipelines de integração contínua demoram muito, atrasando o desenvolvimento.",
+    "evidencias": [
+     "f03051",
+     "f03191",
+     "f03345",
+     "f03955",
+     "f04480",
+     "f04713",
+     "f04856",
+     "f05089",
+     "f05980"
+    ],
+    "de_onde": {
+     "fundo": 9
+    }
+   },
+   {
+    "nome": "Segredo exposto em repositório",
+    "objeto": "processo: segurança de código",
+    "descricao": "Chaves de acesso e tokens são commitados em repositórios, representando risco de vazamento.",
+    "evidencias": [
+     "f03156",
+     "f03691",
+     "f03991",
+     "f04309",
+     "f04392",
+     "f04958",
+     "f05016",
+     "f05183",
+     "f05525",
+     "f05767"
+    ],
+    "de_onde": {
+     "H7": 7,
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Fila de exceções parada",
+    "objeto": "processo: fila de exceções",
+    "descricao": "Itens em filas de exceção ficam parados por mais de 48h, sem tratamento.",
+    "evidencias": [
+     "f03142",
+     "f03201",
+     "f03347",
+     "f03468",
+     "f04161",
+     "f04176",
+     "f04202",
+     "f04208",
+     "f04223",
+     "f04847",
+     "f04871",
+     "f04966",
+     "f05387",
+     "f05509"
+    ],
+    "de_onde": {
+     "fundo": 14
+    }
+   },
+   {
+    "nome": "Falta de política para copiloto de código",
+    "objeto": "processo: uso de IA",
+    "descricao": "Times querem usar copiloto de código, mas não há diretrizes sobre o que pode ser enviado ao modelo.",
+    "evidencias": [
+     "f02947",
+     "f03513",
+     "f04517",
+     "f05042",
+     "f05208"
+    ],
+    "de_onde": {
+     "H5": 5
+    }
+   },
+   {
+    "nome": "Saída de pessoas-chave sem passagem de conhecimento",
+    "objeto": "processo: passagem de conhecimento",
+    "descricao": "Pessoas saem sem documentar ou treinar substitutos, gerando perda de conhecimento crítico.",
+    "evidencias": [
+     "f03434",
+     "f03975",
+     "f04347",
+     "f04418",
+     "f04937",
+     "f05684"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Mudança comunicada apenas por e-mail",
+    "objeto": "processo: comunicação de mudanças",
+    "descricao": "Alterações importantes são comunicadas apenas por e-mail, não alcançando todos os envolvidos.",
+    "evidencias": [
+     "f03717",
+     "f04452",
+     "f04687",
+     "f04882",
+     "f05330",
+     "f05365",
+     "f05663"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Conflito entre demandas de produto e sustentação",
+    "objeto": "processo: priorização",
+    "descricao": "Prioridades conflitantes entre produto e sustentação geram retrabalho e atrasos.",
+    "evidencias": [
+     "f03520",
+     "f04081",
+     "f05132"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Custo de nuvem elevado sem causa identificada",
+    "objeto": "processo: gestão de custos de nuvem",
+    "descricao": "Gastos com nuvem aumentam sem explicação, dificultando o controle orçamentário.",
+    "evidencias": [
+     "f03270",
+     "f04521",
+     "f04572",
+     "f05172",
+     "f05504"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Alerta falso recorrente",
+    "objeto": "processo: monitoramento",
+    "descricao": "Alertas que disparam sem ação possível, poluindo o monitoramento e gerando ruído.",
+    "evidencias": [
+     "f03466",
+     "f03959",
+     "f04219",
+     "f04576",
+     "f04693",
+     "f05037",
+     "f05264"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Serviços fortemente acoplados",
+    "objeto": "sistema: arquitetura de serviços",
+    "descricao": "Serviços com dependências circulares ou acoplamento forte, exigindo deploy conjunto.",
+    "evidencias": [
+     "f03076",
+     "f03257",
+     "f03836"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Falta de automação de deploy",
+    "objeto": "processo: deploy",
+    "descricao": "Deploys manuais e dependentes de janela, atrasando a liberação de mudanças.",
+    "evidencias": [
+     "f03730",
+     "f04239",
+     "f04733",
+     "f05304"
+    ],
+    "de_onde": {
+     "H6": 4
+    }
+   },
+   {
+    "nome": "Teste instável no CI",
+    "objeto": "processo: testes automatizados",
+    "descricao": "Testes que falham intermitentemente, gerando retrabalho e desconfiança na suíte.",
+    "evidencias": [
+     "f03902",
+     "f03974",
+     "f05242",
+     "f05795",
+     "f05871"
+    ],
+    "de_onde": {
+     "fundo": 3,
+     "H6": 2
+    }
+   },
+   {
+    "nome": "Biblioteca descontinuada",
+    "objeto": "sistema: biblioteca de software",
+    "descricao": "Bibliotecas sem suporte do fornecedor, representando risco de segurança e compatibilidade.",
+    "evidencias": [
+     "f02866",
+     "f03108",
+     "f03996",
+     "f04885",
+     "f04965",
+     "f05813"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Achado de pentest vencido",
+    "objeto": "processo: correção de vulnerabilidades",
+    "descricao": "Vulnerabilidades identificadas em pentests não são corrigidas dentro do prazo.",
+    "evidencias": [
+     "f03177",
+     "f03777",
+     "f04794",
+     "f04956",
+     "f05154",
+     "f05284",
+     "f05619",
+     "f05997"
+    ],
+    "de_onde": {
+     "H7": 6,
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Lentidão em consulta no horário de pico",
+    "objeto": "sistema: consulta",
+    "descricao": "Consultas ficam lentas no horário de pico, derrubando telas e impactando usuários.",
+    "evidencias": [
+     "f02726",
+     "f03935",
+     "f04259",
+     "f05993"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Comissão de parceiro calculada manualmente",
+    "objeto": "processo: cálculo de comissão",
+    "descricao": "Cálculo de comissão de parceiros é feito em planilha, gerando contestações e retrabalho.",
+    "evidencias": [
+     "f03672",
+     "f04642",
+     "f04929",
+     "f05106",
+     "f05422",
+     "f05574",
+     "f05772"
+    ],
+    "de_onde": {
+     "H4": 7
+    }
+   },
+   {
+    "nome": "Lojista sem visibilidade do andamento da proposta",
+    "objeto": "processo: acompanhamento de proposta",
+    "descricao": "Lojistas não conseguem acompanhar o status das propostas, gerando dependência de contato telefônico.",
+    "evidencias": [
+     "f03360",
+     "f04433",
+     "f05887"
+    ],
+    "de_onde": {
+     "H4": 2,
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Ambiente local de desenvolvimento lento",
+    "objeto": "processo: setup de desenvolvimento",
+    "descricao": "Subir ambiente local leva horas, impactando a produtividade do time.",
+    "evidencias": [
+     "f05035",
+     "f05938"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Divergência de dados entre sistemas",
+    "objeto": "sistema: base de dados",
+    "descricao": "Sistemas mostram dados diferentes do mesmo cliente, gerando retrabalho e desconfiança.",
+    "evidencias": [
+     "f03161",
+     "f03962",
+     "f05512"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Fila de chamados de sustentação parada",
+    "objeto": "processo: atendimento de chamados",
+    "descricao": "Chamados de sustentação ficam parados por falta de informações ou retorno de outros sistemas.",
+    "evidencias": [
+     "f03899",
+     "f04591",
+     "f05747"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Fornecedor de score de fraude com timeout",
+    "objeto": "fornecedor: score de fraude",
+    "descricao": "Chamadas ao fornecedor de score de fraude excedem timeout, impactando serviços.",
+    "evidencias": [
+     "f04671",
+     "f04674"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Rejeição de mensagens por contrato de evento incompatível",
+    "objeto": "processo: integração de eventos",
+    "descricao": "Mensagens são rejeitadas por incompatibilidade de contrato de evento, gerando perda de dados.",
+    "evidencias": [
+     "f02821",
+     "f04141",
+     "f05415"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Transações abortadas por bloqueio em banco compartilhado",
+    "objeto": "sistema: banco de dados compartilhado",
+    "descricao": "Transações são abortadas devido a bloqueios em banco compartilhado, impactando múltiplos serviços.",
+    "evidencias": [
+     "f03032",
+     "f03417",
+     "f03548",
+     "f04038",
+     "f05971",
+     "f05975"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Timeout em chamadas a provedor externo",
+    "objeto": "fornecedor: provedor de serviços",
+    "descricao": "Chamadas a provedores externos (SMS, push, advocacia) excedem timeout, gerando falhas.",
+    "evidencias": [
+     "f03616",
+     "f04298",
+     "f04505",
+     "f04609"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Serviço reiniciando por falta de memória",
+    "objeto": "sistema: serviço",
+    "descricao": "Serviços reiniciam repetidamente por falta de memória, indicando problema de configuração.",
+    "evidencias": [
+     "f02749",
+     "f02810",
+     "f03601",
+     "f04094",
+     "f05168",
+     "f05308",
+     "f05811"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   }
+  ]
+ },
+ {
+  "rodada": 2,
+  "lote": 1,
+  "frentes": 232,
+  "erro": null,
+  "uso": {
+   "latencia_s": 134.9,
+   "tok_in": 11528,
+   "tok_out": 2942,
+   "custo_usd": 0.0016602278
+  },
+  "candidatos": [
+   {
+    "nome": "Registro de gravame no Detran",
+    "objeto": "integração: Detran",
+    "descricao": "Erros e atrasos no registro de gravame de contratos, especialmente veículos pesados, travando liberação e gerando retrabalho manual.",
+    "evidencias": [
+     "f00073",
+     "f00305",
+     "f00549",
+     "f00812",
+     "f00878",
+     "f00895",
+     "f01572",
+     "f01858",
+     "f02193",
+     "f02420"
+    ],
+    "de_onde": {
+     "H2": 10
+    }
+   },
+   {
+    "nome": "Carga noturna com duplicatas",
+    "objeto": "processo: carga noturna",
+    "descricao": "Registros duplicados em cargas noturnas de diversas tabelas, afetando relatórios e apurações.",
+    "evidencias": [
+     "f00045",
+     "f00426",
+     "f01320",
+     "f01465",
+     "f01760"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Senha em planilha compartilhada",
+    "objeto": "processo: gestão de senhas",
+    "descricao": "Senhas de acesso a sistemas e dados sensíveis armazenadas em planilhas públicas, representando risco de segurança.",
+    "evidencias": [
+     "f00362",
+     "f01277",
+     "f01294",
+     "f02207"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Fila de exceções parada",
+    "objeto": "processo: fila de exceções",
+    "descricao": "Itens parados em filas de exceções de diversos serviços por mais de 48h, indicando falta de tratamento.",
+    "evidencias": [
+     "f00081",
+     "f00107",
+     "f00341",
+     "f00907",
+     "f01103",
+     "f02585",
+     "f02670"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Boletos com valor divergente",
+    "objeto": "processo: emissão de boletos",
+    "descricao": "Boletos emitidos com valor divergente do contrato, gerando retrabalho e estornos.",
+    "evidencias": [
+     "f00344",
+     "f01417",
+     "f01860",
+     "f02130"
+    ],
+    "de_onde": {
+     "H3": 4
+    }
+   },
+   {
+    "nome": "Conta de nuvem elevada",
+    "objeto": "processo: gestão de custos de nuvem",
+    "descricao": "Aumento inexplicado nos gastos de nuvem, com ambientes de teste ligados em horários não comerciais.",
+    "evidencias": [
+     "f00758",
+     "f01340",
+     "f01400",
+     "f01507",
+     "f01673",
+     "f01949",
+     "f02644"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Pipeline de CI/CD lento",
+    "objeto": "processo: pipeline de CI/CD",
+    "descricao": "Pipelines de CI/CD demorados, com falhas em testes instáveis e deploys aguardando janela manual, atrasando entregas.",
+    "evidencias": [
+     "f00147",
+     "f00340",
+     "f00518",
+     "f00772",
+     "f01152",
+     "f01703",
+     "f02131",
+     "f02151"
+    ],
+    "de_onde": {
+     "H6": 6,
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Cálculo de comissão manual",
+    "objeto": "processo: cálculo de comissão",
+    "descricao": "Cálculo de comissão de parceiros feito em planilha, gerando contestações e retrabalho.",
+    "evidencias": [
+     "f00146",
+     "f00242",
+     "f00411"
+    ],
+    "de_onde": {
+     "H4": 3
+    }
+   },
+   {
+    "nome": "Rastreamento de requisição ausente",
+    "objeto": "processo: rastreamento de requisições",
+    "descricao": "Falta de rastreamento ponta a ponta para requisições, dificultando identificação de gargalos e melhoria de performance.",
+    "evidencias": [
+     "f00122",
+     "f00144",
+     "f00317",
+     "f00463",
+     "f00556",
+     "f02387"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Biblioteca descontinuada",
+    "objeto": "processo: gestão de dependências",
+    "descricao": "Uso de bibliotecas descontinuadas ou com vulnerabilidades críticas, sem processo claro de substituição.",
+    "evidencias": [
+     "f00129",
+     "f00552",
+     "f01192",
+     "f01546",
+     "f01970",
+     "f02439",
+     "f02494"
+    ],
+    "de_onde": {
+     "fundo": 5,
+     "H7": 2
+    }
+   },
+   {
+    "nome": "Banco de dados compartilhado",
+    "objeto": "processo: banco de dados compartilhado",
+    "descricao": "Banco de dados compartilhado entre times trava evolução e gera conflitos de deploy.",
+    "evidencias": [
+     "f00973",
+     "f01590",
+     "f02099",
+     "f02229",
+     "f02569"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Onboarding lento",
+    "objeto": "processo: onboarding de novos integrantes",
+    "descricao": "Processo de onboarding de novos integrantes demorado, impactando a capacidade de entrega do time.",
+    "evidencias": [
+     "f01533",
+     "f02457",
+     "f02575"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Certificado próximo ao vencimento",
+    "objeto": "processo: gestão de certificados",
+    "descricao": "Certificados SSL e de sistemas próximos ao vencimento sem responsável definido para renovação.",
+    "evidencias": [
+     "f00044",
+     "f01402",
+     "f01447",
+     "f01811"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Pentest vencido",
+    "objeto": "processo: gestão de achados de pentest",
+    "descricao": "Achados de pentest vencidos e sem prioridade para fechamento, representando risco de segurança.",
+    "evidencias": [
+     "f00551",
+     "f00650",
+     "f01236",
+     "f01307",
+     "f02394"
+    ],
+    "de_onde": {
+     "H7": 3,
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Ambiente local lento",
+    "objeto": "processo: setup de ambiente local",
+    "descricao": "Setup de ambiente local demorado, comprometendo o ciclo de desenvolvimento.",
+    "evidencias": [
+     "f00389",
+     "f00469",
+     "f01939"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Código legado sem testes",
+    "objeto": "processo: manutenção de código legado",
+    "descricao": "Código legado sem testes automatizados, gerando medo de alteração e travando melhorias.",
+    "evidencias": [
+     "f01337",
+     "f01845",
+     "f02402",
+     "f02448"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Fornecedor de push e SMS fora do SLA",
+    "objeto": "fornecedor: push e SMS",
+    "descricao": "Fornecedor de push e SMS com atrasos e erros, impactando notificações.",
+    "evidencias": [
+     "f00123",
+     "f00313",
+     "f00435",
+     "f00801"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Fornecedor de tabela de preços fora do SLA",
+    "objeto": "fornecedor: tabela de preços de veículos",
+    "descricao": "Fornecedor de tabela de preços de veículos não cumprindo SLA, atrasando atualizações.",
+    "evidencias": [
+     "f02566",
+     "f02673"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Token commitado em repositório",
+    "objeto": "processo: gestão de segredos",
+    "descricao": "Tokens e chaves de acesso commitados em repositórios, representando risco de segurança.",
+    "evidencias": [
+     "f00040",
+     "f01266",
+     "f02170",
+     "f02705"
+    ],
+    "de_onde": {
+     "H7": 4
+    }
+   },
+   {
+    "nome": "Alerta falso positivo",
+    "objeto": "processo: gestão de alertas",
+    "descricao": "Alertas disparando sem ação possível, poluindo canais de notificação.",
+    "evidencias": [
+     "f00088",
+     "f00734",
+     "f00810",
+     "f01392",
+     "f02044"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Timeout em serviços",
+    "objeto": "processo: performance de serviços",
+    "descricao": "Timeouts e latência alta em diversos serviços, impactando a experiência do usuário.",
+    "evidencias": [
+     "f00063",
+     "f00109",
+     "f00304",
+     "f00357",
+     "f00398",
+     "f00443",
+     "f00503",
+     "f00722",
+     "f00824",
+     "f00836",
+     "f00918",
+     "f01140",
+     "f01248",
+     "f01498",
+     "f01661",
+     "f01995",
+     "f02072",
+     "f02175",
+     "f02279",
+     "f02363",
+     "f02389",
+     "f02521"
+    ],
+    "de_onde": {
+     "fundo": 16,
+     "H1": 6
+    }
+   },
+   {
+    "nome": "Erro 504 em serviços",
+    "objeto": "processo: performance de serviços",
+    "descricao": "Erros 504 em diversos serviços, indicando problemas de performance ou disponibilidade.",
+    "evidencias": [
+     "f00304",
+     "f00357",
+     "f00443",
+     "f02175",
+     "f02363"
+    ],
+    "de_onde": {
+     "fundo": 3,
+     "H1": 2
+    }
+   },
+   {
+    "nome": "Exceções não tratadas",
+    "objeto": "processo: tratamento de exceções",
+    "descricao": "Exceções não tratadas em módulos legados, indicando falta de robustez.",
+    "evidencias": [
+     "f00111",
+     "f00801",
+     "f01352",
+     "f01724",
+     "f02501"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Rejeição por contrato de evento incompatível",
+    "objeto": "processo: integração de eventos",
+    "descricao": "Mensagens rejeitadas por contrato de evento incompatível, indicando problemas de integração.",
+    "evidencias": [
+     "f00514",
+     "f01028",
+     "f01538",
+     "f01818"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Transações abortadas por bloqueio",
+    "objeto": "processo: banco de dados",
+    "descricao": "Transações abortadas por bloqueio em banco compartilhado, indicando contenção.",
+    "evidencias": [
+     "f01134",
+     "f02462"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Reinicialização por falta de memória",
+    "objeto": "processo: performance de serviços",
+    "descricao": "Serviços reiniciando por falta de memória, indicando problemas de capacidade.",
+    "evidencias": [
+     "f00382",
+     "f01243",
+     "f01615"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Alerta sem dono",
+    "objeto": "processo: gestão de alertas",
+    "descricao": "Alertas sem dono definido, reabrindo repetidamente sem tratamento.",
+    "evidencias": [
+     "f01166",
+     "f01854",
+     "f02050"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Merge request sem revisão",
+    "objeto": "processo: code review",
+    "descricao": "Merge requests aguardando revisão por dias, atrasando entregas.",
+    "evidencias": [
+     "f00096",
+     "f01437",
+     "f01529",
+     "f01592",
+     "f02165",
+     "f02549"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Dado incompleto de etapa anterior",
+    "objeto": "processo: fluxo de dados",
+    "descricao": "Dados incompletos recebidos de etapas anteriores, gerando retrabalho.",
+    "evidencias": [
+     "f01066",
+     "f01634",
+     "f01803",
+     "f02692"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Boleto antigo ativo após renegociação",
+    "objeto": "processo: renegociação",
+    "descricao": "Após renegociação, boleto antigo permanece ativo, gerando pagamento duplicado e estorno.",
+    "evidencias": [
+     "f00517",
+     "f01234",
+     "f02628"
+    ],
+    "de_onde": {
+     "H3": 3
+    }
+   },
+   {
+    "nome": "Fila de chamados de sustentação lenta",
+    "objeto": "processo: atendimento de sustentação",
+    "descricao": "Fila de chamados de sustentação com resposta lenta, impactando resolução de problemas.",
+    "evidencias": [
+     "f01384"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Conhecimento perdido com saída de pessoas",
+    "objeto": "processo: gestão de conhecimento",
+    "descricao": "Saída de pessoas detentoras de conhecimento crítico sem transferência, gerando dificuldades.",
+    "evidencias": [
+     "f00181",
+     "f01853"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Priorização conflitante",
+    "objeto": "processo: priorização de demandas",
+    "descricao": "Conflito entre demandas de produto e correções de sustentação, gerando retrabalho.",
+    "evidencias": [
+     "f00300",
+     "f00609",
+     "f01591",
+     "f02289"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Deploy lento",
+    "objeto": "processo: deploy",
+    "descricao": "Processo de deploy lento, travando melhorias e aumentando risco de regressão.",
+    "evidencias": [
+     "f00506",
+     "f00632",
+     "f00746"
+    ],
+    "de_onde": {
+     "fundo": 2,
+     "H6": 1
+    }
+   },
+   {
+    "nome": "Fornecedor de OCR fora do SLA",
+    "objeto": "fornecedor: OCR de documentos",
+    "descricao": "Fornecedor de OCR de documentos com SLA ruim, atrasando processos.",
+    "evidencias": [
+     "f02109"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Regulatório: prazo apertado",
+    "objeto": "processo: adequação regulatória",
+    "descricao": "Prazos regulatórios apertados para adequação de sistemas, com risco de multa.",
+    "evidencias": [
+     "f02444",
+     "f02497"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Conciliação com divergências",
+    "objeto": "processo: conciliação",
+    "descricao": "Conciliações com fornecedores e parceiros terminando com divergências, gerando retrabalho.",
+    "evidencias": [
+     "f01599",
+     "f02463",
+     "f02555"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Atraso na entrega de relatório",
+    "objeto": "processo: entrega de relatórios",
+    "descricao": "Relatórios solicitados por auditoria entregues fora do prazo.",
+    "evidencias": [
+     "f02036"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Ambiente de teste instável",
+    "objeto": "processo: ambiente de teste",
+    "descricao": "Ambientes de teste instáveis, causando falhas em pipelines.",
+    "evidencias": [
+     "f00147",
+     "f00340"
+    ],
+    "de_onde": {
+     "H6": 1,
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Serviço fora do ar",
+    "objeto": "processo: disponibilidade de serviço",
+    "descricao": "Serviço crítico ficou fora do ar, impactando operações.",
+    "evidencias": [
+     "f01105",
+     "f02148"
+    ],
+    "de_onde": {
+     "H1": 1,
+     "fundo": 1
+    }
+   }
+  ]
+ },
+ {
+  "rodada": 2,
+  "lote": 2,
+  "frentes": 232,
+  "erro": null,
+  "uso": {
+   "latencia_s": 140.8,
+   "tok_in": 11878,
+   "tok_out": 3216,
+   "custo_usd": 0.0008597428
+  },
+  "candidatos": [
+   {
+    "nome": "Boletos com valor divergente do contrato",
+    "objeto": "sistema: emissão de boletos",
+    "descricao": "Boletos de parcela são gerados com valor diferente do contrato, gerando reclamações de clientes e força-tarefa de correção.",
+    "evidencias": [
+     "f00167",
+     "f00276",
+     "f01457",
+     "f01931",
+     "f02018",
+     "f02451"
+    ],
+    "de_onde": {
+     "H3": 6
+    }
+   },
+   {
+    "nome": "Registros duplicados em carga noturna",
+    "objeto": "processo: carga noturna de dados",
+    "descricao": "Cargas noturnas de diversos sistemas geram registros duplicados, impactando a consistência dos dados.",
+    "evidencias": [
+     "f00049",
+     "f00386",
+     "f00537",
+     "f00797",
+     "f00928",
+     "f01041",
+     "f01171",
+     "f01977",
+     "f02101"
+    ],
+    "de_onde": {
+     "fundo": 9
+    }
+   },
+   {
+    "nome": "Timeout em chamadas a parceiros",
+    "objeto": "integração: chamadas a fornecedores externos",
+    "descricao": "Chamadas a fornecedores (despachante, cartório, OCR, bureau) sofrem timeout, impactando processos de negócio.",
+    "evidencias": [
+     "f00074",
+     "f00124",
+     "f00885",
+     "f01130",
+     "f01162",
+     "f01658",
+     "f01893",
+     "f02553"
+    ],
+    "de_onde": {
+     "fundo": 8
+    }
+   },
+   {
+    "nome": "Latência alta em serviços críticos",
+    "objeto": "sistema: serviços de API",
+    "descricao": "Diversos serviços apresentam latência p95 elevada e taxa de erro, afetando a experiência do usuário.",
+    "evidencias": [
+     "f00058",
+     "f00255",
+     "f00500",
+     "f00971",
+     "f01645",
+     "f01662",
+     "f01839",
+     "f01921",
+     "f02026",
+     "f02331"
+    ],
+    "de_onde": {
+     "fundo": 7,
+     "H1": 3
+    }
+   },
+   {
+    "nome": "Fila de atendimento parada sem informação",
+    "objeto": "processo: fila de atendimento",
+    "descricao": "Filas de atendimento ficam paradas porque o sistema não mostra dados necessários (responsável, status), gerando retrabalho.",
+    "evidencias": [
+     "f00092",
+     "f00533",
+     "f00732",
+     "f01189",
+     "f01205",
+     "f01511",
+     "f01633",
+     "f01994",
+     "f02599",
+     "f02659"
+    ],
+    "de_onde": {
+     "fundo": 10
+    }
+   },
+   {
+    "nome": "Massa de teste perdida em refresh",
+    "objeto": "processo: refresh de ambiente de homologação",
+    "descricao": "Ao dar refresh no ambiente de homologação, a massa de teste é perdida, gerando retrabalho para recriar cenários.",
+    "evidencias": [
+     "f00731",
+     "f01046",
+     "f01275",
+     "f01623",
+     "f02500",
+     "f02580"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Certificado próximo ao vencimento sem dono",
+    "objeto": "processo: gestão de certificados digitais",
+    "descricao": "Certificados digitais de sistemas críticos estão próximos do vencimento e não possuem responsável designado para renovação.",
+    "evidencias": [
+     "f00259",
+     "f00478",
+     "f00757",
+     "f01022"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Custo de nuvem acima do esperado",
+    "objeto": "fornecedor: provedor de nuvem",
+    "descricao": "Gastos com nuvem de projetos estão acima da média, sem explicação clara, e ambientes de teste ficam ligados sem necessidade.",
+    "evidencias": [
+     "f00114",
+     "f00315",
+     "f00430",
+     "f01063",
+     "f01119",
+     "f01515",
+     "f01562",
+     "f01584",
+     "f01660",
+     "f02240",
+     "f02311"
+    ],
+    "de_onde": {
+     "fundo": 11
+    }
+   },
+   {
+    "nome": "Alerta falso recorrente sem ação",
+    "objeto": "processo: alertas de monitoramento",
+    "descricao": "Alertas de latência ou outros indicadores disparam repetidamente sem incidente real, gerando ruído e desperdício de tempo do plantão.",
+    "evidencias": [
+     "f00560",
+     "f00575",
+     "f00756",
+     "f01719",
+     "f02091",
+     "f02687"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Onboarding lento de novos colaboradores",
+    "objeto": "processo: onboarding de novos funcionários",
+    "descricao": "O processo de onboarding de novos colaboradores (devs, operadores) é lento e manual, atrasando a produtividade.",
+    "evidencias": [
+     "f00654",
+     "f00684",
+     "f01473",
+     "f02188"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Code review demorado",
+    "objeto": "processo: code review",
+    "descricao": "Code reviews de pull requests demoram dias para serem aprovados, travando o deploy e gerando gargalos.",
+    "evidencias": [
+     "f01356",
+     "f01982",
+     "f02518",
+     "f02587",
+     "f02700"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Comunicação de mudanças falha",
+    "objeto": "processo: comunicação de alterações",
+    "descricao": "Mudanças de regras ou processos são comunicadas apenas por e-mail, sem garantia de visualização, gerando retrabalho e erros.",
+    "evidencias": [
+     "f00102",
+     "f02338",
+     "f02431",
+     "f02523",
+     "f02576"
+    ],
+    "de_onde": {
+     "fundo": 4,
+     "H1": 1
+    }
+   },
+   {
+    "nome": "Dados divergentes entre sistemas",
+    "objeto": "processo: consistência de dados",
+    "descricao": "Dados de clientes, contratos ou comissões divergem entre sistemas (CRM, planilha, sistemas internos), gerando retrabalho e desconfiança.",
+    "evidencias": [
+     "f00185",
+     "f00996",
+     "f01581",
+     "f02114",
+     "f02428"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Pipeline de CI/CD lento ou instável",
+    "objeto": "processo: pipeline de CI/CD",
+    "descricao": "Pipelines de CI/CD estão lentos ou falhando em testes instáveis, atrasando entregas.",
+    "evidencias": [
+     "f01148",
+     "f01274",
+     "f01424",
+     "f02317",
+     "f02474",
+     "f02668"
+    ],
+    "de_onde": {
+     "fundo": 5,
+     "H6": 1
+    }
+   },
+   {
+    "nome": "Vulnerabilidades de segurança abertas",
+    "objeto": "processo: gestão de vulnerabilidades",
+    "descricao": "Achados de pentest e dependências com CVE crítica estão vencidos e sem correção, representando risco de segurança.",
+    "evidencias": [
+     "f00289",
+     "f00578",
+     "f00579",
+     "f01442",
+     "f01484",
+     "f01582",
+     "f01696",
+     "f01727",
+     "f01777",
+     "f01800",
+     "f02020",
+     "f02191",
+     "f02253"
+    ],
+    "de_onde": {
+     "fundo": 8,
+     "H7": 5
+    }
+   },
+   {
+    "nome": "Registro de gravame no Detran com erro",
+    "objeto": "integração: registro de gravame no Detran",
+    "descricao": "O registro de gravame no Detran apresenta erros, atrasando a liberação de contratos e gerando reclamações de clientes.",
+    "evidencias": [
+     "f01106",
+     "f01857",
+     "f02269",
+     "f02536"
+    ],
+    "de_onde": {
+     "H2": 4
+    }
+   },
+   {
+    "nome": "Conciliação com parceiros com divergências",
+    "objeto": "processo: conciliação com parceiros",
+    "descricao": "Conciliações com cartórios, despachantes e outros parceiros terminam com divergências, exigindo retrabalho.",
+    "evidencias": [
+     "f00055",
+     "f00981",
+     "f01010",
+     "f01313",
+     "f01895",
+     "f02023",
+     "f02100"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "API de propostas cai de madrugada",
+    "objeto": "sistema: API de propostas",
+    "descricao": "A API de propostas cai durante a madrugada sem causa identificada, gerando indisponibilidade e acionamento do plantão.",
+    "evidencias": [
+     "f01805",
+     "f02094",
+     "f02116",
+     "f02127",
+     "f02338",
+     "f02558"
+    ],
+    "de_onde": {
+     "H1": 5,
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Cálculo de comissão manual em planilha",
+    "objeto": "processo: cálculo de comissão de parceiros",
+    "descricao": "O cálculo de comissão dos parceiros é feito manualmente em planilha, gerando contestações e falta de confiabilidade.",
+    "evidencias": [
+     "f00215",
+     "f01053"
+    ],
+    "de_onde": {
+     "H4": 2
+    }
+   },
+   {
+    "nome": "Acesso de ex-colaborador não revogado",
+    "objeto": "processo: revogação de acessos",
+    "descricao": "Ex-colaboradores ainda possuem acesso a sistemas críticos, representando risco de segurança.",
+    "evidencias": [
+     "f01480"
+    ],
+    "de_onde": {
+     "H7": 1
+    }
+   },
+   {
+    "nome": "Fila de requisições acima do limite",
+    "objeto": "sistema: fila de requisições",
+    "descricao": "Filas de requisições de serviços estão acima do limite, com tempo de resposta elevado, indicando gargalo de capacidade.",
+    "evidencias": [
+     "f00743",
+     "f00886",
+     "f01271",
+     "f02005"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Transações abortadas por bloqueio no banco",
+    "objeto": "sistema: banco de dados compartilhado",
+    "descricao": "Transações são abortadas devido a bloqueios no banco de dados compartilhado entre múltiplos serviços.",
+    "evidencias": [
+     "f00003",
+     "f00719",
+     "f02125",
+     "f02693"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Logs descartados por estouro de buffer",
+    "objeto": "sistema: agente de coleta de logs",
+    "descricao": "Linhas de log são descartadas devido a estouro de buffer do agente de coleta, prejudicando a observabilidade.",
+    "evidencias": [
+     "f00246",
+     "f02030",
+     "f02037"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Requisições sem trace ID",
+    "objeto": "processo: rastreamento de requisições",
+    "descricao": "Requisições estão sendo processadas sem trace ID, impossibilitando o rastreamento completo e a identificação de gargalos.",
+    "evidencias": [
+     "f00153",
+     "f01291",
+     "f01297",
+     "f01339",
+     "f02211"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Exceções não tratadas em módulo legado",
+    "objeto": "sistema: módulo legado",
+    "descricao": "Exceções não tratadas estão ocorrendo em módulos legados, indicando falta de manutenção e risco de falhas.",
+    "evidencias": [
+     "f01145",
+     "f02066",
+     "f02344",
+     "f02522"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Serviço reinicia por falta de memória",
+    "objeto": "sistema: serviço com runtime sem suporte",
+    "descricao": "Serviços reiniciam devido a falta de memória, com versão de runtime sem suporte, indicando necessidade de atualização.",
+    "evidencias": [
+     "f00173",
+     "f01781",
+     "f02227",
+     "f02684"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Avisos de API descontinuada",
+    "objeto": "sistema: dependência de biblioteca",
+    "descricao": "Avisos de uso de API descontinuada (jackson-databind, openssl) aparecem em logs, indicando necessidade de atualização de dependências.",
+    "evidencias": [
+     "f00183",
+     "f00409",
+     "f01920",
+     "f02025"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Contrato com fornecedor estourando franquia",
+    "objeto": "fornecedor: plataforma de assinatura eletrônica",
+    "descricao": "O contrato com o fornecedor de assinatura eletrônica não cobre mais o volume atual, gerando custos extras.",
+    "evidencias": [
+     "f02107",
+     "f02466"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Solicitação de infraestrutura sem retorno",
+    "objeto": "processo: solicitação de infraestrutura em nuvem",
+    "descricao": "Solicitações para criar buckets ou ajustar permissões na nuvem ficam sem resposta por dias, travando entregas.",
+    "evidencias": [
+     "f02477"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Lojista sem visibilidade do status da proposta",
+    "objeto": "processo: comunicação com lojista",
+    "descricao": "Lojistas não conseguem consultar o status de suas propostas, gerando chamados para o suporte.",
+    "evidencias": [
+     "f00447",
+     "f01705",
+     "f02255"
+    ],
+    "de_onde": {
+     "H4": 2,
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Painel de comissão para lojista inexistente",
+    "objeto": "sistema: painel de comissão de lojista",
+    "descricao": "Não há um painel para o lojista consultar o valor e a data de pagamento da comissão, gerando dúvidas no suporte.",
+    "evidencias": [
+     "f01575",
+     "f01667",
+     "f01997"
+    ],
+    "de_onde": {
+     "H4": 3
+    }
+   },
+   {
+    "nome": "Carga de vistoria duplicada",
+    "objeto": "processo: carga de vistoria de veículo",
+    "descricao": "A carga de dados de vistoria de veículo gera registros duplicados, causando retrabalho.",
+    "evidencias": [
+     "f00537"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Carnês com vencimento anterior à emissão",
+    "objeto": "sistema: emissão de carnês",
+    "descricao": "Carnês são gerados com data de vencimento anterior à data de emissão, indicando erro no lote de processamento.",
+    "evidencias": [
+     "f00287",
+     "f00288",
+     "f00780",
+     "f01686"
+    ],
+    "de_onde": {
+     "H3": 4
+    }
+   },
+   {
+    "nome": "Atendimentos parados por falta de retorno de fraude",
+    "objeto": "integração: consulta de fraude-score",
+    "descricao": "Atendimentos ficam parados aguardando retorno do serviço de fraude-score por mais de 48h.",
+    "evidencias": [
+     "f00533"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Registros com campo obrigatório vazio em envio regulatório",
+    "objeto": "processo: envio regulatório",
+    "descricao": "Registros de dados enviados ao regulador possuem campos obrigatórios vazios, indicando falha na validação.",
+    "evidencias": [
+     "f00655",
+     "f01540",
+     "f01809"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Conciliação com banco liquidante com divergências",
+    "objeto": "integração: conciliação com banco liquidante",
+    "descricao": "A conciliação com o banco liquidante apresenta divergências no saldo devedor.",
+    "evidencias": [
+     "f02023"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Pipeline de CI/CD com merge request parado",
+    "objeto": "processo: revisão de merge request",
+    "descricao": "Merge requests ficam parados esperando revisão por dias, atrasando o fluxo de entrega.",
+    "evidencias": [
+     "f02518"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Fornecedor de nuvem descumprindo SLA",
+    "objeto": "fornecedor: provedor de nuvem",
+    "descricao": "O provedor de nuvem tem descumprido o SLA, com picos de latência acima do contratado.",
+    "evidencias": [
+     "f02380"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   }
+  ]
+ },
+ {
+  "rodada": 2,
+  "lote": 3,
+  "frentes": 235,
+  "erro": null,
+  "uso": {
+   "latencia_s": 82.6,
+   "tok_in": 12511,
+   "tok_out": 2798,
+   "custo_usd": 0.0017471776
+  },
+  "candidatos": [
+   {
+    "nome": "Registro de gravame no Detran",
+    "objeto": "integração: Detran",
+    "descricao": "Erro ao registrar gravame no Detran, contratos parados e reclamações de clientes.",
+    "evidencias": [
+     "f00674",
+     "f00979",
+     "f02232"
+    ],
+    "de_onde": {
+     "H2": 3
+    }
+   },
+   {
+    "nome": "Boletos com valor divergente",
+    "objeto": "processo: geração de boletos",
+    "descricao": "Boletos gerados com valor diferente do contrato, gerando retrabalho e reclamações.",
+    "evidencias": [
+     "f00021",
+     "f00168",
+     "f00306",
+     "f00870",
+     "f02364",
+     "f02515"
+    ],
+    "de_onde": {
+     "H3": 6
+    }
+   },
+   {
+    "nome": "Carga noturna com registros duplicados",
+    "objeto": "processo: carga noturna",
+    "descricao": "Cargas noturnas gerando registros duplicados em diversos sistemas, exigindo limpeza manual.",
+    "evidencias": [
+     "f00138",
+     "f00546",
+     "f00601",
+     "f01073",
+     "f02060",
+     "f02579",
+     "f02602"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Senha em planilha compartilhada",
+    "objeto": "processo: gestão de senhas",
+    "descricao": "Senhas de sistemas e bancos de dados armazenadas em planilhas compartilhadas, risco de segurança.",
+    "evidencias": [
+     "f00170",
+     "f00254",
+     "f01517",
+     "f01992"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Alerta sem ação possível",
+    "objeto": "processo: alertas",
+    "descricao": "Alertas que disparam sem possibilidade de ação, gerando ruído e atrapalhando o plantão.",
+    "evidencias": [
+     "f00151",
+     "f00270",
+     "f01184",
+     "f01682",
+     "f01980"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Gasto de nuvem acima da média",
+    "objeto": "processo: custos de nuvem",
+    "descricao": "Custos de nuvem de projetos específicos muito acima da média, sem causa identificada.",
+    "evidencias": [
+     "f00301",
+     "f00539",
+     "f00543",
+     "f00991",
+     "f01397",
+     "f01790",
+     "f01952",
+     "f02123"
+    ],
+    "de_onde": {
+     "fundo": 8
+    }
+   },
+   {
+    "nome": "Ambiente de teste ligado no fim de semana",
+    "objeto": "processo: gestão de ambientes",
+    "descricao": "Ambientes de teste permanecem ligados em fins de semana, gerando custo desnecessário.",
+    "evidencias": [
+     "f00360",
+     "f00806",
+     "f01718",
+     "f02085",
+     "f02423",
+     "f02646"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Segredo exposto em repositório",
+    "objeto": "processo: segurança de código",
+    "descricao": "Chaves de acesso e tokens commitados em repositórios, expondo credenciais.",
+    "evidencias": [
+     "f00079",
+     "f00149",
+     "f01128",
+     "f01596",
+     "f02097",
+     "f02258"
+    ],
+    "de_onde": {
+     "H7": 5,
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Dependência com CVE crítica",
+    "objeto": "processo: gestão de dependências",
+    "descricao": "Bibliotecas com vulnerabilidades críticas conhecidas sem correção há dias.",
+    "evidencias": [
+     "f00960",
+     "f01082",
+     "f01863"
+    ],
+    "de_onde": {
+     "H7": 3
+    }
+   },
+   {
+    "nome": "Código legado sem testes",
+    "objeto": "processo: qualidade de código",
+    "descricao": "Código legado sem cobertura de testes, dificultando manutenção e evolução.",
+    "evidencias": [
+     "f01164",
+     "f01348",
+     "f01709",
+     "f02205"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Comunicação de mudança só por e-mail",
+    "objeto": "processo: comunicação de mudanças",
+    "descricao": "Mudanças importantes comunicadas apenas por e-mail, sem serem vistas a tempo, gerando retrabalho.",
+    "evidencias": [
+     "f00193",
+     "f01769",
+     "f02184",
+     "f02683"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Fornecedor fora do SLA",
+    "objeto": "fornecedor: auditoria externa",
+    "descricao": "Fornecedor de auditoria externa fora do SLA, com entregas atrasadas e sem resposta.",
+    "evidencias": [
+     "f00559",
+     "f01539"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Contrato de fornecedor insuficiente",
+    "objeto": "fornecedor: plataforma de dados",
+    "descricao": "Contrato com fornecedor de plataforma de dados não cobre volume atual, gerando gargalos.",
+    "evidencias": [
+     "f00274",
+     "f00297",
+     "f00414",
+     "f02618"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Time sobrecarregado com plantão e projeto",
+    "objeto": "processo: alocação de equipe",
+    "descricao": "Time sobrecarregado por conciliar plantão e projetos, impactando qualidade e prazos.",
+    "evidencias": [
+     "f00159",
+     "f01583",
+     "f01657"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Onboarding lento de novos membros",
+    "objeto": "processo: onboarding",
+    "descricao": "Processo de onboarding de novos membros demorando meses, sem treinamento adequado.",
+    "evidencias": [
+     "f01757",
+     "f02347"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Saída de pessoas-chave sem passagem de conhecimento",
+    "objeto": "processo: gestão de conhecimento",
+    "descricao": "Saída de pessoas-chave sem documentação ou passagem de conhecimento, paralisando tarefas.",
+    "evidencias": [
+     "f01368",
+     "f02617"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Carnê com data de vencimento errada",
+    "objeto": "processo: geração de carnês",
+    "descricao": "Carnês gerados com data de vencimento incorreta, gerando reclamações e retrabalho.",
+    "evidencias": [
+     "f00830",
+     "f00958",
+     "f01051",
+     "f02048",
+     "f02168",
+     "f02270"
+    ],
+    "de_onde": {
+     "H3": 6
+    }
+   },
+   {
+    "nome": "Fila de atendimento parada sem informação",
+    "objeto": "processo: fila de atendimento",
+    "descricao": "Fila de atendimento parada porque o sistema não informa o próximo passo ou erro.",
+    "evidencias": [
+     "f01695",
+     "f02132",
+     "f02417"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Dado incompleto de etapa anterior",
+    "objeto": "processo: fluxo de dados",
+    "descricao": "Etapa anterior envia dados incompletos, gerando retrabalho e atrasos.",
+    "evidencias": [
+     "f00320",
+     "f00353",
+     "f00406",
+     "f02517",
+     "f02625"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Certificado próximo da expiração sem dono",
+    "objeto": "processo: gestão de certificados",
+    "descricao": "Certificados digitais próximos da expiração sem responsável definido para renovação.",
+    "evidencias": [
+     "f00117",
+     "f01602",
+     "f01830",
+     "f02330"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Banco compartilhado trava evolução",
+    "objeto": "sistema: banco de dados compartilhado",
+    "descricao": "Banco de dados compartilhado entre times trava evoluções e causa travamentos.",
+    "evidencias": [
+     "f01612",
+     "f01856",
+     "f01945",
+     "f02138"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Serviço acoplado impede deploy independente",
+    "objeto": "processo: arquitetura de serviços",
+    "descricao": "Serviços muito acoplados obrigam deploy conjunto, aumentando risco e atrasando entregas.",
+    "evidencias": [
+     "f01675",
+     "f01764",
+     "f02421"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Code review demorado",
+    "objeto": "processo: code review",
+    "descricao": "Code reviews demorando dias, atrasando entregas de ajustes simples.",
+    "evidencias": [
+     "f00103",
+     "f00263",
+     "f01403",
+     "f01905"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Solicitação sem resposta há dias",
+    "objeto": "processo: atendimento de solicitações",
+    "descricao": "Solicitações de diversos tipos ficam sem resposta por mais de 5 dias.",
+    "evidencias": [
+     "f00154",
+     "f00484",
+     "f01027",
+     "f01225",
+     "f01650",
+     "f01694",
+     "f01720"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Timeout em consulta no horário de pico",
+    "objeto": "processo: performance de consultas",
+    "descricao": "Consultas lentas ou com timeout em horários de pico, impactando usuários.",
+    "evidencias": [
+     "f00372",
+     "f01928",
+     "f02196"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Registro de consentimento com dados picados",
+    "objeto": "processo: registro de consentimento",
+    "descricao": "Registro de consentimento chega com dados incompletos, exigindo retrabalho.",
+    "evidencias": [
+     "f00353",
+     "f00406"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Pipeline de CI/CD lento",
+    "objeto": "processo: CI/CD",
+    "descricao": "Pipeline de CI/CD demorando muito além da meta, atrasando entregas.",
+    "evidencias": [
+     "f02476"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Fila de exceções parada",
+    "objeto": "processo: fila de exceções",
+    "descricao": "Itens parados na fila de exceções por mais de 48h, sem andamento.",
+    "evidencias": [
+     "f01523",
+     "f01671"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Contrato sem gravame registrado",
+    "objeto": "processo: registro de gravame",
+    "descricao": "Contratos sem gravame registrado há mais de 4 dias, gerando passivo.",
+    "evidencias": [
+     "f00282",
+     "f00445",
+     "f01664",
+     "f02047",
+     "f02129"
+    ],
+    "de_onde": {
+     "H2": 5
+    }
+   },
+   {
+    "nome": "Divergência em conciliação com parceiro",
+    "objeto": "integração: conciliação com parceiros",
+    "descricao": "Conciliações com parceiros (bureau, cartório, agência) terminam com muitas divergências.",
+    "evidencias": [
+     "f00477",
+     "f01618",
+     "f01821",
+     "f01826"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Fornecedor de biometria com erro",
+    "objeto": "fornecedor: biometria facial",
+    "descricao": "Fornecedor de biometria facial retornando erro 5xx, impactando cadastro de clientes.",
+    "evidencias": [
+     "f00745"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Fornecedor de tabela de preços com erro",
+    "objeto": "fornecedor: tabela de preços",
+    "descricao": "Fornecedor da tabela de preços de veículos retornando erro 5xx.",
+    "evidencias": [
+     "f01964"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Escritório de advocacia de privacidade com erro",
+    "objeto": "fornecedor: escritório de advocacia",
+    "descricao": "Escritório de advocacia de privacidade retornando erro 5xx em chamadas de consentimento.",
+    "evidencias": [
+     "f02039"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Banco liquidante fora do SLA",
+    "objeto": "fornecedor: banco liquidante",
+    "descricao": "Banco liquidante estourando SLA em liquidações, necessitando dashboard de acompanhamento.",
+    "evidencias": [
+     "f02237"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Plataforma de assinatura eletrônica fora do SLA",
+    "objeto": "fornecedor: plataforma de assinatura",
+    "descricao": "Plataforma de assinatura eletrônica sempre fora do SLA, impactando fechamento de propostas.",
+    "evidencias": [
+     "f02592"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Ambiente local demora meio dia para subir",
+    "objeto": "processo: setup de ambiente local",
+    "descricao": "Subir ambiente local leva cerca de meio dia, impactando produtividade.",
+    "evidencias": [
+     "f00900",
+     "f01009",
+     "f02440"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Biblioteca descontinuada em uso",
+    "objeto": "processo: gestão de bibliotecas",
+    "descricao": "Bibliotecas descontinuadas ainda em uso, gerando riscos de segurança e compatibilidade.",
+    "evidencias": [
+     "f01481",
+     "f02404",
+     "f02406"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Dado de cliente diverge entre sistemas",
+    "objeto": "processo: consistência de dados",
+    "descricao": "Dados de cliente divergem entre sistemas legado e novo, gerando inconsistências em relatórios.",
+    "evidencias": [
+     "f02663"
+    ],
+    "de_onde": {
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "Atraso em entrega de auditoria",
+    "objeto": "processo: atendimento a auditoria",
+    "descricao": "Entregas de demandas de auditoria atrasadas, gerando cobranças e riscos regulatórios.",
+    "evidencias": [
+     "f00191",
+     "f00307",
+     "f00522",
+     "f02704"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   }
+  ]
+ },
+ {
+  "rodada": 2,
+  "lote": 0,
+  "frentes": 320,
+  "erro": null,
+  "uso": {
+   "latencia_s": 98.5,
+   "tok_in": 18086,
+   "tok_out": 3035,
+   "custo_usd": 0.0023313451
+  },
+  "candidatos": [
+   {
+    "nome": "Registro de gravame no Detran",
+    "objeto": "integração: Detran",
+    "descricao": "O registro de gravame no Detran retorna erro, deixando contratos parados por dias.",
+    "evidencias": [
+     "f03045",
+     "f03309",
+     "f03488",
+     "f03728",
+     "f03862",
+     "f03869",
+     "f05278"
+    ],
+    "de_onde": {
+     "H2": 7
+    }
+   },
+   {
+    "nome": "Senhas expostas em planilhas",
+    "objeto": "processo: gestão de senhas",
+    "descricao": "Senhas de sistemas críticos são compartilhadas em planilhas acessíveis, com risco de vazamento.",
+    "evidencias": [
+     "f03078",
+     "f03238",
+     "f03272",
+     "f03328",
+     "f04449"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Massa de teste perdida na homologação",
+    "objeto": "processo: refresh de homologação",
+    "descricao": "A massa de teste some a cada refresh do ambiente de homologação, gerando retrabalho.",
+    "evidencias": [
+     "f02959",
+     "f03716",
+     "f03823",
+     "f04736",
+     "f05806"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Carga noturna com registros duplicados",
+    "objeto": "processo: carga noturna",
+    "descricao": "Cargas noturnas de diversos sistemas geram registros duplicados, poluindo a base.",
+    "evidencias": [
+     "f04054",
+     "f04074",
+     "f04182",
+     "f04433",
+     "f04442",
+     "f04767",
+     "f04939",
+     "f05700",
+     "f05718",
+     "f05843"
+    ],
+    "de_onde": {
+     "fundo": 10
+    }
+   },
+   {
+    "nome": "Código legado sem testes",
+    "objeto": "sistema: legado",
+    "descricao": "Sistemas legados sem testes automatizados geram medo de alteração e incidentes.",
+    "evidencias": [
+     "f03622",
+     "f03831",
+     "f03833",
+     "f04043",
+     "f04199",
+     "f04590",
+     "f05147"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Ambientes de teste ligados no fim de semana",
+    "objeto": "processo: desligamento de ambientes",
+    "descricao": "Ambientes de teste ficam ligados no fim de semana, gerando custos desnecessários.",
+    "evidencias": [
+     "f02802",
+     "f02872",
+     "f04011",
+     "f04031",
+     "f05403",
+     "f05648",
+     "f05966"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Code review demorado",
+    "objeto": "processo: code review",
+    "descricao": "Pull requests ficam dias esperando revisão, travando entregas.",
+    "evidencias": [
+     "f02752",
+     "f03181",
+     "f03907",
+     "f05024",
+     "f05270",
+     "f05296",
+     "f05312",
+     "f05441"
+    ],
+    "de_onde": {
+     "fundo": 8
+    }
+   },
+   {
+    "nome": "Dado incompleto entre etapas",
+    "objeto": "processo: integração entre sistemas",
+    "descricao": "Sistemas enviam dados incompletos para a etapa seguinte, gerando retrabalho manual.",
+    "evidencias": [
+     "f02973",
+     "f03089",
+     "f03300",
+     "f04112",
+     "f05333",
+     "f05484"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Assistente virtual com taxa incorreta",
+    "objeto": "sistema: assistente virtual",
+    "descricao": "O assistente virtual informa taxas de juros que não existem no sistema, gerando reclamações.",
+    "evidencias": [
+     "f03607",
+     "f04192",
+     "f04308",
+     "f04789",
+     "f05481"
+    ],
+    "de_onde": {
+     "H5": 5
+    }
+   },
+   {
+    "nome": "Contrato com fornecedor estourado",
+    "objeto": "fornecedor: contrato",
+    "descricao": "Contratos com fornecedores não cobrem mais o volume atual, gerando atrasos e custos extras.",
+    "evidencias": [
+     "f03022",
+     "f03850",
+     "f04146",
+     "f04451",
+     "f04614",
+     "f04771",
+     "f05553"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Falta de rastreamento ponta a ponta",
+    "objeto": "processo: rastreamento de requisições",
+    "descricao": "Não é possível rastrear requisições entre sistemas, dificultando a identificação de gargalos.",
+    "evidencias": [
+     "f02859",
+     "f03369",
+     "f04878"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Pipeline lento",
+    "objeto": "processo: pipeline de CI/CD",
+    "descricao": "Pipelines de CI/CD demoram muito para rodar, impactando a produtividade.",
+    "evidencias": [
+     "f03051",
+     "f03191",
+     "f03345",
+     "f03955",
+     "f04480",
+     "f04713",
+     "f04856",
+     "f05089",
+     "f05980"
+    ],
+    "de_onde": {
+     "fundo": 9
+    }
+   },
+   {
+    "nome": "Certificado SSL prestes a vencer",
+    "objeto": "processo: renovação de certificados",
+    "descricao": "Certificados SSL de serviços estão próximos do vencimento sem responsável definido.",
+    "evidencias": [
+     "f03007",
+     "f03065",
+     "f04925",
+     "f05120",
+     "f05265"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Mudança comunicada apenas por e-mail",
+    "objeto": "processo: comunicação de mudanças",
+    "descricao": "Mudanças importantes são comunicadas apenas por e-mail, e boa parte do time não toma ciência.",
+    "evidencias": [
+     "f03717",
+     "f04452",
+     "f04687",
+     "f04882",
+     "f05330",
+     "f05365",
+     "f05663"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Saída de pessoas-chave sem passagem de conhecimento",
+    "objeto": "processo: passagem de conhecimento",
+    "descricao": "Pessoas-chave saem sem documentar ou passar conhecimento, gerando dificuldades operacionais.",
+    "evidencias": [
+     "f03975",
+     "f04347",
+     "f04418",
+     "f04937",
+     "f05684"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Banco compartilhado trava evolução",
+    "objeto": "sistema: banco de dados compartilhado",
+    "descricao": "Bancos de dados compartilhados entre times geram contenção e impedem evoluções independentes.",
+    "evidencias": [
+     "f03617",
+     "f04531",
+     "f04928",
+     "f05516"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Segredo exposto em repositório",
+    "objeto": "processo: segurança de código",
+    "descricao": "Chaves de acesso e tokens são commitados em repositórios, representando risco de segurança.",
+    "evidencias": [
+     "f03156",
+     "f03691",
+     "f03991",
+     "f04309",
+     "f04392",
+     "f04958",
+     "f05016",
+     "f05183",
+     "f05525",
+     "f05767"
+    ],
+    "de_onde": {
+     "H7": 7,
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Falta de política para copiloto de código",
+    "objeto": "processo: uso de IA",
+    "descricao": "Não há política definida sobre o que pode ser enviado a modelos de IA, travando iniciativas.",
+    "evidencias": [
+     "f02947",
+     "f03513",
+     "f04517",
+     "f05042",
+     "f05208"
+    ],
+    "de_onde": {
+     "H5": 5
+    }
+   },
+   {
+    "nome": "Alerta falso recorrente",
+    "objeto": "processo: monitoramento",
+    "descricao": "Alertas que disparam sem ação possível, poluindo o monitoramento.",
+    "evidencias": [
+     "f03959",
+     "f04219",
+     "f05264"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Comissão de parceiros calculada manualmente",
+    "objeto": "processo: cálculo de comissão",
+    "descricao": "Cálculo de comissão de parceiros é feito manualmente em planilha, gerando contestações.",
+    "evidencias": [
+     "f04642",
+     "f04929",
+     "f05422",
+     "f05574"
+    ],
+    "de_onde": {
+     "H4": 4
+    }
+   },
+   {
+    "nome": "Lojista sem visibilidade de proposta",
+    "objeto": "sistema: portal do lojista",
+    "descricao": "Lojistas não conseguem simular ou acompanhar propostas no portal, dependendo de ligações.",
+    "evidencias": [
+     "f03360",
+     "f04433",
+     "f05106",
+     "f05772",
+     "f05887"
+    ],
+    "de_onde": {
+     "H4": 4,
+     "fundo": 1
+    }
+   },
+   {
+    "nome": "API de propostas com quedas frequentes",
+    "objeto": "sistema: API de propostas",
+    "descricao": "A API de propostas cai com frequência, especialmente em horários de pico, gerando indisponibilidade.",
+    "evidencias": [
+     "f03628",
+     "f04462",
+     "f05103",
+     "f05134",
+     "f05859"
+    ],
+    "de_onde": {
+     "H1": 5
+    }
+   },
+   {
+    "nome": "Fila de exceções parada",
+    "objeto": "processo: fila de exceções",
+    "descricao": "Itens na fila de exceções de diversos sistemas ficam parados por mais de 48h.",
+    "evidencias": [
+     "f03142",
+     "f03201",
+     "f03347",
+     "f03468",
+     "f04161",
+     "f04176",
+     "f04202",
+     "f04208",
+     "f04223",
+     "f04847",
+     "f04871",
+     "f04966",
+     "f05387",
+     "f05509"
+    ],
+    "de_onde": {
+     "fundo": 14
+    }
+   },
+   {
+    "nome": "Divergência de dados entre sistemas",
+    "objeto": "processo: consistência de dados",
+    "descricao": "Sistemas diferentes mostram dados divergentes do mesmo cliente, gerando retrabalho.",
+    "evidencias": [
+     "f03161",
+     "f03962",
+     "f05512"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Prioridades conflitantes entre produto e sustentação",
+    "objeto": "processo: priorização",
+    "descricao": "Demandas de produto e sustentação competem, gerando retrabalho e atrasos.",
+    "evidencias": [
+     "f03520",
+     "f04081",
+     "f05132"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Falta de CI/CD e feature flags",
+    "objeto": "processo: deploy",
+    "descricao": "Deploys manuais e sem feature flags atrasam liberação de regras de crédito.",
+    "evidencias": [
+     "f03730",
+     "f04733"
+    ],
+    "de_onde": {
+     "H6": 2
+    }
+   },
+   {
+    "nome": "Ambiente local demora para subir",
+    "objeto": "processo: setup de desenvolvimento",
+    "descricao": "Subir o ambiente local de desenvolvimento leva horas, impactando a produtividade.",
+    "evidencias": [
+     "f05035",
+     "f05938"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Teste instável no CI",
+    "objeto": "processo: testes automatizados",
+    "descricao": "Testes no pipeline de CI falham de forma intermitente, gerando retrabalho e desconfiança.",
+    "evidencias": [
+     "f03902",
+     "f03974",
+     "f05242",
+     "f05795",
+     "f05871"
+    ],
+    "de_onde": {
+     "fundo": 3,
+     "H6": 2
+    }
+   },
+   {
+    "nome": "Serviços fortemente acoplados",
+    "objeto": "sistema: arquitetura",
+    "descricao": "Serviços com dependência circular ou forte acoplamento obrigam deploys conjuntos.",
+    "evidencias": [
+     "f03076",
+     "f03257",
+     "f03836"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Achados de pentest vencidos",
+    "objeto": "processo: correção de vulnerabilidades",
+    "descricao": "Achados de pentest estão vencidos e sem correção há meses.",
+    "evidencias": [
+     "f03177",
+     "f03777",
+     "f04794",
+     "f04956",
+     "f05154",
+     "f05284",
+     "f05619",
+     "f05997"
+    ],
+    "de_onde": {
+     "H7": 6,
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Dependência com CVE crítica",
+    "objeto": "sistema: dependência de software",
+    "descricao": "Dependências com vulnerabilidades críticas estão em produção sem atualização.",
+    "evidencias": [
+     "f04643",
+     "f04710",
+     "f04885",
+     "f04965"
+    ],
+    "de_onde": {
+     "H7": 2,
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Reinicialização por falta de memória",
+    "objeto": "sistema: runtime",
+    "descricao": "Serviços reiniciam repetidamente por falta de memória devido a versão antiga do runtime.",
+    "evidencias": [
+     "f02749",
+     "f02810",
+     "f03601",
+     "f04094",
+     "f05168",
+     "f05308",
+     "f05811"
+    ],
+    "de_onde": {
+     "fundo": 7
+    }
+   },
+   {
+    "nome": "Timeout em chamadas a fornecedores",
+    "objeto": "integração: fornecedor",
+    "descricao": "Chamadas a fornecedores externos (agência, escritório, provedor) estão com timeout.",
+    "evidencias": [
+     "f03616",
+     "f04298",
+     "f04505",
+     "f04609",
+     "f04674"
+    ],
+    "de_onde": {
+     "fundo": 5
+    }
+   },
+   {
+    "nome": "Transações abortadas por bloqueio em banco compartilhado",
+    "objeto": "sistema: banco de dados",
+    "descricao": "Transações são abortadas devido a bloqueios em banco compartilhado entre serviços.",
+    "evidencias": [
+     "f03032",
+     "f03417",
+     "f03548",
+     "f04038",
+     "f05971",
+     "f05975"
+    ],
+    "de_onde": {
+     "fundo": 6
+    }
+   },
+   {
+    "nome": "Erro 504 em serviços",
+    "objeto": "sistema: API",
+    "descricao": "Serviços retornam erro 504 (timeout) com alta frequência.",
+    "evidencias": [
+     "f02953",
+     "f03056",
+     "f03445",
+     "f03987",
+     "f04118",
+     "f04211",
+     "f04359",
+     "f04543",
+     "f05757",
+     "f05765",
+     "f05989"
+    ],
+    "de_onde": {
+     "fundo": 8,
+     "H1": 3
+    }
+   },
+   {
+    "nome": "Fila de requisições acima do limite",
+    "objeto": "sistema: fila",
+    "descricao": "Filas de requisições de serviços estão acima do limite, com alta latência.",
+    "evidencias": [
+     "f03130",
+     "f03261"
+    ],
+    "de_onde": {
+     "fundo": 2
+    }
+   },
+   {
+    "nome": "Latência alta em serviços",
+    "objeto": "sistema: API",
+    "descricao": "Tempo de resposta de serviços está acima da linha de base.",
+    "evidencias": [
+     "f03296",
+     "f03375",
+     "f03509",
+     "f03863",
+     "f03922",
+     "f04825",
+     "f04952",
+     "f05020",
+     "f05385",
+     "f05616",
+     "f05737",
+     "f05897",
+     "f05923"
+    ],
+    "de_onde": {
+     "fundo": 8,
+     "H1": 5
+    }
+   },
+   {
+    "nome": "Alerta sem dono reaberto",
+    "objeto": "processo: gestão de alertas",
+    "descricao": "Alertas são reabertos repetidamente sem um responsável definido.",
+    "evidencias": [
+     "f03110",
+     "f03687",
+     "f05611",
+     "f05628"
+    ],
+    "de_onde": {
+     "fundo": 4
+    }
+   },
+   {
+    "nome": "Registros com campo obrigatório vazio",
+    "objeto": "processo: qualidade de dados",
+    "descricao": "Registros enviados ao regulador possuem campos obrigatórios vazios.",
+    "evidencias": [
+     "f03573",
+     "f03852",
+     "f05388"
+    ],
+    "de_onde": {
+     "fundo": 3
+    }
+   },
+   {
+    "nome": "Boletos com valor divergente do contrato",
+    "objeto": "processo: emissão de boletos",
+    "descricao": "Boletos emitidos com valor diferente do contrato, gerando inconsistências.",
+    "evidencias": [
+     "f03489",
+     "f05369"
+    ],
+    "de_onde": {
+     "H3": 2
+    }
+   }
+  ]
+ }
+]

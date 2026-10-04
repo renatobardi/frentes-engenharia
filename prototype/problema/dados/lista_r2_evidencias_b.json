@@ -1,0 +1,303 @@
+{
+ "rodada": 2,
+ "peneira_modo": "evidencias",
+ "v1": {
+  "Registro de gravame no Detran": "Frentes que citam registro de gravame no Detran (integração Detran, registro de gravame no Detran, contrato sem gravame registrado): erros, atrasos e contratos parados no registro de gravame, travando liberação e gerando retrabalho. Não vale para outros sistemas ou processos.",
+  "Emissão de boletos e carnês": "Frentes que citam emissão de boletos e carnês (boletos, carnês, geração de boletos, geração de carnês, renegociação): boletos com valor divergente do contrato, carnês com vencimento errado, boleto antigo ativo após renegociação. Não vale para outros sistemas ou processos.",
+  "Banco de dados compartilhado": "Frentes que citam banco de dados compartilhado (banco de dados compartilhado, banco compartilhado): trava evolução, conflitos de deploy, transações abortadas por bloqueio. Não vale para outros sistemas."
+ },
+ "v2": {
+  "Registro de gravame no Detran": "Frentes que citam registro de gravame no Detran (integração Detran, registro de gravame no Detran, contrato sem gravame registrado): erros, atrasos e contratos parados no registro de gravame, travando liberação e gerando retrabalho. Não vale para outros sistemas ou processos.",
+  "Emissão de boletos e carnês": "Frentes que citam emissão de boletos e carnês (boletos, carnês, geração de boletos, geração de carnês, renegociação): boletos com valor divergente do contrato, carnês com vencimento errado, boleto antigo ativo após renegociação. Não vale para outros sistemas ou processos.",
+  "Banco de dados compartilhado": "Frentes que citam banco de dados compartilhado (banco de dados compartilhado, banco compartilhado): trava evolução, conflitos de deploy, transações abortadas por bloqueio. Não vale para outros sistemas.",
+  "Falta de política para copiloto de código": "Frentes que citam falta de política para copiloto de código (uso de IA, copiloto de código): ausência de regras sobre envio de dados a modelos de IA, travando iniciativas. Não vale para outros processos.",
+  "API de propostas com quedas frequentes": "Frentes que citam API de propostas com quedas frequentes (API de propostas): quedas frequentes, especialmente em horários de pico, gerando indisponibilidade. Não vale para outros sistemas."
+ },
+ "grupos_v1": [
+  {
+   "nome": "Registro de gravame no Detran",
+   "descricao": "Frentes que citam registro de gravame no Detran (integração Detran, registro de gravame no Detran, contrato sem gravame registrado): erros, atrasos e contratos parados no registro de gravame, travando liberação e gerando retrabalho. Não vale para outros sistemas ou processos.",
+   "vigente": null,
+   "lotes": [
+    1,
+    2,
+    3
+   ],
+   "evidencias": 22,
+   "de_onde": {
+    "H2": 22
+   },
+   "membros": [
+    "Registro de gravame no Detran",
+    "Registro de gravame no Detran com erro",
+    "Registro de gravame no Detran",
+    "Contrato sem gravame registrado"
+   ],
+   "entrou": true,
+   "rotulo": "H2"
+  },
+  {
+   "nome": "Senhas em planilha compartilhada",
+   "descricao": "Frentes que citam senhas em planilha compartilhada (gestão de senhas): senhas de acesso armazenadas em planilhas públicas, representando risco de segurança. Não vale para outros processos.",
+   "vigente": null,
+   "lotes": [
+    1
+   ],
+   "evidencias": 4,
+   "de_onde": {
+    "fundo": 4
+   },
+   "membros": [
+    "Senha em planilha compartilhada"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  },
+  {
+   "nome": "Emissão de boletos e carnês",
+   "descricao": "Frentes que citam emissão de boletos e carnês (boletos, carnês, geração de boletos, geração de carnês, renegociação): boletos com valor divergente do contrato, carnês com vencimento errado, boleto antigo ativo após renegociação. Não vale para outros sistemas ou processos.",
+   "vigente": null,
+   "lotes": [
+    1,
+    2,
+    3
+   ],
+   "evidencias": 29,
+   "de_onde": {
+    "H3": 29
+   },
+   "membros": [
+    "Boletos com valor divergente",
+    "Boleto antigo ativo após renegociação",
+    "Boletos com valor divergente do contrato",
+    "Carnês com vencimento anterior à emissão",
+    "Boletos com valor divergente",
+    "Carnê com data de vencimento errada"
+   ],
+   "entrou": true,
+   "rotulo": "H3"
+  },
+  {
+   "nome": "Banco de dados compartilhado",
+   "descricao": "Frentes que citam banco de dados compartilhado (banco de dados compartilhado, banco compartilhado): trava evolução, conflitos de deploy, transações abortadas por bloqueio. Não vale para outros sistemas.",
+   "vigente": null,
+   "lotes": [
+    1,
+    2,
+    3
+   ],
+   "evidencias": 13,
+   "de_onde": {
+    "fundo": 13
+   },
+   "membros": [
+    "Banco de dados compartilhado",
+    "Transações abortadas por bloqueio no banco",
+    "Banco compartilhado trava evolução"
+   ],
+   "entrou": true,
+   "rotulo": "fundo"
+  },
+  {
+   "nome": "Carga noturna de dados",
+   "descricao": "Frentes que citam carga noturna de dados (carga noturna): registros duplicados em cargas noturnas, impactando consistência dos dados. Não vale para outros processos.",
+   "vigente": null,
+   "lotes": [
+    2
+   ],
+   "evidencias": 9,
+   "de_onde": {
+    "fundo": 9
+   },
+   "membros": [
+    "Registros duplicados em carga noturna"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  },
+  {
+   "nome": "Agente de coleta de logs",
+   "descricao": "Frentes que citam agente de coleta de logs (agente de coleta de logs): logs descartados por estouro de buffer, prejudicando observabilidade. Não vale para outros sistemas.",
+   "vigente": null,
+   "lotes": [
+    2
+   ],
+   "evidencias": 3,
+   "de_onde": {
+    "fundo": 3
+   },
+   "membros": [
+    "Logs descartados por estouro de buffer"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  },
+  {
+   "nome": "Painel de comissão de lojista",
+   "descricao": "Frentes que citam painel de comissão de lojista (painel de comissão de lojista): inexistência de painel para consulta de comissão, gerando dúvidas no suporte. Não vale para outros sistemas.",
+   "vigente": null,
+   "lotes": [
+    2
+   ],
+   "evidencias": 3,
+   "de_onde": {
+    "H4": 3
+   },
+   "membros": [
+    "Painel de comissão para lojista inexistente"
+   ],
+   "entrou": false,
+   "rotulo": "H4"
+  },
+  {
+   "nome": "Biblioteca descontinuada",
+   "descricao": "Frentes que citam biblioteca descontinuada (gestão de bibliotecas): bibliotecas descontinuadas em uso, gerando riscos de segurança e compatibilidade. Não vale para outros processos.",
+   "vigente": null,
+   "lotes": [
+    3
+   ],
+   "evidencias": 3,
+   "de_onde": {
+    "fundo": 3
+   },
+   "membros": [
+    "Biblioteca descontinuada em uso"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  }
+ ],
+ "grupos_revisao": [
+  {
+   "nome": "Registro de gravame no Detran",
+   "descricao": "Frentes que citam registro de gravame no Detran (integração Detran, registro de gravame no Detran): erros, atrasos e contratos parados no registro de gravame, travando liberação e gerando retrabalho. Não vale para outros sistemas ou processos.",
+   "vigente": "Registro de gravame no Detran",
+   "lotes": [
+    0
+   ],
+   "evidencias": 7,
+   "de_onde": {
+    "H2": 7
+   },
+   "membros": [
+    "Registro de gravame no Detran"
+   ],
+   "entrou": false,
+   "rotulo": "H2"
+  },
+  {
+   "nome": "Falta de política para copiloto de código",
+   "descricao": "Frentes que citam falta de política para copiloto de código (uso de IA, copiloto de código): ausência de regras sobre envio de dados a modelos de IA, travando iniciativas. Não vale para outros processos.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 5,
+   "de_onde": {
+    "H5": 5
+   },
+   "membros": [
+    "Falta de política para copiloto de código"
+   ],
+   "entrou": true,
+   "rotulo": "H5"
+  },
+  {
+   "nome": "Comissão de parceiros calculada manualmente",
+   "descricao": "Frentes que citam comissão de parceiros calculada manualmente (cálculo de comissão, comissão de parceiros): cálculo manual em planilha gerando contestações. Não vale para outros sistemas.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 4,
+   "de_onde": {
+    "H4": 4
+   },
+   "membros": [
+    "Comissão de parceiros calculada manualmente"
+   ],
+   "entrou": false,
+   "rotulo": "H4"
+  },
+  {
+   "nome": "API de propostas com quedas frequentes",
+   "descricao": "Frentes que citam API de propostas com quedas frequentes (API de propostas): quedas frequentes, especialmente em horários de pico, gerando indisponibilidade. Não vale para outros sistemas.",
+   "vigente": null,
+   "lotes": [
+    0
+   ],
+   "evidencias": 5,
+   "de_onde": {
+    "H1": 5
+   },
+   "membros": [
+    "API de propostas com quedas frequentes"
+   ],
+   "entrou": true,
+   "rotulo": "H1"
+  },
+  {
+   "nome": "Banco de dados compartilhado",
+   "descricao": "Frentes que citam banco de dados compartilhado (banco de dados compartilhado, banco compartilhado): transações abortadas por bloqueio em banco compartilhado entre serviços. Não vale para outros sistemas.",
+   "vigente": "Banco de dados compartilhado",
+   "lotes": [
+    0
+   ],
+   "evidencias": 6,
+   "de_onde": {
+    "fundo": 6
+   },
+   "membros": [
+    "Transações abortadas por bloqueio em banco compartilhado"
+   ],
+   "entrou": false,
+   "rotulo": "fundo"
+  }
+ ],
+ "custo_usd": 0.0053,
+ "peneira": {
+  "1": {
+   "candidatos": 31,
+   "concretos": [
+    "Registro de gravame no Detran",
+    "Senha em planilha compartilhada",
+    "Boletos com valor divergente",
+    "Banco de dados compartilhado",
+    "Boleto antigo ativo após renegociação"
+   ]
+  },
+  "2": {
+   "candidatos": 29,
+   "concretos": [
+    "Boletos com valor divergente do contrato",
+    "Registros duplicados em carga noturna",
+    "Registro de gravame no Detran com erro",
+    "Transações abortadas por bloqueio no banco",
+    "Logs descartados por estouro de buffer",
+    "Painel de comissão para lojista inexistente",
+    "Carnês com vencimento anterior à emissão"
+   ]
+  },
+  "3": {
+   "candidatos": 27,
+   "concretos": [
+    "Registro de gravame no Detran",
+    "Boletos com valor divergente",
+    "Carnê com data de vencimento errada",
+    "Banco compartilhado trava evolução",
+    "Contrato sem gravame registrado",
+    "Biblioteca descontinuada em uso"
+   ]
+  },
+  "0": {
+   "candidatos": 36,
+   "concretos": [
+    "Registro de gravame no Detran",
+    "Falta de política para copiloto de código",
+    "Comissão de parceiros calculada manualmente",
+    "API de propostas com quedas frequentes",
+    "Transações abortadas por bloqueio em banco compartilhado"
+   ]
+  }
+ }
+}
