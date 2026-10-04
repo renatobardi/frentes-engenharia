@@ -8,8 +8,9 @@ from contextlib import closing
 from fastapi import APIRouter, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 
-from frentes import contratos, store
+from frentes import contratos, fila, store
 from frentes.entrada import recepcao
+from frentes.store.frente import Gravada
 
 roteador = APIRouter()
 
@@ -24,14 +25,13 @@ def _token(request: Request) -> str | None:
     return None
 
 
-def _gravar(request: Request, bruto: bytes) -> dict[str, str]:
+def _gravar(request: Request, bruto: bytes) -> Gravada:
     try:
         bruta = recepcao.ler_corpo(bruto)
     except recepcao.CorpoInvalido as erro:
         raise HTTPException(status_code=422, detail=str(erro)) from None
     with closing(store.abrir(request.app.state.config.banco)) as con:
-        gravada = recepcao.receber(con, bruta, contratos.Origem.WEBHOOK)
-    return {"id": gravada.id}
+        return recepcao.receber(con, bruta, contratos.Origem.WEBHOOK)
 
 
 @roteador.post("/frentes", status_code=202)
@@ -49,4 +49,8 @@ async def receber_frente(request: Request) -> dict[str, str]:
         if total > recepcao.LIMITE_CORPO:
             raise HTTPException(status_code=413, detail="corpo grande demais")
         pedacos.append(pedaco)
-    return await run_in_threadpool(_gravar, request, b"".join(pedacos))
+    gravada = await run_in_threadpool(_gravar, request, b"".join(pedacos))
+    if gravada.nova:
+        # a frente clara pinta em menos de 1 s: não espera a varredura de 30 s
+        fila.agendar(request.app, gravada.id)
+    return {"id": gravada.id}
