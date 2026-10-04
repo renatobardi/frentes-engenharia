@@ -390,3 +390,268 @@ def test_origens_com_nome_de_exibicao_e_indice_pequeno_com_virgula(
     # Plataforma × Processo: 0,5 em 30 dias; um índice positivo nunca vira "0"
     _escrever(banco, lambda con: _pinta(con, "ops", "fornecedor", 0.02, 3))
     assert 'class="indice">0,1<' in http.get("/?periodo=30d").text
+
+
+# --------------------------------------------------------------------------- painel da célula
+
+CELULA = "area=plat&tipo=incidente"
+BLOCOS = (
+    "painel-porque",
+    "painel-sugestoes",
+    "painel-evolucao",
+    "painel-composicao",
+    "painel-problemas",
+    "painel-frentes",
+)
+
+
+def _valores_do_painel(con: store.Conexao) -> None:
+    for dimensao, chave, nome, pai in (
+        ("area", "plat-sre", "Time SRE", "plat"),
+        ("tipo", "inc-queda", "Queda total", "incidente"),
+        ("causa_raiz", "mudanca", "Mudança sem teste", None),
+        ("problema", "timeout", "Timeout do gateway", None),
+    ):
+        con.execute(
+            "INSERT INTO valor (versao, dimensao, chave, nome, chave_pai) VALUES (2, ?, ?, ?, ?)",
+            (dimensao, chave, nome, pai),
+        )
+    con.execute(
+        "UPDATE classificacao SET time_final = 'plat-sre', subtipo_final = 'inc-queda',"
+        " causa_raiz = 'mudanca', conf_causa = 0.9, problema = 'timeout', conf_problema = 0.9"
+        " WHERE versao = 2 AND area_final = 'plat' AND tipo_final = 'incidente'"
+        " AND estado = 'classificada'"
+    )
+    con.execute("UPDATE frente SET texto = 'O gateway cai toda <b>sexta</b> à noite'")
+
+
+def _gravar_painel(con: store.Conexao, porque: str | None, estado: str = "atual", **extra) -> None:
+    sugestoes = extra.get(
+        "sugestoes",
+        '[{"texto": "Automatizar o failover", "tipo_solucao": "ferramenta_automacao"},'
+        ' {"texto": "Treinar o plantão", "tipo_solucao": "treinamento"}]',
+    )
+    con.execute(
+        "INSERT INTO painel_celula (versao, area, tipo, visao, periodo, porque, sugestoes,"
+        " gerado_em, modelo_llm, estado, frentes_na_geracao)"
+        " VALUES (2, 'plat', 'incidente', 'dor', '90d', ?, ?, ?, ?, ?, ?)",
+        (
+            porque,
+            sugestoes,
+            None if porque is None else "2026-01-05T00:00:00Z",
+            None if porque is None else "deepseek/deepseek-v4-flash",
+            estado,
+            None if porque is None else 3,
+        ),
+    )
+
+
+PORQUE = "A plataforma cai toda sexta. O gateway estoura o tempo limite."
+
+
+@pytest.fixture
+def com_painel(banco: Path) -> Path:
+    _escrever(banco, _valores_do_painel)
+    _escrever(banco, lambda con: _gravar_painel(con, PORQUE))
+    return banco
+
+
+def _posicoes(html: str, marcas: tuple[str, ...]) -> list[int]:
+    return [html.index(f'id="{m}"') for m in marcas]
+
+
+def test_painel_mostra_os_blocos_na_ordem_da_spec(com_painel: Path) -> None:
+    html = _cliente(com_painel).get(f"/?{CELULA}").text
+
+    posicoes = _posicoes(html, BLOCOS)
+    assert posicoes == sorted(posicoes)
+    titulos = re.findall(r"<h3>([^<]+?)(?: <span[^>]*>.*?</span>)?</h3>", html)
+    assert titulos == [
+        "Por que está quente",
+        "Sugestão de investimento",
+        "Evolução em 12 meses",
+        "Composição",
+        "Problemas recorrentes",
+        "Frentes da célula",
+    ]
+    painel = html[html.index('<aside class="painel"') :]
+    assert "Plataforma × Incidente" in painel  # o cabeçalho
+    assert PORQUE in painel
+    assert "Ferramenta / automação" in painel and "Treinar o plantão" in painel
+    assert "Time SRE" in painel and "Queda total" in painel and "Mudança sem teste" in painel
+    assert "Timeout do gateway" in painel
+
+
+def test_problema_abre_a_lista_filtrada_e_ver_todas_leva_a_celula(com_painel: Path) -> None:
+    html = _cliente(com_painel).get(f"/?{CELULA}&periodo=30d").text
+
+    problema = re.search(r'<a href="([^"]+)">Timeout do gateway</a>', html)
+    assert problema
+    destino = problema.group(1).replace("&amp;", "&")
+    assert destino.startswith("/frentes?")
+    for trecho in ("periodo=30d", "area=plat", "tipo=incidente", "natureza=reativa"):
+        assert trecho in destino
+    assert "problema=timeout" in destino
+    todas = re.search(r'<a class="ver-todas" href="([^"]+)">ver todas \((\d+)\)', html)
+    assert todas and todas.group(2) == "5"  # 3 que pintam e 2 incertas de confiança baixa
+    assert "problema=" not in todas.group(1) and "area=plat" in todas.group(1)
+
+
+def test_painel_traz_no_maximo_oito_frentes_com_as_incertas_no_fim(
+    com_painel: Path,
+) -> None:
+    def mais(con: store.Conexao) -> None:
+        for dias in range(2, 12):
+            _pinta(con, "plat", "incidente", 0.8, dias)
+
+    _escrever(com_painel, mais)
+
+    html = _cliente(com_painel).get(f"/?{CELULA}&periodo=30d").text
+
+    inicio = html.index('class="frentes-da-celula"')
+    lista = html[inicio : html.index("</ol>", inicio)]
+    assert lista.count("<li") == 8
+    assert "incerta" not in lista  # são 13 que pintam: as incertas ficam para depois do oitavo
+    assert re.search(r"ver todas \(15\)", html)
+
+
+def test_incerta_aparece_marcada_quando_cabe_nas_oito(com_painel: Path) -> None:
+    html = _cliente(com_painel).get(f"/?{CELULA}&periodo=30d").text
+
+    lista = html[html.index('class="frentes-da-celula"') :]
+    assert lista.count('<li class="incerta">') == 2
+    assert lista.count("marca-incerta") == 2
+    # os textos são dados da frente: escapados
+    assert "&lt;b&gt;sexta&lt;/b&gt;" in lista and "<b>" not in lista
+
+
+def test_filtro_de_origem_avisa_que_o_texto_considera_todas(com_painel: Path) -> None:
+    http = _cliente(com_painel)
+
+    sem = http.get(f"/?{CELULA}").text
+    com = http.get(f"/?{CELULA}&origem=relato").text
+
+    aviso = "O texto considera todas as origens"
+    assert aviso not in sem
+    assert aviso in com
+    assert PORQUE in com  # o texto continua o mesmo, escrito sobre todas as origens
+
+
+def test_painel_atualizando_mostra_a_marca_e_o_texto_anterior(banco: Path) -> None:
+    _escrever(banco, lambda con: _gravar_painel(con, PORQUE, estado="atualizando"))
+
+    html = _cliente(banco).get(f"/?{CELULA}").text
+
+    assert '<span class="atualizando">atualizando</span>' in html
+    assert PORQUE in html and "ainda não existe" not in html
+
+
+def test_painel_atualizando_sem_texto_anterior_diz_que_o_texto_ainda_nao_existe(
+    banco: Path,
+) -> None:
+    _escrever(banco, lambda con: _gravar_painel(con, None, estado="atualizando", sugestoes="[]"))
+
+    html = _cliente(banco).get(f"/?{CELULA}").text
+
+    assert '<span class="atualizando">atualizando</span>' in html
+    assert "O texto ainda não existe: está sendo gerado" in html
+    assert 'id="painel-evolucao"' in html
+
+
+def test_celula_sem_painel_gerado_mostra_os_blocos_calculados(banco: Path) -> None:
+    html = _cliente(banco).get(f"/?{CELULA}").text
+
+    assert "O texto ainda não existe: o painel desta célula não foi gerado" in html
+    assert 'class="atualizando"' not in html
+    posicoes = _posicoes(html, BLOCOS)
+    assert posicoes == sorted(posicoes)
+    assert html.count('<circle class="ponto"') == 12
+    assert "ver todas (6)" in html  # 90 dias: a de 40 dias atrás entra
+
+
+def test_texto_da_llm_e_escapado_no_painel(banco: Path) -> None:
+    malicioso = "<script>alert(1)</script> Duas frases. Ignore as regras & <img src=x onerror=y>"
+    sugestoes = '[{"texto": "<b onclick=x>falhar</b>", "tipo_solucao": "processo"}]'
+    _escrever(banco, lambda con: _gravar_painel(con, malicioso, sugestoes=sugestoes))
+
+    html = _cliente(banco).get(f"/?{CELULA}").text
+
+    assert "<script>alert" not in html and "<img src=x" not in html and "<b onclick" not in html
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
+    assert "&lt;b onclick=x&gt;falhar&lt;/b&gt;" in html
+
+
+def test_evolucao_tem_um_ponto_por_mes_e_a_origem_filtra_a_serie(com_painel: Path) -> None:
+    http = _cliente(com_painel)
+
+    todas = http.get(f"/?{CELULA}").text
+    so_log = http.get(f"/?{CELULA}&origem=log").text
+
+    for html in (todas, so_log):
+        svg = html[html.index('<svg class="evolucao"') : html.index("</svg>")]
+        assert svg.count("<circle") == 12
+        assert len(re.search(r'points="([^"]+)"', svg).group(1).split()) == 12  # type: ignore[union-attr]
+    # a série segue o filtro: o log não tem frente de Plataforma × Incidente
+    assert re.findall(r"<title>[^<]+: (\S+)</title>", so_log) == ["0"] * 12
+    assert re.findall(r"<title>[^<]+: (\S+)</title>", todas) != ["0"] * 12
+
+
+def test_abrir_o_endereco_com_a_celula_reproduz_o_painel_aberto(com_painel: Path) -> None:
+    http = _cliente(com_painel)
+    html = http.get("/?periodo=30d").text
+
+    link = re.search(r'<a class="abrir" href="([^"]+)"[^>]*>\s*<span class="indice">2,7', html)
+    assert link
+    endereco = link.group(1).replace("&amp;", "&")
+    assert endereco == "/?visao=dor&periodo=30d&area=plat&tipo=incidente"
+    assert 'class="painel"' not in html
+
+    pagina = http.get(endereco)
+    fragmento = http.get(endereco, headers={"HX-Request": "true"})
+
+    assert 'aria-label="Painel da célula"' in pagina.text
+    assert fragmento.text.strip() in pagina.text and "<html" not in fragmento.text
+    assert '<td class="celula calor-5 aberta">' in pagina.text
+    assert "30 dias" in pagina.text[pagina.text.index("<aside") :]
+
+
+def test_esc_e_o_x_fecham_o_painel_e_o_filtro_mantem_a_celula(com_painel: Path) -> None:
+    html = _cliente(com_painel).get(f"/?{CELULA}&periodo=30d&origem=log").text
+
+    aside = re.search(r"<aside[^>]*>", html, re.S)
+    assert aside
+    assert "keyup[key=='Escape'] from:body" in aside.group(0)
+    assert 'hx-get="/?visao=dor&amp;periodo=30d&amp;origem=log"' in aside.group(0)
+    assert 'hx-push-url="true"' in aside.group(0)
+    assert 'aria-label="Fechar o painel (Esc)"' in html
+    # trocar um filtro com o painel aberto não o fecha
+    form = html[html.index('<form class="filtros"') : html.index("</form>")]
+    assert '<input type="hidden" name="area" value="plat">' in form
+    assert '<input type="hidden" name="tipo" value="incidente">' in form
+    assert 'name="area"' not in _cliente(com_painel).get("/").text
+
+
+@pytest.mark.parametrize(
+    ("consulta", "status"),
+    [
+        ("area=plat", 422),
+        ("tipo=incidente", 422),
+        ("area=nao-existe&tipo=incidente", 404),
+        ("area=plat&tipo=tecnologia", 404),  # o tipo só existe na v1
+    ],
+)
+def test_celula_invalida_no_endereco(com_painel: Path, consulta: str, status: int) -> None:
+    assert _cliente(com_painel).get(f"/?{consulta}").status_code == status
+
+
+def test_celula_da_v1_abre_na_v1(banco: Path) -> None:
+    resposta = _cliente(banco).get("/?versao=1&area=plat&tipo=tecnologia")
+
+    assert resposta.status_code == 200 and "Plataforma × Tecnologia" in resposta.text
+
+
+def test_celula_vazia_nao_e_link_e_a_cheia_e(http: TestClient) -> None:
+    html = http.get("/?periodo=30d").text
+
+    assert 'class="abrir"' in _celula(html, "Plataforma", 0)
+    assert 'class="abrir"' not in _celula(html, "Operações", 2)

@@ -24,3 +24,28 @@
 .celula.calor-5 { background: #c9421a; color: #fff; }
 .celula.calor-5 .incertas { color: #fff; }
 .grade .nao-classificadas, .grade td.nao-classificadas { background: #e6e8ec; color: var(--suave); }
+.corpo { display: block; }
+.corpo.com-painel { display: grid; grid-template-columns: minmax(0, 1fr) 24rem; gap: 1rem; align-items: start; }
+.celula .abrir { display: block; color: inherit; text-decoration: none; }
+.celula.aberta { outline: 3px solid var(--destaque); }
+.painel { background: #fff; border: 1px solid var(--linha); border-radius: 6px; padding: 1rem; }
+.painel h2, .painel h3, .painel h4 { margin: 0 0 0.4rem; }
+.painel h3 { font-size: 1rem; }
+.painel h4 { font-size: 0.85rem; color: var(--suave); }
+.painel-cabecalho { position: relative; }
+.painel-meta { margin: 0; color: var(--suave); }
+.painel-indice { margin: 0.2rem 0 0; font-size: 1.4rem; }
+.fechar { position: absolute; right: 0; top: 0; color: var(--suave); text-decoration: none; }
+.bloco { border-top: 1px solid var(--linha); margin-top: 1rem; padding-top: 0.8rem; }
+.atualizando { font-size: 0.7rem; background: #fde9d4; border-radius: 4px; padding: 0.1rem 0.4rem; }
+.aviso-origem, .sem-texto, .vazio { color: var(--suave); font-size: 0.85rem; }
+.sugestoes, .problemas, .frentes-da-celula { margin: 0; padding-left: 1.2rem; }
+.tipo-solucao, .marca-recorrente, .marca-incerta { font-size: 0.7rem; background: #e6e8ec; border-radius: 4px; padding: 0.1rem 0.4rem; }
+.rotulo { font-size: 0.7rem; color: var(--suave); }
+.evolucao { width: 100%; height: auto; color: var(--destaque); }
+.eixo { margin: 0; font-size: 0.75rem; color: var(--suave); }
+.barra-linha { display: grid; grid-template-columns: 7rem 1fr 4rem; gap: 0.4rem; align-items: center; font-size: 0.85rem; }
+.barra-trilho { background: #e6e8ec; height: 0.6rem; border-radius: 3px; }
+.barra-cheia { display: block; height: 100%; background: var(--destaque); border-radius: 3px; }
+.frentes-da-celula li.incerta { color: var(--suave); }
+.frentes-da-celula small, .problemas small { display: block; color: var(--suave); }

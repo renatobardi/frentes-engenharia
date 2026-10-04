@@ -5,7 +5,7 @@ taxonomia. O calor é o índice absoluto da célula contra o maior índice da gr
 degraus (a classe `calor-N` do CSS); célula sem índice não tem calor.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from urllib.parse import urlencode
 
 from frentes.contratos import Dimensao, Origem, Periodo, Visao
@@ -47,6 +47,7 @@ class CelulaNaTela:
     variacao: str  # "+32%"; vazio sem seta
     incertas: int
     vazia: bool
+    endereco: str = ""  # abre o painel da célula; vazio na célula sem nada
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,7 +115,7 @@ def consulta(
     return parametros
 
 
-def _endereco(base: str, parametros: dict[str, str | list[str]]) -> str:
+def endereco(base: str, parametros: dict[str, str | list[str]]) -> str:
     return f"{base}?{urlencode(parametros, doseq=True)}"
 
 
@@ -135,7 +136,10 @@ def _celula_na_tela(c: Celula | None, mapa: Mapa, maior: float) -> CelulaNaTela:
 
 
 def celulas_da_grade(
-    mapa: Mapa, areas: list[Eixo], tipos: list[Eixo]
+    mapa: Mapa,
+    areas: list[Eixo],
+    tipos: list[Eixo],
+    parametros: dict[str, str | list[str]] | None = None,
 ) -> tuple[dict[tuple[str, str], CelulaNaTela], list[Destaque]]:
     """A grade e o Top 3, só com as células cujas chaves estão nos eixos da versão."""
     nomes_area = {a.chave: a.nome for a in areas}
@@ -149,6 +153,12 @@ def celulas_da_grade(
         for a in areas
         for t in tipos
     }
+    if parametros is not None:
+        for (area, tipo), c in grade.items():
+            if not c.vazia:
+                grade[(area, tipo)] = replace(
+                    c, endereco=endereco("/", {**parametros, "area": area, "tipo": tipo})
+                )
     quentes = sorted((c for c in na_grade.values() if c.indice > 0), key=lambda c: -c.indice)
     destaques = []
     for posicao, c in enumerate(quentes[:TOP], start=1):
@@ -171,7 +181,7 @@ def contadores(mapa: Mapa, parametros: dict[str, str | list[str]]) -> list[Conta
     base = {k: v for k, v in parametros.items() if k != "visao"}
 
     def destino(estado: str, **extra: str) -> str:
-        return _endereco("/frentes", {**base, "estado": estado, **extra})
+        return endereco("/frentes", {**base, "estado": estado, **extra})
 
     natureza = "reativa" if mapa.visao is Visao.DOR else "proativa"
     lista = [
