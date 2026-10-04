@@ -33,6 +33,7 @@ from frentes.contratos import (
     RespostaDeNumero,
     RespostaJev,
     RespostaLlm,
+    ValorDoDocumento,
 )
 
 TOP_DO_JEV = 3
@@ -120,35 +121,68 @@ def _melhor(probabilidades: Mapping[str, float], chaves: Iterable[str]) -> str |
 
 
 def _pai_e_filho(
-    r: RespostaDeLista, pais: Mapping[str, str], ordem: Sequence[str], rotulo: str
+    r: RespostaDeLista,
+    pais: Mapping[str, str],
+    ordem: Sequence[str],
+    rotulo: str,
+    corte: float,
 ) -> tuple[str | None, str | None, float]:
-    """(pai, filho, confiança do pai) de uma pergunta cujas opções são os filhos."""
+    """(pai, filho, confiança do pai) de uma pergunta cujas opções são os filhos.
+
+    Compara pela soma por pai: se a soma do melhor pai chega ao corte, ele vence, mesmo
+    com "Nenhum destes" como a opção isolada mais provável. Abaixo do corte, "Nenhum
+    destes" escolhido pelo Jev dá pai `None`; senão vale o pai de maior soma.
+    """
     desconhecidas = [c for c in r.probabilidades if c != NENHUM_DESTES and c not in pais]
     if r.escolha != NENHUM_DESTES and r.escolha not in pais:
         desconhecidas.append(r.escolha)
     if desconhecidas:
         raise RespostaInvalida(f"{rotulo}: chave que a versão não conhece: {desconhecidas[0]!r}")
-    if r.escolha == NENHUM_DESTES:
-        return None, None, r.confianca
     somas = _somar_por_pai(r.probabilidades, pais)
     pai = _melhor(somas, [p for p in ordem if p in somas])
-    assert pai is not None  # a escolha tem pai, então há ao menos uma soma
-    filhos = [c for c, p in pais.items() if p == pai]
-    return pai, _melhor(r.probabilidades, filhos), somas[pai]
+    if pai is not None and somas[pai] >= corte:
+        return pai, _melhor(r.probabilidades, [c for c, p in pais.items() if p == pai]), somas[pai]
+    if r.escolha == NENHUM_DESTES:
+        return None, None, r.confianca
+    if pai is None:
+        raise RespostaInvalida(f"{rotulo}: a escolha {r.escolha!r} não tem probabilidade")
+    return pai, _melhor(r.probabilidades, [c for c, p in pais.items() if p == pai]), somas[pai]
 
 
-def ler_jev(resposta: RespostaJev, documento: DocumentoTaxonomia) -> ColunasJev:
-    """Tira da resposta do Jev as colunas da classificação (spec: "O que é gravado")."""
+def _chave_da_lista(
+    r: RespostaDeLista, valores: Iterable[ValorDoDocumento], rotulo: str
+) -> str | None:
+    if r.escolha == NENHUM_DESTES:
+        return None
+    if r.escolha not in {v.chave for v in valores}:
+        raise RespostaInvalida(f"{rotulo}: chave que a versão não conhece: {r.escolha!r}")
+    return r.escolha
+
+
+def ler_jev(resposta: RespostaJev, documento: DocumentoTaxonomia, limiares: Limiares) -> ColunasJev:
+    """Tira da resposta do Jev as colunas da classificação (spec: "O que é gravado").
+
+    Os limiares entram só em área e tipo, para decidir entre a soma por pai e o
+    "Nenhum destes" isolado (ver `_pai_e_filho`).
+    """
     pais_times = _pais_dos_times(documento)
     pais_subtipos = _pais_dos_subtipos(documento)
 
     r_area = _lista(resposta, Pergunta.AREA)
     area, time, conf_area = _pai_e_filho(
-        r_area, pais_times, [a.chave for a in documento.organograma], "área"
+        r_area,
+        pais_times,
+        [a.chave for a in documento.organograma],
+        "área",
+        limiares.confianca.area,
     )
     r_tipo = _lista(resposta, Pergunta.TIPO)
     tipo, subtipo, conf_tipo = _pai_e_filho(
-        r_tipo, pais_subtipos, [t.chave for t in documento.tipos], "tipo"
+        r_tipo,
+        pais_subtipos,
+        [t.chave for t in documento.tipos],
+        "tipo",
+        limiares.confianca.tipo,
     )
 
     r_natureza = _lista(resposta, Pergunta.NATUREZA)
@@ -158,9 +192,8 @@ def ler_jev(resposta: RespostaJev, documento: DocumentoTaxonomia) -> ColunasJev:
         raise RespostaInvalida(f"natureza desconhecida: {r_natureza.escolha!r}") from None
     r_causa = _lista(resposta, Pergunta.CAUSA_RAIZ)
     r_problema = _lista(resposta, Pergunta.PROBLEMA)
-
-    def chave_ou_none(r: RespostaDeLista) -> str | None:
-        return None if r.escolha == NENHUM_DESTES else r.escolha
+    causa_raiz = _chave_da_lista(r_causa, documento.causas_raiz, "causa raiz")
+    problema = _chave_da_lista(r_problema, documento.problemas, "problema")
 
     return ColunasJev(
         time=time,
@@ -174,9 +207,9 @@ def ler_jev(resposta: RespostaJev, documento: DocumentoTaxonomia) -> ColunasJev:
         severidade=_numero(resposta, Pergunta.SEVERIDADE),
         impacto=_numero(resposta, Pergunta.IMPACTO),
         urgencia=_numero(resposta, Pergunta.URGENCIA),
-        causa_raiz=chave_ou_none(r_causa),
+        causa_raiz=causa_raiz,
         conf_causa=r_causa.confianca,
-        problema=chave_ou_none(r_problema),
+        problema=problema,
         conf_problema=r_problema.confianca,
         controle=_numero(resposta, Pergunta.CONTROLE),
         prob_times={c: p for c, p in r_area.probabilidades.items() if c in pais_times},
@@ -342,18 +375,17 @@ def resolver(
     area = colunas.area
     tipo = colunas.tipo
     natureza: Natureza | None = colunas.natureza
-    nenhum_confirmado = False
-    nenhum_em_confianca_baixa = False
+    nenhum = False
     for dimensao, escolha in escolhas.items():
         if escolha is None:
             continue
         if escolha == NENHUM_DESTES:
-            if dimensao in pedido.livres:
-                nenhum_confirmado = True
-            else:
-                nenhum_em_confianca_baixa = True
-            continue
-        if dimensao is Dimensao.AREA:
+            nenhum = True
+            if dimensao is Dimensao.AREA:
+                area = None
+            elif dimensao is Dimensao.TIPO:
+                tipo = None
+        elif dimensao is Dimensao.AREA:
             area = escolha
         elif dimensao is Dimensao.TIPO:
             tipo = escolha
@@ -362,14 +394,14 @@ def resolver(
 
     if any(e is None for e in escolhas.values()):
         estado, motivo = Estado.INCERTA, MotivoIncerta.LLM_SEM_ESCOLHA
-    elif nenhum_confirmado:
+        if area is None or tipo is None:
+            # sem célula em que aparecer: é "Não classificada"
+            estado, motivo = Estado.NAO_CLASSIFICADA, None
+    elif nenhum:
         estado, motivo = Estado.NAO_CLASSIFICADA, None
-    elif nenhum_em_confianca_baixa:
-        estado, motivo = Estado.INCERTA, MotivoIncerta.CONFIANCA_BAIXA
     else:
         estado, motivo = Estado.VIA_LLM, None
 
-    # Nas incertas a dimensão que a LLM não resolveu guarda o mais provável do Jev.
     pais_times = _pais_dos_times(documento)
     pais_subtipos = _pais_dos_subtipos(documento)
     return Resultado(
@@ -397,7 +429,7 @@ def classificar(
     classificada_em: datetime,
 ) -> tuple[Classificacao, PedidoDeDesempate | None]:
     """A classificação recém-chegada do Jev e o pedido de desempate, se ela precisa de um."""
-    colunas = ler_jev(resposta_jev, documento)
+    colunas = ler_jev(resposta_jev, documento, limiares)
     resultado = resolver(colunas, documento, limiares)
     classificacao = Classificacao(
         frente_id=frente_id,
@@ -431,9 +463,18 @@ def classificar(
     return classificacao, resultado.pedido
 
 
-def _com_resultado(c: Classificacao, r: Resultado, llm: RespostaLlm | None) -> Classificacao:
+def _com_resultado(
+    c: Classificacao, colunas: ColunasJev, r: Resultado, llm: RespostaLlm | None
+) -> Classificacao:
+    """As colunas do Jev também são refeitas: área e tipo dependem do limiar."""
     return replace(
         c,
+        time=colunas.time,
+        area=colunas.area,
+        conf_area=colunas.conf_area,
+        subtipo=colunas.subtipo,
+        tipo=colunas.tipo,
+        conf_tipo=colunas.conf_tipo,
         estado=r.estado,
         motivo=r.motivo,
         area_final=r.area_final,
@@ -450,10 +491,15 @@ def fechar(
     resposta_llm: RespostaLlm,
     documento: DocumentoTaxonomia,
     limiares: Limiares,
-) -> Classificacao:
-    """Fecha o resultado de uma classificação com a resposta da LLM."""
-    colunas = ler_jev(c.resposta_jev, documento)
-    return _com_resultado(c, resolver(colunas, documento, limiares, resposta_llm), resposta_llm)
+) -> tuple[Classificacao, PedidoDeDesempate | None]:
+    """Fecha o resultado de uma classificação com a resposta da LLM.
+
+    Se a resposta não cobre todas as dimensões pedidas, a classificação fica em
+    `aguardando_llm` e o pedido pendente (só o que falta) vem junto; senão o pedido é `None`.
+    """
+    colunas = ler_jev(c.resposta_jev, documento, limiares)
+    r = resolver(colunas, documento, limiares, resposta_llm)
+    return _com_resultado(c, colunas, r, resposta_llm), r.pedido
 
 
 @dataclass(frozen=True, slots=True)
@@ -481,9 +527,9 @@ def recalcular(
     novas: dict[str, Classificacao] = {}
     pedidos: dict[str, PedidoDeDesempate] = {}
     for c in classificacoes:
-        colunas = ler_jev(c.resposta_jev, documento)
+        colunas = ler_jev(c.resposta_jev, documento, limiares)
         r = resolver(colunas, documento, limiares, c.resposta_llm)
-        novas[c.frente_id] = _com_resultado(c, r, c.resposta_llm)
+        novas[c.frente_id] = _com_resultado(c, colunas, r, c.resposta_llm)
         if r.estado is Estado.AGUARDANDO_LLM and c.estado is not Estado.AGUARDANDO_LLM:
             assert r.pedido is not None
             pedidos[c.frente_id] = r.pedido
@@ -507,8 +553,8 @@ def urgente(c: Classificacao, limiares: Limiares) -> bool:
 
 
 def causa_incerta(c: Classificacao, limiares: Limiares) -> bool:
-    """Causa raiz com confiança abaixo do corte, ou "Nenhum destes"."""
-    return c.causa_raiz is None or c.conf_causa < limiares.confianca.causa_raiz
+    """Confiança da causa raiz abaixo do corte. "Nenhum destes" na causa fica como está."""
+    return c.causa_raiz is not None and c.conf_causa < limiares.confianca.causa_raiz
 
 
 def problema_da_frente(c: Classificacao, limiares: Limiares) -> str | None:
