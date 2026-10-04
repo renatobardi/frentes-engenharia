@@ -6,6 +6,7 @@ do ambiente e recusa antes de enviar se faltar um. Cada envio leva `ref_externa`
 é impresso.
 """
 
+import http.client
 import json
 import os
 import sys
@@ -22,7 +23,12 @@ from frentes import contratos
 
 ARQUIVO = Path(__file__).resolve().parents[2] / "seed" / "gerado" / "rajada.jsonl"
 TEMPO_LIMITE = 10.0  # segundos por envio
-USO = "uso: python -m frentes rajada [--arquivo CAMINHO]  (FRENTES_URL e FRENTES_WEBHOOK_TOKEN)"
+USO = (
+    "uso: python3 -m frentes.seed.rajada [--arquivo CAMINHO]\n"
+    "     (ou python -m frentes rajada, com as dependências do projeto instaladas)\n"
+    "variáveis: FRENTES_URL (endereço do servidor) e FRENTES_WEBHOOK_TOKEN\n"
+    "requer Python 3.12 ou mais novo; usa só a biblioteca padrão"
+)
 
 
 class ErroDeUso(Exception):
@@ -46,9 +52,18 @@ class Resultado:
 
 def endereco(url: str) -> str:
     """A URL do `POST /frentes` a partir de `FRENTES_URL` (a base do servidor)."""
-    partes = urllib.parse.urlsplit(url.strip())
+    url = url.strip()
+    try:
+        partes = urllib.parse.urlsplit(url)
+        partes.port  # noqa: B018 (levanta ValueError com porta que não é número)
+    except ValueError:
+        raise ErroDeUso("FRENTES_URL com porta inválida") from None
     if partes.scheme not in ("http", "https") or not partes.netloc:
         raise ErroDeUso("FRENTES_URL deve ser http:// ou https:// com o endereço do servidor")
+    if any(c.isspace() or ord(c) < 32 or ord(c) > 126 for c in url):
+        raise ErroDeUso("FRENTES_URL tem espaço ou caractere inválido")
+    if partes.username is not None or partes.password is not None:
+        raise ErroDeUso("FRENTES_URL não aceita usuário e senha na URL")
     caminho = partes.path.rstrip("/")
     if not caminho.endswith("/frentes"):
         caminho += "/frentes"
@@ -79,6 +94,21 @@ def corpo(registro: dict, agora: datetime, execucao: str) -> bytes:
     return json.dumps(dados, ensure_ascii=False).encode("utf-8")
 
 
+class _SemRedirecionamento(urllib.request.HTTPRedirectHandler):
+    """Não segue redirecionamento: seguir levaria o token a outro endereço."""
+
+    def redirect_request(self, *args: object, **kwargs: object) -> None:
+        return None
+
+
+_ABRIR = urllib.request.build_opener(_SemRedirecionamento)
+
+
+def token_valido(token: str) -> bool:
+    """Valor de cabeçalho: só ASCII imprimível (sem controle, sem espaço no meio)."""
+    return bool(token) and all(33 <= ord(c) <= 126 for c in token)
+
+
 def enviar_uma(destino: str, token: str, dados: bytes) -> None:
     pedido = urllib.request.Request(  # noqa: S310 (o esquema foi conferido em `endereco`)
         destino,
@@ -87,16 +117,28 @@ def enviar_uma(destino: str, token: str, dados: bytes) -> None:
         headers={"Content-Type": "application/json", "X-Webhook-Token": token},
     )
     try:
-        with urllib.request.urlopen(pedido, timeout=TEMPO_LIMITE) as resposta:  # noqa: S310
+        with _ABRIR.open(pedido, timeout=TEMPO_LIMITE) as resposta:  # noqa: S310
             if resposta.status != 202:
                 raise Recusa(f"resposta inesperada do servidor: HTTP {resposta.status}")
     except urllib.error.HTTPError as erro:
+        if 300 <= erro.code < 400:
+            raise Recusa(
+                f"o servidor redirecionou (HTTP {erro.code}) e não sigo, para não levar o token "
+                "a outro endereço: confira o FRENTES_URL (http ou https, e o caminho)",
+                fatal=True,
+            ) from None
         if erro.code in (401, 403):
             raise Recusa(f"token recusado pelo servidor (HTTP {erro.code})", fatal=True) from None
         raise Recusa(f"o servidor recusou a frente: HTTP {erro.code}") from None
-    except (urllib.error.URLError, TimeoutError, OSError) as erro:
+    except http.client.HTTPException:
+        raise Recusa(
+            "a resposta do servidor não é HTTP: confira o FRENTES_URL", fatal=True
+        ) from None
+    except OSError as erro:
         motivo = getattr(erro, "reason", erro)
         raise Recusa(f"servidor fora ou inalcançável: {motivo}", fatal=True) from None
+    except ValueError:
+        raise Recusa("FRENTES_URL ou token inválido para o HTTP", fatal=True) from None
 
 
 def enviar(destino: str, token: str, registros: list[dict]) -> Resultado:
@@ -118,19 +160,32 @@ def rajada(argumentos: list[str], ambiente: Mapping[str, str] | None = None) -> 
     ambiente = os.environ if ambiente is None else ambiente
     arquivo = ARQUIVO
     resto = list(argumentos)
+    if resto[:1] in (["-h"], ["--help"]):
+        print(USO)
+        return 0
     try:
         while resto:
             nome = resto.pop(0)
             if nome != "--arquivo" or not resto:
                 raise ErroDeUso(USO)
             arquivo = Path(resto.pop(0))
-        url, token = ambiente.get("FRENTES_URL", ""), ambiente.get("FRENTES_WEBHOOK_TOKEN", "")
+        url = ambiente.get("FRENTES_URL", "")
+        token = ambiente.get("FRENTES_WEBHOOK_TOKEN", "").strip()
         if not url.strip():
             raise ErroDeUso("rajada: FRENTES_URL não está no ambiente; nada foi enviado")
         if not token:
             raise ErroDeUso("rajada: FRENTES_WEBHOOK_TOKEN não está no ambiente; nada foi enviado")
-        destino = endereco(url)
+        if not token_valido(token):
+            raise ErroDeUso(
+                "rajada: FRENTES_WEBHOOK_TOKEN tem caractere inválido para um cabeçalho "
+                "(controle, espaço ou fora de ASCII); nada foi enviado"
+            )
         registros = ler(arquivo)
+        try:
+            destino = endereco(url)
+        except ErroDeUso as erro:
+            print(f"rajada: 0 de {len(registros)} frentes aceitas; nada foi enviado")
+            raise erro
     except ErroDeUso as erro:
         print(erro, file=sys.stderr)
         return 2
@@ -143,3 +198,7 @@ def rajada(argumentos: list[str], ambiente: Mapping[str, str] | None = None) -> 
         print(f"rajada: {faltaram} não aceitas", file=sys.stderr)
         return 1
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(rajada(sys.argv[1:]))

@@ -1,5 +1,8 @@
 import json
+import os
 import socket
+import subprocess
+import sys
 import threading
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
@@ -25,6 +28,7 @@ class Servidor(ThreadingHTTPServer):
         self.tokens: list[str | None] = []
         self.status = 202
         self.token_esperado = TOKEN
+        self.redirecionar_para: str | None = None
         self.recusar_a_partir_de: int | None = None  # a n-ésima requisição em diante dá 500
 
     @property
@@ -40,6 +44,12 @@ class _Tratador(BaseHTTPRequestHandler):
         token = self.headers.get("X-Webhook-Token")
         self.server.tokens.append(token)
         status = self.server.status
+        if self.server.redirecionar_para:
+            self.send_response(302)
+            self.send_header("Location", self.server.redirecionar_para + "/frentes")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         if token != self.server.token_esperado:
             status = 401
         elif (n := self.server.recusar_a_partir_de) is not None and len(self.server.recebidas) >= n:
@@ -210,3 +220,102 @@ def test_o_comando_esta_declarado_pelo_modulo_e_le_o_ambiente(
     monkeypatch.setenv("FRENTES_WEBHOOK_TOKEN", TOKEN)
     assert main(["rajada"]) == 0
     assert len(servidor.recebidas) >= 20
+
+
+@pytest.mark.parametrize("sujeira", ["\r", "\n", "\r\n", " "])
+def test_token_com_fim_de_linha_nas_pontas_e_aparado(servidor: Servidor, sujeira: str) -> None:
+    ambiente = {"FRENTES_URL": servidor.url, "FRENTES_WEBHOOK_TOKEN": TOKEN + sujeira}
+    assert rajada.rajada([], ambiente) == 0
+    assert set(servidor.tokens) == {TOKEN}
+
+
+@pytest.mark.parametrize("ruim", ["abc\rdef", "abc\ndef", "abc def", "tokén-fora-de-ascii"])
+def test_token_com_caractere_invalido_sai_com_2_sem_repetir_o_valor(
+    servidor: Servidor, ruim: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    ambiente = {"FRENTES_URL": servidor.url, "FRENTES_WEBHOOK_TOKEN": ruim}
+    assert rajada.rajada([], ambiente) == 2
+    saida = capsys.readouterr()
+    assert "FRENTES_WEBHOOK_TOKEN tem caractere inválido" in saida.err
+    for pedaco in (ruim, "def", "tokén"):
+        assert pedaco not in saida.out + saida.err
+    assert servidor.tokens == []
+
+
+def test_redirecionamento_nao_e_seguido_e_o_token_nao_chega_ao_outro_endereco(
+    servidor: Servidor, ambiente: dict[str, str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    outro = Servidor()
+    fio = threading.Thread(target=outro.serve_forever, daemon=True)
+    fio.start()
+    try:
+        servidor.redirecionar_para = outro.url
+        assert rajada.rajada([], ambiente) == 1
+    finally:
+        outro.shutdown()
+        outro.server_close()
+        fio.join(timeout=5)
+    saida = capsys.readouterr()
+    assert "redirecionou (HTTP 302)" in saida.err and "0 de" in saida.out
+    assert TOKEN not in saida.out + saida.err
+    assert outro.tokens == [] and outro.recebidas == []
+    assert len(servidor.tokens) == 1  # falha fatal: não repete 20 vezes
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://127.0.0.1:abc",
+        "http://127.0.0.1:99999",
+        "http://127.0.0.1 :8000/x",
+        "http://u:s@127.0.0.1",
+    ],
+)
+def test_url_malformada_sai_com_2_com_mensagem_e_a_contagem(
+    url: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert rajada.rajada([], {"FRENTES_URL": url, "FRENTES_WEBHOOK_TOKEN": TOKEN}) == 2
+    saida = capsys.readouterr()
+    assert "FRENTES_URL" in saida.err and "0 de 20 frentes aceitas; nada foi enviado" in saida.out
+    assert "Traceback" not in saida.err and TOKEN not in saida.out + saida.err
+
+
+def test_resposta_que_nao_e_http_sai_com_1_com_mensagem_e_a_contagem(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with socket.socket() as escuta:
+        escuta.bind(("127.0.0.1", 0))
+        escuta.listen(1)
+
+        def responder() -> None:
+            conexao, _ = escuta.accept()
+            with conexao:
+                conexao.recv(65536)
+                conexao.sendall(b"isto nao e http\r\n\r\n")
+
+        fio = threading.Thread(target=responder, daemon=True)
+        fio.start()
+        url = f"http://127.0.0.1:{escuta.getsockname()[1]}"
+        assert rajada.rajada([], {"FRENTES_URL": url, "FRENTES_WEBHOOK_TOKEN": TOKEN}) == 1
+        fio.join(timeout=5)
+    saida = capsys.readouterr()
+    assert "não é HTTP" in saida.err and "0 de" in saida.out
+    assert "Traceback" not in saida.err and TOKEN not in saida.out + saida.err
+
+
+def test_roda_como_modulo_so_com_a_biblioteca_padrao(servidor: Servidor) -> None:
+    """`python3 -S -m frentes.seed.rajada`: sem site-packages, como num Python sem instalar nada."""
+    raiz = Path(__file__).resolve().parents[2]
+    ambiente = {"PATH": os.environ["PATH"], "PYTHONPATH": str(raiz), "FRENTES_URL": servidor.url,
+                "FRENTES_WEBHOOK_TOKEN": TOKEN}  # fmt: skip
+    base = [sys.executable, "-S", "-m", "frentes.seed.rajada"]
+    ajuda = subprocess.run(
+        base + ["--help"], env=ambiente, cwd=raiz, capture_output=True, text=True
+    )
+    assert ajuda.returncode == 0 and "Python 3.12" in ajuda.stdout
+    rodada = subprocess.run(
+        base, env=ambiente, cwd=raiz, capture_output=True, text=True, timeout=60
+    )
+    assert rodada.returncode == 0, rodada.stderr
+    assert "20 de 20 frentes aceitas" in rodada.stdout
+    assert len(servidor.recebidas) == 20
