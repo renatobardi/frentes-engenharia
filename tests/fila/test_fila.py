@@ -868,3 +868,25 @@ def test_rajada_de_20_frentes_termina_com_20_linhas_e_uma_chamada_por_frente(
     assert estados.count(Estado.CLASSIFICADA) == 10 and estados.count(Estado.VIA_LLM) == 10
     assert len(falso.chamadas) == 20 and len(llm.chamadas) == 10
     assert f._travas == {} and f._tarefas == set()
+
+
+def test_parar_logo_depois_de_agendar_nao_deixa_corrotina_sem_aguardar(banco: Path) -> None:
+    """A tarefa criada por `agendar` e cancelada por `parar` antes de começar não pode deixar a
+    corrotina `classificar` sem ser aguardada (o aviso saía no coletor de lixo, às vezes)."""
+    import gc
+    import warnings
+
+    gravar_frente(banco, "f1", "texto")
+    f = montar(banco, JevFalso({"texto": jev()}), LlmFalsa({}))
+
+    async def cenario() -> None:
+        f.agendar("f1")
+        await f.parar()  # sem ceder o laço: a tarefa ainda não rodou nenhuma linha
+
+    with warnings.catch_warnings(record=True) as avisos:
+        warnings.simplefilter("always")
+        asyncio.run(asyncio.wait_for(cenario(), 10))
+        gc.collect()
+
+    assert [str(a.message) for a in avisos if "never awaited" in str(a.message)] == []
+    assert ler(banco, "f1") is None

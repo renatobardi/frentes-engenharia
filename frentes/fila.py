@@ -218,10 +218,9 @@ class Fila:
         self._em_segundo_plano(self.classificar(frente_id))
 
     def _em_segundo_plano(self, corrotina: Coroutine[Any, Any, Any]) -> None:
-        async def rodar() -> None:
-            await corrotina
-
-        tarefa = asyncio.get_running_loop().create_task(rodar())
+        # A corrotina vira a tarefa direto: embrulhada, `parar` cancelaria o embrulho antes de
+        # ele começar e a corrotina interna ficaria sem ser aguardada.
+        tarefa = asyncio.get_running_loop().create_task(corrotina)
         self._tarefas.add(tarefa)
         tarefa.add_done_callback(self._tarefas.discard)
 
