@@ -7,9 +7,9 @@ sem HTMX, o envio redireciona para `/frentes/relatar/<id>`, que mostra a página
 
 from collections.abc import Callable
 from contextlib import closing
-from typing import Annotated
+from urllib.parse import parse_qs, urlsplit
 
-from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from starlette.concurrency import run_in_threadpool
 
@@ -22,6 +22,38 @@ from frentes.web.relato import montagem
 from frentes.web.telas import renderizar
 
 roteador = APIRouter()
+
+LIMITE_CORPO = recepcao.LIMITE_CORPO  # o mesmo teto do webhook
+
+
+async def _mesma_origem(request: Request) -> None:
+    """Recusa (403) o POST que o navegador diz vir de outra origem (CSRF): sem login, a
+    defesa é conferir `Sec-Fetch-Site` e o `Origin` contra o `Host`."""
+    if request.headers.get("sec-fetch-site", "same-origin") not in {"same-origin", "none"}:
+        raise HTTPException(status_code=403, detail="origem não permitida")
+    origem = request.headers.get("origin")
+    if origem is not None and urlsplit(origem).netloc != request.headers.get("host"):
+        raise HTTPException(status_code=403, detail="origem não permitida")
+
+
+async def _campos(request: Request) -> dict[str, str]:
+    """O formulário (urlencoded) com teto de corpo. Não valida o conteúdo: quem valida devolve
+    HTML escapado, nunca o texto digitado em JSON."""
+    declarado = request.headers.get("content-length", "")
+    if declarado.isdecimal() and int(declarado) > LIMITE_CORPO:
+        raise HTTPException(status_code=413, detail="corpo grande demais")
+    pedacos: list[bytes] = []
+    total = 0
+    async for pedaco in request.stream():
+        total += len(pedaco)
+        if total > LIMITE_CORPO:
+            raise HTTPException(status_code=413, detail="corpo grande demais")
+        pedacos.append(pedaco)
+    tipo = request.headers.get("content-type", "").split(";")[0].strip().lower()
+    if tipo != "application/x-www-form-urlencoded":
+        raise HTTPException(status_code=415, detail="esperado um formulário")
+    dados = parse_qs(b"".join(pedacos).decode("utf-8", errors="replace"), keep_blank_values=True)
+    return {nome: valores[-1] for nome, valores in dados.items()}
 
 
 def _com_banco[T](request: Request, trabalho: Callable[[store.Conexao], T]) -> T:
@@ -97,12 +129,12 @@ def formulario(request: Request) -> HTMLResponse:
     return _pagina(request)
 
 
-@roteador.post("/frentes/relatar", response_class=HTMLResponse)
-async def enviar(
-    request: Request,
-    emissor: Annotated[str, Form(max_length=1000)] = "",
-    texto: Annotated[str, Form(max_length=recepcao.LIMITE_TEXTO * 4)] = "",
-) -> Response:
+@roteador.post(
+    "/frentes/relatar", response_class=HTMLResponse, dependencies=[Depends(_mesma_origem)]
+)
+async def enviar(request: Request) -> Response:
+    campos = await _campos(request)
+    emissor, texto = campos.get("emissor", ""), campos.get("texto", "")
     valores = {"emissor": emissor, "texto": texto}
     try:
         bruta = recepcao.bruta_do_relato(emissor, texto)
@@ -131,20 +163,20 @@ def resultado(request: Request, frente_id: str) -> HTMLResponse:
     return _resultado(request, frente_id)
 
 
-@roteador.post("/frentes/relatar/{frente_id}/complemento", response_class=HTMLResponse)
-async def completar(
-    request: Request,
-    frente_id: str,
-    background: BackgroundTasks,
-    texto: Annotated[str, Form(max_length=recepcao.LIMITE_TEXTO * 4)] = "",
-) -> Response:
+@roteador.post(
+    "/frentes/relatar/{frente_id}/complemento",
+    response_class=HTMLResponse,
+    dependencies=[Depends(_mesma_origem)],
+)
+async def completar(request: Request, frente_id: str, background: BackgroundTasks) -> Response:
+    texto = (await _campos(request)).get("texto", "")
     try:
         await run_in_threadpool(
             _com_banco, request, lambda con: complemento.complementar(con, frente_id, texto)
         )
     except complemento.FrenteInexistente:
         raise HTTPException(status_code=404, detail="relato não encontrado") from None
-    except (complemento.NaoEhRelato, complemento.JaComplementada) as erro:
+    except (complemento.NaoEhRelato, complemento.JaComplementada, complemento.NaoEstaVaga) as erro:
         raise HTTPException(status_code=409, detail=str(erro)) from None
     except complemento.ComplementoInvalido as erro:
         gaveta = await run_in_threadpool(_gaveta, request, frente_id)

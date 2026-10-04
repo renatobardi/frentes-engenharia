@@ -1,6 +1,6 @@
 """O complemento do relato vago: o texto que o emissor acrescenta à mesma frente.
 
-O original nunca muda. Só relato recebe complemento, uma vez. Quem chama pede a
+O original nunca muda. Só o relato que ficou vago recebe complemento, uma vez. Quem chama pede a
 reclassificação à fila (`fila.reclassificar`) depois de gravar.
 """
 
@@ -28,6 +28,10 @@ class JaComplementada(ComplementoRecusado):
     pass
 
 
+class NaoEstaVaga(ComplementoRecusado):
+    pass
+
+
 class ComplementoInvalido(ComplementoRecusado):
     pass
 
@@ -47,6 +51,14 @@ def complementar(con: store.Conexao, frente_id: str, texto: str) -> contratos.Fr
         raise ComplementoInvalido(
             "complemento vazio, grande demais ou com caractere inválido"
         ) from None
+    numero = store.versao_vigente(con)
+    classificacao = armazem.ler(con, frente_id, numero) if numero is not None else None
+    if (
+        classificacao is None
+        or classificacao.estado is not contratos.Estado.INCERTA
+        or classificacao.motivo is not contratos.MotivoIncerta.TEXTO_VAGO
+    ):
+        raise NaoEstaVaga("o complemento é só para o relato que ficou vago")
     if not relato.gravar_complemento(con, frente_id, valido, contratos.para_iso(contratos.agora())):
         # corrida com outro envio do mesmo complemento
         raise JaComplementada("o relato já foi complementado")

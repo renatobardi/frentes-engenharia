@@ -1,4 +1,4 @@
-/* A gaveta do relato: estreita, à direita. */
+/* A gaveta do relato: estreita, centralizada. */
 .gaveta { max-width: 28rem; margin: 0 auto; background: #fff; border: 1px solid var(--linha); border-radius: 8px; padding: 1rem 1.25rem; }
 .gaveta h1 { font-size: 1.2rem; margin: 0 0 0.75rem; }
 .gaveta h2 { font-size: 1rem; margin: 1rem 0 0.5rem; }

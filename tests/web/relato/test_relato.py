@@ -12,6 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from frentes import config, contratos, fila, store
+from frentes.entrada import recepcao
 from frentes.jev import ErroJev
 from frentes.store import classificacao as armazem
 from frentes.store import relato as armazem_relato
@@ -484,3 +485,150 @@ def armazem_classificacao_pronta(estado: contratos.Estado) -> contratos.Classifi
     from tests.store.test_classificacao import classificacao as pronta
 
     return replace(pronta(), estado=estado)
+
+
+# ------------------------------------------------------------------------- CSRF, tamanho e botão
+
+
+@pytest.mark.parametrize(
+    "cabecalhos",
+    [
+        {"Sec-Fetch-Site": "cross-site"},
+        {"Sec-Fetch-Site": "same-site"},
+        {"Origin": "https://evil.example"},
+        {"Origin": "null"},
+        {"Origin": "http://testserver.evil.example"},
+    ],
+)
+def test_envio_de_outra_origem_da_403_e_nao_grava(
+    servidor: TestClient, banco: Path, cabecalhos: dict[str, str]
+) -> None:
+    servidor.ligar(JevFalso({TEXTO: jev()}))
+
+    resposta = servidor.post(
+        "/frentes/relatar", data={"emissor": "Ana", "texto": TEXTO}, headers=cabecalhos
+    )
+
+    assert resposta.status_code == 403
+    assert ler_frentes(banco) == []
+
+
+def test_complemento_de_outra_origem_da_403_e_nao_grava(servidor: TestClient, banco: Path) -> None:
+    id_ = _vago(servidor, banco)
+
+    for cabecalhos in ({"Sec-Fetch-Site": "cross-site"}, {"Origin": "https://evil.example"}):
+        resposta = servidor.post(
+            f"/frentes/relatar/{id_}/complemento",
+            data={"texto": COMPLEMENTO},
+            headers=cabecalhos,
+        )
+        assert resposta.status_code == 403
+
+    assert ler_frentes(banco)[0]["complemento"] is None
+
+
+@pytest.mark.parametrize(
+    "cabecalhos",
+    [{}, {"Sec-Fetch-Site": "same-origin"}, {"Origin": "http://testserver"}],
+)
+def test_envio_da_propria_origem_passa(
+    servidor: TestClient, banco: Path, cabecalhos: dict[str, str]
+) -> None:
+    servidor.ligar(JevFalso({TEXTO: jev()}))
+
+    resposta = servidor.post(
+        "/frentes/relatar",
+        data={"emissor": "Ana", "texto": TEXTO},
+        headers=cabecalhos,
+        follow_redirects=False,
+    )
+
+    assert resposta.status_code == 303
+    assert len(ler_frentes(banco)) == 1
+
+
+def test_texto_acima_do_limite_volta_em_html_escapado_e_nao_grava(
+    servidor: TestClient, banco: Path
+) -> None:
+    grande = "<img src=x onerror=alert(1)>" + "a" * recepcao.LIMITE_TEXTO
+
+    resposta = enviar(servidor, "Ana", grande)
+
+    assert resposta.status_code == 422
+    assert resposta.headers["content-type"].startswith("text/html")
+    assert "<img src=x" not in resposta.text
+    assert "relato inválido" in resposta.text
+    assert ler_frentes(banco) == []
+
+
+def test_complemento_acima_do_limite_volta_em_html_escapado(
+    servidor: TestClient, banco: Path
+) -> None:
+    id_ = _vago(servidor, banco)
+
+    resposta = servidor.post(
+        f"/frentes/relatar/{id_}/complemento",
+        data={"texto": "<img src=x>" + "a" * recepcao.LIMITE_TEXTO},
+        headers=CABECALHO_HTMX,
+    )
+
+    assert resposta.status_code == 422
+    assert resposta.headers["content-type"].startswith("text/html")
+    assert "<img src=x>" not in resposta.text
+    assert ler_frentes(banco)[0]["complemento"] is None
+
+
+def test_corpo_acima_de_256_kib_da_413_e_nao_grava(servidor: TestClient, banco: Path) -> None:
+    corpo = "emissor=Ana&texto=" + "a" * (recepcao.LIMITE_CORPO + 1)
+
+    declarado = servidor.post(
+        "/frentes/relatar",
+        content=corpo,
+        headers={"content-type": "application/x-www-form-urlencoded"},
+    )
+    em_pedacos = servidor.post(
+        "/frentes/relatar",
+        content=iter([corpo.encode()[:1000], corpo.encode()[1000:]]),  # sem Content-Length
+        headers={"content-type": "application/x-www-form-urlencoded"},
+    )
+
+    assert declarado.status_code == 413
+    assert em_pedacos.status_code == 413
+    assert ler_frentes(banco) == []
+
+
+def test_corpo_que_nao_e_formulario_da_415(servidor: TestClient, banco: Path) -> None:
+    resposta = servidor.post("/frentes/relatar", json={"emissor": "Ana", "texto": TEXTO})
+
+    assert resposta.status_code == 415
+    assert ler_frentes(banco) == []
+
+
+def test_complemento_em_relato_que_nao_ficou_vago_da_409_e_nao_reclassifica(
+    servidor: TestClient, banco: Path
+) -> None:
+    falso = JevFalso({TEXTO: jev()})
+    servidor.ligar(falso)
+    enviar(servidor, "Ana Prado", TEXTO)
+    id_ = _id(banco)
+    esperar(lambda: classificacao(banco, id_) is not None)
+
+    resposta = servidor.post(f"/frentes/relatar/{id_}/complemento", data={"texto": COMPLEMENTO})
+
+    assert resposta.status_code == 409
+    assert ler_frentes(banco)[0]["complemento"] is None
+    assert len(falso.chamadas) == 1  # nenhuma reclassificação paga
+
+
+def test_os_formularios_desligam_o_botao_no_envio_e_trocam_so_html(
+    servidor: TestClient, banco: Path
+) -> None:
+    id_ = _vago(servidor, banco)
+
+    formulario_novo = servidor.get("/frentes/relatar").text
+    formulario_vago = servidor.get(f"/frentes/relatar/{id_}").text
+
+    assert 'hx-disabled-elt="find button"' in formulario_novo
+    assert 'hx-disabled-elt="find button"' in formulario_vago
+    assert 'maxlength="20000"' in formulario_novo
+    assert 'indexOf("text/html")' in formulario_novo  # só troca o 422 em HTML

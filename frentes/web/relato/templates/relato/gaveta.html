@@ -5,7 +5,7 @@
   <h1>Relatar uma frente</h1>
 
   {% if not gaveta %}
-  <form method="post" action="/frentes/relatar" hx-post="/frentes/relatar" hx-target="#gaveta" hx-swap="outerHTML">
+  <form method="post" action="/frentes/relatar" hx-post="/frentes/relatar" hx-disabled-elt="find button" hx-target="#gaveta" hx-swap="outerHTML">
     {% if erro %}<p class="erro" role="alert">{{ erro }}</p>{% endif %}
     <label for="emissor">Quem relata</label>
     <input id="emissor" name="emissor" list="emissores" maxlength="200" required autocomplete="off"
@@ -14,7 +14,7 @@
       {% for e in emissores %}<option value="{{ e.nome }}">{{ e.cargo or e.tipo.value }}</option>{% endfor %}
     </datalist>
     <label for="texto">O que está acontecendo</label>
-    <textarea id="texto" name="texto" rows="6" required placeholder="{{ ajuda }}">{{ valores.texto or '' }}</textarea>
+    <textarea id="texto" name="texto" rows="6" required maxlength="20000" placeholder="{{ ajuda }}">{{ valores.texto or '' }}</textarea>
     <p class="ajuda">{{ ajuda }}</p>
     <button type="submit" class="botao">Enviar</button>
   </form>
@@ -51,10 +51,10 @@
   <div class="vago" role="alert">
     <p>{{ aviso_vago }}</p>
     {% if gaveta.pode_completar or erro_complemento %}
-    <form method="post" action="/frentes/relatar/{{ f.id }}/complemento" hx-post="/frentes/relatar/{{ f.id }}/complemento" hx-target="#gaveta" hx-swap="outerHTML">
+    <form method="post" action="/frentes/relatar/{{ f.id }}/complemento" hx-post="/frentes/relatar/{{ f.id }}/complemento" hx-disabled-elt="find button" hx-target="#gaveta" hx-swap="outerHTML">
       {% if erro_complemento %}<p class="erro">{{ erro_complemento }}</p>{% endif %}
       <label for="complemento">Completar o relato</label>
-      <textarea id="complemento" name="texto" rows="4" required></textarea>
+      <textarea id="complemento" name="texto" rows="4" required maxlength="20000"></textarea>
       <button type="submit" class="botao">Completar e classificar de novo</button>
     </form>
     {% endif %}

@@ -3,9 +3,10 @@
 {% block conteudo %}
 <link rel="stylesheet" href="/static/relato.css">
 <script>
-  // o servidor responde 422 com a gaveta e a mensagem de erro: o HTMX troca mesmo assim
+  // o servidor responde 422 com a gaveta em HTML e a mensagem de erro: só então o HTMX troca
   document.addEventListener("htmx:beforeSwap", function (e) {
-    if (e.detail.xhr.status === 422) { e.detail.shouldSwap = true; e.detail.isError = false; }
+    var tipo = e.detail.xhr.getResponseHeader("Content-Type") || "";
+    if (e.detail.xhr.status === 422 && tipo.indexOf("text/html") === 0) { e.detail.shouldSwap = true; e.detail.isError = false; }
   });
 </script>
 {% include "relato/gaveta.html" %}
