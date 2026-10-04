@@ -3,5 +3,13 @@
 {% block conteudo %}
 <link rel="stylesheet" href="/static/mapa.css">
 <script src="/static/mapa-ao-vivo.js" defer></script>
+<script>
+  // o servidor recusa o endereçamento com 409 ou 422 e a tela em HTML, com a mensagem: só então o HTMX troca
+  document.addEventListener("htmx:beforeSwap", function (e) {
+    var tipo = e.detail.xhr.getResponseHeader("Content-Type") || "";
+    var status = e.detail.xhr.status;
+    if ((status === 409 || status === 422) && tipo.indexOf("text/html") === 0 && e.detail.requestConfig.path.indexOf("/mapa/") === 0) { e.detail.shouldSwap = true; e.detail.isError = false; }
+  });
+</script>
 {% include "mapa/miolo.html" %}
 {% endblock %}

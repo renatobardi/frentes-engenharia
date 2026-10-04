@@ -6,6 +6,7 @@ degraus (a classe `calor-N` do CSS); célula sem índice não tem calor.
 """
 
 from dataclasses import dataclass, replace
+from datetime import datetime
 from urllib.parse import urlencode
 
 from frentes.contratos import Dimensao, Origem, Periodo, Visao
@@ -52,6 +53,7 @@ class CelulaNaTela:
     piscou: bool = False  # o índice mudou desde a leitura anterior: o CSS pisca a célula
     de: str = ""  # o índice da leitura anterior, de onde o número conta ("" se não piscou)
     novas: int = 0  # frentes que pintaram a célula desde que a tela abriu: o "+N"
+    selo: str = ""  # "dd/mm" do endereçamento ativo; vazio sem ele, em qualquer período
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,6 +64,7 @@ class Destaque:
     indice: str
     seta: str
     variacao: str
+    selo: str = ""  # "dd/mm" do endereçamento ativo da célula
 
 
 @dataclass(frozen=True, slots=True)
@@ -140,13 +143,23 @@ def _celula_na_tela(c: Celula | None, mapa: Mapa, maior: float) -> CelulaNaTela:
     )
 
 
+def selo_do_dia(decidido_em: datetime) -> str:
+    return decidido_em.strftime("%d/%m")
+
+
 def celulas_da_grade(
     mapa: Mapa,
     areas: list[Eixo],
     tipos: list[Eixo],
     parametros: dict[str, str | list[str]] | None = None,
+    selos: dict[tuple[str, str], str] | None = None,
 ) -> tuple[dict[tuple[str, str], CelulaNaTela], list[Destaque]]:
-    """A grade e o Top 3, só com as células cujas chaves estão nos eixos da versão."""
+    """A grade e o Top 3, só com as células cujas chaves estão nos eixos da versão.
+
+    `selos` são as células com endereçamento ativo na visão (chaves de área e tipo → "dd/mm"):
+    o selo não depende do período, então a célula fria também o leva e abre o painel. Ele não
+    mexe no índice nem na ordem do Top 3."""
+    selos = selos or {}
     nomes_area = {a.chave: a.nome for a in areas}
     nomes_tipo = {t.chave: t.nome for t in tipos}
     na_grade = {
@@ -158,9 +171,12 @@ def celulas_da_grade(
         for a in areas
         for t in tipos
     }
+    for chave, c in grade.items():
+        if chave in selos:
+            grade[chave] = replace(c, selo=selos[chave])
     if parametros is not None:
         for (area, tipo), c in grade.items():
-            if not c.vazia:
+            if not c.vazia or c.selo:
                 grade[(area, tipo)] = replace(
                     c, endereco=endereco("/", {**parametros, "area": area, "tipo": tipo})
                 )
@@ -176,6 +192,7 @@ def celulas_da_grade(
                 formatar_indice(c.indice),
                 seta,
                 variacao,
+                selos.get((c.area, c.tipo), ""),
             )
         )
     return grade, destaques

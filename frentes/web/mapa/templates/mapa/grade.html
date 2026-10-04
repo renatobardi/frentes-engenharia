@@ -18,6 +18,7 @@
         {% if c.indice %}<span class="indice"{% if c.piscou %} data-de="{{ c.de }}" data-para="{{ c.indice }}"{% endif %}>{{ c.indice }}</span>{% if c.seta %} <span class="seta">{{ c.seta }}{{ c.variacao }}</span>{% endif %}{% endif %}
         {% if c.incertas %}<span class="incertas">+{{ c.incertas }} incertas</span>{% endif %}
         {% if c.novas %}<span class="diferenca" aria-label="{{ c.novas }} novas">+{{ c.novas }}</span>{% endif %}
+        {% if c.selo %}<span class="selo" title="Endereçada em {{ c.selo }}">◆ {{ c.selo }}</span>{% endif %}
         {% if c.endereco %}</a>{% endif %}
       </td>
       {% endfor %}
