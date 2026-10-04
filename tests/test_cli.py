@@ -26,14 +26,16 @@ def test_sem_comando_mostra_o_uso_e_sai_com_2(capsys: pytest.CaptureFixture[str]
 
 
 def test_help_lista_os_declarados_e_os_planejados_e_sai_com_0(
-    capsys: pytest.CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setitem(PLANEJADOS, "comando-planejado", ("frentes.nada", "ainda sem dono"))
+
     assert main(["--help"]) == 0
 
     saida = capsys.readouterr().out
     assert "  servir " in saida
-    assert all(f"  {nome} " in saida for nome in PLANEJADOS)
-    assert "(ainda não implementado)" in saida
+    assert "comando-planejado" in saida
+    assert "ainda sem dono (ainda não implementado)" in saida
 
 
 def test_comando_desconhecido_sai_com_2(capsys: pytest.CaptureFixture[str]) -> None:
@@ -41,8 +43,23 @@ def test_comando_desconhecido_sai_com_2(capsys: pytest.CaptureFixture[str]) -> N
     assert "comando desconhecido: deploy" in capsys.readouterr().err
 
 
-@pytest.mark.parametrize("nome", sorted(PLANEJADOS))
-def test_comando_da_spec_sem_modulo_diz_ainda_nao_implementado_e_sai_com_2(
+def test_comando_planejado_sem_modulo_diz_ainda_nao_implementado_e_sai_com_2(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setitem(PLANEJADOS, "comando-planejado", ("frentes.nada", "ainda sem dono"))
+
+    assert main(["comando-planejado", "x"]) == 2
+    assert "comando-planejado: ainda não implementado (dono: frentes.nada)" in (
+        capsys.readouterr().err
+    )
+
+
+# Só os da spec que nenhuma fatia declarou ainda: quando uma constrói o comando, ele sai daqui.
+AINDA_NAO_DECLARADOS = sorted(set(PLANEJADOS) - set(declarados()))
+
+
+@pytest.mark.parametrize("nome", AINDA_NAO_DECLARADOS)
+def test_comando_da_spec_ainda_sem_modulo_diz_ainda_nao_implementado_e_sai_com_2(
     nome: str, capsys: pytest.CaptureFixture[str]
 ) -> None:
     assert main([nome, "x"]) == 2
@@ -51,23 +68,34 @@ def test_comando_da_spec_sem_modulo_diz_ainda_nao_implementado_e_sai_com_2(
     )
 
 
+def test_comando_planejado_e_declarado_no_modulo_dono_deixa_de_ser_planejado(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setitem(PLANEJADOS, "comando-planejado", ("frentes.novo_cmd", "ainda sem dono"))
+    corpo = """
+COMANDOS = {"comando-planejado": ("feito", lambda argumentos: 0)}
+"""
+    with encaixado(frentes, tmp_path, {f"novo_cmd/{k}": v for k, v in cli(corpo).items()}):
+        assert main(["comando-planejado"]) == 0
+        main(["--help"])
+    assert "ainda sem dono" not in capsys.readouterr().out
+
+
 def test_comando_declarado_no_cli_do_modulo_roda_com_os_argumentos(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     corpo = """
-def conferir(argumentos):
-    print("conferindo", argumentos)
+def mentira(argumentos):
+    print("rodando", argumentos)
     return 7
 
-COMANDOS = {"conferir": ("confere", conferir)}
+COMANDOS = {"comando-de-mentira": ("faz de conta", mentira)}
 """
     with encaixado(frentes, tmp_path, {f"novo_cmd/{k}": v for k, v in cli(corpo).items()}):
-        assert main(["conferir", "a", "b"]) == 7
-        assert "conferindo ['a', 'b']" in capsys.readouterr().out
+        assert main(["comando-de-mentira", "a", "b"]) == 7
+        assert "rodando ['a', 'b']" in capsys.readouterr().out
         assert main(["--help"]) == 0
-        saida = capsys.readouterr().out
-        assert "confere" in saida
-        assert "conferir     confere (ainda não implementado)" not in saida
+        assert "comando-de-mentira faz de conta" in capsys.readouterr().out
 
 
 def test_comando_declarado_com_configuracao_invalida_sai_com_2(

@@ -28,10 +28,12 @@ def encaixado(pacote: ModuleType, pasta: Path, arquivos: Mapping[str, str]) -> I
         yield
     finally:
         pacote.__path__ = caminho_antes
+        # Só sai o que veio de `pasta`: um módulo real importado pela primeira vez aqui dentro fica.
         for nome in set(sys.modules) - antes:
-            if nome.startswith(f"{pacote.__name__}."):
+            arquivo = getattr(sys.modules[nome], "__file__", None)
+            if arquivo and Path(arquivo).resolve().is_relative_to(pasta.resolve()):
                 del sys.modules[nome]
-                filho = nome.removeprefix(f"{pacote.__name__}.").split(".")[0]
-                if hasattr(pacote, filho):
-                    delattr(pacote, filho)
+                pai, _, filho = nome.rpartition(".")
+                if pai in sys.modules and hasattr(sys.modules[pai], filho):
+                    delattr(sys.modules[pai], filho)
         importlib.invalidate_caches()

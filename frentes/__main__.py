@@ -10,7 +10,6 @@ construir um comando não o altera.
 
 import sys
 from collections.abc import Callable, Mapping
-from types import ModuleType
 
 import frentes
 from frentes import descoberta
@@ -38,11 +37,11 @@ class ErroDeComando(Exception):
     """Dois módulos declararam o mesmo comando, ou a declaração está malformada."""
 
 
-def declarados(pacote: ModuleType = frentes) -> dict[str, tuple[str, Funcao]]:
-    """Os comandos declarados em `<pacote>.<modulo>.cli`, com o módulo dono de cada um."""
+def declarados() -> dict[str, tuple[str, Funcao]]:
+    """Os comandos declarados em `frentes.<modulo>.cli`, com o módulo dono de cada um."""
     achados: dict[str, tuple[str, Funcao]] = {}
     donos: dict[str, str] = {}
-    for modulo in descoberta.filhos(pacote, "cli"):
+    for modulo in descoberta.filhos(frentes, "cli"):
         comandos = getattr(modulo, "COMANDOS", None)
         if not isinstance(comandos, Mapping):
             continue
@@ -69,9 +68,9 @@ def uso(achados: Comandos, planejados: Mapping[str, tuple[str, str]]) -> str:
     return f"uso: python -m frentes <comando> [argumentos]\n\ncomandos:\n{corpo}"
 
 
-def main(argumentos: list[str], pacote: ModuleType = frentes) -> int:
+def main(argumentos: list[str]) -> int:
     try:
-        achados = declarados(pacote)
+        achados = declarados()
     except ErroDeComando as erro:
         print(f"comandos: {erro}", file=sys.stderr)
         return 2

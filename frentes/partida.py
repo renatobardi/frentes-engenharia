@@ -22,10 +22,10 @@ from frentes import descoberta
 ORDEM_PADRAO = 50
 
 
-def descobrir(pacote: ModuleType = frentes) -> list[ModuleType]:
+def descobrir() -> list[ModuleType]:
     """Os módulos com gancho, na ordem de partida (`ORDEM`, depois o nome)."""
-    candidatos = list(descoberta.filhos(pacote, "partida"))
-    fila = descoberta.importar_se_existe(f"{pacote.__name__}.fila")
+    candidatos = list(descoberta.filhos(frentes, "partida"))
+    fila = descoberta.importar_se_existe("frentes.fila")
     if fila is not None:
         candidatos.append(fila)
     com_gancho = [m for m in candidatos if hasattr(m, "ao_partir") or hasattr(m, "ao_parar")]

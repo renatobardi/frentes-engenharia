@@ -2,6 +2,7 @@
 
 Cada tela mora numa pasta própria, `frentes/web/<tela>/`, com:
 
+    __init__.py                   obrigatório: sem ele a pasta não é pacote e a tela é ignorada
     rotas.py                      `roteador = APIRouter()` com as rotas da tela
     templates/<tela>/*.html       os templates, sob uma subpasta com o nome da tela
 
@@ -34,19 +35,19 @@ MENU = (
 RELATAR = ("Relatar uma frente", "/frentes/relatar")
 
 
-def descobrir(pacote: ModuleType = frentes.web) -> list[tuple[ModuleType, APIRouter]]:
+def descobrir() -> list[tuple[ModuleType, APIRouter]]:
     """As telas com `rotas.py` e `roteador`, na ordem alfabética da pasta."""
     achadas = []
-    for modulo in descoberta.filhos(pacote, "rotas"):
+    for modulo in descoberta.filhos(frentes.web, "rotas"):
         roteador = getattr(modulo, "roteador", None)
         if isinstance(roteador, APIRouter):
             achadas.append((modulo, roteador))
     return achadas
 
 
-def montar(app: FastAPI, pacote: ModuleType = frentes.web) -> None:
+def montar(app: FastAPI) -> None:
     """Inclui as rotas de cada tela e prepara o Jinja2 com os templates de todas."""
-    telas = descobrir(pacote)
+    telas = descobrir()
     pastas = [TEMPLATES]
     for modulo, _ in telas:
         pasta = Path(modulo.__file__ or "").parent / "templates"
