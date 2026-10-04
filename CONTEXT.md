@@ -45,12 +45,16 @@ As respostas que uma frente recebeu em cada dimensão de uma versão da taxonomi
 _Avoid_: categorização, rótulo
 
 **Área**:
-A parte do organograma da empresa afetada pela frente. É a única lista de valores escrita por nós, não pela LLM.
+A parte do organograma dona do objeto de que a frente fala (sistema, tela, rotina ou fornecedor), porque investir é consertar a causa. Quando quem sofre e o dono divergem, vale o dono: se o time A relata que um sistema do time B falha e o atrapalha, a área é a de B. É a única lista de valores escrita por nós, não pela LLM.
 _Avoid_: departamento, setor
 
 **Time**:
-O desdobramento de uma área no organograma, escrito por nós e visto só no drill-down. Todo time pertence a uma única área.
+O desdobramento de uma área no organograma, escrito por nós e visto só no drill-down. Todo time pertence a uma única área e tem uma ficha do time.
 _Avoid_: squad, equipe
+
+**Ficha do time**:
+O que um time faz, em uma frase, mais os objetos dele (sistemas, telas, rotinas, serviços e fornecedor), escritos por nós como parte do organograma. É o critério com que o Jev escolhe a área, e a seed a usa para o texto carregar o time sem citar o nome dele.
+_Avoid_: descrição do time, catálogo de sistemas
 
 **Tipo**:
 A espécie de frente no nível mais alto da taxonomia, gerado pela LLM. É coluna do mapa de calor.
@@ -105,6 +109,10 @@ _Avoid_: incerta (é o estado final da frente, depois do desempate)
 
 **Gabarito**:
 A história plantada numa frente da seed (o que aconteceu e em que área), descrita sem os nomes de tipo da taxonomia. O processo de classificação não a vê.
+
+**Fundo**:
+As frentes da seed que não pertencem a nenhuma história plantada. Só tem espécie de queixa espalhada pelos times, sem objeto único da empresa, para não fabricar problema recorrente.
+_Avoid_: ruído (ruído são as ambíguas e as fora do escopo)
 
 **Nenhum destes**:
 A resposta, presente em toda dimensão de lista, que diz que a frente não cabe em nenhum valor da versão vigente. Não é um valor da taxonomia. Na dimensão problema é a resposta normal: a maioria das frentes não trata de um problema da lista.
