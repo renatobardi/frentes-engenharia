@@ -38,7 +38,9 @@ evidencia_minima = 5
 [recorrencia]
 dias_distintos = 3
 
-# Selo "urgente". PROVISÓRIO: as resoluções deixaram o valor para a construção (#3).
+# Selo "urgente" (#3 deixou o valor para a construção). Escolhido na seed inteira (#65): em 0,7
+# marca 6,8% das frentes (12% das de gravidade-alvo crítica, 5% das baixas); nenhum corte de
+# 0,3 a 0,8 separa melhor.
 [urgencia]
 selo = 0.7
 
