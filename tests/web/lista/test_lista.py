@@ -351,9 +351,19 @@ def test_htmx_devolve_so_o_miolo_e_a_pagina_traz_o_layout(http: TestClient):
     assert "<html" in volta.text
 
 
-def test_menu_marca_frentes_e_a_rota_nao_captura_relatar(http: TestClient):
+def test_menu_marca_frentes(http: TestClient):
     html = http.get("/frentes").text
     assert re.search(r'<a href="/frentes" aria-current="page">Frentes</a>', html)
+
+
+def test_a_rota_nao_captura_relatar(http: TestClient):
+    # a lista é a rota fixa `/frentes`: `/frentes/relatar` é de outra tela (ou 404), nunca a lista
+    resposta = http.get("/frentes/relatar")
+    assert 'id="lista"' not in resposta.text
+
+
+def test_campo_de_busca_tem_id_para_o_foco_sobreviver_a_troca_do_htmx(http: TestClient):
+    assert '<input type="search" id="busca" name="busca"' in http.get("/frentes").text
 
 
 def test_sem_banco_responde_503(tmp_path: Path):

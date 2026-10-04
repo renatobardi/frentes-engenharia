@@ -137,7 +137,6 @@ def lista_de_frentes(
         "versoes": versoes,
         "vigente": vigente,
         "versao": numero,
-        "versao_pedida": versao,
     }
     parcial = request.headers.get("HX-Request") and not request.headers.get(
         "HX-History-Restore-Request"

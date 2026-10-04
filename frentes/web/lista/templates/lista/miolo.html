@@ -48,7 +48,7 @@
       </select>
     </label>
     <label>Busca no texto
-      <input type="search" name="busca" value="{{ busca }}">
+      <input type="search" id="busca" name="busca" value="{{ busca }}">
     </label>
     {% if contexto.area %}<input type="hidden" name="area" value="{{ contexto.area }}"><input type="hidden" name="tipo" value="{{ contexto.tipo }}">{% endif %}
     {% if contexto.problema %}<input type="hidden" name="problema" value="{{ contexto.problema }}">{% endif %}
