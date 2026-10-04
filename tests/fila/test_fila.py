@@ -613,3 +613,20 @@ def test_ao_partir_sem_configuracao_nao_liga_a_fila_e_ao_parar_sem_fila_nao_falh
     asyncio.run(fila.ao_parar(app))  # type: ignore[arg-type]
 
     assert not hasattr(app.state, "fila")
+
+
+def test_aguardando_llm_que_com_o_limiar_novo_nao_precisa_mais_da_llm_fecha_sem_chamar_nada(
+    banco: Path,
+) -> None:
+    gravar_frente(banco, "f1", "texto")
+    falso = JevFalso({"texto": jev(AREA_BAIXA)})
+    llm = LlmPorTexto({"texto": ErroLlmEsgotado("fora")})
+    varrer(montar(banco, falso, llm))
+    assert ler(banco, "f1").estado is Estado.AGUARDANDO_LLM
+    folgado = replace(CFG.limiares, confianca=replace(CFG.limiares.confianca, area=0.4))
+    f = fila.Fila(None, banco, folgado, OPERACAO, lambda m: falso, llm)
+
+    varrer(f)
+
+    assert ler(banco, "f1").estado is Estado.CLASSIFICADA
+    assert len(llm.chamadas) == 1 and len(falso.chamadas) == 1

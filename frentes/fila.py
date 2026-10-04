@@ -232,6 +232,9 @@ class Fila:
                 pedido = regras.resolver(
                     colunas, documento, self._limiares, atual.resposta_llm
                 ).pedido
+            else:
+                # os limiares mudaram: a espera acabou sem precisar da LLM
+                await asyncio.to_thread(self._gravar, atual)
         else:
             try:
                 resposta = await self._jev_para(versao.modelo_jev).perguntar(
