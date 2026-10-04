@@ -1,0 +1,14 @@
+{
+  "enderecamentos": [
+    {
+      "historia": "H3",
+      "frentes_de_referencia": [
+        "fr-2702",
+        "fr-2738",
+        "fr-2758",
+        "fr-2786",
+        "fr-2810"
+      ]
+    }
+  ]
+}
