@@ -1,0 +1,42 @@
+/* CSS base, escrito à mão. Fonte do sistema, sem fonte web e sem endereço externo. */
+:root {
+  --fundo: #f6f7f9;
+  --texto: #1c2430;
+  --suave: #5b6675;
+  --linha: #d9dde3;
+  --destaque: #1f5fbf;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font: 16px/1.5 system-ui, sans-serif;
+}
+
+.topo {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid var(--linha);
+}
+
+.marca { font-weight: 700; color: var(--texto); text-decoration: none; }
+
+.menu { display: flex; gap: 1rem; flex: 1; }
+.menu a { color: var(--suave); text-decoration: none; padding: 0.25rem 0; }
+.menu a[aria-current="page"] { color: var(--texto); border-bottom: 2px solid var(--destaque); }
+
+.botao {
+  background: var(--destaque);
+  color: #fff;
+  text-decoration: none;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+}
+
+main { padding: 1.5rem; }

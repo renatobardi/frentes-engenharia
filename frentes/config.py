@@ -54,6 +54,22 @@ class Limiares:
 
 
 @dataclass(frozen=True, slots=True)
+class Operacao:
+    """Concorrência, tempos limite, retentativa, fila e modelos (seções do limiares.toml)."""
+
+    semaforo_jev: int
+    semaforo_llm: int
+    tempo_limite_jev_s: float
+    tempo_limite_llm_s: float
+    tentativas: int
+    espera_inicial_s: float
+    varredura_s: float
+    painel_espera_s: float
+    modelo_jev: str
+    modelo_llm: str
+
+
+@dataclass(frozen=True, slots=True)
 class Config:
     typesafe_api_key: str | None = field(repr=False)
     openrouter_api_key: str | None = field(repr=False)
@@ -64,6 +80,7 @@ class Config:
     commit: str
     revisao_automatica: bool
     limiares: Limiares
+    operacao: Operacao
 
 
 def _fracao(tabela: Mapping[str, Any], secao: str, chave: str) -> float:
@@ -82,6 +99,20 @@ def _inteiro(tabela: Mapping[str, Any], secao: str, chave: str) -> int:
     return valor
 
 
+def _segundos(tabela: Mapping[str, Any], secao: str, chave: str) -> float:
+    valor = _valor(tabela, secao, chave)
+    if isinstance(valor, bool) or not isinstance(valor, int | float) or valor <= 0:
+        raise ErroDeConfig(f"limiares: [{secao}] {chave} deve ser um número > 0, veio {valor!r}")
+    return float(valor)
+
+
+def _texto(tabela: Mapping[str, Any], secao: str, chave: str) -> str:
+    valor = _valor(tabela, secao, chave)
+    if not isinstance(valor, str) or not valor.strip():
+        raise ErroDeConfig(f"limiares: [{secao}] {chave} deve ser um texto, veio {valor!r}")
+    return valor.strip()
+
+
 def _valor(tabela: Mapping[str, Any], secao: str, chave: str) -> Any:
     try:
         return tabela[secao][chave]
@@ -89,14 +120,34 @@ def _valor(tabela: Mapping[str, Any], secao: str, chave: str) -> Any:
         raise ErroDeConfig(f"limiares: falta [{secao}] {chave}") from None
 
 
-def carregar_limiares(caminho: Path = LIMIARES_PADRAO) -> Limiares:
+def _ler(caminho: Path) -> dict[str, Any]:
     try:
         with open(caminho, "rb") as arquivo:
-            bruto = tomllib.load(arquivo)
+            return tomllib.load(arquivo)
     except FileNotFoundError:
         raise ErroDeConfig(f"limiares: arquivo não encontrado: {caminho}") from None
     except tomllib.TOMLDecodeError as erro:
         raise ErroDeConfig(f"limiares: TOML inválido em {caminho}: {erro}") from None
+
+
+def carregar_operacao(caminho: Path = LIMIARES_PADRAO) -> Operacao:
+    bruto = _ler(caminho)
+    return Operacao(
+        semaforo_jev=_inteiro(bruto, "concorrencia", "jev"),
+        semaforo_llm=_inteiro(bruto, "concorrencia", "llm"),
+        tempo_limite_jev_s=_segundos(bruto, "tempo_limite", "jev_s"),
+        tempo_limite_llm_s=_segundos(bruto, "tempo_limite", "llm_s"),
+        tentativas=_inteiro(bruto, "retentativa", "tentativas"),
+        espera_inicial_s=_segundos(bruto, "retentativa", "espera_inicial_s"),
+        varredura_s=_segundos(bruto, "fila", "varredura_s"),
+        painel_espera_s=_segundos(bruto, "fila", "painel_espera_s"),
+        modelo_jev=_texto(bruto, "modelos", "jev"),
+        modelo_llm=_texto(bruto, "modelos", "llm"),
+    )
+
+
+def carregar_limiares(caminho: Path = LIMIARES_PADRAO) -> Limiares:
+    bruto = _ler(caminho)
     return Limiares(
         confianca=Confianca(
             area=_fracao(bruto, "confianca", "area"),
@@ -153,6 +204,7 @@ def carregar(ambiente: Mapping[str, str] | None = None) -> Config:
     """
     if ambiente is None:
         ambiente = os.environ
+    caminho_limiares = Path(ambiente.get("FRENTES_LIMIARES", "").strip() or LIMIARES_PADRAO)
     return Config(
         # Em desenvolvimento a chave da TypeSafe já existe como OUTE_TYPESAFE_API_KEY.
         typesafe_api_key=_segredo(ambiente, "TYPESAFE_API_KEY", "OUTE_TYPESAFE_API_KEY"),
@@ -163,7 +215,6 @@ def carregar(ambiente: Mapping[str, str] | None = None) -> Config:
         porta=_porta(ambiente),
         commit=ambiente.get("FRENTES_COMMIT", "").strip() or COMMIT_DESCONHECIDO,
         revisao_automatica=_booleano(ambiente, "REVISAO_AUTOMATICA"),
-        limiares=carregar_limiares(
-            Path(ambiente.get("FRENTES_LIMIARES", "").strip() or LIMIARES_PADRAO)
-        ),
+        limiares=carregar_limiares(caminho_limiares),
+        operacao=carregar_operacao(caminho_limiares),
     )

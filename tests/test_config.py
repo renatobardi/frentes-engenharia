@@ -1,3 +1,4 @@
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -170,3 +171,147 @@ def test_env_example_traz_so_os_nomes_dos_tres_segredos() -> None:
     atribuicoes = [linha for linha in linhas if linha and not linha.startswith("#")]
 
     assert atribuicoes == ["TYPESAFE_API_KEY=", "OPENROUTER_API_KEY=", "FRENTES_WEBHOOK_TOKEN="]
+
+
+# (seção, chave, valor decidido, valor trocado no toml, como ler da Config)
+# Cada valor que a spec cita sai da configuração: trocar o arquivo muda o que a Config devolve.
+LIDOS_DO_ARQUIVO = [
+    ("confianca", "area", "0.5", "0.61", lambda c: c.limiares.confianca.area),
+    ("confianca", "tipo", "0.5", "0.62", lambda c: c.limiares.confianca.tipo),
+    ("confianca", "natureza", "0.5", "0.63", lambda c: c.limiares.confianca.natureza),
+    ("confianca", "causa_raiz", "0.3", "0.31", lambda c: c.limiares.confianca.causa_raiz),
+    ("confianca", "problema", "0.5", "0.64", lambda c: c.limiares.confianca.problema),
+    ("controle", "texto_vago", "0.5", "0.65", lambda c: c.limiares.texto_vago),
+    (
+        "encaixe_fraco",
+        "confianca_tipo",
+        "0.7",
+        "0.71",
+        lambda c: c.limiares.encaixe_fraco_confianca_tipo,
+    ),
+    ("recorrencia", "dias_distintos", "3", "4", lambda c: c.limiares.recorrencia_dias_distintos),
+    (
+        "sinal_de_encaixe",
+        "encaixe_fraco",
+        "0.12",
+        "0.13",
+        lambda c: c.limiares.sinal_de_encaixe.encaixe_fraco,
+    ),
+    (
+        "sinal_de_encaixe",
+        "janela_dias",
+        "30",
+        "31",
+        lambda c: c.limiares.sinal_de_encaixe.janela_dias,
+    ),
+    (
+        "sinal_de_encaixe",
+        "minimo_frentes",
+        "100",
+        "101",
+        lambda c: c.limiares.sinal_de_encaixe.minimo_frentes,
+    ),
+    (
+        "sinal_de_encaixe",
+        "nao_classificadas",
+        "0.05",
+        "0.06",
+        lambda c: c.limiares.sinal_de_encaixe.nao_classificadas,
+    ),
+    (
+        "sinal_de_encaixe",
+        "incertas",
+        "0.15",
+        "0.16",
+        lambda c: c.limiares.sinal_de_encaixe.incertas,
+    ),
+    (
+        "sinal_de_encaixe",
+        "maior_tipo",
+        "0.45",
+        "0.46",
+        lambda c: c.limiares.sinal_de_encaixe.maior_tipo,
+    ),
+    ("revisao", "evidencia_minima", "5", "6", lambda c: c.limiares.revisao_evidencia_minima),
+    ("urgencia", "selo", "0.7", "0.72", lambda c: c.limiares.urgencia_selo),
+    ("concorrencia", "jev", "40", "41", lambda c: c.operacao.semaforo_jev),
+    ("concorrencia", "llm", "8", "9", lambda c: c.operacao.semaforo_llm),
+    ("tempo_limite", "jev_s", "5", "6", lambda c: c.operacao.tempo_limite_jev_s),
+    ("tempo_limite", "llm_s", "30", "31", lambda c: c.operacao.tempo_limite_llm_s),
+    ("retentativa", "tentativas", "3", "4", lambda c: c.operacao.tentativas),
+    ("retentativa", "espera_inicial_s", "1", "2", lambda c: c.operacao.espera_inicial_s),
+    ("fila", "varredura_s", "30", "31", lambda c: c.operacao.varredura_s),
+    ("fila", "painel_espera_s", "30", "32", lambda c: c.operacao.painel_espera_s),
+    ("modelos", "jev", '"jev-latest"', '"jev-9"', lambda c: c.operacao.modelo_jev),
+    (
+        "modelos",
+        "llm",
+        '"deepseek/deepseek-v4-flash"',
+        '"outro/modelo"',
+        lambda c: c.operacao.modelo_llm,
+    ),
+]
+
+
+@pytest.mark.parametrize(("secao", "chave", "decidido", "trocado", "ler"), LIDOS_DO_ARQUIVO)
+def test_cada_valor_da_spec_e_lido_da_configuracao(
+    tmp_path: Path, secao: str, chave: str, decidido: str, trocado: str, ler
+) -> None:
+    linha = f"{chave} = {decidido}"
+    # a mesma chave existe em mais de uma seção (jev, llm, tipo): troca só dentro da seção
+    cabeca, _, resto = LIMIARES.partition(f"[{secao}]\n")
+    corpo, achou, cauda = resto.partition("\n[")
+    assert linha in corpo, f"o arquivo do repo não traz {linha!r} em [{secao}]"
+    novo = f"{cabeca}[{secao}]\n{corpo.replace(linha, f'{chave} = {trocado}')}{achou}{cauda}"
+    caminho = limiares_em(tmp_path, novo)
+
+    padrao = ler(config.carregar({"FRENTES_LIMIARES": str(config.LIMIARES_PADRAO)}))
+    lido = ler(config.carregar({"FRENTES_LIMIARES": str(caminho)}))
+
+    assert padrao == tomllib.loads(f"v = {decidido}")["v"]
+    assert lido == tomllib.loads(f"v = {trocado}")["v"]
+
+
+def test_revisao_automatica_e_lida_do_ambiente() -> None:
+    assert config.carregar({"REVISAO_AUTOMATICA": "1"}).revisao_automatica is True
+    assert config.carregar({}).revisao_automatica is False
+
+
+def test_operacao_do_repo_traz_os_valores_decididos() -> None:
+    assert config.carregar_operacao() == config.Operacao(
+        semaforo_jev=40,
+        semaforo_llm=8,
+        tempo_limite_jev_s=5.0,
+        tempo_limite_llm_s=30.0,
+        tentativas=3,
+        espera_inicial_s=1.0,
+        varredura_s=30.0,
+        painel_espera_s=30.0,
+        modelo_jev="jev-latest",
+        modelo_llm="deepseek/deepseek-v4-flash",
+    )
+
+
+@pytest.mark.parametrize("valor", ["0", "-1", '"cinco"', "true"])
+def test_tempo_que_nao_e_numero_positivo_e_recusado(tmp_path: Path, valor: str) -> None:
+    caminho = limiares_em(tmp_path, LIMIARES.replace("jev_s = 5", f"jev_s = {valor}"))
+
+    with pytest.raises(ErroDeConfig, match=r"\[tempo_limite\] jev_s"):
+        config.carregar_operacao(caminho)
+
+
+@pytest.mark.parametrize("valor", ['""', "3", '"  "'])
+def test_modelo_que_nao_e_texto_e_recusado(tmp_path: Path, valor: str) -> None:
+    caminho = limiares_em(
+        tmp_path, LIMIARES.replace('llm = "deepseek/deepseek-v4-flash"', f"llm = {valor}")
+    )
+
+    with pytest.raises(ErroDeConfig, match=r"\[modelos\] llm"):
+        config.carregar_operacao(caminho)
+
+
+def test_secao_de_operacao_faltando_diz_qual(tmp_path: Path) -> None:
+    caminho = limiares_em(tmp_path, LIMIARES.replace("tentativas = 3\n", ""))
+
+    with pytest.raises(ErroDeConfig, match=r"falta \[retentativa\] tentativas"):
+        config.carregar_operacao(caminho)

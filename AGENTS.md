@@ -46,7 +46,18 @@ Datas: texto ISO 8601 em UTC, sempre pelo `contratos.para_iso` (`2026-10-03T14:0
 
 ## Linha de comando
 
-`python -m frentes <comando>`. A tabela de comandos está em `frentes/__main__.py` e já lista todos os decididos, cada um apontando para o módulo dono. Para construir um comando, crie no módulo dono a função com o nome do comando e a assinatura `(argumentos: list[str]) -> int`; o `__main__.py` não muda.
+`python -m frentes <comando>`. O `__main__.py` só descobre: cada módulo declara os seus comandos no `cli.py` dele, num dicionário `COMANDOS = {"nome": ("descrição", função)}`, com a função `(argumentos: list[str]) -> int` (o código de saída). Os comandos da spec que ainda não têm `cli.py` estão em `PLANEJADOS` do `__main__.py` e respondem "ainda não implementado" com saída 2; declarar o comando no módulo dono o tira de lá sem editar o `__main__.py`. Dois módulos com o mesmo comando é erro.
+
+## Encaixes das fatias paralelas
+
+Cada fatia cria arquivos no próprio módulo e não edita arquivo de outra. Quem edita é o que mora no mesmo lugar para todos, e esse vai em PR pequeno (como `schema.sql` e `contratos.py`).
+
+- **Telas**: pasta `frentes/web/<tela>/` com `rotas.py` (`roteador = APIRouter()`) e `templates/<tela>/*.html`. A app inclui o roteador e acha os templates sozinha. A página estende `base.html` (menu e `htmx.min.js`) e usa `frentes.web.telas.renderizar(request, "<tela>/pagina.html", contexto)`. O CSS base é `static/app.css`; só `static/` serve arquivo.
+- **Ganchos de partida**: `frentes/<modulo>/partida.py` (ou o próprio `frentes/fila.py`) com `ao_partir(app)` e, se preciso, `ao_parar(app)`, síncronas ou assíncronas, e `ORDEM` (menor roda primeiro; padrão 50). O snapshot usa uma `ORDEM` baixa e a fila uma alta. Parar roda na ordem inversa.
+- **Store**: um arquivo por entidade ou peça em `frentes/store/<entidade>.py`, com funções que recebem a `Conexao`. Quem usa importa o arquivo (`from frentes.store import frente`); o `store/__init__.py` não cita nenhum e não é editado por fatia.
+- **Falsos de teste**: `tests.jev.falso.JevFalso` e `tests.llm.falso.LlmFalsa`, com respostas gravadas (uma `Resposta*`, uma exceção para simular falha, ou uma lista usada uma por chamada). Sem gravação, falham com `SemGravacao` dizendo o que faltou. Passe-os como parâmetro no lugar de `ClienteJev` e `ClienteLlm`.
+- **Configuração**: `config.py` e `config/limiares.toml` já expõem os limiares, a concorrência, os tempos limite, a retentativa, a fila e os modelos (`Config.limiares`, `Config.operacao`). Valor novo é decisão nova: não edite os dois dentro de uma fatia.
+- **Testar um encaixe novo**: `tests.encaixe.encaixado(pacote, pasta, arquivos)` acrescenta arquivos a um pacote só durante o teste.
 
 ## Segredos
 

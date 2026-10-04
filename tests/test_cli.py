@@ -10,8 +10,14 @@ from pathlib import Path
 
 import pytest
 
-from frentes.__main__ import COMANDOS, main
+import frentes
+from frentes.__main__ import PLANEJADOS, declarados, main
 from frentes.config import RAIZ
+from tests.encaixe import encaixado
+
+
+def cli(corpo: str) -> dict[str, str]:
+    return {"__init__.py": "", "cli.py": corpo}
 
 
 def test_sem_comando_mostra_o_uso_e_sai_com_2(capsys: pytest.CaptureFixture[str]) -> None:
@@ -19,11 +25,15 @@ def test_sem_comando_mostra_o_uso_e_sai_com_2(capsys: pytest.CaptureFixture[str]
     assert "uso: python -m frentes <comando>" in capsys.readouterr().err
 
 
-def test_help_lista_os_comandos_e_sai_com_0(capsys: pytest.CaptureFixture[str]) -> None:
+def test_help_lista_os_declarados_e_os_planejados_e_sai_com_0(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     assert main(["--help"]) == 0
 
     saida = capsys.readouterr().out
-    assert all(f"  {nome} " in saida for nome in COMANDOS)
+    assert "  servir " in saida
+    assert all(f"  {nome} " in saida for nome in PLANEJADOS)
+    assert "(ainda não implementado)" in saida
 
 
 def test_comando_desconhecido_sai_com_2(capsys: pytest.CaptureFixture[str]) -> None:
@@ -31,35 +41,86 @@ def test_comando_desconhecido_sai_com_2(capsys: pytest.CaptureFixture[str]) -> N
     assert "comando desconhecido: deploy" in capsys.readouterr().err
 
 
-def test_comando_cujo_modulo_ainda_nao_existe_sai_com_2_e_diz_o_que_falta(
-    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize("nome", sorted(PLANEJADOS))
+def test_comando_da_spec_sem_modulo_diz_ainda_nao_implementado_e_sai_com_2(
+    nome: str, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setitem(COMANDOS, "conferir", ("frentes.conferencia.nao_existe", "confere"))
-
-    assert main(["conferir"]) == 2
-    assert "conferir: ainda não construído (falta frentes.conferencia.nao_existe.conferir)" in (
+    assert main([nome, "x"]) == 2
+    assert f"{nome}: ainda não implementado (dono: {PLANEJADOS[nome][0]})" in (
         capsys.readouterr().err
     )
 
 
-def test_comando_cujo_modulo_existe_sem_a_funcao_sai_com_2(
-    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+def test_comando_declarado_no_cli_do_modulo_roda_com_os_argumentos(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setitem(COMANDOS, "conferir", ("frentes.conferencia", "confere"))
+    corpo = """
+def conferir(argumentos):
+    print("conferindo", argumentos)
+    return 7
 
-    assert main(["conferir"]) == 2
-    assert "falta frentes.conferencia.conferir" in capsys.readouterr().err
+COMANDOS = {"conferir": ("confere", conferir)}
+"""
+    with encaixado(frentes, tmp_path, {f"novo_cmd/{k}": v for k, v in cli(corpo).items()}):
+        assert main(["conferir", "a", "b"]) == 7
+        assert "conferindo ['a', 'b']" in capsys.readouterr().out
+        assert main(["--help"]) == 0
+        saida = capsys.readouterr().out
+        assert "confere" in saida
+        assert "conferir     confere (ainda não implementado)" not in saida
 
 
-def test_erro_de_import_dentro_do_modulo_do_comando_nao_e_engolido(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+def test_comando_declarado_com_configuracao_invalida_sai_com_2(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    (tmp_path / "comando_quebrado.py").write_text("import modulo_que_nao_existe_xyz\n")
-    monkeypatch.syspath_prepend(tmp_path)
-    monkeypatch.setitem(COMANDOS, "conferir", ("comando_quebrado", "confere"))
+    corpo = """
+from frentes.config import ErroDeConfig
 
-    with pytest.raises(ModuleNotFoundError, match="modulo_que_nao_existe_xyz"):
-        main(["conferir"])
+def falha(argumentos):
+    raise ErroDeConfig("falta algo")
+
+COMANDOS = {"falha": ("falha", falha)}
+"""
+    with encaixado(frentes, tmp_path, {f"novo_cmd/{k}": v for k, v in cli(corpo).items()}):
+        assert main(["falha"]) == 2
+    assert "configuração inválida: falta algo" in capsys.readouterr().err
+
+
+def test_dois_modulos_declarando_o_mesmo_comando_sai_com_2_e_diz_quem(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    corpo = 'COMANDOS = {"servir": ("outro", lambda argumentos: 0)}\n'
+    arquivos = {f"novo_cmd/{k}": v for k, v in cli(corpo).items()}
+    with encaixado(frentes, tmp_path, arquivos):
+        assert main(["servir"]) == 2
+    erro = capsys.readouterr().err
+    assert "o comando 'servir' está em frentes.novo_cmd.cli e em frentes.web.cli" in erro
+
+
+@pytest.mark.parametrize(
+    "declaracao", ['("so descricao",)', '("descricao", "nao e funcao")', '"texto"']
+)
+def test_declaracao_malformada_sai_com_2_e_diz_qual(
+    declaracao: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    corpo = f'COMANDOS = {{"torto": {declaracao}}}\n'
+    with encaixado(frentes, tmp_path, {f"novo_cmd/{k}": v for k, v in cli(corpo).items()}):
+        assert main(["torto"]) == 2
+    assert "frentes.novo_cmd.cli.COMANDOS['torto'] deve ser (descrição, função)" in (
+        capsys.readouterr().err
+    )
+
+
+def test_cli_sem_comandos_e_ignorado(tmp_path: Path) -> None:
+    with encaixado(frentes, tmp_path, {f"novo_cmd/{k}": v for k, v in cli("X = 1\n").items()}):
+        assert "servir" in declarados()
+
+
+def test_erro_de_import_dentro_do_cli_de_um_modulo_nao_e_engolido(tmp_path: Path) -> None:
+    corpo = "import modulo_que_nao_existe_xyz\n"
+    with encaixado(frentes, tmp_path, {f"novo_cmd/{k}": v for k, v in cli(corpo).items()}):
+        with pytest.raises(ModuleNotFoundError, match="modulo_que_nao_existe_xyz"):
+            main(["--help"])
 
 
 def test_servir_com_argumento_sobrando_sai_com_2(capsys: pytest.CaptureFixture[str]) -> None:
