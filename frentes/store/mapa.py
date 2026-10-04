@@ -234,9 +234,9 @@ def problemas_por_dia(
     """Os problemas que as frentes da célula citam, em todas as células e nas duas naturezas.
 
     Só frentes que pintam e com problema que vale (não "Nenhum destes" e confiança de
-    `confianca_problema` para cima). Uma linha por problema, natureza, célula e dia (de
-    `ocorrido_em`): `n` frentes, `soma` do score da natureza da frente. `visao_natureza` é a
-    natureza da célula, que escolhe quais problemas entram.
+    `confianca_problema` para cima). Uma linha por problema, natureza, célula e dia UTC (de
+    `ocorrido_em` e, na falta, `recebido_em`): `n` frentes, `soma` do score da natureza da
+    frente. `visao_natureza` é a natureza da célula, que escolhe quais problemas entram.
     """
     janela, args = _janela(desde, ate, origens)
     valido = "c.problema IS NOT NULL AND c.conf_problema >= ?"

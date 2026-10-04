@@ -15,7 +15,7 @@ from datetime import date, datetime, timedelta
 from frentes import contratos
 from frentes.config import Limiares
 from frentes.contratos import Origem, Periodo, Visao
-from frentes.mapa.agregados import _VISAO, DIAS, _fim_do_dia, _origens, _versao
+from frentes.mapa.agregados import DIAS, VISAO, fim_do_dia, origens_validas, resolver_versao
 from frentes.store import Conexao
 from frentes.store import mapa as consultas
 
@@ -27,14 +27,16 @@ class ProblemaDaCelula:
     dias: int  # dias distintos de `ocorrido_em`; cinco frentes no mesmo dia contam 1
     meses: int  # meses distintos
     soma: float  # severidade (dor) ou impacto esperado (oportunidade) dessas frentes
-    recorrente: bool  # dias >= limiar de recorrência: é a marca
+    # dias distintos do problema no filtro inteiro (todas as células, as duas visões)
+    # >= limiar de recorrência: é a marca. `dias` e `meses` acima são os da célula
+    recorrente: bool
     outras_celulas: tuple[tuple[str, str], ...]  # (área, tipo) da mesma visão, sem esta
     frentes_na_outra_visao: int  # frentes do problema na outra visão, em qualquer célula
 
 
 @dataclass(frozen=True, slots=True)
 class ItemDaComposicao:
-    chave: str
+    chave: str | None  # None: a linha do resto (sem time, sem subtipo, causa "Nenhum destes")
     frentes: int
     soma: float
 
@@ -65,7 +67,9 @@ class Celula:
     ate: datetime
     # recorrentes primeiro (mais dias, depois mais frentes), os demais depois
     problemas: tuple[ProblemaDaCelula, ...]
-    por_time: tuple[ItemDaComposicao, ...]  # maior soma primeiro
+    # maior soma primeiro; o resto (sem valor) vai por último com chave None, para as somas
+    # fecharem o índice. A causa incerta fica fora, como diz a spec
+    por_time: tuple[ItemDaComposicao, ...]
     por_subtipo: tuple[ItemDaComposicao, ...]
     por_causa_raiz: tuple[ItemDaComposicao, ...]  # sem as de causa incerta
     frentes: tuple[FrenteDaCelula, ...]  # por score; incertas no fim
@@ -75,11 +79,17 @@ def _composicao(
     chaves_e_scores: Sequence[tuple[str | None, float]],
 ) -> tuple[ItemDaComposicao, ...]:
     por_chave: dict[str, list[float]] = {}
+    resto: list[float] = []
     for chave, score in chaves_e_scores:
-        if chave is not None:
+        if chave is None:
+            resto.append(score)
+        else:
             por_chave.setdefault(chave, []).append(score)
     itens = [ItemDaComposicao(k, len(v), sum(v)) for k, v in por_chave.items()]
-    return tuple(sorted(itens, key=lambda i: (-i.soma, -i.frentes, i.chave)))
+    itens.sort(key=lambda i: (-i.soma, -i.frentes, i.chave or ""))
+    if resto:
+        itens.append(ItemDaComposicao(None, len(resto), sum(resto)))
+    return tuple(itens)
 
 
 def _problemas(
@@ -97,12 +107,14 @@ def _problemas(
         con, numero, area, tipo, natureza, d, a, limiares.confianca.problema, filtro
     )
     dias: dict[str, set[str]] = {}
+    dias_no_filtro: dict[str, set[str]] = {}
     frentes: dict[str, int] = {}
     soma: dict[str, float] = {}
     outras: dict[str, set[tuple[str, str]]] = {}
     outra_visao: dict[str, int] = {}
     for r in linhas:
         p = str(r["problema"])
+        dias_no_filtro.setdefault(p, set()).add(str(r["dia"]))
         if r["natureza"] != natureza:
             outra_visao[p] = outra_visao.get(p, 0) + int(r["n"])
         elif (r["area"], r["tipo"]) == (area, tipo):
@@ -118,7 +130,7 @@ def _problemas(
             dias=len(dias[p]),
             meses=len({dia[:7] for dia in dias[p]}),
             soma=soma[p],
-            recorrente=len(dias[p]) >= limiares.recorrencia_dias_distintos,
+            recorrente=len(dias_no_filtro[p]) >= limiares.recorrencia_dias_distintos,
             outras_celulas=tuple(sorted(outras.get(p, ()))),
             frentes_na_outra_visao=outra_visao.get(p, 0),
         )
@@ -141,11 +153,11 @@ def ler(
     versao: int | None = None,
 ) -> Celula:
     """O drill-down da célula (área × tipo, chaves) na visão, com a janela do mapa."""
-    numero = _versao(con, versao)
+    numero = resolver_versao(con, versao)
     periodo = Periodo(periodo)
-    natureza, score = _VISAO[Visao(visao)]
-    filtro = _origens(origens)
-    ate = _fim_do_dia(referencia or contratos.agora().date())
+    natureza, score = VISAO[Visao(visao)]
+    filtro = origens_validas(origens)
+    ate = fim_do_dia(referencia or contratos.agora().date())
     desde = ate - timedelta(days=DIAS[periodo])
     d, a = contratos.para_iso(desde), contratos.para_iso(ate)
 
@@ -176,11 +188,12 @@ def ler(
         if not incerta:
             pintam.append(r)
 
-    def causa_vale(r: dict[str, object]) -> str | None:
-        causa = r["causa_raiz"]
-        if causa is None or r["conf_causa"] < limiares.confianca.causa_raiz:
-            return None  # "causa incerta" e "Nenhum destes" ficam fora da composição
-        return str(causa)
+    # causa incerta (confiança abaixo do corte) fica fora; "Nenhum destes" vai para o resto
+    com_causa = [
+        r
+        for r in pintam
+        if r["causa_raiz"] is None or r["conf_causa"] >= limiares.confianca.causa_raiz
+    ]
 
     return Celula(
         versao=numero,
@@ -193,7 +206,7 @@ def ler(
         problemas=_problemas(con, numero, natureza.value, area, tipo, d, a, filtro, limiares),
         por_time=_composicao([(r["time"], float(r["score"])) for r in pintam]),
         por_subtipo=_composicao([(r["subtipo"], float(r["score"])) for r in pintam]),
-        por_causa_raiz=_composicao([(causa_vale(r), float(r["score"])) for r in pintam]),
+        por_causa_raiz=_composicao([(r["causa_raiz"], float(r["score"])) for r in com_causa]),
         frentes=tuple(frentes),
     )
 

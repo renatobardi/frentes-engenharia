@@ -201,18 +201,24 @@ def test_composicao_por_time_subtipo_e_causa_raiz(con):
 
     c = _ler(con)
 
+    # a última linha de cada lista é o resto (chave None): as barras somam o índice
     assert [(i.chave, i.frentes, round(i.soma, 2)) for i in c.por_time] == [
         ("t1", 2, 0.9),
         ("t2", 2, 0.7),
+        (None, 1, 0.1),
     ]
     assert [(i.chave, i.frentes, round(i.soma, 2)) for i in c.por_subtipo] == [
         ("s2", 3, 1.0),
         ("s1", 1, 0.6),
+        (None, 1, 0.1),
     ]
+    # a causa incerta (c3, 0,2) fica fora; a frente sem causa ("Nenhum destes") é o resto
     assert [(i.chave, i.frentes, round(i.soma, 2)) for i in c.por_causa_raiz] == [
         ("c1", 2, 0.9),
         ("c2", 1, 0.5),
+        (None, 1, 0.1),
     ]
+    assert sum(i.soma for i in c.por_time) == pytest.approx(1.7)
 
 
 def test_frentes_ordenadas_por_score_com_as_incertas_no_fim(con):
@@ -272,8 +278,9 @@ def test_celula_vazia_e_versao_inexistente(con):
 
     with pytest.raises(VersaoInexistente):
         _ler(con, versao=9)
+    sem_versao = store.abrir()
     with pytest.raises(VersaoInexistente):
-        _ler(store.abrir())  # sem versão vigente
+        _ler(sem_versao)  # sem versão vigente
 
 
 def test_a_consulta_recusa_coluna_de_score_desconhecida(con):
@@ -281,3 +288,81 @@ def test_a_consulta_recusa_coluna_de_score_desconhecida(con):
 
     with pytest.raises(ValueError, match="score desconhecido"):
         consultas.frentes_da_celula(con, 1, "reativa", "urgencia", "a", "t", "x", "y")
+
+
+def test_marca_decidida_pelos_dias_do_problema_no_filtro_inteiro(con):
+    # 1 dia na célula + 2 dias em outras células da mesma visão = 3 dias: recorrente
+    _class(con, "2026-09-01", problema="espalhado")
+    _class(con, "2026-09-02", problema="espalhado", area="ops", tipo="processo")
+    _class(con, "2026-09-03", problema="espalhado", area="dados", tipo="custo")
+    # 2 dias reativa + 1 dia proativa na mesma célula: recorrente nas duas visões
+    _class(con, "2026-09-01", problema="duas_naturezas")
+    _class(con, "2026-09-02", problema="duas_naturezas")
+    _class(con, "2026-09-03", problema="duas_naturezas", natureza="proativa")
+    # 2 dias no total: sem marca
+    _class(con, "2026-09-01", problema="curto")
+    _class(con, "2026-09-02", problema="curto", area="ops", tipo="processo")
+
+    c = _ler(con)
+    p = _problema(c, "espalhado")
+    assert (p.dias, p.frentes, p.recorrente) == (1, 1, True)  # os números são os da célula
+    assert (_problema(c, "duas_naturezas").dias, _problema(c, "duas_naturezas").recorrente) == (
+        2,
+        True,
+    )
+    assert not _problema(c, "curto").recorrente
+    oportunidade = _problema(_ler(con, visao=Visao.OPORTUNIDADE), "duas_naturezas")
+    assert (oportunidade.dias, oportunidade.recorrente) == (1, True)
+
+
+def test_o_dia_do_problema_e_utc(con):
+    # 23:59:59Z e 00:00:00Z de 01/09 e 02/09 são dois dias UTC, ainda que seja o mesmo no Brasil
+    for instante in ["2026-09-01T23:59:59Z", "2026-09-02T00:00:00Z", "2026-09-02T02:30:00Z"]:
+        id = _class(con, "2026-09-01", problema="p")
+        con.execute("UPDATE frente SET ocorrido_em = ? WHERE id = ?", (instante, id))
+
+    assert _problema(_ler(con), "p").dias == 2
+
+
+def test_bordas_da_janela_de_90_dias(con):
+    # janela [2026-07-06T00:00:00Z, 2026-10-04T00:00:00Z)
+    instantes = {
+        "antes": "2026-07-05T23:59:59Z",
+        "desde": "2026-07-06T00:00:00Z",
+        "ultimo": "2026-10-03T23:59:59Z",
+        "ate": "2026-10-04T00:00:00Z",
+    }
+    ids = {}
+    for nome, instante in instantes.items():
+        ids[nome] = _class(con, "2026-09-01", problema="p")
+        con.execute("UPDATE frente SET ocorrido_em = ? WHERE id = ?", (instante, ids[nome]))
+
+    c = _ler(con)
+
+    assert {f.frente_id for f in c.frentes} == {ids["desde"], ids["ultimo"]}
+    assert _problema(c, "p").frentes == 2
+
+
+def test_sem_ocorrido_em_vale_recebido_em(con):
+    dentro = _class(con, "2026-09-01", problema="p")
+    fora = _class(con, "2026-09-01", problema="p")
+    con.execute(
+        "UPDATE frente SET ocorrido_em = NULL, recebido_em = '2026-09-10T10:00:00Z' WHERE id = ?",
+        (dentro,),
+    )
+    con.execute(
+        "UPDATE frente SET ocorrido_em = NULL, recebido_em = '2026-01-10T10:00:00Z' WHERE id = ?",
+        (fora,),
+    )
+
+    c = _ler(con)
+
+    assert [f.frente_id for f in c.frentes] == [dentro]
+    assert _problema(c, "p").dias == 1
+
+
+def test_causa_raiz_no_limiar_vale_e_logo_abaixo_e_incerta(con):
+    _class(con, "2026-09-01", causa_raiz="no_limiar", conf_causa=0.3)
+    _class(con, "2026-09-02", causa_raiz="abaixo", conf_causa=0.2999)
+
+    assert [i.chave for i in _ler(con).por_causa_raiz] == ["no_limiar"]
