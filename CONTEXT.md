@@ -25,6 +25,10 @@ _Avoid_: autor, remetente
 O texto que o emissor acrescenta a um relato que ficou com texto vago. É guardado na mesma frente, ao lado do texto original, e a frente é classificada de novo com os dois juntos.
 _Avoid_: edição, correção, nova frente
 
+**Rajada**:
+As cerca de 20 frentes sobre a mesma história que um script manda pelo webhook, de uma vez, no ato ao vivo da demo. Ficam fora da seed e do snapshot, e cada envio leva identificadores novos para não ser descartado como reenvio.
+_Avoid_: carga, lote, teste de carga
+
 **Reativa**:
 Frente sobre algo que já quebrou ou está doendo.
 
@@ -163,6 +167,10 @@ _Avoid_: resumo, insight
 **Snapshot**:
 O estado gravado de que a demo sobe: a seed já classificada em cada versão da taxonomia, com a descoberta, a revisão e os painéis das células. Ao carregar, as datas são deslocadas para o último dia da seed virar ontem.
 _Avoid_: dump, backup
+
+**Piloto**:
+O pedido que fecha a demo: rodar o frentes-engenharia com as frentes reais de uma única área, por tempo limitado, para chegar ao mapa de calor real dela. Vem depois do PoC e é outro esforço; o PoC só usa a seed fictícia.
+_Avoid_: projeto, MVP, fase 2, rollout
 
 **Incerta**:
 Frente cuja classificação ficou abaixo do limiar de confiança e por isso não pinta o mapa. A de texto vago é incerta por outro motivo, a pergunta de controle, e fica fora das células.
