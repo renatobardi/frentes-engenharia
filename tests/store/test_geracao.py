@@ -3,7 +3,14 @@ from datetime import UTC, datetime
 import pytest
 
 from frentes import store
-from frentes.contratos import Geracao, ResultadoGeracao, TipoGeracao
+from frentes.contratos import (
+    Dimensao,
+    Geracao,
+    Operacao,
+    ResultadoGeracao,
+    TipoGeracao,
+    TipoOperacao,
+)
 from frentes.store import geracao as repo
 
 AGORA = datetime(2026, 10, 3, 14, 5, 9, tzinfo=UTC)
@@ -66,7 +73,7 @@ def test_textos_do_periodo_so_trazem_origem_e_texto_na_janela_em_ordem(con) -> N
 
     achadas = repo.textos_do_periodo(con, "2026-01-01T00:00:00Z", "2026-07-01T00:00:00Z")
 
-    assert achadas == [("relato", "primeira"), ("relato", "segunda")]
+    assert achadas == [("a", "relato", "primeira"), ("b", "relato", "segunda")]
 
 
 def test_texto_e_o_original_sem_complemento(con) -> None:
@@ -76,7 +83,7 @@ def test_texto_e_o_original_sem_complemento(con) -> None:
     )
 
     assert repo.textos_do_periodo(con, "2026-01-01T00:00:00Z", "2026-02-01T00:00:00Z") == [
-        ("relato", "original")
+        ("a", "relato", "original")
     ]
 
 
@@ -85,3 +92,34 @@ def test_primeira_data_usa_ocorrido_em_e_na_falta_recebido_em(con) -> None:
     frente(con, "a", "2026-05-01T00:00:00Z")
     frente(con, "b", "2026-09-01T00:00:00Z", ocorrido="2026-02-01T00:00:00Z")
     assert repo.primeira_data(con) == "2026-02-01T00:00:00Z"
+
+
+def test_as_operacoes_gravadas_voltam_na_leitura(con) -> None:
+    operacao = Operacao(
+        TipoOperacao.CRIAR_SUBTIPO,
+        Dimensao.TIPO,
+        (),
+        {"chave": "x", "nome": "Um"},
+        ["f1", "f2"],
+        aplicada=True,
+    )
+    id = repo.abrir(con, Geracao(TipoGeracao.DESCOBERTA, AGORA))
+
+    repo.fechar(con, id, ResultadoGeracao.SEM_MUDANCA, operacoes=[operacao])
+
+    [lida] = repo.ler(con, id).operacoes
+    assert lida.tipo is TipoOperacao.CRIAR_SUBTIPO and lida.dimensao is Dimensao.TIPO
+    assert lida.proposta == {"chave": "x", "nome": "Um"}
+    assert list(lida.frentes_de_evidencia) == ["f1", "f2"] and lida.aplicada
+    assert lida.motivo_do_descarte is None
+
+
+def test_fechar_sem_operacoes_nao_apaga_as_gravadas_ao_abrir(con) -> None:
+    operacao = Operacao(TipoOperacao.REMOVER, Dimensao.TIPO, ("x",), {}, ["f1"], aplicada=False,
+                        motivo_do_descarte="pouca evidência")  # fmt: skip
+    id = repo.abrir(con, Geracao(TipoGeracao.DESCOBERTA, AGORA, operacoes=[operacao]))
+
+    repo.fechar(con, id, ResultadoGeracao.RECUSADA)
+
+    [lida] = repo.ler(con, id).operacoes
+    assert lida.motivo_do_descarte == "pouca evidência" and not lida.aplicada

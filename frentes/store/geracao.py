@@ -5,15 +5,19 @@ o número dela. A versão aponta para a geração (`geracao_id`), então a gera�
 """
 
 import json
+from collections.abc import Sequence
 from dataclasses import asdict
+from typing import NamedTuple
 
 from frentes.contratos import (
+    Dimensao,
     Gatilho,
     Geracao,
     Operacao,
     ResultadoGeracao,
     SinalMedido,
     TipoGeracao,
+    TipoOperacao,
     de_iso,
     para_iso,
 )
@@ -24,11 +28,20 @@ __all__ = [
     "abrir",
     "fechar",
     "ler",
+    "TextoDaFrente",
     "primeira_data",
     "textos_do_periodo",
 ]
 
 _DATA = "coalesce(ocorrido_em, recebido_em)"
+
+
+class TextoDaFrente(NamedTuple):
+    """O que a descoberta lê de uma frente: o id (para a evidência), a origem e o texto."""
+
+    id: str
+    origem: str
+    texto: str
 
 
 class GeracaoJaFechada(Exception):
@@ -40,6 +53,22 @@ def _operacao_para_dict(operacao: Operacao) -> dict:
     dados["tipo"] = operacao.tipo.value
     dados["dimensao"] = operacao.dimensao.value
     return dados
+
+
+def _operacao_de_dict(dados: dict) -> Operacao:
+    return Operacao(
+        tipo=TipoOperacao(dados["tipo"]),
+        dimensao=Dimensao(dados["dimensao"]),
+        chaves=tuple(dados["chaves"]),
+        proposta=dados["proposta"],
+        frentes_de_evidencia=tuple(dados["frentes_de_evidencia"]),
+        aplicada=dados["aplicada"],
+        motivo_do_descarte=dados["motivo_do_descarte"],
+    )
+
+
+def _operacoes_json(operacoes: Sequence[Operacao]) -> str:
+    return json.dumps([_operacao_para_dict(o) for o in operacoes], ensure_ascii=False)
 
 
 def abrir(con: Conexao, geracao: Geracao) -> int:
@@ -56,7 +85,7 @@ def abrir(con: Conexao, geracao: Geracao) -> int:
                 para_iso(geracao.disparada_em),
                 geracao.versao_base,
                 json.dumps(asdict(geracao.sinal)) if geracao.sinal else None,
-                json.dumps([_operacao_para_dict(o) for o in geracao.operacoes], ensure_ascii=False),
+                _operacoes_json(geracao.operacoes),
                 geracao.resumo,
             ),
         )
@@ -71,13 +100,22 @@ def fechar(
     *,
     resumo: str | None = None,
     versao_resultante: int | None = None,
+    operacoes: Sequence[Operacao] | None = None,
 ) -> None:
-    """Grava o resultado, o resumo (na descoberta recusada, o motivo) e a versão que saiu."""
+    """Grava o resultado, o resumo (na descoberta recusada, o motivo), a versão que saiu e,
+    se vierem, as operações (na descoberta, o que ela criou, com as frentes de evidência)."""
     with con:
         cursor = con.execute(
             "UPDATE geracao SET resultado = ?, resumo = coalesce(?, resumo), "
-            "versao_resultante = ? WHERE id = ? AND resultado IS NULL",
-            (resultado.value, resumo, versao_resultante, geracao_id),
+            "versao_resultante = ?, operacoes = coalesce(?, operacoes) "
+            "WHERE id = ? AND resultado IS NULL",
+            (
+                resultado.value,
+                resumo,
+                versao_resultante,
+                _operacoes_json(operacoes) if operacoes is not None else None,
+                geracao_id,
+            ),
         )
     if cursor.rowcount != 1:
         raise GeracaoJaFechada(f"a geração {geracao_id} não existe ou já foi fechada")
@@ -95,7 +133,7 @@ def ler(con: Conexao, geracao_id: int) -> Geracao | None:
         disparada_em=de_iso(linha["disparada_em"]),
         versao_base=linha["versao_base"],
         sinal=SinalMedido(**sinal) if sinal else None,
-        # as operações só são lidas pela revisão, que as grava com o próprio formato
+        operacoes=tuple(_operacao_de_dict(o) for o in json.loads(linha["operacoes"])),
         resumo=linha["resumo"],
         resultado=ResultadoGeracao(linha["resultado"]) if linha["resultado"] else None,
         versao_resultante=linha["versao_resultante"],
@@ -107,14 +145,15 @@ def primeira_data(con: Conexao) -> str | None:
     return con.execute(f"SELECT min({_DATA}) AS d FROM frente").fetchone()["d"]
 
 
-def textos_do_periodo(con: Conexao, desde: str, ate: str) -> list[tuple[str, str]]:
-    """`(origem, texto)` das frentes com data em `[desde, ate)`, da mais antiga para a mais nova.
+def textos_do_periodo(con: Conexao, desde: str, ate: str) -> list[TextoDaFrente]:
+    """`(id, origem, texto)` das frentes com data em `[desde, ate)`, da mais antiga à mais nova.
 
-    Só estas duas colunas saem daqui: o emissor e o resto da frente não vão à descoberta.
+    Só estas três colunas saem daqui: o emissor e o resto da frente não vão à descoberta.
     O texto é o original, sem complemento (a descoberta lê a frente bruta).
     """
     linhas = con.execute(
-        f"SELECT origem, texto FROM frente WHERE {_DATA} >= ? AND {_DATA} < ? ORDER BY {_DATA}, id",
+        f"SELECT id, origem, texto FROM frente WHERE {_DATA} >= ? AND {_DATA} < ? "
+        f"ORDER BY {_DATA}, id",
         (desde, ate),
     )
-    return [(linha["origem"], linha["texto"]) for linha in linhas]
+    return [TextoDaFrente(linha["id"], linha["origem"], linha["texto"]) for linha in linhas]

@@ -51,7 +51,7 @@ def descobrir(argumentos: list[str]) -> int:
         return 2
     uso = resultado.uso
     print(
-        f"{len(frentes)} frentes, {resultado.chamadas} chamadas à LLM, "
+        f"{len(frentes)} frentes, {resultado.chamadas} chamadas à LLM (piso: sem retentativas), "
         f"{uso.tokens_entrada} tokens de entrada e {uso.tokens_saida} de saída"
     )
     if resultado.versao is None:

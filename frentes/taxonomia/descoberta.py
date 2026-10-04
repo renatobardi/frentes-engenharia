@@ -18,11 +18,14 @@ from typing import Any
 from frentes.contratos import (
     AreaDoOrganograma,
     ClienteLlm,
+    Dimensao,
     DocumentoTaxonomia,
     Geracao,
     NivelDaRegua,
+    Operacao,
     ResultadoGeracao,
     TipoGeracao,
+    TipoOperacao,
     Uso,
     ValorDoDocumento,
     VersaoTaxonomia,
@@ -32,6 +35,7 @@ from frentes.llm import ErroLlm
 from frentes.store import Conexao
 from frentes.store import geracao as repo
 from frentes.store import versao as repo_versao
+from frentes.store.geracao import TextoDaFrente
 from frentes.taxonomia import prompts
 from frentes.taxonomia import proposta as proposta_
 from frentes.taxonomia.chaves import chave_nova
@@ -76,7 +80,7 @@ class Descoberta:
         return self.geracao.resumo if self.versao is None else None
 
 
-def lotes(frentes: Sequence[tuple[str, str]], tamanho: int = TAMANHO_DO_LOTE) -> list[list]:
+def lotes(frentes: Sequence, tamanho: int = TAMANHO_DO_LOTE) -> list[list]:
     """Divide em lotes de até `tamanho`, intercalados (a frente k vai ao lote k mod n): como a
     lista vem em ordem de data, cada lote cobre os seis meses inteiros."""
     n = max(1, ceil(len(frentes) / tamanho))
@@ -112,6 +116,7 @@ async def _propor(
     pedido: tuple[str, str],
     corrigir: Callable[[Any, Sequence[Violacao]], tuple[str, str]],
     marcas: frozenset[str],
+    n_frentes: int | None = None,
 ) -> Proposta:
     """Pede a proposta e, se a validação achar violação, pede a correção só do que falhou."""
     violacoes: Sequence[Violacao] = ()
@@ -119,7 +124,7 @@ async def _propor(
         resposta = await llm.completar(*pedido)
         lida, violacoes = proposta_.ler(resposta.conteudo)
         if lida is not None:
-            violacoes = proposta_.validar(lida, marcas)
+            violacoes = proposta_.validar(lida, marcas, n_frentes)
         if not violacoes:
             assert lida is not None
             return lida
@@ -162,23 +167,39 @@ def _documento(proposta: Proposta, organograma: Sequence[AreaDoOrganograma]) -> 
     )
 
 
+Evidencias = dict[str, list[str]]  # nome normalizado do subtipo → ids das frentes de evidência
+
+
+def _evidencias_do_lote(proposta: Proposta, grupo: Sequence[TextoDaFrente]) -> Evidencias:
+    """Os números que a LLM citou (1..n na amostra) viram os ids das frentes do lote."""
+    saida: Evidencias = {}
+    for tipo in proposta.tipos:
+        for sub in tipo.subtipos:
+            ids = [grupo[n - 1].id for n in dict.fromkeys(sub.evidencias)]
+            saida.setdefault(proposta_.normal(sub.nome), []).extend(ids)
+    return saida
+
+
 async def _gerar(
     llm: _Registro,
-    frentes: Sequence[tuple[str, str]],
+    frentes: Sequence[TextoDaFrente],
     organograma: Sequence[AreaDoOrganograma],
     tamanho_do_lote: int,
-) -> Proposta:
+) -> tuple[Proposta, Evidencias]:
     marcas = proposta_.marcas_do_organograma(organograma)
     grupos = lotes(frentes, tamanho_do_lote)
 
-    async def lote(n: int, grupo: Sequence[tuple[str, str]]) -> Proposta:
-        return await _propor(
+    async def lote(n: int, grupo: Sequence[TextoDaFrente]) -> tuple[Proposta, Evidencias]:
+        amostra = [(f.origem, f.texto) for f in grupo]
+        proposta = await _propor(
             llm,
             f"lote {n}",
-            prompts.descoberta(grupo),
-            lambda proposta, violacoes: prompts.correcao(grupo, proposta, violacoes),
+            prompts.descoberta(amostra),
+            lambda anterior, violacoes: prompts.correcao(amostra, anterior, violacoes),
             marcas,
+            n_frentes=len(grupo),
         )
+        return proposta, _evidencias_do_lote(proposta, grupo)
 
     resultados = await asyncio.gather(
         *(lote(n, g) for n, g in enumerate(grupos, 1)), return_exceptions=True
@@ -186,29 +207,84 @@ async def _gerar(
     for resultado in resultados:
         if isinstance(resultado, BaseException):
             raise resultado
-    propostas = [r for r in resultados if isinstance(r, Proposta)]
-    if len(propostas) == 1:
-        return propostas[0]  # um lote só: não há o que juntar
-    return await _propor(
+    pares = [r for r in resultados if not isinstance(r, BaseException)]
+    evidencias: Evidencias = {}
+    for _, do_lote in pares:
+        for nome, ids in do_lote.items():
+            evidencias.setdefault(nome, []).extend(ids)
+    if len(pares) == 1:
+        return pares[0][0], evidencias  # um lote só: não há o que juntar
+    consolidada = await _propor(
         llm,
         "consolidação",
-        prompts.consolidacao(propostas),
+        prompts.consolidacao([p for p, _ in pares]),
         prompts.correcao_sem_amostra,
         marcas,
     )
+    return consolidada, evidencias
+
+
+def _operacoes(
+    proposta: Proposta, documento: DocumentoTaxonomia, evidencias: Evidencias
+) -> list[Operacao]:
+    """O que a descoberta criou, com as frentes de evidência. O subtipo leva as frentes que a
+    LLM citou no lote com o mesmo nome; o que a consolidação renomeou fica sem (lista vazia)."""
+    saida = []
+    for tipo, valor in zip(proposta.tipos, documento.tipos, strict=True):
+        ids_do_tipo: list[str] = []
+        subtipos = []
+        for sub, filho in zip(tipo.subtipos, valor.filhos, strict=True):
+            ids = list(dict.fromkeys(evidencias.get(proposta_.normal(sub.nome), [])))
+            ids_do_tipo += ids
+            subtipos.append(
+                Operacao(
+                    TipoOperacao.CRIAR_SUBTIPO,
+                    Dimensao.TIPO,
+                    (),
+                    {"chave": filho.chave, "nome": sub.nome, "descricao": sub.descricao,
+                     "chave_pai": valor.chave},
+                    ids,
+                    aplicada=True,
+                )
+            )  # fmt: skip
+        saida.append(
+            Operacao(
+                TipoOperacao.CRIAR_TIPO,
+                Dimensao.TIPO,
+                (),
+                {"chave": valor.chave, "nome": tipo.nome, "descricao": tipo.descricao,
+                 "exemplo_reativo": tipo.exemplo_reativo,
+                 "exemplo_proativo": tipo.exemplo_proativo},
+                list(dict.fromkeys(ids_do_tipo)),
+                aplicada=True,
+            )
+        )  # fmt: skip
+        saida += subtipos
+    for causa, valor in zip(proposta.causas_raiz, documento.causas_raiz, strict=True):
+        saida.append(
+            Operacao(
+                TipoOperacao.CRIAR_CAUSA,
+                Dimensao.CAUSA_RAIZ,
+                (),
+                {"chave": valor.chave, "nome": causa.nome, "descricao": causa.descricao},
+                [],
+                aplicada=True,
+            )
+        )
+    return saida
 
 
 async def descobrir(
     con: Conexao,
     llm: ClienteLlm,
-    frentes: Sequence[tuple[str, str]],
+    frentes: Sequence[TextoDaFrente],
     organograma: Sequence[AreaDoOrganograma],
     modelo_jev: str,
     *,
     tamanho_do_lote: int = TAMANHO_DO_LOTE,
     disparada_em: datetime | None = None,
 ) -> Descoberta:
-    """Roda a descoberta sobre `frentes` (`(origem, texto)`) e grava a geração e a versão 1.
+    """Roda a descoberta sobre `frentes` (id, origem e texto) e grava a geração e a versão 1.
 
     A versão fica sem ativação (a ativação é do histórico reclassificado). A proposta que não
     fica válida, ou a LLM fora do ar, encerra sem versão: a geração fica `recusada`, com o
@@ -225,13 +301,25 @@ async def descobrir(
     registro = _Registro(llm)
     versao = None
     try:
-        proposta = await _gerar(registro, frentes, organograma, tamanho_do_lote)
-        versao = gravar(con, _documento(proposta, organograma), modelo_jev, geracao_id=geracao_id)
+        proposta, evidencias = await _gerar(registro, frentes, organograma, tamanho_do_lote)
+        documento = _documento(proposta, organograma)
+        versao = gravar(con, documento, modelo_jev, geracao_id=geracao_id)
     except (Recusada, ErroLlm, TaxonomiaInvalida) as erro:
         motivo = f"LLM: {erro}" if isinstance(erro, ErroLlm) else str(erro)
         repo.fechar(con, geracao_id, ResultadoGeracao.RECUSADA, resumo=motivo)
+    except BaseException as erro:
+        # Bug, Ctrl-C, erro do banco: a geração não fica aberta (aberta = "rodando").
+        motivo = f"erro inesperado: {type(erro).__name__}: {erro}"
+        repo.fechar(con, geracao_id, ResultadoGeracao.RECUSADA, resumo=motivo)
+        raise
     else:
-        repo.fechar(con, geracao_id, ResultadoGeracao.VERSAO_NOVA, versao_resultante=versao.numero)
+        repo.fechar(
+            con,
+            geracao_id,
+            ResultadoGeracao.VERSAO_NOVA,
+            versao_resultante=versao.numero,
+            operacoes=_operacoes(proposta, documento, evidencias),
+        )
     geracao = repo.ler(con, geracao_id)
     assert geracao is not None
     return Descoberta(geracao, versao, registro.chamadas, registro.uso)

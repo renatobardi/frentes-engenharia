@@ -1,24 +1,60 @@
-"""Propostas da LLM para os testes da descoberta, no formato JSON que o prompt pede."""
+"""Propostas da LLM para os testes da descoberta, no formato JSON que o prompt pede, e a
+gravação da `LlmFalsa` para cada pedido que a descoberta faz."""
 
 from collections.abc import Mapping, Sequence
 from typing import Any
 
 from frentes.contratos import RespostaLlm
+from frentes.store.geracao import TextoDaFrente
+from frentes.taxonomia import prompts
+from frentes.taxonomia import proposta as p
+from frentes.taxonomia.documento import organograma_de_dict
 from tests.llm.falso import resposta_llm
 
 TIPOS = ("Falha de Integração", "Lentidão de Fluxo", "Falta de Visibilidade", "Dívida Técnica")
 
+ORGANOGRAMA = organograma_de_dict(
+    [
+        {
+            "chave": "originacao",
+            "nome": "Originação",
+            "times": [
+                {
+                    "chave": "gravame",
+                    "nome": "Gravame",
+                    "o_que_faz": "Registra gravames",
+                    "itens": [],
+                }
+            ],
+        }
+    ]
+)
+MARCAS = p.marcas_do_organograma(ORGANOGRAMA)
 
-def tipo(nome: str, descricao: str | None = None, subtipos: int = 2) -> dict[str, Any]:
+
+def frentes(n: int) -> list[TextoDaFrente]:
+    return [TextoDaFrente(f"f{i}", "relato", f"frente número {i}") for i in range(n)]
+
+
+def tipo(
+    nome: str,
+    descricao: str | None = None,
+    subtipos: int = 2,
+    evidencias: Sequence[int] = (1,),
+) -> dict[str, Any]:
     return {
         "nome": nome,
         "descricao": descricao
         if descricao is not None
-        else f"Falhas e pedidos de melhoria sobre {nome.lower()}.",
+        else f"Falhas e pedidos sobre {nome.lower()}.",
         "exemplo_reativo": "algo quebrou",
         "exemplo_proativo": "quero melhorar",
         "subtipos": [
-            {"nome": f"{nome} {i}", "descricao": f"Critério {nome} {i}.", "evidencias": [1, 2]}
+            {
+                "nome": f"{nome} {i}",
+                "descricao": f"Critério {nome} {i}.",
+                "evidencias": list(evidencias),
+            }
             for i in range(1, subtipos + 1)
         ],
     }
@@ -37,27 +73,67 @@ def proposta(**trocas: Any) -> dict[str, Any]:
     return {**base, **trocas}
 
 
+def melhoria() -> dict[str, Any]:
+    """Uma proposta com um tipo só de melhoria."""
+    return proposta(tipos=[tipo("Melhorias de Processo"), *proposta()["tipos"][1:]])
+
+
 def resposta(conteudo: Mapping[str, Any] | None = None) -> RespostaLlm:
     return resposta_llm(proposta() if conteudo is None else conteudo)
 
 
-def melhoria() -> dict:
-    return proposta(tipos=[tipo("Melhorias de Processo"), *proposta()["tipos"][1:]])
+Gravacoes = dict[str, list[RespostaLlm | Exception]]
 
 
-class LlmEmFila:
-    """Devolve as respostas na ordem; a consolidação (a que não traz amostra) tem fila própria."""
+def _gravar_fluxo(
+    gravacoes: Gravacoes,
+    primeira: str,
+    conteudos: Sequence[Mapping[str, Any] | Exception],
+    pedir_correcao,
+    n_frentes: int | None,
+) -> None:
+    """Grava, na chave de cada pedido, a resposta que a descoberta vai receber: a primeira
+    proposta e, a cada inválida, o pedido de correção que o código monta a partir dela."""
+    entrada = primeira
+    for conteudo in conteudos:
+        if isinstance(conteudo, Exception):
+            gravacoes.setdefault(entrada, []).append(conteudo)
+            return
+        gravacoes.setdefault(entrada, []).append(resposta_llm(conteudo))
+        lida, violacoes = p.ler(conteudo)
+        if lida is not None:
+            violacoes = p.validar(lida, MARCAS, n_frentes)
+        if not violacoes:
+            return
+        entrada = pedir_correcao(lida.para_dict() if lida else conteudo, violacoes)
 
-    def __init__(self, lotes: Sequence = (), consolidacao: Sequence = ()) -> None:
-        self._lotes = list(lotes)
-        self._consolidacao = list(consolidacao)
-        self.chamadas: list[tuple[str, str]] = []
 
-    async def completar(self, instrucao: str, entrada: str) -> RespostaLlm:
-        self.chamadas.append((instrucao, entrada))
-        fila = self._lotes if "Amostra de" in entrada else self._consolidacao
-        assert fila, f"sem resposta gravada para: {entrada[:80]!r}"
-        item = fila.pop(0)
-        if isinstance(item, Exception):
-            raise item
-        return item
+def gravar_lote(
+    gravacoes: Gravacoes, grupo: Sequence[TextoDaFrente], *conteudos: Mapping[str, Any] | Exception
+) -> None:
+    """Respostas de um lote, na ordem: a proposta e as correções."""
+    amostra = [(f.origem, f.texto) for f in grupo]
+    _gravar_fluxo(
+        gravacoes,
+        prompts.descoberta(amostra)[1],
+        conteudos,
+        lambda anterior, violacoes: prompts.correcao(amostra, anterior, violacoes)[1],
+        len(grupo),
+    )
+
+
+def gravar_consolidacao(
+    gravacoes: Gravacoes,
+    do_lote: Sequence[Mapping[str, Any]],
+    *conteudos: Mapping[str, Any] | Exception,
+) -> None:
+    """Respostas da consolidação das propostas (já válidas) dos lotes."""
+    lidas = [p.ler(c)[0] for c in do_lote]
+    assert all(lida is not None for lida in lidas)
+    _gravar_fluxo(
+        gravacoes,
+        prompts.consolidacao(lidas)[1],
+        conteudos,
+        lambda anterior, violacoes: prompts.correcao_sem_amostra(anterior, violacoes)[1],
+        None,
+    )

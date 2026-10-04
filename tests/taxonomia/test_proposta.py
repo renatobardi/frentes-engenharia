@@ -108,14 +108,14 @@ def test_tipo_so_de_melhoria_pelo_nome(nome: str) -> None:
 
 
 def test_tipo_so_de_melhoria_pela_descricao() -> None:
-    so_proativo = tipo("Evolução de Plataforma", "Propõe melhorias e novas ideias.")
+    so_proativo = tipo("Ciclo de Plataforma", "Propõe melhorias e novas ideias.")
     assert regras(proposta(tipos=[so_proativo, *proposta()["tipos"][1:]])) == {
         "tipo_so_de_melhoria"
     }
 
 
 def test_descricao_que_cita_a_falha_nao_e_so_de_melhoria() -> None:
-    misto = tipo("Evolução de Plataforma", "Propõe melhorias e relata falhas na plataforma.")
+    misto = tipo("Ciclo de Plataforma", "Propõe melhorias e relata falhas na plataforma.")
     assert regras(proposta(tipos=[misto, *proposta()["tipos"][1:]])) == set()
 
 
@@ -167,13 +167,111 @@ def test_json_fora_do_formato_vira_violacao_de_formato(conteudo: dict) -> None:
     assert [v.regra for v in violacoes] == ["formato"]
 
 
-def test_para_dict_guarda_so_a_contagem_de_evidencias() -> None:
+def test_para_dict_leva_exemplos_e_evidencias_e_na_consolidacao_so_a_contagem() -> None:
     lida, _ = p.ler(proposta())
     assert lida is not None
-    dados = lida.para_dict()
-    assert dados["tipos"][0]["subtipos"][0] == {
+    completo = lida.para_dict()["tipos"][0]
+    assert completo["exemplo_reativo"] == "algo quebrou"
+    assert completo["subtipos"][0] == {
         "nome": "Falha de Integração 1",
         "descricao": "Critério Falha de Integração 1.",
-        "n_evidencias": 2,
+        "evidencias": [1],
     }
-    assert "exemplo_reativo" not in dados["tipos"][0]
+    enxuto = lida.para_dict(so_a_contagem=True)["tipos"][0]["subtipos"][0]
+    assert enxuto["n_evidencias"] == 1 and "evidencias" not in enxuto
+
+
+def com_primeiro(primeiro: dict) -> dict:
+    return proposta(tipos=[primeiro, *proposta()["tipos"][1:]])
+
+
+@pytest.mark.parametrize("campo", ["exemplo_reativo", "exemplo_proativo"])
+@pytest.mark.parametrize("valor", [None, "", "   "])
+def test_tipo_sem_exemplo_reativo_ou_proativo(campo: str, valor: str | None) -> None:
+    sem = tipo("Assunto Um")
+    if valor is None:
+        del sem[campo]
+    else:
+        sem[campo] = valor
+    lida, violacoes = p.ler(com_primeiro(sem))
+    assert lida is not None and violacoes == []
+    achadas = p.validar(lida, MARCAS)
+    assert [v.regra for v in achadas] == ["sem_exemplo"] and campo in achadas[0].mensagem
+
+
+@pytest.mark.parametrize("nome", ["Automação de Fluxo", "Oportunidades", "Evolução de Produto"])
+def test_nome_de_melhoria_que_o_prompt_proibe(nome: str) -> None:
+    assert regras(com_primeiro(tipo(nome, "Falhas na entrega."))) == {"tipo_so_de_melhoria"}
+
+
+@pytest.mark.parametrize(
+    "nome",
+    [
+        "Temas Gerais",
+        "Itens Diversos",
+        "Sem Categoria",
+        "Não Classificado",
+        "Demais",
+        "Assuntos Geral",
+    ],
+)
+def test_nome_generico_em_qualquer_palavra(nome: str) -> None:
+    assert regras(com_primeiro(tipo(nome))) == {"nome_generico"}
+
+
+@pytest.mark.parametrize("nome", ["Erro de Boleto", "Falha de Contrato", "Boletos"])
+def test_nome_de_time_no_singular_ou_plural_e_marca(nome: str) -> None:
+    organograma = (
+        AreaDoOrganograma(
+            "pos", "Pós-venda", (TimeDoOrganograma("boletos", "Boletos e Carnês", ""),
+                                 TimeDoOrganograma("contratos", "Contratos", ""))
+        ),
+    )  # fmt: skip
+    marcas = p.marcas_do_organograma(organograma)
+    assert regras(com_primeiro(tipo(nome)), marcas) == {"nome_de_area_time_ou_produto"}
+
+
+@pytest.mark.parametrize(
+    "mudanca",
+    [
+        lambda t: t.update(nome="x" * 5000),
+        lambda t: t.update(nome="um dois tres quatro cinco seis sete"),
+        lambda t: t.update(descricao="d" * 501),
+        lambda t: t.update(exemplo_reativo="e" * 301),
+        lambda t: t["subtipos"][0].update(descricao="d" * 501),
+    ],
+)
+def test_tetos_de_tamanho_do_que_a_llm_devolve(mudanca) -> None:
+    primeiro = tipo("Assunto Um")
+    mudanca(primeiro)
+    assert "tamanho" in regras(com_primeiro(primeiro))
+
+
+def test_tetos_de_tamanho_das_reguas_e_da_urgencia() -> None:
+    assert "tamanho" in regras(proposta(criterio_urgencia="u" * 301))
+    assert "tamanho" in regras(proposta(regua_impacto=["a", "b", "c", "d" * 301]))
+
+
+def test_nome_com_quebra_de_linha_e_invalido() -> None:
+    assert "nome_invalido" in regras(com_primeiro(tipo("Falha\nSistêmica")))
+
+
+def validar_lote(conteudo: dict, n_frentes: int | None) -> set[str]:
+    lida, _ = p.ler(conteudo)
+    assert lida is not None
+    return {v.regra for v in p.validar(lida, MARCAS, n_frentes)}
+
+
+@pytest.mark.parametrize("evidencias", [[], [0], [99], [1, 99]])
+def test_subtipo_sem_evidencia_valida_no_lote_nao_entra(evidencias: list[int]) -> None:
+    conteudo = com_primeiro(tipo("Assunto Um", evidencias=evidencias))
+    assert validar_lote(conteudo, 5) == {"evidencia"}
+    assert validar_lote(conteudo, None) == set()  # na consolidação são lotes, não frentes
+
+
+def test_evidencia_que_nao_e_lista_de_numeros_e_formato() -> None:
+    for ruim in ("1,2", [1, "2"], [True]):
+        primeiro = tipo("Assunto Um")
+        primeiro["subtipos"][0]["evidencias"] = ruim
+        lida, violacoes = p.ler(com_primeiro(primeiro))
+        assert lida is None and [v.regra for v in violacoes] == ["formato"]

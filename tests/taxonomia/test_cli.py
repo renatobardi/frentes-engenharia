@@ -5,8 +5,10 @@ import pytest
 
 from frentes import __main__ as principal
 from frentes import store
+from frentes.store.geracao import TextoDaFrente
 from frentes.taxonomia import cli
-from tests.taxonomia.propostas import LlmEmFila, melhoria, resposta
+from tests.llm.falso import LlmFalsa
+from tests.taxonomia.propostas import gravar_lote, melhoria, proposta
 
 
 def frente(con, id: str, data: str, texto: str) -> None:
@@ -26,11 +28,21 @@ def banco(tmp_path, monkeypatch):
     return con
 
 
+def falsa(monkeypatch, lidas, *conteudos) -> LlmFalsa:
+    gravacoes: dict = {}
+    gravar_lote(gravacoes, lidas, *conteudos)
+    llm = LlmFalsa(gravacoes)
+    monkeypatch.setattr(cli, "ClienteOpenRouter", lambda chave, operacao: llm)
+    return llm
+
+
+UMA = [TextoDaFrente("a", "relato", "o deploy quebrou")]
+DUAS = [*UMA, TextoDaFrente("b", "relato", "pedido de feature flag")]
+
+
 @pytest.fixture
 def llm(monkeypatch):
-    falsa = LlmEmFila([resposta()])
-    monkeypatch.setattr(cli, "ClienteOpenRouter", lambda chave, operacao: falsa)
-    return falsa
+    return falsa(monkeypatch, UMA, proposta())
 
 
 def conta(caminho, tabela: str) -> int:
@@ -42,7 +54,8 @@ def test_o_comando_esta_declarado_no_modulo_da_taxonomia() -> None:
     assert comandos["descobrir"][1] is cli.descobrir
 
 
-def test_grava_a_versao_1_sem_ativacao_e_diz_o_custo(banco, llm, capsys) -> None:
+def test_grava_a_versao_1_sem_ativacao_e_diz_o_custo(banco, monkeypatch, capsys) -> None:
+    llm = falsa(monkeypatch, DUAS, proposta())
     frente(banco, "a", "2026-01-01T00:00:00Z", "o deploy quebrou")
     frente(banco, "b", "2026-03-01T00:00:00Z", "pedido de feature flag")
     # fora dos seis meses (180 dias) da frente mais antiga
@@ -75,8 +88,7 @@ def test_o_organograma_e_o_da_seed(banco, llm) -> None:
 
 
 def test_proposta_que_nao_fica_valida_sai_com_1_e_sem_versao(banco, monkeypatch, capsys) -> None:
-    falsa = LlmEmFila([resposta(melhoria())] * 3)
-    monkeypatch.setattr(cli, "ClienteOpenRouter", lambda chave, operacao: falsa)
+    falsa(monkeypatch, UMA, melhoria(), melhoria(), melhoria())
     frente(banco, "a", "2026-01-01T00:00:00Z", "o deploy quebrou")
     banco.commit()
 
