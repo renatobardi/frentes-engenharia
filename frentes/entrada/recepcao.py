@@ -155,3 +155,12 @@ def receber(
         bruta=bruta,
         recebido_em=contratos.para_iso(contratos.agora()),
     )
+
+
+def bruta_do_relato(emissor: str, texto: str) -> contratos.FrenteBruta:
+    """A frente bruta do formulário de relato, com as mesmas regras do corpo do POST."""
+    try:
+        corpo = CorpoDaFrente(emissor=emissor, texto=texto)
+    except ValidationError:
+        raise CorpoInvalido("relato inválido: informe quem relata e o texto") from None
+    return contratos.FrenteBruta(emissor=corpo.emissor, texto=corpo.texto)
