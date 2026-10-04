@@ -14,10 +14,14 @@ def _numero(argumentos: list[str]) -> int | None:
     return None
 
 
+def _mostrar(p: fila.Progresso) -> None:
+    print(f"classificar: {p.texto()}", file=sys.stderr, flush=True)
+
+
 async def _rodar(cfg: config.Config, numero: int) -> fila.ResumoDaVersao:
     f, clientes = fila.montar_fila(None, cfg)
     try:
-        return await f.classificar_versao(numero)
+        return await f.classificar_versao(numero, _mostrar)
     finally:
         for cliente in clientes.values():
             await cliente.aclose()
@@ -39,7 +43,11 @@ def classificar(argumentos: list[str]) -> int:
     except store.BancoAusente as erro:
         print(f"classificar: {erro}", file=sys.stderr)
         return 2
-    except fila.VersaoInexistente as erro:
+    except (
+        fila.VersaoInexistente,
+        fila.VersaoAntiga,
+        fila.ClassificandoEmOutroProcesso,
+    ) as erro:
         print(f"classificar: {erro}", file=sys.stderr)
         return 2
     except KeyboardInterrupt:

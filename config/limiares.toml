@@ -47,6 +47,8 @@ selo = 0.7
 [concorrencia]
 jev = 40
 llm = 8
+# Largadas por segundo ao Jev, além do semáforo (o teto dele é 80 req/s, spec 03).
+jev_por_s = 60
 
 # Tempo limite de uma chamada, em segundos. llm_lote_s é o das chamadas de lote da LLM (candidatos
 # da lista de problemas e propostas da descoberta: 80 a 140 s medidos); llm_s, o da chamada por frente.

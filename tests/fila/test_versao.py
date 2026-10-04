@@ -283,18 +283,19 @@ def test_versao_que_nao_existe_levanta(banco: Path) -> None:
         rodar(montar(banco, JevFalso({}), LlmFalsa({})), 9)
 
 
-def test_versao_menor_que_a_vigente_classifica_mas_nao_ativa(banco: Path) -> None:
+def test_versao_menor_que_a_vigente_e_recusada_antes_de_qualquer_chamada(banco: Path) -> None:
     with closing(store.abrir(banco)) as con:
         armazem_versao.inserir(con, VersaoTaxonomia(3, DOCUMENTO, "jev-latest", QUANDO), [])
         assert armazem_versao.ativar(con, 3, para_iso(QUANDO))
     gravar_frente(banco, "f1", "texto")
     falso = JevFalso({"texto": jev()})
 
-    # a v3 vale e a v2 não: classificar a v2 (menor que a vigente) não a ativa
-    resumo = rodar(montar(banco, falso, LlmFalsa({})), 2)
+    for menor in (1, 2):  # a v1 já foi ativada e a v2 não: nenhuma das duas serve
+        with pytest.raises(fila.VersaoAntiga, match=rf"versão {menor} é menor que a vigente \(3\)"):
+            rodar(montar(banco, falso, LlmFalsa({})), menor)
 
-    assert not resumo.ativada and "não é maior que a vigente (3)" in resumo.motivo_nao_ativada
-    assert not resumo.completo and vigente(banco) == 3
+    assert falso.chamadas == [] and da_versao(banco, 1) == {} and da_versao(banco, 2) == {}
+    assert vigente(banco) == 3
 
 
 def test_frente_nova_durante_a_execucao_impede_a_ativacao(banco: Path) -> None:
@@ -327,7 +328,9 @@ def test_o_semaforo_limita_as_chamadas_ao_jev_em_voo(banco: Path) -> None:
             em_voo -= 1
             return await super().perguntar(texto, perguntas)
 
-    operacao = replace(CFG.operacao, semaforo_jev=2, varredura_s=0.05, espera_inicial_s=0.001)
+    operacao = replace(
+        CFG.operacao, semaforo_jev=2, jev_por_s=1000.0, varredura_s=0.05, espera_inicial_s=0.001
+    )
     falso = JevContado({f"texto {i}": jev() for i in range(6)})
     f = fila.Fila(None, banco, CFG.limiares, operacao, lambda m: falso, LlmFalsa({}))
 
@@ -435,3 +438,178 @@ def test_comando_interrompido_sai_com_130(
 
     assert cli.classificar(["--versao", "2"]) == 130
     assert "interrompido" in capsys.readouterr().err
+
+
+def test_comando_com_versao_menor_que_a_vigente_sai_com_2(
+    banco: Path, comando: Any, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with closing(store.abrir(banco)) as con:
+        armazem_versao.inserir(con, VersaoTaxonomia(3, DOCUMENTO, "jev-latest", QUANDO), [])
+        assert armazem_versao.ativar(con, 3, para_iso(QUANDO))
+    gravar_frente(banco, "f1", "texto")
+    falso = JevFalso({"texto": jev()})
+    comando(falso, LlmFalsa({}))
+
+    assert cli.classificar(["--versao", "2"]) == 2
+
+    assert "menor que a vigente (3)" in capsys.readouterr().err and falso.chamadas == []
+
+
+# ---------------------------------------------------------------------------- progresso
+
+
+def test_progresso_sai_a_cada_n_frentes_terminadas(banco: Path) -> None:
+    for i in range(5):
+        gravar_frente(banco, f"f{i}", f"texto {i}")
+    fotos: list[fila.Progresso] = []
+    falso = JevFalso({f"texto {i}": jev() for i in range(5)})
+
+    asyncio.run(montar(banco, falso, LlmFalsa({})).classificar_versao(2, fotos.append, a_cada=2))
+
+    assert [(p.feitas, p.pendentes) for p in fotos] == [(2, 3), (4, 1)]
+
+
+def test_progresso_traz_falhas_tokens_e_custo_acumulados(banco: Path) -> None:
+    for i in range(5):
+        gravar_frente(banco, f"f{i}", f"texto {i}")
+    gravacoes: dict[str, Any] = {f"texto {i}": jev() for i in range(5)}
+    gravacoes["texto 3"] = ErroJev("fora do ar")
+    fim: list[fila.Progresso] = []
+
+    # a ordem em que as frentes terminam não é fixa: o conteúdo confere-se na foto do fim
+    resumo = asyncio.run(
+        montar(banco, JevFalso(gravacoes), LlmFalsa({})).classificar_versao(2, fim.append, a_cada=5)
+    )
+
+    (ultima,) = fim
+    assert (ultima.feitas, ultima.pendentes, ultima.falhas) == (5, 0, 1)  # a f3 falha
+    assert (ultima.totais.jev_entrada, ultima.totais.jev_saida) == (40, 20)  # 4 respostas pagas
+    assert ultima.custo_jev_usd == pytest.approx(40 * 0.042 / 1_000_000)
+    assert "5 feitas, 0 pendentes, 1 com falha" in ultima.texto() and "LLM" in ultima.texto()
+    assert list(resumo.falhas) == ["f3"]
+
+
+def test_comando_escreve_o_progresso_em_stderr(
+    banco: Path,
+    comando: Any,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    gravar_frente(banco, "f1", "texto")
+    comando(JevFalso({"texto": jev()}), LlmFalsa({}))
+    original = fila.Fila.classificar_versao
+
+    async def a_cada_um(self: fila.Fila, numero: int, progresso: Any = None, a_cada: int = 1):
+        return await original(self, numero, progresso, a_cada)
+
+    monkeypatch.setattr(fila.Fila, "classificar_versao", a_cada_um)
+
+    assert cli.classificar(["--versao", "2"]) == 0
+
+    assert "classificar: 1 feitas, 0 pendentes, 0 com falha" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------- ritmo e vaga
+
+
+def test_o_ritmo_limita_as_largadas_ao_jev_por_segundo(banco: Path) -> None:
+    for i in range(8):
+        gravar_frente(banco, f"f{i}", f"texto {i}")
+    largadas: list[float] = []
+
+    class JevMarcado(JevFalso):
+        async def perguntar(self, texto: str, perguntas: Perguntas) -> RespostaJev:
+            largadas.append(asyncio.get_running_loop().time())
+            return await super().perguntar(texto, perguntas)
+
+    operacao = replace(CFG.operacao, jev_por_s=50.0, varredura_s=0.05, espera_inicial_s=0.001)
+    falso = JevMarcado({f"texto {i}": jev() for i in range(8)})
+    f = fila.Fila(None, banco, CFG.limiares, operacao, lambda m: falso, LlmFalsa({}))
+
+    assert rodar(f).ativada
+
+    # 50 por segundo: 8 largadas levam pelo menos 7 passos de 20 ms (com folga para o relógio)
+    assert len(largadas) == 8 and largadas[-1] - largadas[0] >= 0.8 * 7 / 50
+
+
+def test_a_vaga_do_jev_e_solta_enquanto_a_frente_espera_a_llm(banco: Path) -> None:
+    gravar_frente(banco, "baixa", "algo em plataforma ou dados")  # vai à LLM
+    gravar_frente(banco, "a", "texto a")
+    gravar_frente(banco, "b", "texto b")
+    textos = {"algo em plataforma ou dados": jev(AREA_BAIXA), "texto a": jev(), "texto b": jev()}
+    jev_chamado_nos_outros = asyncio.Event()
+
+    class LlmQueEspera(LlmPorTexto):
+        async def completar(self, instrucao: str, entrada: str) -> Any:
+            # só responde depois que o Jev atendeu as outras duas, com uma única vaga
+            await asyncio.wait_for(jev_chamado_nos_outros.wait(), 5)
+            return await super().completar(instrucao, entrada)
+
+    class JevQueAvisa(JevFalso):
+        async def perguntar(self, texto: str, perguntas: Perguntas) -> RespostaJev:
+            resposta = await super().perguntar(texto, perguntas)
+            if {"texto a", "texto b"} <= {t for t, _ in self.chamadas}:
+                jev_chamado_nos_outros.set()
+            return resposta
+
+    avisa = JevQueAvisa(textos)
+    operacao = replace(CFG.operacao, semaforo_jev=1, varredura_s=0.05, espera_inicial_s=0.001)
+    f = fila.Fila(None, banco, CFG.limiares, operacao, lambda m: avisa, LlmQueEspera(LLM_DA_BAIXA))
+
+    # com a vaga presa na LLM, o `wait_for` estoura e a frente fica pendente
+    resumo = rodar(f)
+
+    assert resumo.ativada and not resumo.falhas
+    assert da_versao(banco)["baixa"].estado is Estado.VIA_LLM
+
+
+# ---------------------------------------------------------------------------- trava
+
+
+def test_dois_classificar_no_mesmo_banco_o_segundo_se_recusa(banco: Path) -> None:
+    gravar_frente(banco, "f1", "texto")
+    falso = JevFalso({"texto": jev()})
+    segurada = fila._tentar_travar(fila._arquivo_de_trava(banco, "classificar"), exclusiva=True)
+    try:
+        with pytest.raises(fila.ClassificandoEmOutroProcesso, match="outro `classificar`"):
+            rodar(montar(banco, falso, LlmFalsa({})))
+    finally:
+        segurada.close()
+
+    assert falso.chamadas == [] and vigente(banco) == 1
+    assert rodar(montar(banco, falso, LlmFalsa({}))).ativada  # solta a trava, roda
+
+
+def test_com_o_servidor_no_ar_a_vigente_se_recusa_e_a_versao_nova_nao(banco: Path) -> None:
+    gravar_frente(banco, "f1", "texto")
+    falso = JevFalso({"texto": jev()})
+
+    async def cenario() -> None:
+        servidor = montar(banco, JevFalso({}), LlmFalsa({}))
+        servidor.partir()
+        try:
+            with pytest.raises(fila.ClassificandoEmOutroProcesso, match="o servidor"):
+                await montar(banco, falso, LlmFalsa({})).classificar_versao(1)  # a vigente
+            resumo = await montar(banco, falso, LlmFalsa({})).classificar_versao(2)  # a nova
+            assert resumo.ativada
+        finally:
+            await servidor.parar()
+
+    asyncio.run(cenario())
+
+    # parado o servidor, a trava dele foi solta
+    assert rodar(montar(banco, falso, LlmFalsa({})), 2).completo
+
+
+def test_comando_recusado_pela_trava_sai_com_2(
+    banco: Path, comando: Any, capsys: pytest.CaptureFixture[str]
+) -> None:
+    gravar_frente(banco, "f1", "texto")
+    comando(JevFalso({"texto": jev()}), LlmFalsa({}))
+    segurada = fila._tentar_travar(fila._arquivo_de_trava(banco, "classificar"), exclusiva=True)
+    try:
+        assert cli.classificar(["--versao", "2"]) == 2
+    finally:
+        segurada.close()
+
+    assert "já está classificando" in capsys.readouterr().err
