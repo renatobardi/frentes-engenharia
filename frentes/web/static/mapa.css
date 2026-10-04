@@ -14,7 +14,7 @@
 .grade { border-collapse: separate; border-spacing: 3px; width: 100%; }
 .grade th { text-align: left; font-weight: 600; padding: 0.4rem; }
 .grade thead th { text-align: center; }
-.celula { text-align: center; padding: 0.6rem; border-radius: 4px; background: #fff; vertical-align: middle; }
+.celula { text-align: center; padding: 0.6rem; border-radius: 4px; background: #fff; vertical-align: middle; position: relative; }
 .celula .indice { font-size: 1.2rem; font-weight: 700; }
 .celula .incertas { display: block; font-size: 0.75rem; color: var(--suave); }
 .celula.calor-1 { background: #fde9d4; }
@@ -51,7 +51,6 @@
 .frentes-da-celula small, .problemas small { display: block; color: var(--suave); }
 
 /* Ao vivo (spec 10): a célula cujo índice mudou pisca duas vezes, sobe o "+N" e o número conta */
-.celula { position: relative; }
 .celula.piscou { animation: piscar 0.6s ease-in-out 2; }
 @keyframes piscar {
   0%, 100% { box-shadow: 0 0 0 0 transparent; }

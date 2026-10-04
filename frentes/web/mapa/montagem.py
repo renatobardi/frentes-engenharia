@@ -51,7 +51,7 @@ class CelulaNaTela:
     bruto: float = 0.0  # o índice sem arredondar: é o que a leitura seguinte compara
     piscou: bool = False  # o índice mudou desde a leitura anterior: o CSS pisca a célula
     de: str = ""  # o índice da leitura anterior, de onde o número conta ("" se não piscou)
-    diferenca: str = ""  # "+0,9" ou "−0,9", o que mudou
+    novas: int = 0  # frentes que pintaram a célula desde que a tela abriu: o "+N"
 
 
 @dataclass(frozen=True, slots=True)

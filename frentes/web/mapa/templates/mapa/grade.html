@@ -17,7 +17,7 @@
         {% if c.endereco %}<a class="abrir" href="{{ c.endereco }}" hx-get="{{ c.endereco }}" hx-target="#mapa" hx-swap="outerHTML" hx-push-url="true"{% if celula_aberta == (a.chave, t.chave) %} aria-current="true"{% endif %}>{% endif %}
         {% if c.indice %}<span class="indice"{% if c.piscou %} data-de="{{ c.de }}" data-para="{{ c.indice }}"{% endif %}>{{ c.indice }}</span>{% if c.seta %} <span class="seta">{{ c.seta }}{{ c.variacao }}</span>{% endif %}{% endif %}
         {% if c.incertas %}<span class="incertas">+{{ c.incertas }} incertas</span>{% endif %}
-        {% if c.piscou %}<span class="diferenca" aria-label="mudou {{ c.diferenca }}">{{ c.diferenca }}</span>{% endif %}
+        {% if c.novas %}<span class="diferenca" aria-label="{{ c.novas }} novas">+{{ c.novas }}</span>{% endif %}
         {% if c.endereco %}</a>{% endif %}
       </td>
       {% endfor %}

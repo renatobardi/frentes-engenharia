@@ -128,7 +128,7 @@ def _pintando(area: str, tipo: str, score: float, **mais: object) -> dict[str, o
 def test_a_tela_traz_o_polling_do_htmx_a_cada_2_s_e_a_marca_da_sessao(http: TestClient) -> None:
     pagina = http.get("/").text
 
-    assert re.search(r'id="ao-vivo"[^>]*hx-trigger="every 2s"', pagina)
+    assert re.search(r'id="ao-vivo"[^>]*hx-trigger="every 2s \[', pagina)
     assert _polling(pagina).startswith("/mapa/ao-vivo?visao=dor&periodo=90d&leitura=")
     assert "X-Marca" in pagina
     assert "ws-connect" not in pagina and "sse-connect" not in pagina
@@ -156,7 +156,7 @@ def test_celula_que_mudou_traz_a_marca_de_piscar_e_a_diferenca(
     assert re.match(r'<td class="celula calor-\d piscou"', celula) or " piscou" in celula[:90]
     assert 'data-de="3,6"' in celula and 'data-para="4,5"' in celula
     assert '<span class="indice" data-de="3,6" data-para="4,5">4,5</span>' in celula
-    assert '<span class="diferenca" aria-label="mudou +0,9">+0,9</span>' in celula
+    assert '<span class="diferenca" aria-label="1 novas">+1</span>' in celula
     # só ela mudou
     assert len(_piscaram(resposta)) == 1
 
@@ -213,7 +213,7 @@ def test_celula_que_baixou_mostra_o_menos(http: TestClient) -> None:
 
     celula = _td(resposta, INCIDENTE)
     assert 'data-de="5"' in celula and 'data-para="3,6"' in celula
-    assert ">−1,4</span>" in celula
+    assert 'class="diferenca"' not in celula  # nenhuma frente nova: só o número mudou
 
 
 def test_celula_que_nao_estava_na_leitura_conta_de_zero(http: TestClient) -> None:
@@ -222,12 +222,25 @@ def test_celula_que_nao_estava_na_leitura_conta_de_zero(http: TestClient) -> Non
     resposta = _poll(http, polling, cabecalhos, leitura="[]").text
 
     celula = _td(resposta, INCIDENTE)
-    assert 'data-de="0"' in celula and ">+3,6</span>" in celula
+    assert 'data-de="0"' in celula and 'class="diferenca"' not in celula
     assert len(_piscaram(resposta)) == 3  # as três células com índice
 
 
 @pytest.mark.parametrize(
-    "leitura", [None, "", "isso não é json", '{"a": 1}', "[[1, 2]]", "x" * 40_000]
+    "leitura",
+    [
+        None,
+        "",
+        "isso não é json",
+        '{"a": 1}',
+        "[[1, 2]]",
+        "x" * 40_000,
+        '[["plat","incidente",' + "9" * 400 + "]]",  # estoura o float: OverflowError
+        "[" * 20_000,  # aninhado demais: RecursionError
+        '[["plat","incidente",1e999]]',  # infinito
+        '[["plat","incidente",NaN]]',
+        '[["plat",["x"],1]]',  # chave que não é texto
+    ],
 )
 def test_leitura_ausente_ou_invalida_nao_pisca_nada(http: TestClient, leitura: str | None) -> None:
     _, polling, cabecalhos = _ler(http)
@@ -237,6 +250,110 @@ def test_leitura_ausente_ou_invalida_nao_pisca_nada(http: TestClient, leitura: s
 
     assert resposta.status_code == 200
     assert _piscaram(resposta.text) == []
+
+
+def test_so_se_troca_o_que_mudou(banco: Path, http: TestClient) -> None:
+    _, polling, cabecalhos = _ler(http)
+
+    parado = _poll(http, polling, cabecalhos).text
+
+    assert 'id="ao-vivo"' in parado  # o gatilho segue
+    for trocado in ('id="grade-vivo"', 'id="top3-vivo"', 'id="faixa"', 'id="fora-vivo"', "<table"):
+        assert trocado not in parado
+    _escrever(banco, lambda con: _pinta(con, "plat", "incidente", 0.9, 1))
+    mudou = _poll(http, polling, cabecalhos).text
+    assert 'id="grade-vivo"' in mudou and 'id="top3-vivo"' in mudou
+    assert 'id="fora-vivo"' not in mudou  # os contadores não mudaram
+
+
+def test_o_mais_n_conta_as_frentes_novas_acumula_e_nao_some_na_leitura_seguinte(
+    banco: Path, http: TestClient
+) -> None:
+    _, polling, cabecalhos = _ler(http)
+    for dias in (1, 2, 4):
+        _escrever(banco, lambda con, d=dias: _pinta(con, "plat", "incidente", 0.9, d))
+    primeira = _poll(http, polling, cabecalhos).text
+    assert 'aria-label="3 novas">+3<' in _td(primeira, INCIDENTE)
+
+    # a leitura seguinte, sem novidade, não troca nada; o "+3" segue na tela
+    segunda = _poll(http, _polling(primeira), cabecalhos).text
+    assert "<table" not in segunda
+    # mais duas chegam: o número acumula, não recomeça
+    for dias in (1, 2):
+        _escrever(banco, lambda con, d=dias: _pinta(con, "plat", "incidente", 0.9, d))
+    terceira = _poll(http, _polling(segunda), cabecalhos).text
+    assert 'aria-label="5 novas">+5<' in _td(terceira, INCIDENTE)
+    # trocar o filtro leva a marca e o "+5" continua; sem marca (tela aberta de novo) zera
+    miolo = http.get("/", headers={**cabecalhos, "HX-Request": "true"}).text
+    assert 'aria-label="5 novas">+5<' in _td(miolo, INCIDENTE)
+    assert 'class="diferenca"' not in _td(http.get("/").text, INCIDENTE)
+
+
+def test_o_mais_n_so_conta_as_que_pintam_a_visao_e_respeita_a_origem(
+    banco: Path, http: TestClient
+) -> None:
+    _, _, cabecalhos = _ler(http)
+    _escrever(banco, lambda con: _pinta(con, "plat", "incidente", 0.9, 1, origem="log"))
+    _escrever(banco, lambda con: _pinta(con, "plat", "incidente", 0.9, 1, natureza="proativa"))
+    _escrever(
+        banco,
+        lambda con: _pinta(
+            con, "plat", "incidente", 0.9, 1, estado="incerta", motivo="confianca_baixa"
+        ),
+    )
+
+    todas = http.get("/", headers={**cabecalhos, "HX-Request": "true"}).text
+    so_relato = http.get(
+        "/", params={"origem": "relato"}, headers={**cabecalhos, "HX-Request": "true"}
+    ).text
+
+    assert 'aria-label="1 novas">+1<' in _td(todas, INCIDENTE)  # a proativa e a incerta não contam
+    assert 'class="diferenca"' not in _td(so_relato, INCIDENTE)  # a que pinta veio pelo log
+
+
+def test_os_contadores_fora_da_grade_entram_no_polling(banco: Path, http: TestClient) -> None:
+    _, polling, cabecalhos = _ler(http)
+    _nova(banco, "aguarda-um")
+    _nova(banco, "aguarda-dois")
+
+    resposta = _poll(http, polling, cabecalhos).text
+
+    inicio = resposta.index('id="fora-vivo"')
+    fora = resposta[inicio : resposta.index("</ul>", inicio)]
+    assert re.search(r"<strong>2</strong> Aguardando classificação", fora)
+    # a leitura seguinte, igual, não os troca de novo
+    assert 'id="fora-vivo"' not in _poll(http, _polling(resposta), cabecalhos).text
+
+
+def test_nao_classificadas_trocam_a_grade(banco: Path, http: TestClient) -> None:
+    _, polling, cabecalhos = _ler(http)
+    _nova(banco, "sem-area", **_pintando(None, None, 0.5, estado="nao_classificada"))
+
+    assert "Não classificadas" in _poll(http, polling, cabecalhos).text
+
+
+def test_a_faixa_so_e_trocada_quando_muda(banco: Path, http: TestClient) -> None:
+    _, polling, cabecalhos = _ler(http)
+    _nova(banco, "chegou-uma", **_pintando("plat", "incidente", 0.1))
+    primeira = _poll(http, polling, cabecalhos).text
+    assert 'id="faixa"' in primeira
+
+    assert 'id="faixa"' not in _poll(http, _polling(primeira), cabecalhos).text
+
+
+def test_com_o_mapa_numa_versao_antiga_a_faixa_usa_a_classificacao_da_vigente(
+    banco: Path, http: TestClient
+) -> None:
+    _, polling, cabecalhos = _ler(http, versao="1")
+    with closing(store.abrir(banco)) as con:
+        id = _nova(banco, "so-na-vigente")
+        _class(con, id, 2, **_pintando("plat", "incidente", 0.5))
+        con.commit()
+
+    resposta = _poll(http, polling, cabecalhos).text
+
+    assert "aguardando classificação" not in resposta
+    assert '<span class="estado">classificada</span>' in resposta
 
 
 # ------------------------------------------------------------ a faixa "Chegando agora"
@@ -363,7 +480,7 @@ def test_painel_aberto_atualizando_vem_de_novo_com_a_marca_e_continua_no_polling
     assert 'id="painel"' in resposta and 'hx-swap-oob="true"' in resposta
     assert '<span class="atualizando">atualizando</span>' in resposta
     assert "atualizando=1" in _polling(resposta)  # segue pedindo até o painel ficar atual
-    assert 'aria-current="true"' in resposta  # a célula aberta continua marcada
+    assert "<table" not in resposta  # nada mudou na grade: ela não é trocada, o foco fica
 
 
 def test_painel_que_terminou_de_atualizar_vem_uma_ultima_vez_e_para(com_painel: Path) -> None:
@@ -386,11 +503,15 @@ def test_painel_aberto_e_atual_so_vem_quando_a_celula_dele_muda(banco: Path) -> 
     parado = _poll(http, polling, cabecalhos).text
     _escrever(banco, lambda con: _pinta(con, "plat", "incidente", 0.9, 1))
     mudou = _poll(http, polling, cabecalhos).text
+    # a célula mudou: o painel é marcado para recarregar uma vez mais, e depois para
+    recarregado = _poll(http, _polling(mudou), cabecalhos).text
     _escrever(banco, lambda con: _pinta(con, "ops", "processo", 0.9, 1))
-    outra = _poll(http, _polling(mudou), cabecalhos).text
+    outra = _poll(http, _polling(recarregado), cabecalhos).text
 
     assert 'id="painel"' not in parado
     assert 'id="painel"' in mudou and "<strong>4,5</strong>" in mudou
+    assert "atualizando=1" in _polling(mudou)
+    assert 'id="painel"' in recarregado and "atualizando=1" not in _polling(recarregado)
     assert 'id="painel"' not in outra  # mudou outra célula: o painel aberto fica como está
 
 
@@ -484,8 +605,39 @@ def test_post_frentes_classifica_e_a_leitura_seguinte_traz_a_celula_mudada(servi
 
     celula = _td(leitura, INCIDENTE)
     assert " piscou" in celula[:90]
-    assert 'data-de="0"' in celula and 'data-para="0,6"' in celula and ">+0,6</span>" in celula
+    assert 'data-de="0"' in celula and 'data-para="0,6"' in celula and ">+1</span>" in celula
     assert len(_piscaram(leitura)) == 1
     assert "o simulador caiu" in leitura and "PLAT × INCIDENTE" in leitura
     faixa = leitura[leitura.index('id="faixa"') : leitura.index("</section>")]
     assert "classificada" in faixa and "90%" in faixa
+
+
+def test_rajada_de_20_acumula_o_mais_n_e_a_faixa_mostra_as_ultimas_cinco(servidor: Any) -> None:
+    textos = [f"rajada {n:02d}" for n in range(20)]
+    falso = JevFalso({t: jev() for t in textos})
+    servidor.app_.state.fila = fila.Fila(
+        servidor.app_, servidor.banco, CFG.limiares, OPERACAO, lambda m: falso, LlmFalsa({})
+    )
+    _, polling, cabecalhos = _ler(servidor)
+
+    for t in textos:
+        assert (
+            servidor.post("/frentes", json={"texto": t}, headers=CABECALHO_WEBHOOK).status_code
+            == 202
+        )
+
+    def todas() -> bool:
+        with closing(store.abrir(servidor.banco)) as con:
+            return con.execute("SELECT count(*) AS n FROM classificacao").fetchone()["n"] == 20
+
+    _esperar(todas)
+    leitura = _poll(servidor, polling, cabecalhos).text
+
+    celula = _td(leitura, INCIDENTE)
+    assert 'aria-label="20 novas">+20<' in celula and 'data-para="12"' in celula
+    faixa = leitura[leitura.index('id="faixa"') : leitura.index("</section>")]
+    assert re.findall(r'texto">(rajada \d\d)<', faixa) == [f"rajada {n}" for n in range(19, 14, -1)]
+    assert "20 frentes" in faixa
+    # a leitura seguinte não perde nada nem recomeça
+    seguinte = _poll(servidor, _polling(leitura), cabecalhos).text
+    assert "<table" not in seguinte and 'id="faixa"' not in seguinte

@@ -31,14 +31,10 @@
       <noscript><button type="submit">Aplicar</button></noscript>
     </form>
 
-    <ul class="contadores" aria-label="Fora da grade">
-      {% for c in contadores %}
-      <li><a href="{{ c.destino }}"><strong>{{ c.total }}</strong> {{ c.nome }}</a></li>
-      {% endfor %}
-    </ul>
+    {% include "mapa/contadores.html" %}
   </div>
 
-  <div id="ao-vivo" hidden hx-get="{{ polling }}" hx-trigger="every {{ intervalo }}s" hx-swap="outerHTML"></div>
+  <div id="ao-vivo" hidden hx-get="{{ polling }}" hx-trigger="every {{ intervalo }}s [document.visibilityState=='visible']" hx-swap="outerHTML"></div>
 
   {% include "mapa/faixa.html" %}
   {% include "mapa/top3.html" %}

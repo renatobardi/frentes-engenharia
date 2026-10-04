@@ -121,7 +121,7 @@ def _pontos(serie: list[agregados.PontoMensal]) -> list[Ponto]:
     ]
 
 
-def _trecho(texto: str) -> str:
+def trecho(texto: str) -> str:
     unico = " ".join(texto.split())
     return unico if len(unico) <= TRECHO else unico[:TRECHO].rstrip() + "…"
 
@@ -182,7 +182,7 @@ def montar(
             origem=NOME_DA_ORIGEM[Origem(f.origem)],
             data=contratos.de_iso(f.data).strftime("%d/%m/%Y"),
             confianca=f"{f.confianca:.0%}",
-            trecho=_trecho(textos[f.frente_id].texto) if f.frente_id in textos else "",
+            trecho=trecho(textos[f.frente_id].texto) if f.frente_id in textos else "",
             incerta=f.incerta,
         )
         for f in d.frentes[:FRENTES_NO_PAINEL]

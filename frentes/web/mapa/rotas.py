@@ -20,7 +20,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 
-from frentes import store
+from frentes import contratos, store
 from frentes.contratos import Origem, Periodo, Visao
 from frentes.mapa import agregados
 from frentes.store import chegando
@@ -115,8 +115,41 @@ def _marca(request: Request, con: store.Conexao) -> int:
 
 
 def _faixa(con: store.Conexao, lida: Lida, marca: int) -> dict[str, object]:
-    total, linhas = chegando.depois_da_marca(con, lida.mapa.versao, marca, ao_vivo.CHEGANDO)
+    # a frente nova é classificada na vigente: com o mapa numa versão antiga, é ela que vale
+    versao = store_versao.versao_vigente(con) or lida.mapa.versao
+    total, linhas = chegando.depois_da_marca(con, versao, marca, ao_vivo.CHEGANDO)
     return {"chegando": ao_vivo.chegadas(linhas, lida.areas, lida.tipos), "chegando_total": total}
+
+
+def _com_novas(con: store.Conexao, lida: Lida, origens: list[Origem], marca: int):
+    """A grade com o "+N" de cada célula: as frentes que a pintaram desde a marca."""
+    mapa = lida.mapa
+    novas = chegando.novas_por_celula(
+        con,
+        mapa.versao,
+        marca,
+        agregados.VISAO[mapa.visao][0].value,
+        contratos.para_iso(mapa.desde),
+        contratos.para_iso(mapa.ate),
+        agregados.origens_validas(origens),
+    )
+    return ao_vivo.aplicar_novas(lida.grade, novas)
+
+
+def _impressoes(
+    lida: Lida, contadores: list[montagem.Contador], faixa: dict[str, object]
+) -> tuple[str, str, str]:
+    """(faixa, contadores, "Não classificadas"): o que a leitura seguinte compara."""
+    m = lida.mapa
+    return (
+        ao_vivo.impressao(faixa["chegando"], faixa["chegando_total"]),
+        ao_vivo.impressao([(c.nome, c.total) for c in contadores]),
+        ao_vivo.impressao(
+            m.nao_classificadas_por_area,
+            m.nao_classificadas_por_tipo,
+            m.nao_classificadas_sem_ambos,
+        ),
+    )
 
 
 @roteador.get(
@@ -153,13 +186,15 @@ def mapa_de_calor(
         aberto = _painel(request, con, lida, visao, periodo, origens) if lida.celula else None
         marca = _marca(request, con)
         faixa = _faixa(con, lida, marca)
+        grade = _com_novas(con, lida, origens, marca)
+    contadores = montagem.contadores(mapa, lida.parametros)
     contexto = {
         "mapa": mapa,
         "areas": lida.areas,
         "tipos": lida.tipos,
-        "grade": lida.grade,
+        "grade": grade,
         "top3": lida.top3,
-        "contadores": montagem.contadores(mapa, lida.parametros),
+        "contadores": contadores,
         "visoes": montagem.VISOES,
         "periodos": montagem.PERIODOS,
         "origens_possiveis": montagem.ORIGENS,
@@ -172,7 +207,11 @@ def mapa_de_calor(
         "nc_linha": bool(mapa.nao_classificadas_por_tipo or mapa.nao_classificadas_sem_ambos),
         "marca": marca,
         "polling": ao_vivo.endereco_do_polling(
-            lida.parametros, lida.grade, (area, tipo), bool(aberto and aberto.atualizando)
+            lida.parametros,
+            grade,
+            (area, tipo),
+            bool(aberto and aberto.atualizando),
+            _impressoes(lida, contadores, faixa),
         ),
         "intervalo": ao_vivo.INTERVALO_S,
         **faixa,
@@ -201,11 +240,17 @@ def mapa_ao_vivo(
     area: str | None = None,
     tipo: str | None = None,
     leitura: str | None = None,
+    faixa: str | None = None,
+    fora: str | None = None,
+    nc: str | None = None,
     atualizando: bool = False,
 ) -> HTMLResponse:
-    """A leitura parcial: a grade, o Top 3 e a faixa, com as células que mudaram marcadas
-    desde `leitura` (a da resposta anterior). O painel vem junto quando a célula aberta mudou
-    ou ainda estava "atualizando"."""
+    """A leitura parcial, com o que mudou desde a anterior (`leitura`, `faixa`, `fora`, `nc`).
+
+    Só se troca o que mudou: a grade e o Top 3 quando alguma célula mudou (as que mudaram de
+    índice vêm marcadas), a faixa, os contadores. O painel aberto vem quando a célula dele mudou
+    ou quando a leitura anterior o pediu (`atualizando`); depois de uma mudança da célula ele
+    é pedido mais uma vez, para pegar o texto que o refazedor grava depois."""
     origens = origem or []
     area, tipo = _celula_valida(area, tipo)
     try:
@@ -217,19 +262,28 @@ def mapa_ao_vivo(
             lida = _ler(con, visao, periodo, origens, versao, area, tipo)
         except SemVersao:
             return _sem_corpo(204)
-        grade = ao_vivo.marcar_mudancas(lida.grade, ao_vivo.ler_leitura(leitura))
-        aberto = None
+        marca = _marca(request, con)
+        grade, mudadas = ao_vivo.marcar_mudancas(
+            _com_novas(con, lida, origens, marca), ao_vivo.ler_leitura(leitura)
+        )
+        dados_da_faixa = _faixa(con, lida, marca)
+        contadores = montagem.contadores(lida.mapa, lida.parametros)
+        agora = _impressoes(lida, contadores, dados_da_faixa)
+        celula_mudou = False
         if lida.celula is not None:
-            mudou = grade[(lida.celula[0].chave, lida.celula[1].chave)].piscou
-            if mudou or atualizando:
-                aberto = _painel(request, con, lida, visao, periodo, origens)
-        faixa = _faixa(con, lida, _marca(request, con))
+            chave = (lida.celula[0].chave, lida.celula[1].chave)
+            celula_mudou = chave in mudadas
+        aberto = None
+        if lida.celula is not None and (celula_mudou or atualizando):
+            aberto = _painel(request, con, lida, visao, periodo, origens)
+    trocar_grade = bool(mudadas) or nc != agora[2]
     contexto = {
         "mapa": lida.mapa,
         "areas": lida.areas,
         "tipos": lida.tipos,
         "grade": grade,
         "top3": lida.top3,
+        "contadores": contadores,
         "painel": aberto,
         "celula_aberta": (area, tipo),
         "nc_coluna": bool(
@@ -239,11 +293,18 @@ def mapa_ao_vivo(
             lida.mapa.nao_classificadas_por_tipo or lida.mapa.nao_classificadas_sem_ambos
         ),
         "polling": ao_vivo.endereco_do_polling(
-            lida.parametros, lida.grade, (area, tipo), bool(aberto and aberto.atualizando)
+            lida.parametros,
+            grade,
+            (area, tipo),
+            bool(celula_mudou or (aberto and aberto.atualizando)),
+            agora,
         ),
         "intervalo": ao_vivo.INTERVALO_S,
         "oob": True,
-        **faixa,
+        "trocar_grade": trocar_grade,
+        "trocar_faixa": faixa != agora[0],
+        "trocar_fora": fora != agora[1],
+        **dados_da_faixa,
     }
     resposta = renderizar(request, "mapa/ao_vivo.html", contexto)
     resposta.headers["Cache-Control"] = "no-store"

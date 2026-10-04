@@ -5,6 +5,8 @@ ordem de gravação, então "depois da marca" é "chegou desde que a tela abriu"
 Não grava nada.
 """
 
+from collections.abc import Sequence
+
 from frentes.store import Conexao
 
 
@@ -32,3 +34,30 @@ def depois_da_marca(
         (versao, marca, limite),
     )
     return total["n"], [dict(r) for r in linhas]
+
+
+def novas_por_celula(
+    con: Conexao,
+    versao: int,
+    marca: int,
+    natureza: str,
+    desde: str,
+    ate: str,
+    origens: Sequence[str] = (),
+) -> dict[tuple[str, str], int]:
+    """(área, tipo) → quantas frentes que pintam a visão chegaram depois da marca, na janela
+    `[desde, ate)` e nas origens pedidas (vazio = todas): o "+N" da célula."""
+    sql = """
+        SELECT c.area_final AS area, c.tipo_final AS tipo, count(*) AS n
+        FROM classificacao c JOIN frente f ON f.id = c.frente_id
+        WHERE f.rowid > ? AND c.versao = ? AND c.estado IN ('classificada', 'via_llm')
+          AND c.natureza_final = ? AND c.area_final IS NOT NULL AND c.tipo_final IS NOT NULL
+          AND coalesce(f.ocorrido_em, f.recebido_em) >= ?
+          AND coalesce(f.ocorrido_em, f.recebido_em) < ?
+    """
+    args: list[object] = [marca, versao, natureza, desde, ate]
+    if origens:
+        sql += f" AND f.origem IN ({', '.join('?' * len(origens))})"
+        args += list(origens)
+    linhas = con.execute(sql + " GROUP BY c.area_final, c.tipo_final", args)
+    return {(r["area"], r["tipo"]): r["n"] for r in linhas}

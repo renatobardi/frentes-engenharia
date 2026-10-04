@@ -1,18 +1,24 @@
 """O mapa ao vivo (spec 10, "Efeito do ato ao vivo"): o que mudou entre duas leituras.
 
 O servidor não guarda estado entre leituras. A tela devolve, no endereço do polling do HTMX
-(a cada 2 s), a leitura da última vez: o índice de cada célula. A leitura seguinte compara
-com o que o banco diz agora e marca as células que mudaram.
+(a cada 2 s), a leitura da última vez: o que cada célula mostrava, mais uma impressão da faixa,
+dos contadores e das "Não classificadas". A leitura seguinte compara com o banco: a célula cujo
+**índice** mudou pisca e conta do valor antigo ao novo; só se troca na tela o que mudou, para
+o foco do teclado não se perder.
 
-A faixa "Chegando agora" conta as frentes que chegaram depois da `marca` (o maior `rowid`
-de `frente` quando a tela abriu; ver `store.chegando`).
+O "+N" da célula é a contagem das frentes que a pintaram desde que a tela abriu (a `marca`, o
+maior `rowid` de `frente` na abertura; ver `store.chegando`): acumula durante a rajada e não
+some na leitura seguinte.
 """
 
 import json
+import math
+import zlib
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
 from frentes.web.mapa.montagem import CelulaNaTela, Eixo, endereco, formatar_indice
-from frentes.web.mapa.painel import _trecho
+from frentes.web.mapa.painel import trecho
 
 CHEGANDO = 5  # as últimas frentes da faixa "Chegando agora"
 INTERVALO_S = 2  # o polling do HTMX
@@ -20,13 +26,28 @@ LIMITE_DA_LEITURA = 32_000  # leitura maior que isso não é nossa: ignora
 _PRECISAO = 6  # casas em que dois índices são o mesmo número
 
 Grade = dict[tuple[str, str], CelulaNaTela]
-Leitura = dict[tuple[str, str], float]
+# índice, "+N incertas" e "+N" da leitura anterior; None quando a leitura não trazia o dado
+Visto = tuple[float, int | None, int | None]
+Leitura = dict[tuple[str, str], Visto]
+
+
+def impressao(*partes: object) -> str:
+    """Uma impressão curta do que está na tela, para a leitura seguinte saber se mudou."""
+    return f"{zlib.crc32(repr(partes).encode()):08x}"
+
+
+def aplicar_novas(grade: Grade, novas: dict[tuple[str, str], int]) -> Grade:
+    return {k: replace(c, novas=novas[k]) if k in novas else c for k, c in grade.items()}
 
 
 def codificar_leitura(grade: Grade) -> str:
-    """O índice de cada célula com índice, para a leitura seguinte dizer o que mudou."""
+    """Índice, incertas e "+N" de cada célula que mostra algo."""
     return json.dumps(
-        [[a, t, round(c.bruto, _PRECISAO)] for (a, t), c in grade.items() if c.bruto > 0],
+        [
+            [a, t, round(c.bruto, _PRECISAO), c.incertas, c.novas]
+            for (a, t), c in grade.items()
+            if c.bruto > 0 or c.incertas or c.novas
+        ],
         separators=(",", ":"),
     )
 
@@ -36,32 +57,40 @@ def ler_leitura(texto: str | None) -> Leitura | None:
     if not texto or len(texto) > LIMITE_DA_LEITURA:
         return None
     try:
-        return {(a, t): float(v) for a, t, v in json.loads(texto) if isinstance(a, str)}
-    except (ValueError, TypeError):
+        lida: Leitura = {}
+        for a, t, bruto, *resto in json.loads(texto):
+            if not (isinstance(a, str) and isinstance(t, str)):
+                return None
+            numeros = [int(n) for n in resto[:2]]
+            incertas, novas = (numeros + [None, None])[:2]
+            bruto = float(bruto)
+            if not math.isfinite(bruto):
+                return None
+            lida[(a, t)] = (bruto, incertas, novas)
+        return lida
+    # o inteiro de 400 dígitos estoura o float; o JSON aninhado demais estoura a pilha
+    except (ValueError, TypeError, OverflowError, RecursionError):
         return None
 
 
-def marcar_mudancas(grade: Grade, anterior: Leitura | None) -> Grade:
-    """A grade com `piscou`, `de` e `diferenca` nas células cujo índice mudou desde `anterior`.
-
-    Só o índice conta: a célula que ganhou uma incerta, ou cuja seta mudou, não pisca.
-    """
+def marcar_mudancas(grade: Grade, anterior: Leitura | None) -> tuple[Grade, set[tuple[str, str]]]:
+    """A grade com `piscou` e `de` nas células cujo índice mudou desde `anterior`, e as células
+    que mudaram em algo que a tela mostra (índice, "+N incertas" ou "+N"). Sem leitura
+    anterior, nenhuma pisca e todas contam como mudadas."""
     if anterior is None:
-        return grade
+        return grade, set(grade)
     marcada = dict(grade)
+    mudadas = set()
     for chave, c in grade.items():
-        antes = anterior.get(chave, 0.0)
-        delta = round(c.bruto - antes, _PRECISAO)
-        if delta == 0:
-            continue
-        sinal = "+" if delta > 0 else "−"
-        marcada[chave] = replace(
-            c,
-            piscou=True,
-            de=formatar_indice(antes) if antes > 0 else "0",
-            diferenca=f"{sinal}{formatar_indice(abs(delta))}",
-        )
-    return marcada
+        bruto, incertas, novas = anterior.get(chave, (0.0, 0, 0))
+        mudou_indice = round(c.bruto - bruto, _PRECISAO) != 0
+        if mudou_indice:
+            marcada[chave] = replace(
+                c, piscou=True, de=formatar_indice(bruto) if bruto > 0 else "0"
+            )
+        if mudou_indice or incertas != c.incertas or novas != c.novas:
+            mudadas.add(chave)
+    return marcada, mudadas
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,7 +137,7 @@ def chegadas(
             rotulo = _ESTADOS.get(estado, "aguardando classificação")
         prontas.append(
             Chegada(
-                str(r["recebido_em"])[11:19], _trecho(str(r["texto"])), celula, rotulo, confianca
+                str(r["recebido_em"])[11:19], trecho(str(r["texto"])), celula, rotulo, confianca
             )
         )
     return prontas
@@ -118,13 +147,17 @@ def endereco_do_polling(
     parametros: dict[str, str | list[str]],
     grade: Grade,
     celula_aberta: tuple[str | None, str | None],
-    atualizando: bool,
+    recarregar_painel: bool,
+    impressoes: Sequence[str],
 ) -> str:
-    """O endereço do polling: o recorte da tela, a leitura de agora e a célula aberta."""
-    pedido = {**parametros, "leitura": codificar_leitura(grade)}
+    """O endereço do polling: o recorte da tela, a leitura de agora, as impressões da faixa,
+    dos contadores e das "Não classificadas", e a célula aberta."""
+    faixa, fora, nc = impressoes
+    pedido = {**parametros, "leitura": codificar_leitura(grade), "faixa": faixa, "fora": fora}
+    pedido["nc"] = nc
     area, tipo = celula_aberta
     if area and tipo:
         pedido |= {"area": area, "tipo": tipo}
-        if atualizando:
+        if recarregar_painel:
             pedido["atualizando"] = "1"
     return endereco("/mapa/ao-vivo", pedido)
