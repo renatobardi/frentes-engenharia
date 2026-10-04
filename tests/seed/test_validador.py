@@ -415,3 +415,18 @@ def test_main_sai_com_1_e_lista_os_problemas_de_um_arquivo_errado_de_proposito(
     erro = capsys.readouterr().err
     assert "gravame: item 'registro de gravame' repete o objeto da H2" in erro
     assert "seed inválida: " in erro
+
+
+def test_sistema_sem_time_vale_como_emissor_de_template(pasta: Path) -> None:
+    def acrescentar(emissores: list) -> None:
+        emissores.append({"id": "s99", "nome": "Gateway X", "tipo": "sistema", "time": None,
+                          "cargo": None})  # fmt: skip
+
+    assert com_emissores_alterados(pasta, acrescentar) == []
+
+
+def test_pessoa_sem_time_continua_recusada(pasta: Path) -> None:
+    def tirar(emissores: list) -> None:
+        emissores[0]["time"] = None
+
+    assert algum(com_emissores_alterados(pasta, tirar), "não está no organograma")

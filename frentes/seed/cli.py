@@ -76,14 +76,16 @@ def carregar(argumentos: list[str]) -> int:
             banco = Path(valor)
         else:
             opcoes[nome] = valor
-    con = store.abrir(banco)
     try:
-        feito = carga.carregar(con, Path(opcoes["--gerado"]), Path(opcoes["--entrada"]))
+        conferida = carga.ler(Path(opcoes["--gerado"]), Path(opcoes["--entrada"]))
+        con = store.abrir(banco)
+        try:
+            feito = carga.gravar(con, conferida)
+        finally:
+            con.close()
     except carga.CargaInvalida as erro:
         print(f"seed carregar: {erro}; nada foi gravado", file=sys.stderr)
         return 1
-    finally:
-        con.close()
     print(
         f"frentes: {feito.frentes_novas} novas, {feito.frentes_existentes} já existiam; "
         f"emissores: {feito.emissores_novos} novos, {feito.emissores_existentes} já existiam "

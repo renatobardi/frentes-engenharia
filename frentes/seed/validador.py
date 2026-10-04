@@ -228,7 +228,8 @@ def validar_emissores(dados: dict, org: dict) -> list[str]:
     for e in emissores:
         if e.get("tipo") not in ("pessoa", "sistema"):
             erros.append(f"emissor {e.get('id')}: tipo inválido {e.get('tipo')!r}")
-        if e.get("time") not in times:
+        generico = e.get("tipo") == "sistema" and e.get("time") is None  # emissor de template
+        if e.get("time") not in times and not generico:
             erros.append(f"emissor {e.get('id')}: time {e.get('time')!r} não está no organograma")
     for e in pessoas:
         if not e.get("cargo"):
