@@ -30,6 +30,7 @@ class Linha:
     tipo_final: str | None
     problema: str | None  # o que o Jev disse, sem o corte de confiança
     conf_problema: float
+    urgencia: float
 
     @property
     def pinta(self) -> bool:
@@ -55,7 +56,7 @@ def classificadas(con: Conexao, versao: int) -> list[Linha]:
         """
         SELECT f.id, f.origem, coalesce(f.ocorrido_em, f.recebido_em) AS data,
                c.estado, c.motivo, c.tipo, c.conf_tipo, c.natureza_final, c.area_final,
-               c.tipo_final, c.problema, c.conf_problema
+               c.tipo_final, c.problema, c.conf_problema, c.urgencia
         FROM classificacao c JOIN frente f ON f.id = c.frente_id
         WHERE c.versao = ? ORDER BY f.id
         """,

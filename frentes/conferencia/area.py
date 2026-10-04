@@ -67,22 +67,27 @@ def cruzado(pares: Sequence[Par], area_do_time: dict[str, str]) -> list[Conferen
             m, t = fracao(sum(area_aceita(p) for p in parte), len(parte))
             achados.append(so_reportada(GRUPO_CRUZADO, f"{nome} · {sabor}", m, t))
 
-    # Só as de quem relata numa área diferente da do dono: na mesma área, pintar a área de
-    # quem relata é pintar a certa.
+    # Pintar a área de quem relata, sendo ela diferente da do dono, é o erro que o corte mede,
+    # sobre todas as cruzadas que pintam (spec 08). Time de quem relata que a versão não conhece
+    # não tem área: não conta como erro, e o texto diz quantas são.
     nome = "pintam a célula da área de quem relata"
-    de_outra_area = [
-        p
-        for p in cruzadas
-        if p.g.time_relator in area_do_time and area_do_time[p.g.time_relator] != p.g.area
-    ]
 
-    def na_do_relator(ps: Sequence[Par]) -> int:
-        return sum(p.c.area_final == area_do_time[p.g.time_relator or ""] for p in ps)
+    def errou(p: Par) -> bool:
+        da_area = area_do_time.get(p.g.time_relator or "")
+        return da_area is not None and da_area != p.g.area and p.c.area_final == da_area
 
-    medido, texto = fracao(na_do_relator(de_outra_area), len(de_outra_area))
+    sem_area = sum((p.g.time_relator or "") not in area_do_time for p in cruzadas)
+    medido, texto = fracao(sum(errou(p) for p in cruzadas), len(cruzadas))
+    if sem_area:
+        texto += f"; {sem_area} sem a área do relator na versão"
     achados.append(com_corte(GRUPO_CRUZADO, nome, medido, texto, cortes.CRUZADO_NA_AREA_DO_RELATOR))
     for sabor in SABORES:
-        parte = [p for p in de_outra_area if p.g.cruzado == sabor]
-        m, t = fracao(na_do_relator(parte), len(parte))
+        parte = [p for p in cruzadas if p.g.cruzado == sabor]
+        m, t = fracao(sum(errou(p) for p in parte), len(parte))
         achados.append(so_reportada(GRUPO_CRUZADO, f"{nome} · {sabor}", m, t))
+    de_outra = [
+        p for p in cruzadas if area_do_time.get(p.g.time_relator or "", p.g.area) != p.g.area
+    ]
+    m, t = fracao(sum(errou(p) for p in de_outra), len(de_outra))
+    achados.append(so_reportada(GRUPO_CRUZADO, f"{nome} · só relator de outra área", m, t))
     return achados

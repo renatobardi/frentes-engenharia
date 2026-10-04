@@ -61,6 +61,8 @@ def carregar(caminho: Path, banco: Path) -> list[Gabarito]:
     con = store.abrir(banco)
     try:
         armazem.substituir(con, lidos)
+    except store.ErroDeIntegridade as erro:
+        raise GabaritoInvalido(f"{caminho.name}: o esquema recusou o gabarito ({erro})") from None
     finally:
         con.close()
     return lidos

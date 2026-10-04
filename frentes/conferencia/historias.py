@@ -2,13 +2,21 @@
 
 from collections import Counter
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import date
 from statistics import median
 
 from frentes import config, contratos
 from frentes.conferencia import cortes
 from frentes.conferencia.dados import Par, area_aceita, onde
-from frentes.conferencia.relatorio import Conferencia, Corte, com_corte, fracao, so_reportada
+from frentes.conferencia.relatorio import (
+    Conferencia,
+    Corte,
+    Veredito,
+    com_corte,
+    fracao,
+    so_reportada,
+)
 from frentes.contratos import Periodo, Visao
 from frentes.mapa import agregados
 from frentes.store import Conexao
@@ -158,7 +166,15 @@ def intensidade(
             if corte is None:
                 achados.append(so_reportada(GRUPO_MAPA, nome, razao, texto, _motivo(historia)))
             else:
-                achados.append(com_corte(GRUPO_MAPA, nome, razao, texto, corte, "{:g}×"))
+                conferencia = com_corte(GRUPO_MAPA, nome, razao, texto, corte, "{:g}×")
+                if corte is cortes.TOP_1 and posicao != 1:
+                    # Top 1 da visão é a posição, não só a faixa
+                    conferencia = replace(
+                        conferencia,
+                        veredito=Veredito.FALHOU,
+                        corte=f"{conferencia.corte}, e o 1º lugar",
+                    )
+                achados.append(conferencia)
     return achados
 
 

@@ -103,6 +103,12 @@ class Relatorio:
             f"{contagem[Veredito.REPORTADO]} só reportadas, "
             f"{contagem[Veredito.SEM_VALOR]} sem valor",
         ]
+        vazias = [c for c in self.conferencias if c.veredito is Veredito.SEM_VALOR]
+        if vazias:
+            linhas.append(
+                "ATENÇÃO, corte sem frente para medir (não derruba; confira se é esperado): "
+                + "; ".join(f"{c.grupo} / {c.nome}" for c in vazias)
+            )
         if self.falhas:
             linhas.append("falharam: " + "; ".join(f"{c.grupo} / {c.nome}" for c in self.falhas))
         return "\n".join(linhas)

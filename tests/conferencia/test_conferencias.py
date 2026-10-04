@@ -292,11 +292,14 @@ def test_relato_cruzado_os_tres_numeros_total_e_por_sabor() -> None:
     assert c["objeto de fora: área certa · so_o_dono"].medido == 1.0  # 3 de 3
     assert c["objeto de fora: área certa · dois_objetos"].medido == 0.0  # 0 de 1
 
-    # as de relator de outra área: 5 + 4 + 1 + 1 + 1 = 12; 1 pintou a área do relator
+    # sobre as 14 cruzadas que pintam, 1 pintou a área do relator (diferente da do dono)
     relator = c["pintam a célula da área de quem relata"]
-    assert (relator.medido, relator.veredito) == (1 / 12, PASSOU)
-    assert c["pintam a célula da área de quem relata · so_o_dono"].medido == 0.0  # 0 de 6
+    assert (relator.medido, relator.veredito) == (1 / 14, PASSOU)
+    assert c["pintam a célula da área de quem relata · so_o_dono"].medido == 0.0  # 0 de 8
     assert c["pintam a célula da área de quem relata · dois_objetos"].medido == 1 / 6
+    # o recorte à parte: só as 12 de relator em outra área
+    de_outra = c["pintam a célula da área de quem relata · só relator de outra área"]
+    assert (de_outra.medido, de_outra.veredito) == (1 / 12, REPORTADO)
 
 
 def test_relato_cruzado_fora_dos_cortes_falha() -> None:
@@ -319,11 +322,13 @@ def test_relato_cruzado_fora_dos_cortes_falha() -> None:
     assert c["pintam a célula da área de quem relata"].veredito is FALHOU  # 20%
 
 
-def test_time_de_quem_relata_que_a_versao_nao_conhece_fica_fora_da_conta() -> None:
+def test_time_de_quem_relata_que_a_versao_nao_conhece_nao_conta_como_erro_e_o_texto_diz() -> None:
     con = banco()
     versao(con)
     g = varias(con, 2, "fundo", listado=True, cruzado="so_o_dono", time_relator="time-que-sumiu")
-    assert por_nome(rodar(con, g))["pintam a célula da área de quem relata"].veredito is SEM_VALOR
+    c = por_nome(rodar(con, g))["pintam a célula da área de quem relata"]
+    assert (c.medido, c.veredito) == (0.0, PASSOU)
+    assert "2 sem a área do relator na versão" in c.texto
 
 
 # ------------------------------------------------------------------------- problema
@@ -467,3 +472,75 @@ def test_uso_por_versao_tokens_custo_e_tempo() -> None:
     assert "soma das latências do Jev 3.0 s" in v1.texto
     assert "de 2026-10-03T12:00:00Z a 2026-10-03T12:05:00Z" in v1.texto
     assert "1.0 min" in v2.texto
+
+
+def _celulas_de_1(con, areas):  # type: ignore[no-untyped-def]
+    return [g for area in areas for g in varias(con, 1, "fundo", area_final=area)]
+
+
+UNS = ("dados", "credito", "pos-venda", "x1", "x2")
+
+
+def test_top_1_exige_o_primeiro_lugar_alem_da_faixa() -> None:
+    con = banco()
+    versao(con)
+    # H1 tem 7× a mediana (dentro de 6 a 10×), mas uma célula do fundo tem 8: H1 é a 2ª
+    g = varias(con, 7, "H1", area_final="originacao") + varias(con, 8, "fundo", area_final="canal")
+    g += _celulas_de_1(con, UNS)
+    h1 = por_nome(rodar(con, g))["H1: intensidade da célula na visão dor"]
+    assert h1.medido == 7.0 and "2º de 7 células" in h1.texto
+    assert h1.veredito is FALHOU
+    assert "1º lugar" in h1.corte
+
+
+def test_h2_em_segundo_lugar_dentro_da_faixa_continua_passando() -> None:
+    con = banco()
+    versao(con)
+    g = varias(con, 4, "H2", area_final="formalizacao") + varias(
+        con, 9, "fundo", area_final="canal"
+    )
+    g += _celulas_de_1(con, UNS)
+    h2 = por_nome(rodar(con, g))["H2: intensidade da célula na visão dor"]
+    assert (h2.medido, h2.veredito) == (4.0, PASSOU)  # só o Top 1 exige a posição
+
+
+def test_calibracao_do_selo_urgente_por_gravidade_alvo_so_reportada() -> None:
+    con = banco()
+    versao(con)
+    # o corte do selo está em 0,7 no limiares.toml; a frente do helper usa `urgencia` 0,4
+    g = varias(con, 2, "fundo", gravidade_alvo="alta")
+    g += varias(con, 2, "fundo", gravidade_alvo="baixa")
+    g += varias(con, 1, "fundo")  # sem gravidade-alvo: fora
+    con.execute("UPDATE classificacao SET urgencia = 0.8 WHERE frente_id = ?", (g[0].frente_id,))
+    c = por_nome(rodar(con, g))
+
+    assert c["urgentes entre as de gravidade-alvo alta"].medido == 0.5
+    assert c["urgentes entre as de gravidade-alvo baixa"].medido == 0.0
+    todas = c["urgentes entre as de gravidade-alvo todas"]
+    assert (todas.medido, todas.veredito) == (0.25, REPORTADO)
+    assert "(1 de 4) com urgência ≥ 0.7" in todas.texto
+
+
+def test_selo_urgente_sem_gravidade_no_gabarito_diz_que_nao_ha_frente() -> None:
+    con = banco()
+    versao(con)
+    c = por_nome(rodar(con, varias(con, 2, "fundo")))
+    assert c["urgentes por gravidade-alvo"].veredito is REPORTADO
+
+
+def test_o_resumo_destaca_o_corte_que_ficou_sem_frente_para_medir() -> None:
+    con = banco()
+    versao(con)
+    texto = rodar(con, varias(con, 2, "fundo")).texto()
+    assert "ATENÇÃO, corte sem frente para medir" in texto
+    assert "por história / H4: numa área aceita" in texto
+
+
+def test_o_resumo_do_caso_certo_ainda_avisa_dos_cortes_sem_frente() -> None:
+    from tests.conferencia.apoio import tudo_certo
+
+    con = banco()
+    versao(con)
+    # a seed certa não tem H5 nem cruzadas: esses cortes ficam sem valor e o aviso os lista
+    texto = rodar(con, tudo_certo(con)).texto()
+    assert "ATENÇÃO" in texto and "relato cruzado / objeto listado: área certa" in texto

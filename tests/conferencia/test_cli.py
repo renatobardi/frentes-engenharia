@@ -279,3 +279,41 @@ def test_arquivo_le_booleanos_e_listas_e_ignora_linha_em_branco(tmp_path: Path) 
     )
     [lido] = arquivo.ler(_jsonl(tmp_path, linha, "", "  "))
     assert (lido.areas_aceitas, lido.fora_de_escopo, lido.listado) == (("x", "y"), True, False)
+
+
+@pytest.mark.parametrize(
+    "caminho", ["frentes.sqlite", "./frentes.sqlite", "../{pasta}/frentes.sqlite"]
+)
+def test_banco_do_gabarito_igual_ao_da_aplicacao_sai_com_2_e_nao_grava(
+    caminho: str, ambiente: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    gabarito = montar(ambiente, tudo_certo)
+    outro = str(ambiente / caminho.format(pasta=ambiente.name))
+
+    assert cli.conferir(["--gabarito", str(gabarito), "--banco-do-gabarito", outro]) == 2
+    assert "não pode ser o da aplicação" in capsys.readouterr().err
+    with closing(store.abrir_existente(ambiente / "frentes.sqlite")) as con:
+        assert con.execute("SELECT count(*) FROM gabarito").fetchone()[0] == 0
+
+
+def test_banco_do_gabarito_que_e_link_para_o_da_aplicacao_tambem_e_recusado(
+    ambiente: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    gabarito = montar(ambiente, tudo_certo)
+    atalho = ambiente / "atalho.sqlite"
+    atalho.symlink_to(ambiente / "frentes.sqlite")
+    assert cli.conferir(["--gabarito", str(gabarito), "--banco-do-gabarito", str(atalho)]) == 2
+
+
+@pytest.mark.parametrize(
+    "campo",
+    ['"cruzado": "xx"', '"natureza": "talvez"', '"time_relator": "app"'],
+)
+def test_gabarito_que_o_esquema_recusa_sai_com_2_e_nao_grava(
+    campo: str, ambiente: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    ruim = _jsonl(ambiente, '{"frente_id": "a", "historia_id": "H1", ' + campo + "}")
+    assert cli.conferir(["--gabarito", str(ruim)]) == 2
+    assert "o esquema recusou o gabarito" in capsys.readouterr().err
+    with closing(store.abrir_existente(ambiente / "gabarito.sqlite")) as con:
+        assert armazem.todos(con) == []

@@ -9,6 +9,7 @@ from frentes.contratos import MotivoIncerta
 
 GRUPO_NATUREZA = "natureza"
 GRUPO_CONTROLE = "pergunta de controle"
+GRUPO_SELO = "selo urgente"
 
 
 def natureza(pares: Sequence[Par]) -> list[Conferencia]:
@@ -48,4 +49,28 @@ def controle(pares: Sequence[Par]) -> list[Conferencia]:
         grupo = onde(pares, escolha)
         medido, texto = fracao(sum(_vaga(p) for p in grupo), len(grupo))
         achados.append(so_reportada(GRUPO_CONTROLE, nome, medido, texto))
+    return achados
+
+
+def selo_urgente(pares: Sequence[Par], corte_do_selo: float) -> list[Conferencia]:
+    """A calibração do selo "urgente": que parte das frentes de cada gravidade-alvo do gabarito
+    passa do corte da urgência. O corte do selo é provisório (spec 03); aqui só se mede."""
+    achados = []
+    com_gravidade = onde(pares, lambda p: p.g.gravidade_alvo is not None)
+    niveis = ["todas", *sorted({p.g.gravidade_alvo for p in com_gravidade if p.g.gravidade_alvo})]
+    for nivel in niveis:
+        grupo = [p for p in com_gravidade if nivel == "todas" or p.g.gravidade_alvo == nivel]
+        medido, texto = fracao(sum(p.c.urgencia >= corte_do_selo for p in grupo), len(grupo))
+        achados.append(
+            so_reportada(
+                GRUPO_SELO,
+                f"urgentes entre as de gravidade-alvo {nivel}",
+                medido,
+                f"{texto} com urgência ≥ {corte_do_selo:g}",
+            )
+        )
+    if not com_gravidade:
+        achados.append(
+            so_reportada(GRUPO_SELO, "urgentes por gravidade-alvo", None, "nenhuma frente")
+        )
     return achados

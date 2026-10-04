@@ -40,6 +40,13 @@ def conferir(argumentos: list[str]) -> int:
     banco_do_gabarito = Path(
         opcoes.get("--banco-do-gabarito") or cfg.banco.with_name(arquivo.BANCO_DO_GABARITO)
     )
+    if banco_do_gabarito.resolve() == cfg.banco.resolve():
+        print(
+            "conferir: o banco do gabarito não pode ser o da aplicação "
+            f"({cfg.banco}): o gabarito fica num banco à parte",
+            file=sys.stderr,
+        )
+        return 2
     try:
         # Sem arquivo pedido, o padrão é o da seed; se ele não existe, vale o que já está no banco.
         pedido = opcoes.get("--gabarito")

@@ -37,6 +37,7 @@ def conferir(
         *problemas.problemas(pares, limiares),
         *natureza.natureza(pares),
         *natureza.controle(pares),
+        *natureza.selo_urgente(pares, limiares.urgencia_selo),
         *uso.uso(leitura.uso_por_versao(con)),
     ]
     return Relatorio(versao, cabecalho, tuple(conferencias))
