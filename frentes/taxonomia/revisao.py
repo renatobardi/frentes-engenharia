@@ -245,7 +245,9 @@ def _ler(conteudo: Mapping[str, Any]) -> tuple[str, list[dict[str, Any]], list[V
         )
     tipos = {t.value for t in TipoOperacao}
     for n, bruta in enumerate(brutas, 1):
-        if not isinstance(bruta, Mapping) or bruta.get("tipo") not in tipos:
+        if not isinstance(bruta, Mapping) or not (
+            isinstance(bruta.get("tipo"), str) and bruta["tipo"] in tipos
+        ):
             violacoes.append(
                 Violacao(
                     "operacao",
@@ -286,14 +288,52 @@ class _Tipo(_Valor):
     subtipos: list[_Valor]
 
 
-def _texto(op: Mapping[str, Any], chave: str) -> str:
+def _solto(op: Mapping[str, Any], chave: str) -> str:
+    """O texto do campo, ou "" se falta ou não é texto (para o que só descreve a operação)."""
     valor = op.get(chave)
     return valor.strip() if isinstance(valor, str) else ""
 
 
+def _texto(op: Mapping[str, Any], chave: str) -> str:
+    """O texto do campo; ausente é "", e o que não é texto descarta a operação."""
+    valor = op.get(chave)
+    if valor is None:
+        return ""
+    if not isinstance(valor, str):
+        raise _Descartada(f"campo {chave!r} precisa ser texto, veio {type(valor).__name__}")
+    return valor.strip()
+
+
+def _lista(op: Mapping[str, Any], chave: str) -> list[Any]:
+    """A lista do campo; ausente é vazia, e o que não é lista descarta a operação."""
+    valor = op.get(chave)
+    if valor is None:
+        return []
+    if not isinstance(valor, list):
+        raise _Descartada(f"campo {chave!r} precisa ser uma lista, veio {type(valor).__name__}")
+    return valor
+
+
+def _textos(op: Mapping[str, Any], chave: str) -> list[str]:
+    """Uma lista de textos; um item que não é texto descarta a operação."""
+    itens = _lista(op, chave)
+    if not all(isinstance(i, str) for i in itens):
+        raise _Descartada(f"campo {chave!r} precisa ser uma lista de textos")
+    return itens
+
+
+def _objetos(op: Mapping[str, Any], chave: str) -> list[Mapping[str, Any]]:
+    """Uma lista de objetos; um item que não é objeto descarta a operação."""
+    itens = _lista(op, chave)
+    if not all(isinstance(i, Mapping) for i in itens):
+        raise _Descartada(f"campo {chave!r} precisa ser uma lista de objetos")
+    return itens
+
+
 def _chaves(op: Mapping[str, Any]) -> tuple[str, ...]:
     """As chaves de valores vigentes que a operação cita (para a geração)."""
-    achadas = [op.get("chave"), *(op.get("chaves") or [])] if isinstance(op, dict) else []
+    lista = op.get("chaves")
+    achadas = [op.get("chave"), *(lista if isinstance(lista, list) else [])]
     return tuple(c for c in achadas if isinstance(c, str))
 
 
@@ -306,6 +346,7 @@ class _Aplicador:
         tipos_usados: set[str],
         causas_usadas: set[str],
         tipos_das_frentes: Mapping[str, str | None],
+        minimo_de_frentes_para_remover: int,
     ) -> None:
         self.tipos = [
             _Tipo(
@@ -322,6 +363,7 @@ class _Aplicador:
         self._causas_usadas = set(causas_usadas)
         self._vigentes = {t.chave for t in documento.tipos}
         self._tipo_da_frente = tipos_das_frentes
+        self._minimo = minimo_de_frentes_para_remover
 
     # ---- achar e conferir
 
@@ -362,6 +404,13 @@ class _Aplicador:
             violacoes += proposta_._sem_descricao(f"{onde} {nome!r}", descricao)
         if violacoes:
             raise _Descartada("; ".join(f"{v.regra}: {v.mensagem}" for v in violacoes))
+
+    def _so_assunto(self, nome: str, descricao: str) -> None:
+        """O tipo é o assunto: nome ou descrição de tipo só de melhoria não vale."""
+        if proposta_._so_de_melhoria(TipoProposto(nome, descricao, ())):
+            raise _Descartada(
+                f"tipo_so_de_melhoria: {nome!r}: o tipo é o assunto, e recebe problema e melhoria"
+            )
 
     def _nome_livre(self, nome: str, ocupados: set[str]) -> None:
         if proposta_.normal(nome) in ocupados:
@@ -419,8 +468,7 @@ class _Aplicador:
             )
         self._validar(nome, descricao, "tipo", self.marcas)
         self._nome_livre(nome, self._nomes_de_tipo())
-        brutos = op.get("subtipos")
-        brutos = brutos if isinstance(brutos, list) else []
+        brutos = _lista(op, "subtipos")
         if not SUBTIPOS_POR_TIPO[0] <= len(brutos) <= SUBTIPOS_POR_TIPO[1]:
             raise _Descartada(
                 f"tipo novo precisa de {SUBTIPOS_POR_TIPO[0]} a {SUBTIPOS_POR_TIPO[1]} subtipos, "
@@ -429,17 +477,14 @@ class _Aplicador:
         subtipos = []
         vistos = self._nomes_de_tipo() | {proposta_.normal(nome)}
         for bruto in brutos:
-            s_nome = _texto(bruto, "nome") if isinstance(bruto, Mapping) else ""
-            s_descricao = _texto(bruto, "descricao") if isinstance(bruto, Mapping) else ""
+            if not isinstance(bruto, Mapping):
+                raise _Descartada("campo 'subtipos' precisa ser uma lista de objetos")
+            s_nome, s_descricao = _texto(bruto, "nome"), _texto(bruto, "descricao")
             self._validar(s_nome, s_descricao, f"subtipo de {nome!r}", self.marcas)
             self._nome_livre(s_nome, vistos)
             vistos.add(proposta_.normal(s_nome))
             subtipos.append((s_nome, s_descricao))
-        so_melhoria = proposta_._so_de_melhoria(TipoProposto(nome, descricao, ()))
-        if so_melhoria:
-            raise _Descartada(
-                "tipo_so_de_melhoria: o tipo é o assunto, e recebe problema e melhoria"
-            )
+        self._so_assunto(nome, descricao)
         chave = self._chave_de_tipo(nome)
         filhos = []
         for s_nome, s_descricao in subtipos:
@@ -478,13 +523,12 @@ class _Aplicador:
     def _dividir_tipo(self, op: Mapping[str, Any], ids: Sequence[str]) -> Operacao:
         chave = _texto(op, "chave")
         tipo = self._tipo(chave)
-        partes = op.get("partes")
-        partes = [p for p in partes if isinstance(p, Mapping)] if isinstance(partes, list) else []
+        partes = _objetos(op, "partes")
         if not 2 <= len(partes) <= PARTES_MAX:
             raise _Descartada(
                 f"dividir_tipo precisa de 2 a {PARTES_MAX} partes, veio {len(partes)}"
             )
-        dadas = [s for p in partes for s in (p.get("subtipos") or []) if isinstance(s, str)]
+        dadas = [s for p in partes for s in _textos(p, "subtipos")]
         if Counter(dadas) != Counter(s.chave for s in tipo.subtipos):
             raise _Descartada(
                 "as partes precisam repartir todos os subtipos do tipo, cada um numa parte só"
@@ -495,9 +539,10 @@ class _Aplicador:
         for parte in partes:
             nome, descricao = _texto(parte, "nome"), _texto(parte, "descricao")
             self._validar(nome, descricao, "tipo", self.marcas)
+            self._so_assunto(nome, descricao)
             self._nome_livre(nome, ocupados)
             ocupados.add(proposta_.normal(nome))
-            novas.append((nome, descricao, [por_chave[s] for s in parte.get("subtipos") or []]))
+            novas.append((nome, descricao, [por_chave[s] for s in _textos(parte, "subtipos")]))
         lugar = self.tipos.index(tipo)
         criadas = [_Tipo(self._chave_de_tipo(n), n, d, subs) for n, d, subs in novas]
         self.tipos[lugar : lugar + 1] = criadas
@@ -510,17 +555,13 @@ class _Aplicador:
         return Operacao(TipoOperacao.DIVIDIR_TIPO, Dimensao.TIPO, (chave,), proposta, ids, True)
 
     def _juntar_tipos(self, op: Mapping[str, Any], ids: Sequence[str]) -> Operacao:
-        brutas = op.get("chaves")
-        chaves = (
-            list(dict.fromkeys(c for c in brutas if isinstance(c, str)))
-            if isinstance(brutas, list)
-            else []
-        )
+        chaves = list(dict.fromkeys(_textos(op, "chaves")))
         if len(chaves) < 2:
             raise _Descartada("juntar_tipos precisa de 2 ou mais tipos diferentes")
         juntados = [self._tipo(c) for c in chaves]
         nome, descricao = _texto(op, "nome"), _texto(op, "descricao")
         self._validar(nome, descricao, "tipo", self.marcas)
+        self._so_assunto(nome, descricao)
         self._nome_livre(nome, self._nomes_de_tipo(fora=chaves))
         lugar = min(self.tipos.index(t) for t in juntados)
         novo = _Tipo(
@@ -545,6 +586,8 @@ class _Aplicador:
         self._validar(
             nome, None, "tipo" if tipo else "causa raiz", self.marcas if tipo else frozenset()
         )
+        if isinstance(valor, _Tipo):
+            self._so_assunto(nome, valor.descricao)
         if nome == valor.nome:
             raise _Descartada(f"o nome já é {nome!r}")
         ocupados = (
@@ -566,6 +609,8 @@ class _Aplicador:
         violacoes = proposta_._sem_descricao(f"{dimensao} {valor.nome!r}", descricao)
         if violacoes:
             raise _Descartada("; ".join(f"{v.regra}: {v.mensagem}" for v in violacoes))
+        if isinstance(valor, _Tipo):
+            self._so_assunto(valor.nome, descricao)
         if descricao == valor.descricao:
             raise _Descartada("a descrição já é essa")
         valor.descricao = descricao
@@ -578,6 +623,13 @@ class _Aplicador:
         dimensao, chave = _texto(op, "dimensao"), _texto(op, "chave")
         valor, lista = self._achar(dimensao, chave)
         assert lista is not None
+        if dimensao == "tipo" and isinstance(valor, _Tipo):
+            na_janela = sum(1 for t in self._tipo_da_frente.values() if t == chave)
+            if na_janela >= self._minimo:
+                raise _Descartada(
+                    f"o tipo {chave!r} tem {na_janela} frentes na janela: só sai o que tem "
+                    f"menos de {self._minimo}"
+                )
         lista.remove(valor)
         filhos = [s.chave for s in valor.subtipos] if isinstance(valor, _Tipo) else []
         proposta = {"chave": chave, "nome": valor.nome, "subtipos_removidos": filhos}
@@ -621,7 +673,7 @@ def _dimensao_da_operacao(tipo: TipoOperacao, op: Mapping[str, Any]) -> Dimensao
     if tipo is TipoOperacao.CRIAR_CAUSA:
         return Dimensao.CAUSA_RAIZ
     if tipo in (TipoOperacao.RENOMEAR, TipoOperacao.REESCREVER_DESCRICAO, TipoOperacao.REMOVER):
-        return _dimensao(_texto(op, "dimensao"))
+        return _dimensao(_solto(op, "dimensao"))
     return Dimensao.TIPO
 
 
@@ -730,6 +782,7 @@ async def revisar(
             repo_versao.chaves_usadas(con, Dimensao.TIPO),
             repo_versao.chaves_usadas(con, Dimensao.CAUSA_RAIZ),
             {x.frente_id: x.tipo_final or x.tipo for x in linhas},
+            limiares.revisao_evidencia_minima,
         )
         operacoes = _filtrar(brutas, amostra, aplicador, limiares.revisao_evidencia_minima)
 
@@ -746,13 +799,16 @@ async def revisar(
         )
         novos = len(problemas) - len(base.documento.problemas)
 
-        if not any(o.aplicada for o in operacoes) and novos == 0:
+        novo_documento = aplicador.documento(base.documento, problemas)
+        if novo_documento == base.documento:
+            # nenhuma operação sobrou, ou uma desfez a outra (criar e remover o mesmo valor)
+            operacoes = _sem_aplicar(operacoes, "sem efeito: a revisão terminou igual à vigente")
             resultado = ResultadoGeracao.SEM_MUDANCA
         else:
             try:
                 versao = gravar(
                     con,
-                    aplicador.documento(base.documento, problemas),
+                    novo_documento,
                     base.modelo_jev,
                     base=vigente,
                     geracao_id=geracao_id,

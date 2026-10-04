@@ -30,11 +30,11 @@ class LinhaDaJanela(NamedTuple):
 
 def da_janela(con: Conexao, versao: int, desde: str, ate: str) -> list[LinhaDaJanela]:
     """As classificações da `versao` das frentes com data em `[desde, ate)`, da mais antiga à
-    mais nova. A frente `aguardando_llm` não entra: o desempate dela ainda não voltou."""
+    mais nova. A frente `aguardando_llm` entra: o sinal de encaixe é contado antes do desempate."""
     linhas = con.execute(
         "SELECT c.frente_id, c.estado, c.motivo, c.tipo, c.conf_tipo, c.tipo_final "
         "FROM classificacao c JOIN frente f ON f.id = c.frente_id "
-        f"WHERE c.versao = ? AND c.estado <> 'aguardando_llm' AND {_DATA} >= ? AND {_DATA} < ? "
+        f"WHERE c.versao = ? AND {_DATA} >= ? AND {_DATA} < ? "
         f"ORDER BY {_DATA}, c.frente_id",
         (versao, desde, ate),
     )

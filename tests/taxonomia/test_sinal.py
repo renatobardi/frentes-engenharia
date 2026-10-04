@@ -200,3 +200,12 @@ def test_o_limite_vem_da_configuracao(limite: float) -> None:
     assert LIMIARES.sinal_de_encaixe.encaixe_fraco == limite
     assert LIMIARES.sinal_de_encaixe.minimo_frentes == 100
     assert LIMIARES.sinal_de_encaixe.janela_dias == 30
+
+
+def test_o_sinal_conta_a_frente_aguardando_llm_antes_do_desempate(documento) -> None:
+    con = banco_vigente(documento())
+    firmes(con, "a", 88)
+    for n in range(12):  # o Jev não achou tipo e o desempate da LLM ainda não voltou
+        frente(con, f"w{n}", tipo=None, conf=0.3, final=None, estado=Estado.AGUARDANDO_LLM)
+
+    assert sinal.disparo(con, LIMIARES, AGORA) is Gatilho.ENCAIXE_FRACO

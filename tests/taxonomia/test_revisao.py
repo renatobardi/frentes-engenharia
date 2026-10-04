@@ -31,6 +31,8 @@ from tests.taxonomia.revisoes import (
     resposta,
 )
 
+SUBS = ["tipo1-sub2", "tipo1-sub3"]
+
 
 def montar_banco(documento, tipos, lista, subtipos: int = 3):
     """A versão 1: 5 tipos com `subtipos` cada, 5 causas raiz e os problemas 1 a 3."""
@@ -419,7 +421,7 @@ def test_chave_removida_numa_versao_nao_volta_a_ser_usada(documento, tipos, list
         (
             {"tipo": "criar_tipo", "nome": "Assistente Virtual", "descricao": "d.",
              "subtipos": "dois"},
-            "precisa de 2 a 6 subtipos",
+            "precisa ser uma lista",
         ),
         ({"tipo": "renomear", "dimensao": "tipo", "chave": "nao-existe", "nome": "Novo Nome"},
          "não existe"),
@@ -755,3 +757,136 @@ def test_sem_tipo_grande_nem_nao_classificadas_essas_secoes_nao_aparecem(con) ->
 
     assert "AMOSTRA DO TIPO" not in llm.revisoes[0]
     assert "NÃO CLASSIFICADAS" not in llm.revisoes[0]
+
+
+# --------------------------------------------------------------------------- campo malformado
+
+
+@pytest.mark.parametrize(
+    "operacao",
+    [
+        {"tipo": "juntar_tipos", "chaves": 5, "nome": "Novo Tipo", "descricao": "d."},
+        {"tipo": "juntar_tipos", "chaves": ["tipo1", 2], "nome": "Novo Tipo", "descricao": "d."},
+        {"tipo": "juntar_tipos", "chaves": ["tipo1", "tipo2"], "nome": ["Novo"], "descricao": "d."},
+        {"tipo": "criar_tipo", "nome": 7, "descricao": "d.", "subtipos": []},
+        {"tipo": "criar_tipo", "nome": "Novo Tipo", "descricao": {"a": 1}, "subtipos": []},
+        {"tipo": "criar_tipo", "nome": "Novo Tipo", "descricao": "d.", "subtipos": "dois"},
+        {"tipo": "criar_tipo", "nome": "Novo Tipo", "descricao": "d.", "subtipos": ["a", "b"]},
+        {"tipo": "criar_tipo", "nome": "Novo Tipo", "descricao": "d.",
+         "subtipos": [{"nome": 1, "descricao": "d"}, {"nome": "Dois", "descricao": "d"}]},
+        {"tipo": "criar_subtipo", "chave_pai": ["tipo1"], "nome": "Novo", "descricao": "d."},
+        {"tipo": "dividir_tipo", "chave": "tipo1", "partes": "duas"},
+        {"tipo": "dividir_tipo", "chave": "tipo1", "partes": ["a", "b"]},
+        {"tipo": "dividir_tipo", "chave": "tipo1",
+         "partes": [{"nome": "A", "descricao": "d", "subtipos": [1, 2]},
+                    {"nome": "B", "descricao": "d", "subtipos": [["x"]]}]},
+        {"tipo": "dividir_tipo", "chave": "tipo1",
+         "partes": [{"nome": "A", "descricao": "d", "subtipos": "tipo1-sub1"},
+                    {"nome": "B", "descricao": "d", "subtipos": []}]},
+        {"tipo": "renomear", "dimensao": "tipo", "chave": ["tipo1"], "nome": "Novo Nome"},
+        {"tipo": "renomear", "dimensao": ["tipo"], "chave": "tipo1", "nome": "Novo Nome"},
+        {"tipo": "renomear", "dimensao": "tipo", "chave": "tipo1", "nome": 5},
+        {"tipo": "reescrever_descricao", "dimensao": "tipo", "chave": "tipo1", "descricao": 5},
+        {"tipo": "remover", "dimensao": "tipo", "chave": {"a": 1}},
+        {"tipo": "criar_causa", "nome": None, "descricao": 3},
+    ],
+)  # fmt: skip
+def test_campo_malformado_descarta_a_operacao_sem_derrubar_a_revisao(con, operacao) -> None:
+    espalhadas(con)
+    valida = {"tipo": "criar_causa", "nome": "Falta de Contrato", "descricao": "Sem contrato."}
+    llm = LlmDaRevisao(
+        resposta({**operacao, "evidencias": numeros(12)}, {**valida, "evidencias": numeros(6)})
+    )
+
+    feito = rodar(con, llm)
+
+    ruim, boa = feito.geracao.operacoes
+    assert not ruim.aplicada and ruim.motivo_do_descarte
+    assert boa.aplicada  # as outras operações seguem
+    assert feito.resultado is ResultadoGeracao.VERSAO_NOVA
+    assert repo.ler(con, feito.geracao.id) == feito.geracao  # e a geração grava (JSON válido)
+
+
+def test_tipo_da_operacao_que_nao_e_texto_pede_correcao(con) -> None:
+    espalhadas(con)
+    llm = LlmDaRevisao(resposta({"tipo": ["criar_tipo"]}), resposta({"tipo": {"a": 1}}), resposta())
+
+    feito = rodar(con, llm)
+
+    assert len(llm.revisoes) == 3 and "operação 1" in llm.revisoes[1]
+    assert feito.resultado is ResultadoGeracao.SEM_MUDANCA
+
+
+# ------------------------------------------------------------------ nome e tipo só de melhoria
+
+
+@pytest.mark.parametrize(
+    ("operacao", "motivo"),
+    [
+        ({"tipo": "renomear", "dimensao": "tipo", "chave": "tipo2", "nome": "Melhorias de Rede"},
+         "tipo_so_de_melhoria"),
+        ({"tipo": "renomear", "dimensao": "tipo", "chave": "tipo2", "nome": "Diversos"},
+         "nome_generico"),
+        ({"tipo": "reescrever_descricao", "dimensao": "tipo", "chave": "tipo2",
+          "descricao": "Propõe melhorias nos sistemas."}, "tipo_so_de_melhoria"),
+        ({"tipo": "juntar_tipos", "chaves": ["tipo2", "tipo3"], "nome": "Sugestões de Melhoria",
+          "descricao": "As duas."}, "tipo_so_de_melhoria"),
+        ({"tipo": "juntar_tipos", "chaves": ["tipo2", "tipo3"], "nome": "Outros",
+          "descricao": "As duas."}, "nome_generico"),
+        ({"tipo": "dividir_tipo", "chave": "tipo1",
+          "partes": [{"nome": "Ideias Novas", "descricao": "d.", "subtipos": ["tipo1-sub1"]},
+                     {"nome": "Rede", "descricao": "d.", "subtipos": SUBS}]},
+         "tipo_so_de_melhoria"),
+        ({"tipo": "dividir_tipo", "chave": "tipo1",
+          "partes": [{"nome": "Demais", "descricao": "d.", "subtipos": ["tipo1-sub1"]},
+                     {"nome": "Rede", "descricao": "d.", "subtipos": SUBS}]},
+         "nome_generico"),
+    ],
+)  # fmt: skip
+def test_tipo_so_de_melhoria_e_nome_generico_valem_em_toda_operacao(con, operacao, motivo) -> None:
+    espalhadas(con)
+
+    feito = rodar(con, LlmDaRevisao(resposta({**operacao, "evidencias": numeros(12)})))
+
+    (gravada,) = feito.geracao.operacoes
+    assert not gravada.aplicada and motivo in gravada.motivo_do_descarte
+    assert feito.resultado is ResultadoGeracao.SEM_MUDANCA
+
+
+# --------------------------------------------------------------------------- remover e anular
+
+
+def test_remover_tipo_so_com_menos_de_5_frentes_na_janela(con) -> None:
+    fracas(con, "a", ["tipo1"] * 8)
+    firmes(con, "c", 4, "tipo5")  # 4 frentes no tipo5
+    firmes(con, "d", 5, "tipo4")  # 5 no tipo4
+    remover = [
+        {"tipo": "remover", "dimensao": "tipo", "chave": chave, "evidencias": numeros(8)}
+        for chave in ("tipo4", "tipo5")
+    ]
+
+    feito = rodar(con, LlmDaRevisao(resposta(*remover)))
+
+    nao, sim = feito.geracao.operacoes
+    assert not nao.aplicada and "tem 5 frentes na janela" in nao.motivo_do_descarte
+    assert sim.aplicada
+    assert [t.chave for t in feito.versao.documento.tipos] == ["tipo1", "tipo2", "tipo3", "tipo4"]
+
+
+def test_criar_e_remover_o_mesmo_valor_resulta_em_sem_mudanca(con) -> None:
+    espalhadas(con)
+    llm = LlmDaRevisao(
+        resposta(
+            criar_tipo("Assistente Virtual", numeros(12)),
+            {"tipo": "remover", "dimensao": "tipo", "chave": "assistente-virtual",
+             "evidencias": numeros(12)},
+        )
+    )  # fmt: skip
+
+    feito = rodar(con, llm)
+
+    assert feito.resultado is ResultadoGeracao.SEM_MUDANCA and feito.versao is None
+    assert repo_versao.numeros(con) == [1]
+    assert all(
+        not o.aplicada and "sem efeito" in o.motivo_do_descarte for o in feito.geracao.operacoes
+    )
