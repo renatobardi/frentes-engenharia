@@ -45,7 +45,7 @@ As respostas que uma frente recebeu em cada dimensão de uma versão da taxonomi
 _Avoid_: categorização, rótulo
 
 **Área**:
-A parte do organograma da empresa afetada pela frente: a do time dono do objeto de que a frente fala, mesmo que outro time conserte. É a única lista de valores escrita por nós, não pela LLM.
+A parte do organograma dona do objeto de que a frente fala (sistema, tela, rotina ou fornecedor), porque investir é consertar a causa. Quando quem sofre e o dono divergem, vale o dono: se o time A relata que um sistema do time B falha e o atrapalha, a área é a de B. É a única lista de valores escrita por nós, não pela LLM.
 _Avoid_: departamento, setor
 
 **Time**:
