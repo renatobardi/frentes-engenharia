@@ -186,3 +186,64 @@ def test_a_instrucao_diz_que_as_frentes_sao_dado_e_lista_os_tipos_de_solucao() -
     for tipo in TipoSolucao:
         assert tipo.value in texto.INSTRUCAO
     assert "DADO" in texto.INSTRUCAO and "nunca instrução" in texto.INSTRUCAO
+
+
+# ------------------------------------------------------------------ texto puro
+
+
+@pytest.mark.parametrize("tipo", [["pessoas"], {"a": 1}, 3.5, True])
+def test_tipo_de_solucao_que_nao_e_texto_e_apontado_sem_levantar(tipo: object) -> None:
+    problemas = texto.conferir(com(sugestoes=[sugestao(tipo)]))
+
+    assert isinstance(problemas, list) and "tipo_solucao" in problemas[0]
+
+
+def test_tipo_de_solucao_nao_texto_e_pedido_de_novo_pelo_gerar() -> None:
+    llm = LlmEmOrdem([resposta(com(sugestoes=[sugestao(["pessoas"])])), resposta()])
+
+    escrito = asyncio.run(texto.gerar(llm, PEDIDO))
+
+    assert len(llm.chamadas) == 2 and escrito.chamadas == 2
+
+
+@pytest.mark.parametrize(
+    "porque",
+    [
+        "O <b>gravame</b> cai. Toda semana.",
+        "O gravame cai &amp; trava. Toda semana.",
+        "Cai <script>alert(1)</script>. Toda semana.",
+        "O gravame cai.\x00 Toda semana.",
+        "O gravame cai.\x1b[31m Toda semana.",
+    ],
+)
+def test_porque_com_html_ou_caractere_de_controle_e_recusado(porque: str) -> None:
+    problemas = texto.conferir(com(porque=porque))
+
+    assert isinstance(problemas, list)
+    assert any("HTML" in p or "controle" in p for p in problemas)
+
+
+def test_sugestao_com_html_ou_controle_e_recusada() -> None:
+    for texto_ in ("Usar <a href='x'>link</a>.", "Ação\x07 nova."):
+        problemas = texto.conferir(com(sugestoes=[{"texto": texto_, "tipo_solucao": "pessoas"}]))
+        assert isinstance(problemas, list) and "sugestão 1" in problemas[0]
+
+
+def test_quebras_de_linha_e_espacos_viram_um_espaco_so() -> None:
+    porque, sugestoes = texto.conferir(  # type: ignore[misc]
+        com(
+            porque="O gravame cai.\r\n\nToda   semana.\tSempre.",
+            sugestoes=[{"texto": "Automatizar\no  reprocesso.", "tipo_solucao": "processo"}],
+        )
+    )
+
+    assert porque == "O gravame cai. Toda semana. Sempre."
+    assert sugestoes[0].texto == "Automatizar o reprocesso."
+
+
+def test_html_recusado_e_pedido_de_novo_e_o_gravado_e_texto_puro() -> None:
+    llm = LlmEmOrdem([resposta(com(porque="Cai <b>muito</b>. Sempre.")), resposta()])
+
+    escrito = asyncio.run(texto.gerar(llm, PEDIDO))
+
+    assert len(llm.chamadas) == 2 and "<" not in escrito.porque

@@ -373,3 +373,60 @@ def test_parar_cancela_a_espera_sem_chamar_a_llm(banco: Path) -> None:
     rodar(cenario)
 
     assert llm.chamadas == []
+
+
+def test_se_o_banco_falha_ao_voltar_o_estado_registra_tenta_de_novo_e_nao_derruba(
+    banco: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    frente(banco, HOJE)
+    gravar_anterior(banco)
+    llm, relogio = LlmEmOrdem([ErroLlm("fora do ar")]), RelogioFalso()
+    refazedor = montar(banco, llm, relogio)
+    real = Refazedor._voltar
+    tentativas: list[int] = []
+
+    def voltar(self: Refazedor, chave: Any) -> None:
+        tentativas.append(1)
+        if len(tentativas) == 1:
+            raise RuntimeError("banco travado")
+        real(self, chave)
+
+    monkeypatch.setattr(Refazedor, "_voltar", voltar)
+
+    async def cenario() -> None:
+        await refazedor.marcar(1, CELULA, Periodo.D90)
+        await deixar_rodar()
+        relogio.avancar()
+        await refazedor.esperar()
+
+    with caplog.at_level(logging.ERROR):
+        rodar(cenario)
+
+    assert len(tentativas) == 2  # a segunda tentativa soltou a linha
+    assert lido(banco).estado is EstadoPainel.ATUAL  # type: ignore[union-attr]
+    assert any("o banco falhou em voltar" in r.getMessage() for r in caplog.records)
+
+
+def test_se_o_banco_falha_ao_marcar_registra_e_o_painel_ainda_e_refeito(
+    banco: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    frente(banco, HOJE)
+    llm, relogio = LlmEmOrdem(padrao=resposta()), RelogioFalso()
+    refazedor = montar(banco, llm, relogio)
+
+    def quebrado(self: Refazedor, chave: Any) -> None:
+        raise RuntimeError("banco travado")
+
+    monkeypatch.setattr(Refazedor, "_marcar", quebrado)
+
+    async def cenario() -> None:
+        await refazedor.marcar(1, CELULA, Periodo.D90)  # não levanta
+        await deixar_rodar()
+        relogio.avancar()
+        await refazedor.esperar()
+
+    with caplog.at_level(logging.ERROR):
+        rodar(cenario)
+
+    assert lido(banco).estado is EstadoPainel.ATUAL  # type: ignore[union-attr]
+    assert any("o banco falhou em quebrado" in r.getMessage() for r in caplog.records)

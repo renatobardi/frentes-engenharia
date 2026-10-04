@@ -10,6 +10,7 @@ mesma limpeza: `taxonomia.prompts.linha`). A instrução repete as regras depois
 
 import json
 import re
+import unicodedata
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
@@ -114,6 +115,20 @@ def pedido(dados: str, frentes: Sequence[tuple[str, str, float, float]]) -> Pedi
     return Pedido(f"{dados}\n\n{amostra(frentes)}{TAREFA}")
 
 
+_HTML = re.compile(r"[<>]|&#?\w+;")
+
+
+def limpar(valor: str, nome: str, problemas: list[str]) -> str:
+    """O texto da LLM como texto puro: quebras de linha e espaços viram um espaço só; HTML
+    (`<`, `>` ou entidade) e caractere de controle são recusados, e o problema vai para a lista."""
+    unico = " ".join(valor.split())
+    if _HTML.search(unico):
+        problemas.append(f"{nome} tem marcação HTML: escreva texto puro, sem < > nem entidades")
+    if any(unicodedata.category(c) in ("Cc", "Cf") for c in unico):
+        problemas.append(f"{nome} tem caractere de controle")
+    return unico
+
+
 def _frases(texto: str) -> int:
     return len([p for p in re.split(r"(?<=[.!?…])\s+", texto.strip()) if p])
 
@@ -126,7 +141,7 @@ def conferir(conteudo: Mapping[str, object]) -> tuple[str, tuple[Sugestao, ...]]
         problemas.append('"porque" falta ou não é texto')
         porque = ""
     else:
-        porque = porque.strip()
+        porque = limpar(porque, '"porque"', problemas)
         n = _frases(porque)
         if not FRASES[0] <= n <= FRASES[1]:
             problemas.append(f'"porque" tem {n} frases e deve ter de {FRASES[0]} a {FRASES[1]}')
@@ -147,14 +162,17 @@ def conferir(conteudo: Mapping[str, object]) -> tuple[str, tuple[Sugestao, ...]]
             tipo = item.get("tipo_solucao") if isinstance(item, dict) else None
             if not isinstance(texto, str) or not texto.strip():
                 problemas.append(f'sugestão {n}: "texto" falta ou não é texto')
-            elif len(texto) > MAX_SUGESTAO:
+                texto = None
+            else:
+                texto = limpar(texto, f'sugestão {n}: "texto"', problemas)
+            if texto is not None and len(texto) > MAX_SUGESTAO:
                 problemas.append(f'sugestão {n}: "texto" passa de {MAX_SUGESTAO} caracteres')
-            if tipo not in {t.value for t in TipoSolucao}:
+            if not isinstance(tipo, str) or tipo not in {t.value for t in TipoSolucao}:
                 problemas.append(
                     f'sugestão {n}: "tipo_solucao" {tipo!r} não é um de: {TIPOS_DE_SOLUCAO}'
                 )
-            elif isinstance(texto, str) and texto.strip():
-                sugestoes.append(Sugestao(texto.strip(), TipoSolucao(tipo)))
+            elif texto is not None:
+                sugestoes.append(Sugestao(texto, TipoSolucao(tipo)))
     if problemas:
         return problemas
     return porque, tuple(sugestoes)

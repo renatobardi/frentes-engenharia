@@ -1,9 +1,10 @@
 """`python -m frentes paineis`: gera o painel de todas as células de uma versão, nas duas
 visões e nos quatro períodos, sobre todas as origens e com a data de hoje como referência.
 
-Uma célula é a que tem frente que pinta na visão e no período. Uma célula que falha não para
-as outras: o código de saída é 1 se alguma falhou. Custa chamada à LLM (~US$ 0,01 por 150
-células, spec 06): nunca roda em teste com a LLM real."""
+Uma célula é a que tem frente que pinta na visão e no período. A célula cujo painel já está
+`atual` com o mesmo número de frentes não é regravada. Uma célula que falha, por qualquer erro,
+não para as outras: o código de saída é 1 se alguma falhou. Custa chamada à LLM (~US$ 0,01 por
+150 células, spec 06): nunca roda em teste com a LLM real."""
 
 import asyncio
 import sys
@@ -14,7 +15,7 @@ from frentes import config, store
 from frentes.contratos import Celula, ClienteLlm, Periodo, Uso, Visao
 from frentes.llm import ClienteOpenRouter
 from frentes.mapa import agregados
-from frentes.painel.gerador import ERROS, Gerador
+from frentes.painel.gerador import Gerador
 
 
 def _celulas(banco: Path, versao: int | None) -> tuple[int, list[tuple[Celula, Periodo]]]:
@@ -44,12 +45,12 @@ async def gerar_todos(
         nonlocal gravados, falhas, uso
         async with limite:
             try:
-                gasto = await gerador.gerar(numero, celula, periodo)
-            except ERROS as erro:
+                gasto = await gerador.gerar(numero, celula, periodo, so_se_mudou=True)
+            except Exception as erro:
                 falhas += 1
                 print(
                     f"paineis: {celula.area} × {celula.tipo} ({celula.visao.value}, "
-                    f"{periodo.value}): {erro}",
+                    f"{periodo.value}): {type(erro).__name__}: {erro}",
                     file=sys.stderr,
                 )
                 return

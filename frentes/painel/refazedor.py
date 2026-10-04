@@ -71,7 +71,7 @@ class Refazedor:
     async def marcar(self, versao: int, celula: Celula, periodo: Periodo) -> None:
         """Marca `atualizando` e agenda a geração, se não há uma esperando."""
         chave = (versao, celula, periodo)
-        await asyncio.to_thread(self._marcar, chave)
+        await asyncio.to_thread(self._seguro, self._marcar, chave)
         if chave not in self._tarefas:
             self._tarefas[chave] = asyncio.get_running_loop().create_task(self._ciclo(chave))
         elif chave in self._gerando:
@@ -99,13 +99,13 @@ class Refazedor:
                 await self._dormir(self._espera_s)
                 self._gerando.add(chave)
                 self._de_novo.discard(chave)
-                await asyncio.to_thread(self._marcar, chave)
+                await asyncio.to_thread(self._seguro, self._marcar, chave)
                 await self._refazer(chave)
                 self._gerando.discard(chave)
                 if chave not in self._de_novo:
                     return
                 # a frente que chegou com a geração em curso: a rodada a mais, ainda `atualizando`
-                await asyncio.to_thread(self._marcar, chave)
+                await asyncio.to_thread(self._seguro, self._marcar, chave)
         finally:
             self._gerando.discard(chave)
             self._de_novo.discard(chave)
@@ -124,7 +124,10 @@ class Refazedor:
             registro.exception("painel %s: erro ao gerar; o anterior fica", _nome(chave))
             gerou = None
         if gerou is None:
-            await asyncio.to_thread(self._voltar, chave)
+            # duas tentativas: a linha não pode ficar presa em `atualizando`
+            for _ in range(2):
+                if await asyncio.to_thread(self._seguro, self._voltar, chave):
+                    break
 
     # ------------------------------------------------------------------ o banco, sem conexão presa
 
@@ -135,6 +138,16 @@ class Refazedor:
     def _marcar(self, chave: Chave) -> None:
         with closing(store.abrir_existente(self._banco)) as con:
             armazem.marcar_atualizando(con, *chave)
+
+    def _seguro(self, operacao: Callable[[Chave], None], chave: Chave) -> bool:
+        """Falha do banco vai para o log e não derruba a tarefa. Devolve se deu certo. O que
+        ficar preso em `atualizando` é encerrado na próxima partida."""
+        try:
+            operacao(chave)
+        except Exception:
+            registro.exception("painel %s: o banco falhou em %s", _nome(chave), operacao.__name__)
+            return False
+        return True
 
     def _voltar(self, chave: Chave) -> None:
         with closing(store.abrir_existente(self._banco)) as con:

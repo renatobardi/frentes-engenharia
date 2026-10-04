@@ -6,6 +6,7 @@ drill-down (`mapa.celula.ler`) e acrescenta o que ele não traz: o texto e a urg
 raiz "incerta" já vem fora da composição.
 """
 
+import re
 from dataclasses import dataclass
 from datetime import date
 
@@ -17,6 +18,7 @@ from frentes.store import Conexao
 from frentes.store import painel as armazem
 from frentes.store import versao as armazem_versao
 
+MARCA = re.compile(r"</?\s*amostra\s*>", re.IGNORECASE)
 TOPO_DA_COMPOSICAO = 5
 TOPO_DOS_PROBLEMAS = 8
 ROTULO_DO_PERIODO = {
@@ -25,6 +27,19 @@ ROTULO_DO_PERIODO = {
     Periodo.D180: "últimos 180 dias",
     Periodo.M12: "últimos 12 meses",
 }
+
+
+MAX_NOME = 80
+
+
+def _delimitado(nome: str) -> str:
+    """O nome (gerado pela LLM da taxonomia) como dado: numa linha só, sem marca de amostra,
+    de HTML nem aspas do delimitador, cortado no teto e entre «»."""
+    limpo = " ".join(MARCA.sub(" ", nome).replace("«", " ").replace("»", " ").split())
+    limpo = "".join(c for c in limpo if c.isprintable() and c not in "<>")
+    if len(limpo) > MAX_NOME:
+        limpo = limpo[:MAX_NOME].rstrip() + "…"
+    return f"«{limpo}»"
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,7 +75,7 @@ def montar(
     }
 
     def nome(dimensao: Dimensao, chave: str | None) -> str:
-        return "sem valor" if chave is None else nomes.get((dimensao, chave), chave)
+        return "sem valor" if chave is None else _delimitado(nomes.get((dimensao, chave), chave))
 
     escolhidas = pintam[: texto.MAX_FRENTES_NO_PEDIDO]
     lidas = armazem.textos_das_frentes(con, versao, [f.frente_id for f in escolhidas])

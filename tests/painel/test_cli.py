@@ -149,18 +149,51 @@ def test_sem_chave_ou_argumento_estranho_ou_banco_ausente_sai_com_2(
     assert llm.chamadas == []
 
 
-def test_rodar_de_novo_substitui_o_painel_da_chave(
-    banco: Path, monkeypatch: pytest.MonkeyPatch
+def test_rodar_de_novo_nao_regrava_a_chave_cujo_numero_de_frentes_nao_mudou(
+    banco: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     frente(banco, RECENTE)
     falsa(monkeypatch, LlmEmOrdem(padrao=resposta()))
     cli.paineis([])
-    outro = {**BOM, "porque": "Texto da segunda rodada. Com duas frases."}
-    falsa(monkeypatch, LlmEmOrdem(padrao=resposta(outro)))
+    capsys.readouterr()
+    segunda = falsa(monkeypatch, LlmEmOrdem())  # sem resposta: qualquer chamada falharia
 
     assert cli.paineis([]) == 0
 
-    assert len(gravados(banco)) == 4
+    assert segunda.chamadas == []
+    assert "0 painéis gravados, 0 falhas" in capsys.readouterr().out
+
+
+def test_chave_com_frente_nova_e_regravada_e_as_outras_ficam(
+    banco: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    frente(banco, RECENTE)
+    frente(banco, RECENTE, natureza="proativa", area="dados", tipo="melhoria")
+    falsa(monkeypatch, LlmEmOrdem(padrao=resposta()))
+    cli.paineis([])
+    frente(banco, RECENTE)  # só a célula da dor ganha frente
+    outro = {**BOM, "porque": "Texto da segunda rodada. Com duas frases."}
+    segunda = falsa(monkeypatch, LlmEmOrdem(padrao=resposta(outro)))
+
+    assert cli.paineis([]) == 0
+
+    assert len(segunda.chamadas) == 4  # os quatro períodos da dor
     with closing(store.abrir_existente(banco)) as con:
-        assert armazem.ler(con, 1, CELULA, Periodo.D90).porque == outro["porque"]  # type: ignore[union-attr]
-        assert armazem.ler(con, 1, CELULA, Periodo.D90).estado is EstadoPainel.ATUAL  # type: ignore[union-attr]
+        dor = armazem.ler(con, 1, CELULA, Periodo.D90)
+        oportunidade = armazem.ler(con, 1, OPORTUNIDADE, Periodo.D90)
+    assert dor.porque == outro["porque"] and dor.frentes_na_geracao == 2  # type: ignore[union-attr]
+    assert dor.estado is EstadoPainel.ATUAL  # type: ignore[union-attr]
+    assert oportunidade.porque == BOM["porque"]  # type: ignore[union-attr]
+
+
+def test_erro_inesperado_numa_chave_nao_para_as_outras(
+    banco: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    com_duas_celulas(banco)
+    falsa(monkeypatch, LlmEmOrdem([TypeError("bug"), KeyError("x")], padrao=resposta()))
+
+    assert cli.paineis([]) == 1
+
+    assert len(gravados(banco)) == 6
+    saida = capsys.readouterr()
+    assert "2 falhas" in saida.out and "TypeError: bug" in saida.err
