@@ -13,6 +13,7 @@ import asyncio
 import hashlib
 import json
 import random
+import re
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -74,13 +75,24 @@ def _preco(modelo: str) -> tuple[float, float]:
     return PRECOS[modelo]
 
 
+# Palavras da ficha que são o nome oficial de um time: o pedido não pode mandá-las, senão a LLM
+# as repete no texto.
+SEM_NOME_OFICIAL = {"políticas de crédito": "regras de concessão de crédito"}
+
+
+def _sem_nome_oficial(o_que_faz: str) -> str:
+    for nome, neutro in SEM_NOME_OFICIAL.items():
+        o_que_faz = re.sub(re.escape(nome), neutro, o_que_faz, flags=re.IGNORECASE)
+    return o_que_faz
+
+
 def contexto_de(org: dict, emissores: dict, termos: dict[str, list[str]]) -> Contexto:
     times: dict[str, dict[str, str]] = {}
     nomes: list[str] = []
     for area in org["organograma"]:
         nomes += [area["nome"], area["chave"]]
         for t in area["times"]:
-            times[t["chave"]] = {"nome": t["nome"], "o_que_faz": t["o_que_faz"]}
+            times[t["chave"]] = {"nome": t["nome"], "o_que_faz": _sem_nome_oficial(t["o_que_faz"])}
             nomes += [t["nome"], t["chave"]]
     cargos = {e["nome"]: e["cargo"] for e in emissores["emissores"] if e.get("cargo")}
     regras = qualidade.Regras(
@@ -133,6 +145,7 @@ ou uma dúvida de RH ou administrativa (férias, benefícios, folha, crachá). N
 Cada um precisa de um detalhe próprio (uma frase a mais, um assunto, um jeito de se despedir) \
 para não ficar igual aos outros.
 - Os textos de um mesmo pedido têm de ser bem diferentes entre si: nada de repetir o começo.
+- Tom de trabalho: nada de palavrão nem xingamento, mesmo no estilo informal.
 - Tamanho: entre 25 e 600 caracteres. Sem aspas em volta, sem título, sem assinatura.
 """
 

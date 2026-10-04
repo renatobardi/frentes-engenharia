@@ -59,7 +59,7 @@ def test_com_todos_os_textos_so_recompoe_sem_chamar_a_llm(
 def test_texto_faltando_nao_altera_o_frentes_jsonl(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Falta um texto no livro: a chamada à LLM acontece e a rede de teste a derruba."""
+    """Falta um texto, mas `--lotes 0` não pede nada à LLM: o `frentes.jsonl` fica como está."""
     for nome in ("esqueletos.jsonl", "frentes.jsonl", "gabarito.jsonl", "textos.jsonl"):
         shutil.copy(GERADO / nome, tmp_path / nome)
     linhas = (tmp_path / "textos.jsonl").read_text(encoding="utf-8").splitlines()

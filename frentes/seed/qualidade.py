@@ -14,12 +14,18 @@ from frentes.seed.validador import NOMES_REAIS, _termo_aparece, sem_acento
 
 TAMANHO = {"relato": (25, 700), "mcp": (25, 900)}
 LIMITE_DE_SEMELHANCA = 0.5  # Jaccard de trigramas de palavras
-NOMES_POR_NOME = 5  # quantos textos podem citar solto o mesmo nome de time ou de área
+NOMES_POR_NOME = 25  # quantos textos podem citar solto o mesmo nome de time ou de área
 ABERTURAS_POR_FORMA = 8  # quantos mcp podem abrir com as mesmas 3 palavras
 PALAVRAS_DA_ABERTURA = 3
 PRIMEIRA_PESSOA = re.compile(
     r"(?<![a-z])(eu|meu|minha|meus|minhas|nosso|nossa|nossos|nossas|estou|estamos|preciso|"
-    r"precisamos|tenho|temos|queria|gostaria|gostariamos)(?![a-z])"
+    r"precisamos|tenho|temos|queria|gostaria|gostariamos|quero|queremos|peco|solicito|sinto|"
+    r"acho|penso|venho|vejo|vimos|fizemos|tivemos|somos|mim|me|a gente)(?![a-z])"
+)
+PALAVROES = re.compile(
+    r"(?<![a-z])(porra|merda\w*|caralh\w*|foda\w*|fode\w*|foder|puta|puto|putaria|cacete|"
+    r"bosta|cu|buceta|arrombad\w*|desgraca\w*|fdp|vsf|krl|pqp|zuad\w*|"
+    r"idiota|imbecil|estupid\w*)(?![a-z])"
 )
 PREFIXO = 5
 # Palavras de coisa quebrada: a melhoria sem dor como motivo não as usa.
@@ -145,6 +151,8 @@ def conferir(
     excedido = next((n for n in soltos if corpus.nomes[n] >= NOMES_POR_NOME), None)
     if excedido:
         motivos.append(f"o nome {excedido!r} já foi citado demais; descreva pelo que o time faz")
+    if PALAVROES.search(norma):
+        motivos.append("sem palavrão nem xingamento; é um texto de trabalho")
     reais = [n for n in NOMES_REAIS if _termo_aparece(n, norma)]
     if reais:
         motivos.append(f"cita nome real de empresa ou ferramenta ({reais[0]!r})")

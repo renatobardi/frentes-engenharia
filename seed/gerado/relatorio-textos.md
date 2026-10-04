@@ -2,7 +2,7 @@
 
 `frentes.jsonl`: 6000 frentes (banco 900, log 1200, mcp 600, relato 2400, webhook 900); textos de relato e mcp escritos pela LLM `deepseek/deepseek-v4-flash`, o resto por template.
 
-Custo medido da geração dos textos: 679 chamadas, 1359702 tokens de entrada e 369754 de saída = **US$ 0.5037** (tokens do OpenRouter × preço do modelo em `textos.PRECOS`).
+Custo medido da geração dos textos: 699 chamadas, 1399241 tokens de entrada e 379615 de saída = **US$ 0.5173** (tokens do OpenRouter × preço do modelo em `textos.PRECOS`).
 
 ## Tendência de cada história: roteiro × texto
 
@@ -14,7 +14,7 @@ Custo medido da geração dos textos: 679 chamadas, 1359702 tokens de entrada e 
 | H2 | 180 | 180 | +2% | +2% |
 | H3 | 150 | 150 | +5% | +5% |
 | H4 | 150 | 150 | +17% | +17% |
-| H5 | 180 | 163 | +44% | +48% |
+| H5 | 180 | 162 | +44% | +46% |
 | H6 | 120 | 120 | +12% | +12% |
 | H7 | 240 | 112 | +41% | +37% |
 

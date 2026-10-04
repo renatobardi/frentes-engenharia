@@ -202,3 +202,20 @@ def test_a_rajada_commitada_e_so_de_webhook_sem_ref() -> None:
     rajada = dataset.ler_jsonl(GERADO / "rajada.jsonl")
     assert len(rajada) == 20 and all("ref_externa" not in r for r in rajada)
     assert shutil.which("true")  # (o arquivo é do roteiro; aqui só se confere que existe)
+
+
+def test_o_livro_commitado_passa_no_controle_de_qualidade_de_hoje() -> None:
+    """Reexecuta o controle sobre os 3000 textos gravados: o que reprova hoje foi aceito com
+    regra mais frouxa e tem de ser regerado."""
+    ctx, _ = cli._entrada(validador.PASTA)
+    esqueletos = [
+        e
+        for e in dataset.ler_jsonl(GERADO / "esqueletos.jsonl")
+        if e["origem"] in ("relato", "mcp")
+    ]
+    assert dataset.reexecutar_controle(GERADO, esqueletos, ctx.regras) == {}
+
+
+def test_compor_recusa_pasta_que_nao_existe(tmp_path: Path) -> None:
+    with pytest.raises(ErroDeGeracao, match="não existe ou não é uma pasta"):
+        dataset.compor(tmp_path / "nada")

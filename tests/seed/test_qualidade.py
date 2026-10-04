@@ -169,3 +169,21 @@ def test_termo_que_vem_do_objeto_da_ficha_nao_reprova(regras: qualidade.Regras) 
         motivos("Seria bom revisar o assistente virtual do app com calma, por favor.", regras, e)
         == []
     )
+
+
+@pytest.mark.parametrize("palavra", ["porra", "isso é uma merda", "tá foda", "seu fdp"])
+def test_palavrao_reprova(palavra: str, regras: qualidade.Regras) -> None:
+    e = esq()
+    assert any("palavrão" in m for m in motivos(f"{bom(e)} {palavra}", regras, e))
+
+
+@pytest.mark.parametrize("frase", ["Quero que isso mude.", "Solicito revisão.", "A gente sofre."])
+def test_mcp_em_primeira_pessoa_com_outros_verbos(frase: str, regras: qualidade.Regras) -> None:
+    m = esqueletos(1, "mcp")[0]
+    assert any("terceira pessoa" in x for x in motivos(f"{bom(m)} {frase}", regras, m))
+
+
+def test_novos_nomes_reais_reprovam(regras: qualidade.Regras) -> None:
+    e = esq()
+    for nome in ("Excel", "Kafka", "Chrome", "Correios"):
+        assert any("nome real" in m for m in motivos(f"{bom(e)} Usamos {nome}.", regras, e))

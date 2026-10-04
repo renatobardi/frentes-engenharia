@@ -13,7 +13,7 @@ from typing import Any
 
 from frentes.seed import qualidade, saida
 from frentes.seed.roteiro import ORIGENS_COM_TEMPLATE
-from frentes.seed.textos import LIVRO, ErroDeGeracao, Gasto, ler_livro
+from frentes.seed.textos import LIVRO, ErroDeGeracao, Gasto, ler_livro, tema_da_melhoria
 from frentes.seed.validador import NOMES_REAIS, _termo_aparece, sem_acento
 
 ARQUIVO = "frentes.jsonl"
@@ -26,6 +26,9 @@ def ler_jsonl(arquivo: Path) -> list[dict[str, Any]]:
 
 def compor(pasta: Path) -> int:
     """Grava `frentes.jsonl` com as 6 mil frentes; sem todos os textos, não grava nada."""
+    pasta = pasta.resolve()
+    if not pasta.is_dir():
+        raise ErroDeGeracao(f"a pasta {pasta.name!r} não existe ou não é uma pasta")
     esqueletos = ler_jsonl(pasta / "esqueletos.jsonl")
     de_template = {
         f["id"]: f
@@ -208,3 +211,23 @@ def relatorio(
     saida_md += ["", "## Conferência", ""]
     saida_md += [f"- {p}" for p in problemas] or ["- sem problemas"]
     return "\n".join(saida_md) + "\n", problemas
+
+
+def reexecutar_controle(
+    pasta: Path, esqueletos: list[dict[str, Any]], regras: qualidade.Regras
+) -> dict[str, list[str]]:
+    """Roda o controle de qualidade de novo sobre o livro gravado, texto a texto, na ordem dos
+    ids; devolve os motivos de cada texto que hoje reprova. O que a LLM aceitou com regra mais
+    frouxa, ou numa ordem diferente, aparece aqui."""
+    livro = ler_livro(pasta)
+    corpus = qualidade.Corpus()
+    reprovados: dict[str, list[str]] = {}
+    for e in esqueletos:
+        escrito = livro.get(e["id"])
+        if escrito is None:
+            continue
+        motivos = qualidade.conferir(escrito["texto"], e, regras, corpus, tema_da_melhoria(e))
+        if motivos:
+            reprovados[e["id"]] = motivos
+        corpus.aceitar(escrito["texto"], e["origem"], regras.nomes_de_times)
+    return reprovados

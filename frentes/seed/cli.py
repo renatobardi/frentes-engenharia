@@ -133,11 +133,13 @@ def escrever_textos(argumentos: list[str]) -> int:
         "--gerado": str(SAIDA),
     }
     opcoes = _opcoes(argumentos, padrao)
+    if opcoes is None:
+        print(USO, file=sys.stderr)
+        return 2
     try:
-        assert opcoes is not None
         teto, paralelo = float(opcoes["--teto"]), int(opcoes["--paralelo"])
         lotes = int(opcoes["--lotes"]) if opcoes["--lotes"] else None
-    except (AssertionError, ValueError):
+    except ValueError:
         print(USO, file=sys.stderr)
         return 2
     entrada, gerado = Path(opcoes["--entrada"]), Path(opcoes["--gerado"])

@@ -677,3 +677,23 @@
 {"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1533, "tokens_saida": 240, "ids": ["fr-5256", "fr-5890"]}
 {"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1508, "tokens_saida": 251, "ids": ["fr-5256", "fr-5890"]}
 {"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1426, "tokens_saida": 163, "ids": ["fr-5256", "fr-5890"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1929, "tokens_saida": 553, "ids": ["fr-5904", "fr-5915", "fr-5924", "fr-5984", "fr-5998"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 2811, "tokens_saida": 742, "ids": ["fr-2640", "fr-2701", "fr-2720", "fr-2765", "fr-2801", "fr-2810", "fr-3197", "fr-3727", "fr-3772", "fr-3774"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 2815, "tokens_saida": 702, "ids": ["fr-1464", "fr-1578", "fr-1605", "fr-1834", "fr-1885", "fr-1932", "fr-1949", "fr-1984", "fr-2047", "fr-2107"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1285, "tokens_saida": 138, "ids": ["fr-5984"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 2789, "tokens_saida": 976, "ids": ["fr-5649", "fr-5727", "fr-5804", "fr-5811", "fr-5812", "fr-5814", "fr-5821", "fr-5836", "fr-5853", "fr-5882"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1256, "tokens_saida": 82, "ids": ["fr-1932"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 2874, "tokens_saida": 870, "ids": ["fr-4634", "fr-4767", "fr-4808", "fr-4898", "fr-4901", "fr-4959", "fr-4984", "fr-5088", "fr-5199", "fr-5206"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 2633, "tokens_saida": 862, "ids": ["fr-0041", "fr-0078", "fr-0127", "fr-0162", "fr-0465", "fr-0558", "fr-0651", "fr-0805", "fr-1086", "fr-1134"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1707, "tokens_saida": 313, "ids": ["fr-3197", "fr-3772", "fr-3774"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 2800, "tokens_saida": 1211, "ids": ["fr-5278", "fr-5290", "fr-5322", "fr-5336", "fr-5345", "fr-5453", "fr-5521", "fr-5600", "fr-5614", "fr-5619"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 2804, "tokens_saida": 1031, "ids": ["fr-3828", "fr-3840", "fr-3912", "fr-4071", "fr-4080", "fr-4096", "fr-4103", "fr-4148", "fr-4313", "fr-4336"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 2124, "tokens_saida": 509, "ids": ["fr-5649", "fr-5727", "fr-5804", "fr-5812", "fr-5882"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1528, "tokens_saida": 197, "ids": ["fr-5453", "fr-5600"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1507, "tokens_saida": 289, "ids": ["fr-3840", "fr-4080"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1754, "tokens_saida": 325, "ids": ["fr-5727", "fr-5812", "fr-5882"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1330, "tokens_saida": 153, "ids": ["fr-5600"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1711, "tokens_saida": 402, "ids": ["fr-4898", "fr-4959", "fr-5088"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1271, "tokens_saida": 178, "ids": ["fr-4959"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1276, "tokens_saida": 170, "ids": ["fr-5600"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1335, "tokens_saida": 158, "ids": ["fr-5600"]}
