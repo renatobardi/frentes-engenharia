@@ -1,0 +1,845 @@
+{
+  "empresa": "Aurora Tech · Vertical Financiamentos",
+  "areas": [
+    {
+      "chave": "originacao",
+      "nome": "Originação",
+      "times": [
+        {
+          "chave": "simulacao",
+          "nome": "Simulação",
+          "faz": "Calcula parcelas, taxas e cenários de financiamento para o cliente e para o lojista antes da proposta.",
+          "objetos": [
+            {
+              "nome": "calculadora de parcelas",
+              "listado": true
+            },
+            {
+              "nome": "tela de comparação de cenários",
+              "listado": true
+            },
+            {
+              "nome": "rotina de atualização da tabela de taxas",
+              "listado": true
+            },
+            {
+              "nome": "cache de cotações do dia",
+              "listado": true
+            },
+            {
+              "nome": "relatório de simulações abandonadas",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "motor-de-calculo-financeiro",
+            "catalogo-de-taxas",
+            "cotador-de-seguro-prestamista"
+          ],
+          "fornecedor": "Taxônica Mercados"
+        },
+        {
+          "chave": "proposta",
+          "nome": "Proposta",
+          "faz": "Recebe a proposta de financiamento, valida os dados e a leva até a análise de crédito.",
+          "objetos": [
+            {
+              "nome": "fluxo de envio da proposta",
+              "listado": true
+            },
+            {
+              "nome": "tela de acompanhamento da proposta",
+              "listado": true
+            },
+            {
+              "nome": "fila de propostas pendentes de documento",
+              "listado": true
+            },
+            {
+              "nome": "rotina de fechamento mensal de propostas",
+              "listado": true
+            },
+            {
+              "nome": "painel de produção por loja",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "orquestrador-de-propostas",
+            "validador-de-dados-cadastrais",
+            "gerador-de-numero-de-proposta"
+          ],
+          "fornecedor": "Ortiva Workflow"
+        },
+        {
+          "chave": "cadastro-e-kyc",
+          "nome": "Cadastro e KYC",
+          "faz": "Cadastra clientes e confere identidade, endereço e listas restritivas antes de qualquer crédito.",
+          "objetos": [
+            {
+              "nome": "cadastro central de clientes",
+              "listado": true
+            },
+            {
+              "nome": "tela de conferência de documentos",
+              "listado": true
+            },
+            {
+              "nome": "rotina de revalidação cadastral",
+              "listado": true
+            },
+            {
+              "nome": "fila de pendências de KYC",
+              "listado": true
+            },
+            {
+              "nome": "planilha de exceções de cadastro",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "verificador-de-identidade",
+            "consulta-a-listas-restritivas",
+            "normalizador-de-enderecos"
+          ],
+          "fornecedor": "Calvera Biometria"
+        }
+      ]
+    },
+    {
+      "chave": "credito",
+      "nome": "Crédito",
+      "times": [
+        {
+          "chave": "motor-de-decisao",
+          "nome": "Motor de Decisão",
+          "faz": "Mantém o motor que aprova, recusa ou encaminha para análise manual cada proposta.",
+          "objetos": [
+            {
+              "nome": "motor de regras de aprovação",
+              "listado": true
+            },
+            {
+              "nome": "tela de simulação de políticas",
+              "listado": true
+            },
+            {
+              "nome": "rotina de recálculo de limites",
+              "listado": true
+            },
+            {
+              "nome": "fila de análise manual",
+              "listado": true
+            },
+            {
+              "nome": "painel de taxa de aprovação",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "avaliador-de-regras",
+            "calculador-de-limite",
+            "registro-de-decisoes"
+          ],
+          "fornecedor": "Lumivia Analytics"
+        },
+        {
+          "chave": "politicas-de-credito",
+          "nome": "Políticas de Crédito",
+          "faz": "Escreve e ajusta as políticas de crédito e os cortes de risco que o motor aplica.",
+          "objetos": [
+            {
+              "nome": "catálogo de políticas vigentes",
+              "listado": true
+            },
+            {
+              "nome": "tela de cadastro de cortes de risco",
+              "listado": true
+            },
+            {
+              "nome": "rotina de revisão trimestral de políticas",
+              "listado": true
+            },
+            {
+              "nome": "planilha de safras e inadimplência",
+              "listado": true
+            },
+            {
+              "nome": "comitê de exceções",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "repositorio-de-politicas",
+            "analisador-de-safras",
+            "calculo-de-perda-esperada"
+          ],
+          "fornecedor": "Quórum Riscos"
+        },
+        {
+          "chave": "antifraude",
+          "nome": "Antifraude",
+          "faz": "Detecta e bloqueia propostas e acessos suspeitos antes da liberação do crédito.",
+          "objetos": [
+            {
+              "nome": "regras de bloqueio por suspeita",
+              "listado": true
+            },
+            {
+              "nome": "tela de investigação de casos",
+              "listado": true
+            },
+            {
+              "nome": "rotina de revisão da lista de bloqueio",
+              "listado": true
+            },
+            {
+              "nome": "fila de alertas de fraude",
+              "listado": true
+            },
+            {
+              "nome": "painel de perdas por fraude",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "pontuador-de-fraude",
+            "consulta-de-dispositivos",
+            "gestor-de-listas-de-bloqueio"
+          ],
+          "fornecedor": "Vigília Dispositivos"
+        }
+      ]
+    },
+    {
+      "chave": "formalizacao",
+      "nome": "Formalização",
+      "times": [
+        {
+          "chave": "contratos",
+          "nome": "Contratos",
+          "faz": "Gera, versiona e guarda os contratos de financiamento e seus aditivos.",
+          "objetos": [
+            {
+              "nome": "gerador de contratos",
+              "listado": true
+            },
+            {
+              "nome": "tela de modelos de contrato",
+              "listado": true
+            },
+            {
+              "nome": "rotina de emissão de aditivos",
+              "listado": true
+            },
+            {
+              "nome": "arquivo digital de contratos",
+              "listado": true
+            },
+            {
+              "nome": "relatório de contratos sem aceite",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "montador-de-clausulas",
+            "cofre-de-contratos",
+            "calendario-de-vigencias"
+          ],
+          "fornecedor": "Tramonta Documentos"
+        },
+        {
+          "chave": "documentacao-e-assinatura",
+          "nome": "Documentação e Assinatura",
+          "faz": "Recolhe os documentos do cliente e conduz a assinatura do contrato.",
+          "objetos": [
+            {
+              "nome": "tela de envio de documentos",
+              "listado": true
+            },
+            {
+              "nome": "assinatura eletrônica do contrato",
+              "listado": true
+            },
+            {
+              "nome": "rotina de conferência de anexos",
+              "listado": true
+            },
+            {
+              "nome": "fila de documentos ilegíveis",
+              "listado": true
+            },
+            {
+              "nome": "painel de tempo até a assinatura",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "coletor-de-anexos",
+            "reconhecedor-de-documentos",
+            "carimbo-de-tempo"
+          ],
+          "fornecedor": "Selagem Digital"
+        },
+        {
+          "chave": "gravame",
+          "nome": "Gravame",
+          "faz": "Cuida da inscrição e da baixa da restrição do veículo financiado junto aos órgãos de trânsito.",
+          "objetos": [
+            {
+              "nome": "painel de pendências do órgão de trânsito",
+              "listado": true
+            },
+            {
+              "nome": "tela de contratos aguardando inscrição",
+              "listado": true
+            },
+            {
+              "nome": "rotina de reenvio de inscrições recusadas",
+              "listado": true
+            },
+            {
+              "nome": "conciliação de baixas",
+              "listado": true
+            },
+            {
+              "nome": "planilha de contratos parados",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "conector-de-orgaos-de-transito",
+            "controle-de-restricoes-veiculares",
+            "consulta-de-chassi"
+          ],
+          "fornecedor": "Placart Integrações"
+        }
+      ]
+    },
+    {
+      "chave": "canal-parceiro",
+      "nome": "Canal Parceiro",
+      "times": [
+        {
+          "chave": "portal-do-lojista",
+          "nome": "Portal do Lojista",
+          "faz": "Mantém o portal onde o lojista acompanha propostas, tabelas e materiais.",
+          "objetos": [
+            {
+              "nome": "tela inicial do lojista",
+              "listado": true
+            },
+            {
+              "nome": "área de materiais comerciais",
+              "listado": true
+            },
+            {
+              "nome": "rotina de cadastro de novo usuário de loja",
+              "listado": true
+            },
+            {
+              "nome": "central de avisos aos lojistas",
+              "listado": true
+            },
+            {
+              "nome": "relatório de acessos por loja",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "autenticacao-de-parceiros",
+            "vitrine-de-tabelas-comerciais",
+            "notificador-de-lojistas"
+          ],
+          "fornecedor": "Mercatto Acessos"
+        },
+        {
+          "chave": "correspondentes",
+          "nome": "Correspondentes",
+          "faz": "Atende os correspondentes bancários que originam financiamentos fora das lojas.",
+          "objetos": [
+            {
+              "nome": "credenciamento de correspondentes",
+              "listado": true
+            },
+            {
+              "nome": "tela de produção por correspondente",
+              "listado": true
+            },
+            {
+              "nome": "rotina de auditoria de correspondentes",
+              "listado": true
+            },
+            {
+              "nome": "kit de integração com correspondentes",
+              "listado": true
+            },
+            {
+              "nome": "planilha de repasses em disputa",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "cadastro-de-correspondentes",
+            "apuracao-de-producao",
+            "validador-de-credenciais-de-parceiro"
+          ],
+          "fornecedor": "Conformis Auditoria"
+        },
+        {
+          "chave": "comissionamento-de-parceiros",
+          "nome": "Comissionamento de Parceiros",
+          "faz": "Apura e paga as comissões devidas a lojistas e correspondentes.",
+          "objetos": [
+            {
+              "nome": "apuração mensal de comissões",
+              "listado": true
+            },
+            {
+              "nome": "tela de extrato do parceiro",
+              "listado": true
+            },
+            {
+              "nome": "rotina de estorno de comissões",
+              "listado": true
+            },
+            {
+              "nome": "planilha de acertos manuais",
+              "listado": true
+            },
+            {
+              "nome": "relatório de comissões divergentes",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "calculador-de-premiacao",
+            "ledger-de-repasses",
+            "regras-de-bonificacao"
+          ],
+          "fornecedor": "Pelicano Pagamentos"
+        }
+      ]
+    },
+    {
+      "chave": "canal-digital",
+      "nome": "Canal Digital",
+      "times": [
+        {
+          "chave": "app",
+          "nome": "App",
+          "faz": "Mantém o aplicativo móvel do cliente, da contratação ao acompanhamento do financiamento.",
+          "objetos": [
+            {
+              "nome": "assistente virtual do app",
+              "listado": true
+            },
+            {
+              "nome": "tela de simulação do app",
+              "listado": true
+            },
+            {
+              "nome": "rotina de publicação de versão nas lojas de aplicativo",
+              "listado": true
+            },
+            {
+              "nome": "notificações push",
+              "listado": true
+            },
+            {
+              "nome": "painel de avaliações do app",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "gateway-do-aplicativo",
+            "gerenciador-de-sessoes-moveis",
+            "servico-de-notificacoes-push"
+          ],
+          "fornecedor": "Brisante Mobile"
+        },
+        {
+          "chave": "jornada-online",
+          "nome": "Jornada Online",
+          "faz": "Cuida da jornada de contratação pelo site, do primeiro clique à proposta enviada.",
+          "objetos": [
+            {
+              "nome": "formulário de contratação online",
+              "listado": true
+            },
+            {
+              "nome": "tela de acompanhamento do pedido",
+              "listado": true
+            },
+            {
+              "nome": "rotina de recuperação de carrinho abandonado",
+              "listado": true
+            },
+            {
+              "nome": "testes A/B da jornada",
+              "listado": true
+            },
+            {
+              "nome": "relatório de funil do site",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "orquestrador-da-jornada-web",
+            "captura-de-leads",
+            "experimentos-de-interface"
+          ],
+          "fornecedor": "Fluxia Experiência"
+        },
+        {
+          "chave": "marketplace-de-veiculos",
+          "nome": "Marketplace de Veículos",
+          "faz": "Opera a vitrine de veículos de concessionárias que conecta compradores e crédito.",
+          "objetos": [
+            {
+              "nome": "catálogo de veículos anunciados",
+              "listado": true
+            },
+            {
+              "nome": "tela de anúncio da concessionária",
+              "listado": true
+            },
+            {
+              "nome": "rotina de importação de estoque",
+              "listado": true
+            },
+            {
+              "nome": "moderação de anúncios",
+              "listado": true
+            },
+            {
+              "nome": "relatório de visitas por anúncio",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "indexador-de-estoque",
+            "avaliador-de-precos-de-veiculos",
+            "moderador-de-anuncios"
+          ],
+          "fornecedor": "Autovitra Catálogos"
+        }
+      ]
+    },
+    {
+      "chave": "pos-venda-e-cobranca",
+      "nome": "Pós-venda e Cobrança",
+      "times": [
+        {
+          "chave": "boletos-e-carnes",
+          "nome": "Boletos e Carnês",
+          "faz": "Emite e concilia os documentos de cobrança das parcelas do financiamento.",
+          "objetos": [
+            {
+              "nome": "geração da remessa de cobrança",
+              "listado": true
+            },
+            {
+              "nome": "tela de segunda via",
+              "listado": true
+            },
+            {
+              "nome": "rotina de conciliação bancária",
+              "listado": true
+            },
+            {
+              "nome": "retorno de pagamentos",
+              "listado": true
+            },
+            {
+              "nome": "planilha de baixas manuais",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "emissor-de-cobrancas",
+            "conciliador-de-pagamentos",
+            "calculo-de-encargos"
+          ],
+          "fornecedor": "Cobrix Serviços Financeiros"
+        },
+        {
+          "chave": "renegociacao",
+          "nome": "Renegociação",
+          "faz": "Negocia dívidas em atraso com o cliente e formaliza os novos acordos.",
+          "objetos": [
+            {
+              "nome": "simulador de acordo",
+              "listado": true
+            },
+            {
+              "nome": "tela de proposta de renegociação",
+              "listado": true
+            },
+            {
+              "nome": "rotina de oferta ativa a inadimplentes",
+              "listado": true
+            },
+            {
+              "nome": "fila de acordos quebrados",
+              "listado": true
+            },
+            {
+              "nome": "relatório de recuperação por faixa de atraso",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "motor-de-ofertas-de-acordo",
+            "gerador-de-parcelamento-de-divida",
+            "registro-de-acordos"
+          ],
+          "fornecedor": "Reaviva Cobranças"
+        },
+        {
+          "chave": "quitacao-e-baixa",
+          "nome": "Quitação e Baixa",
+          "faz": "Trata a quitação antecipada e a baixa do financiamento e das garantias.",
+          "objetos": [
+            {
+              "nome": "calculadora de saldo devedor",
+              "listado": true
+            },
+            {
+              "nome": "tela de pedido de quitação",
+              "listado": true
+            },
+            {
+              "nome": "rotina de liberação de garantias",
+              "listado": true
+            },
+            {
+              "nome": "declaração de quitação",
+              "listado": true
+            },
+            {
+              "nome": "relatório de baixas pendentes",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "apurador-de-saldo-devedor",
+            "emissor-de-declaracoes",
+            "liberador-de-garantias"
+          ],
+          "fornecedor": "Finalis Registros"
+        }
+      ]
+    },
+    {
+      "chave": "plataforma-e-sustentacao",
+      "nome": "Plataforma e Sustentação",
+      "times": [
+        {
+          "chave": "infra-e-cloud",
+          "nome": "Infra e Cloud",
+          "faz": "Opera a nuvem, a rede e os ambientes onde todos os sistemas da vertical rodam.",
+          "objetos": [
+            {
+              "nome": "cluster de aplicações em nuvem",
+              "listado": true
+            },
+            {
+              "nome": "tela de capacidade e custos",
+              "listado": true
+            },
+            {
+              "nome": "rotina de escala nos picos",
+              "listado": true
+            },
+            {
+              "nome": "ambiente de contingência",
+              "listado": true
+            },
+            {
+              "nome": "relatório de custo de nuvem por time",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "provisionador-de-ambientes",
+            "balanceador-de-carga",
+            "gerenciador-de-segredos-de-plataforma"
+          ],
+          "fornecedor": "Nuvétrix Hospedagem"
+        },
+        {
+          "chave": "observabilidade",
+          "nome": "Observabilidade",
+          "faz": "Mantém métricas, logs, rastros e alertas que dizem se os sistemas estão saudáveis.",
+          "objetos": [
+            {
+              "nome": "painéis de métricas",
+              "listado": true
+            },
+            {
+              "nome": "tela de alertas",
+              "listado": true
+            },
+            {
+              "nome": "rotina de plantão e escalonamento",
+              "listado": true
+            },
+            {
+              "nome": "armazenamento de logs",
+              "listado": true
+            },
+            {
+              "nome": "relatório de disponibilidade mensal",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "coletor-de-metricas",
+            "indexador-de-logs",
+            "roteador-de-alertas"
+          ],
+          "fornecedor": "Faroleira Monitoramento"
+        },
+        {
+          "chave": "suporte-n2-n3",
+          "nome": "Suporte N2/N3",
+          "faz": "Atende os incidentes que o primeiro nível não resolve e corrige a causa nos sistemas.",
+          "objetos": [
+            {
+              "nome": "fila de chamados escalados",
+              "listado": true
+            },
+            {
+              "nome": "tela de diagnóstico de incidentes",
+              "listado": true
+            },
+            {
+              "nome": "rotina de passagem de plantão",
+              "listado": true
+            },
+            {
+              "nome": "base de problemas conhecidos",
+              "listado": true
+            },
+            {
+              "nome": "relatório de reincidência de chamados",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "gestor-de-chamados",
+            "consulta-de-trilhas-de-auditoria",
+            "automacao-de-runbooks"
+          ],
+          "fornecedor": "Atendo Suporte Gerenciado"
+        }
+      ]
+    },
+    {
+      "chave": "dados-e-regulatorio",
+      "nome": "Dados e Regulatório",
+      "times": [
+        {
+          "chave": "engenharia-de-dados",
+          "nome": "Engenharia de Dados",
+          "faz": "Constrói e mantém os pipelines e o lago de dados que alimentam relatórios e modelos.",
+          "objetos": [
+            {
+              "nome": "pipeline diário de cargas",
+              "listado": true
+            },
+            {
+              "nome": "tela de catálogo de dados",
+              "listado": true
+            },
+            {
+              "nome": "rotina de reprocessamento de cargas",
+              "listado": true
+            },
+            {
+              "nome": "lago de dados",
+              "listado": true
+            },
+            {
+              "nome": "relatório de qualidade dos dados",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "orquestrador-de-cargas",
+            "catalogo-de-dados",
+            "validador-de-qualidade-de-dados"
+          ],
+          "fornecedor": "Datamar Plataformas"
+        },
+        {
+          "chave": "relatorios-regulatorios",
+          "nome": "Relatórios Regulatórios",
+          "faz": "Produz e envia os relatórios exigidos pelos órgãos reguladores nos prazos legais.",
+          "objetos": [
+            {
+              "nome": "geração do relatório mensal ao regulador",
+              "listado": true
+            },
+            {
+              "nome": "tela de conferência de saldos",
+              "listado": true
+            },
+            {
+              "nome": "rotina de fechamento contábil",
+              "listado": true
+            },
+            {
+              "nome": "calendário de obrigações",
+              "listado": true
+            },
+            {
+              "nome": "planilha de ajustes manuais",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "gerador-de-obrigacoes",
+            "conciliador-contabil",
+            "protocolo-de-envio-regulatorio"
+          ],
+          "fornecedor": "Normativa Consultoria"
+        },
+        {
+          "chave": "privacidade-lgpd",
+          "nome": "Privacidade (LGPD)",
+          "faz": "Atende os direitos dos titulares e mantém o registro do uso de dados pessoais.",
+          "objetos": [
+            {
+              "nome": "portal de pedidos de titulares",
+              "listado": true
+            },
+            {
+              "nome": "tela de consentimentos",
+              "listado": true
+            },
+            {
+              "nome": "rotina de anonimização de dados antigos",
+              "listado": true
+            },
+            {
+              "nome": "inventário de dados pessoais",
+              "listado": true
+            },
+            {
+              "nome": "relatório de incidentes de privacidade",
+              "listado": false
+            }
+          ],
+          "servicos": [
+            "gestor-de-consentimentos",
+            "localizador-de-dados-pessoais",
+            "anonimizador-de-registros"
+          ],
+          "fornecedor": "Sigilo Governança"
+        }
+      ]
+    }
+  ]
+}
