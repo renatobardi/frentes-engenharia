@@ -1,0 +1,256 @@
+{
+ "fundo": {
+  "frentes": 170,
+  "antes": {
+   "area_certa": "108/156",
+   "time_certo": "92/156",
+   "por_origem": {
+    "relato": "19/55",
+    "mcp": "7/11",
+    "log": "45/47",
+    "webhook": "20/26",
+    "banco": "17/17"
+   },
+   "estados": {
+    "classificada (Jev)": 138,
+    "incerta": 13,
+    "classificada via LLM": 18,
+    "não classificada": 1
+   },
+   "conf_area_media": 0.85,
+   "tok_medio": 3084,
+   "linha_plataforma": {
+    "jev": 45,
+    "gabarito": 19
+   },
+   "erros_vao_para": {
+    "Plataforma e Sustentação": 29,
+    "Dados e Regulatório": 9,
+    "Originação": 5,
+    "Crédito": 2
+   },
+   "por_tema": {
+    "ambiente de dev": "3/6",
+    "arquitetura": "14/14",
+    "comunicação entre áreas": "3/6",
+    "custo de nuvem": "5/13",
+    "dívida técnica": "13/15",
+    "fornecedor": "12/13",
+    "observabilidade": "13/17",
+    "operação e atendimento": "7/12",
+    "performance": "10/14",
+    "pessoas": "3/3",
+    "processo manual": "5/8",
+    "qualidade de dados": "4/10",
+    "regulatório": "4/6",
+    "sdlc (ruído)": "9/13",
+    "segurança (ruído)": "3/6"
+   }
+  },
+  "ficha": {
+   "area_certa": "77/156",
+   "time_certo": "64/156",
+   "por_origem": {
+    "relato": "34/58",
+    "mcp": "6/9",
+    "log": "19/46",
+    "webhook": "7/26",
+    "banco": "11/17"
+   },
+   "estados": {
+    "classificada (Jev)": 113,
+    "incerta": 12,
+    "classificada via LLM": 43,
+    "não classificada": 2
+   },
+   "conf_area_media": 0.74,
+   "tok_medio": 3086,
+   "linha_plataforma": {
+    "jev": 67,
+    "gabarito": 20
+   },
+   "erros_vao_para": {
+    "Plataforma e Sustentação": 51,
+    "Originação": 7,
+    "Dados e Regulatório": 7,
+    "Formalização": 5
+   },
+   "por_tema": {
+    "ambiente de dev": "4/6",
+    "arquitetura": "4/15",
+    "comunicação entre áreas": "3/6",
+    "custo de nuvem": "3/11",
+    "dívida técnica": "7/15",
+    "fornecedor": "13/15",
+    "observabilidade": "5/18",
+    "operação e atendimento": "7/12",
+    "performance": "6/14",
+    "pessoas": "1/2",
+    "processo manual": "4/7",
+    "qualidade de dados": "4/9",
+    "regulatório": "6/7",
+    "sdlc (ruído)": "7/12",
+    "segurança (ruído)": "3/7"
+   }
+  },
+  "frase": {
+   "area_certa": "110/153",
+   "time_certo": "102/153",
+   "por_origem": {
+    "relato": "48/58",
+    "mcp": "6/8",
+    "log": "30/44",
+    "webhook": "14/26",
+    "banco": "12/17"
+   },
+   "estados": {
+    "classificada (Jev)": 111,
+    "classificada via LLM": 42,
+    "incerta": 13,
+    "não classificada": 4
+   },
+   "conf_area_media": 0.76,
+   "tok_medio": 3617,
+   "linha_plataforma": {
+    "jev": 45,
+    "gabarito": 19
+   },
+   "erros_vao_para": {
+    "Plataforma e Sustentação": 27,
+    "Originação": 6,
+    "Dados e Regulatório": 4,
+    "Canal Digital": 2
+   },
+   "por_tema": {
+    "ambiente de dev": "5/5",
+    "arquitetura": "11/14",
+    "comunicação entre áreas": "5/5",
+    "custo de nuvem": "4/11",
+    "dívida técnica": "8/14",
+    "fornecedor": "15/15",
+    "observabilidade": "12/18",
+    "operação e atendimento": "8/12",
+    "performance": "9/14",
+    "pessoas": "3/3",
+    "processo manual": "6/7",
+    "qualidade de dados": "6/9",
+    "regulatório": "6/7",
+    "sdlc (ruído)": "7/12",
+    "segurança (ruído)": "5/7"
+   }
+  },
+  "frase_sistemas": {
+   "area_certa": "152/158",
+   "time_certo": "150/158",
+   "por_origem": {
+    "relato": "58/59",
+    "mcp": "9/9",
+    "log": "45/47",
+    "webhook": "24/26",
+    "banco": "16/17"
+   },
+   "estados": {
+    "classificada (Jev)": 139,
+    "incerta": 12,
+    "classificada via LLM": 19
+   },
+   "conf_area_media": 0.94,
+   "tok_medio": 4530,
+   "linha_plataforma": {
+    "jev": 24,
+    "gabarito": 20
+   },
+   "erros_vao_para": {
+    "Plataforma e Sustentação": 4,
+    "Originação": 1,
+    "Dados e Regulatório": 1
+   },
+   "por_tema": {
+    "ambiente de dev": "5/5",
+    "arquitetura": "14/15",
+    "comunicação entre áreas": "6/6",
+    "custo de nuvem": "10/12",
+    "dívida técnica": "16/16",
+    "fornecedor": "15/15",
+    "observabilidade": "18/18",
+    "operação e atendimento": "11/12",
+    "performance": "13/14",
+    "pessoas": "3/3",
+    "processo manual": "7/7",
+    "qualidade de dados": "9/9",
+    "regulatório": "6/7",
+    "sdlc (ruído)": "12/12",
+    "segurança (ruído)": "7/7"
+   }
+  }
+ },
+ "H7": {
+  "frentes": 6,
+  "antes": {
+   "area_certa": "3/6",
+   "time_certo": "3/6",
+   "por_origem": {
+    "relato": "0/3",
+    "mcp": "0/0",
+    "log": "0/0",
+    "webhook": "3/3",
+    "banco": "0/0"
+   },
+   "estados": {
+    "classificada (Jev)": 6
+   },
+   "conf_area_media": 0.96,
+   "tok_medio": 3090
+  },
+  "ficha": {
+   "area_certa": "4/6",
+   "time_certo": "1/6",
+   "por_origem": {
+    "relato": "2/3",
+    "mcp": "0/0",
+    "log": "0/0",
+    "webhook": "2/3",
+    "banco": "0/0"
+   },
+   "estados": {
+    "classificada (Jev)": 3,
+    "classificada via LLM": 3
+   },
+   "conf_area_media": 0.6,
+   "tok_medio": 3093
+  },
+  "frase": {
+   "area_certa": "4/6",
+   "time_certo": "3/6",
+   "por_origem": {
+    "relato": "2/3",
+    "mcp": "0/0",
+    "log": "0/0",
+    "webhook": "2/3",
+    "banco": "0/0"
+   },
+   "estados": {
+    "classificada (Jev)": 4,
+    "classificada via LLM": 2
+   },
+   "conf_area_media": 0.64,
+   "tok_medio": 3624
+  },
+  "frase_sistemas": {
+   "area_certa": "6/6",
+   "time_certo": "6/6",
+   "por_origem": {
+    "relato": "3/3",
+    "mcp": "0/0",
+    "log": "0/0",
+    "webhook": "3/3",
+    "banco": "0/0"
+   },
+   "estados": {
+    "classificada (Jev)": 6
+   },
+   "conf_area_media": 0.92,
+   "tok_medio": 4537
+  }
+ }
+}
