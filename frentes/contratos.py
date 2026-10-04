@@ -491,7 +491,12 @@ class RespostaDeLista:
 
 @dataclass(frozen=True, slots=True)
 class RespostaDeNumero:
+    """`valor` de 0 a 1. Só as réguas (`score`) trazem `confianca` e `probabilidades`
+    (por nível, chaves "0", "1"...); a pergunta de controle e a urgência (`noul`) não."""
+
     valor: float
+    confianca: float | None = None
+    probabilidades: Mapping[str, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -501,6 +506,14 @@ class Uso:
     tokens_entrada: int
     tokens_saida: int
     latencia_ms: int
+
+
+def _resposta_para_dict(r: "RespostaDeLista | RespostaDeNumero") -> dict[str, Any]:
+    dados = asdict(r)
+    if isinstance(r, RespostaDeNumero) and r.confianca is None:
+        # noul: só o valor, como sempre foi guardado.
+        return {"valor": dados["valor"]}
+    return dados
 
 
 @dataclass(frozen=True, slots=True)
@@ -519,7 +532,7 @@ class RespostaJev:
     def para_dict(self) -> dict[str, Any]:
         return {
             "modelo": self.modelo,
-            "respostas": {p: asdict(r) for p, r in self.respostas.items()},
+            "respostas": {p: _resposta_para_dict(r) for p, r in self.respostas.items()},
         }
 
     @classmethod
@@ -527,7 +540,9 @@ class RespostaJev:
         respostas: dict[Pergunta, RespostaDeLista | RespostaDeNumero] = {}
         for pergunta, r in dados["respostas"].items():
             if "valor" in r:
-                respostas[Pergunta(pergunta)] = RespostaDeNumero(r["valor"])
+                respostas[Pergunta(pergunta)] = RespostaDeNumero(
+                    r["valor"], r.get("confianca"), dict(r.get("probabilidades", {}))
+                )
             else:
                 respostas[Pergunta(pergunta)] = RespostaDeLista(
                     r["escolha"], r["confianca"], dict(r["probabilidades"])

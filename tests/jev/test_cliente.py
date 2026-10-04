@@ -1,4 +1,5 @@
 import asyncio
+import dataclasses
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -7,8 +8,11 @@ import httpx
 import pytest
 
 import frentes.jev.cliente as modulo
+from frentes import config
 from frentes.contratos import NENHUM_DESTES, Pergunta, RespostaDeLista, RespostaDeNumero
 from frentes.jev import ClienteTypesafe, ErroJev, SemChave, corpo_do_pedido
+
+OPERACAO = config.carregar({}).operacao
 
 TEXTO = (
     "O simulador de parcelas está fora do ar desde as 9h "
@@ -31,7 +35,7 @@ class Servidor:
         return r
 
 
-def cliente(servidor, chave="segredo-de-teste", **extra):
+def cliente(servidor, chave="segredo-de-teste", operacao=OPERACAO, **extra):
     esperas: list[float] = []
 
     async def dormir(segundos: float) -> None:
@@ -40,6 +44,7 @@ def cliente(servidor, chave="segredo-de-teste", **extra):
     c = ClienteTypesafe(
         chave,
         "jev-latest",
+        operacao,
         transporte=httpx.MockTransport(servidor),
         dormir=dormir,
         **extra,
@@ -75,6 +80,9 @@ def test_sucesso_devolve_a_resposta_inteira_do_jev_real(perguntas, resposta_real
     assert area.escolha == "simulacao"
     assert set(area.probabilidades) == {"simulacao", "proposta", NENHUM_DESTES}
     assert resposta.respostas[Pergunta.CONTROLE] == RespostaDeNumero(0.98)
+    assert resposta.respostas[Pergunta.SEVERIDADE] == RespostaDeNumero(
+        1.0, 0.99, {"0": 0.0, "1": 1.0}
+    )
     assert resposta.uso.tokens_entrada == 833
     assert resposta.uso.tokens_saida == 259
 
@@ -96,7 +104,9 @@ def test_score_vem_na_escala_dos_niveis_e_sai_de_0_a_1(perguntas, resposta_real)
 
     resposta, _ = perguntar(Servidor(ok(resposta_real)), perguntas)
 
-    assert resposta.respostas[Pergunta.SEVERIDADE] == RespostaDeNumero(pytest.approx(0.98))
+    assert resposta.respostas[Pergunta.SEVERIDADE] == RespostaDeNumero(
+        pytest.approx(0.98), 0.94, {"0": 0.0, "1": 0.01, "2": 0.04, "3": 0.95}
+    )
 
 
 def test_score_com_um_nivel_so_e_erro(perguntas, resposta_real):
@@ -147,7 +157,7 @@ def test_429_sem_retry_after_usa_a_espera_crescente(perguntas, resposta_real):
 
     _, esperas = perguntar(servidor, perguntas)
 
-    assert esperas == [0.5, 1.0]
+    assert esperas == [1.0, 2.0]
 
 
 def test_tempo_esgotado_tenta_de_novo(perguntas, resposta_real):
@@ -155,7 +165,7 @@ def test_tempo_esgotado_tenta_de_novo(perguntas, resposta_real):
 
     resposta, esperas = perguntar(servidor, perguntas)
 
-    assert esperas == [0.5]
+    assert esperas == [1.0]
     assert len(servidor.pedidos) == 2
     assert resposta.modelo == "jev-1.13.0"
 
@@ -165,7 +175,7 @@ def test_falha_de_conexao_e_erro_5xx_tentam_de_novo(perguntas, resposta_real):
 
     _, esperas = perguntar(servidor, perguntas)
 
-    assert esperas == [0.5, 1.0]
+    assert esperas == [1.0, 2.0]
 
 
 def test_terceira_falha_seguida_levanta_erro_jev(perguntas):
@@ -194,7 +204,7 @@ def test_a_ultima_falha_nao_espera_antes_de_desistir(perguntas):
     with pytest.raises(ErroJev):
         asyncio.run(rodar())
 
-    assert esperas == [0.5, 1.0]
+    assert esperas == [1.0, 2.0]
 
 
 @pytest.mark.parametrize("status", [400, 401, 403])
@@ -252,7 +262,12 @@ def test_semaforo_limita_as_chamadas_simultaneas(perguntas, resposta_real):
         ativas -= 1
         return ok(resposta_real)
 
-    c = ClienteTypesafe("k", "m", transporte=httpx.MockTransport(lento), simultaneas=2)
+    c = ClienteTypesafe(
+        "k",
+        "m",
+        dataclasses.replace(OPERACAO, semaforo_jev=2),
+        transporte=httpx.MockTransport(lento),
+    )
 
     async def rodar():
         try:
@@ -277,7 +292,12 @@ def test_latencia_nao_inclui_a_espera_no_semaforo(monkeypatch, perguntas, respos
         agora += 0.05
         return ok(resposta_real)
 
-    c = ClienteTypesafe("k", "m", transporte=httpx.MockTransport(post), simultaneas=1)
+    c = ClienteTypesafe(
+        "k",
+        "m",
+        dataclasses.replace(OPERACAO, semaforo_jev=1),
+        transporte=httpx.MockTransport(post),
+    )
 
     async def rodar():
         try:
@@ -288,3 +308,29 @@ def test_latencia_nao_inclui_a_espera_no_semaforo(monkeypatch, perguntas, respos
     respostas = asyncio.run(rodar())
 
     assert [r.uso.latencia_ms for r in respostas] == [50, 50, 50]
+
+
+def test_tempo_limite_vem_da_configuracao(perguntas, resposta_real):
+    servidor = Servidor(ok(resposta_real))
+
+    perguntar(servidor, perguntas, operacao=dataclasses.replace(OPERACAO, tempo_limite_jev_s=7.5))
+
+    assert servidor.pedidos[0].extensions["timeout"]["read"] == 7.5
+
+
+def test_tentativas_vem_da_configuracao(perguntas):
+    servidor = Servidor(*[httpx.Response(503)] * 5)
+
+    with pytest.raises(ErroJev, match="5 tentativas"):
+        perguntar(servidor, perguntas, operacao=dataclasses.replace(OPERACAO, tentativas=5))
+
+    assert len(servidor.pedidos) == 5
+
+
+def test_espera_inicial_vem_da_configuracao(perguntas, resposta_real):
+    operacao = dataclasses.replace(OPERACAO, espera_inicial_s=0.25)
+    servidor = Servidor(httpx.Response(503), httpx.Response(503), ok(resposta_real))
+
+    _, esperas = perguntar(servidor, perguntas, operacao=operacao)
+
+    assert esperas == [0.25, 0.5]

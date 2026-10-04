@@ -193,3 +193,20 @@ def test_resposta_do_jev_vai_a_json_sem_o_uso_e_volta_igual() -> None:
     assert sorted(guardado) == ["modelo", "respostas"]  # o uso vale só nas colunas
     assert guardado["respostas"]["controle"] == {"valor": 0.91}
     assert contratos.RespostaJev.de_dict(guardado, uso) == resposta
+
+
+def test_regua_guarda_confianca_e_probabilidades_e_volta_igual() -> None:
+    uso = contratos.Uso(tokens_entrada=1, tokens_saida=1, latencia_ms=1)
+    regua = contratos.RespostaDeNumero(0.98, 0.94, {"0": 0.05, "1": 0.95})
+    resposta = contratos.RespostaJev(
+        modelo="jev-1.13.0", respostas={contratos.Pergunta.SEVERIDADE: regua}, uso=uso
+    )
+
+    guardado = json.loads(json.dumps(resposta.para_dict()))
+
+    assert guardado["respostas"]["severidade"] == {
+        "valor": 0.98,
+        "confianca": 0.94,
+        "probabilidades": {"0": 0.05, "1": 0.95},
+    }
+    assert contratos.RespostaJev.de_dict(guardado, uso) == resposta

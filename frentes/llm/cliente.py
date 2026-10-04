@@ -13,14 +13,10 @@ from typing import Any
 
 import httpx
 
+from frentes.config import Operacao
 from frentes.contratos import RespostaLlm, Uso
 
 URL = "https://openrouter.ai/api/v1/chat/completions"
-MODELO_PADRAO = "deepseek/deepseek-v4-flash"
-TEMPO_LIMITE_S = 30.0
-TENTATIVAS = 3
-ESPERA_BASE_S = 1.0
-PARALELISMO = 8
 
 
 class ErroLlm(Exception):
@@ -56,21 +52,22 @@ def _extrair_json(texto: str) -> Mapping[str, Any]:
 class ClienteOpenRouter:
     """Implementa `contratos.ClienteLlm`.
 
-    `modelo` e `raciocinio` vêm de quem monta o cliente (o `config.py` ainda não
-    os lê). `transporte` e `dormir` existem para o teste trocar rede e relógio.
+    Modelo, tempo limite, tentativas, espera inicial e paralelismo vêm do `config.Operacao`.
+    O raciocínio fica desligado, como a spec manda para todos os papéis da LLM.
+    `transporte` e `dormir` existem para o teste trocar rede e relógio.
     """
 
     def __init__(
         self,
         chave: str | None,
+        operacao: Operacao,
         *,
-        modelo: str = MODELO_PADRAO,
         raciocinio: bool = False,
         transporte: httpx.AsyncBaseTransport | None = None,
         dormir: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
         self._chave = (chave or "").strip() or None
-        self._modelo = modelo
+        self._operacao = operacao
         self._raciocinio = raciocinio
         # Um semáforo por loop de eventos: o semáforo prende ao loop da primeira espera.
         self._semaforos: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Semaphore] = (
@@ -80,13 +77,13 @@ class ClienteOpenRouter:
         self._dormir = dormir
 
     def __repr__(self) -> str:
-        return f"ClienteOpenRouter(modelo={self._modelo!r})"
+        return f"ClienteOpenRouter(modelo={self._operacao.modelo_llm!r})"
 
     async def completar(self, instrucao: str, entrada: str) -> RespostaLlm:
         if self._chave is None:
             raise ErroSemChave("OPENROUTER_API_KEY não está no ambiente")
         corpo = {
-            "model": self._modelo,
+            "model": self._operacao.modelo_llm,
             "messages": [
                 {"role": "system", "content": instrucao},
                 {"role": "user", "content": entrada},
@@ -96,22 +93,23 @@ class ClienteOpenRouter:
             "temperature": 0,
         }
         cabecalhos = {"Authorization": f"Bearer {self._chave}"}
+        operacao = self._operacao
         motivo = ""
         loop = asyncio.get_running_loop()
-        semaforo = self._semaforos.setdefault(loop, asyncio.Semaphore(PARALELISMO))
+        semaforo = self._semaforos.setdefault(loop, asyncio.Semaphore(operacao.semaforo_llm))
         async with semaforo:
             async with httpx.AsyncClient(
-                transport=self._transporte, timeout=TEMPO_LIMITE_S
+                transport=self._transporte, timeout=operacao.tempo_limite_llm_s
             ) as http:
-                for tentativa in range(TENTATIVAS):
+                for tentativa in range(operacao.tentativas):
                     if tentativa:
-                        await self._dormir(ESPERA_BASE_S * 2 ** (tentativa - 1))
+                        await self._dormir(operacao.espera_inicial_s * 2 ** (tentativa - 1))
                     inicio = time.monotonic()
                     try:
                         return await self._uma_vez(http, corpo, cabecalhos, inicio)
                     except _Retentavel as erro:
                         motivo = str(erro)
-        raise ErroLlmEsgotado(f"sem resposta válida em {TENTATIVAS} tentativas: {motivo}")
+        raise ErroLlmEsgotado(f"sem resposta válida em {operacao.tentativas} tentativas: {motivo}")
 
     async def _uma_vez(
         self,
@@ -145,7 +143,7 @@ class ClienteOpenRouter:
         except (KeyError, TypeError, ValueError):
             raise ErroLlm("o OpenRouter devolveu o uso fora do formato") from None
         return RespostaLlm(
-            modelo=str(dados.get("model") or self._modelo),
+            modelo=str(dados.get("model") or self._operacao.modelo_llm),
             conteudo=conteudo,
             uso=Uso(
                 tokens_entrada=tokens_entrada,
