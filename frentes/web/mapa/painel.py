@@ -45,6 +45,7 @@ NOME_DA_ORIGEM = dict(montagem.ORIGENS)
 
 # o gráfico da evolução: um ponto por mês, em coordenadas do `viewBox`
 LARGURA, ALTURA, MARGEM = 360, 120, 14
+BORDA = 30  # perto da borda, o rótulo do marcador se ancora para dentro do gráfico
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +69,7 @@ class Marcador:
 
     x: float
     rotulo: str  # "◆ 30/06"
+    ancora: str  # "start", "middle" ou "end": o rótulo não corta na borda do gráfico
 
 
 @dataclass(frozen=True, slots=True)
@@ -172,18 +174,23 @@ def _marcador(marca: Enderecamento, pontos: list[Ponto], serie) -> Marcador | No
     mes = marca.decidido_em.strftime("%Y-%m")
     for p, s in zip(pontos, serie, strict=True):
         if s.mes == mes:
-            return Marcador(p.x, f"◆ {montagem.selo_do_dia(marca.decidido_em)}")
+            ancora = "start" if p.x < BORDA else "end" if p.x > LARGURA - BORDA else "middle"
+            return Marcador(p.x, f"◆ {montagem.selo_do_dia(marca.decidido_em)}", ancora)
     return None  # a data está fora dos 12 meses da série
 
 
 def _variacao(marca: Enderecamento, serie: list[agregados.PontoMensal]) -> str:
+    """A variação do índice desde a data, até o último mês fechado: o mês corrente da série é
+    parcial e faria a queda parecer maior do que é (a série vai até hoje)."""
     desde = montagem.selo_do_dia(marca.decidido_em)
+    fechados = serie[:-1]
     # o ponto do mês vale desde o primeiro dia dele: a base é o mês da decisão
-    pontos = [(datetime.fromisoformat(f"{p.mes}-01T00:00:00+00:00"), p.indice) for p in serie]
+    pontos = [(datetime.fromisoformat(f"{p.mes}-01T00:00:00+00:00"), p.indice) for p in fechados]
     v = marcas.variacao(marca, pontos)
     if v is None:
         return f"sem base de comparação desde {desde}"
-    return f"{v:+.0%} desde {desde}".replace("-", "−")
+    ate = f"{fechados[-1].mes[5:]}/{fechados[-1].mes[:4]}"
+    return f"{v:+.0%}".replace("-", "−") + f" desde {desde}, até {ate}"
 
 
 def trecho(texto: str) -> str:

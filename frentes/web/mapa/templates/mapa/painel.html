@@ -69,7 +69,7 @@
   <section class="bloco" id="painel-evolucao">
     <h3>Evolução em 12 meses</h3>
     <svg class="evolucao" viewBox="0 0 360 120" role="img" aria-label="Índice da célula nos últimos 12 meses">
-      {% if painel.marcador %}<g class="marcador-enderecamento"><line x1="{{ painel.marcador.x }}" x2="{{ painel.marcador.x }}" y1="4" y2="106" stroke-dasharray="3 3"/><text x="{{ painel.marcador.x }}" y="10" text-anchor="middle">{{ painel.marcador.rotulo }}</text></g>{% endif %}
+      {% if painel.marcador %}<g class="marcador-enderecamento"><line x1="{{ painel.marcador.x }}" x2="{{ painel.marcador.x }}" y1="4" y2="106" stroke-dasharray="3 3"/><text x="{{ painel.marcador.x }}" y="10" text-anchor="{{ painel.marcador.ancora }}">{{ painel.marcador.rotulo }}</text></g>{% endif %}
       <polyline fill="none" stroke="currentColor" stroke-width="2" points="{{ painel.caminho_da_evolucao }}"/>
       {% for p in painel.evolucao %}
       <circle class="ponto" cx="{{ p.x }}" cy="{{ p.y }}" r="3"><title>{{ p.mes }}: {{ p.indice }}</title></circle>

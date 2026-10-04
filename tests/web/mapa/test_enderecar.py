@@ -456,12 +456,42 @@ def _marca_em(dia: str):
 def test_variacao_desde_a_data_sobe_cai_e_sem_base() -> None:
     marca = _marca_em("2026-03-15")
 
-    assert painel._variacao(marca, _serie(1, 2, 4, 5, 6)) == "+50% desde 15/03"
-    assert painel._variacao(marca, _serie(1, 2, 4, 3, 2)) == "−50% desde 15/03"
-    # base zero e série que acaba no mês da data: sem como comparar
+    # o último ponto da série é o mês corrente, parcial: só vale até o último mês fechado
+    assert painel._variacao(marca, _serie(1, 2, 4, 5, 9)) == "+25% desde 15/03, até 04/2026"
+    assert painel._variacao(marca, _serie(1, 2, 4, 2, 9)) == "−50% desde 15/03, até 04/2026"
+    # base zero, mês fechado igual ao da decisão e data fora da série: sem como comparar
     assert "sem base" in painel._variacao(marca, _serie(1, 2, 0, 5, 6))
-    assert "sem base" in painel._variacao(marca, _serie(1, 2, 4))
-    assert "sem base" in painel._variacao(_marca_em("2025-03-15"), _serie(1, 2, 4))
+    assert "sem base" in painel._variacao(marca, _serie(1, 2, 4, 9))
+    assert "sem base" in painel._variacao(_marca_em("2025-03-15"), _serie(1, 2, 4, 5))
+
+
+def test_o_mes_corrente_parcial_nao_exagera_a_queda() -> None:
+    marca = _marca_em("2026-03-15")
+
+    # o mês corrente mal começou (0,1): a comparação não o usa
+    assert painel._variacao(marca, _serie(1, 2, 4, 5, 0.1)).startswith("+25%")
+
+
+def _dias_ate_o_mes_mais_antigo() -> int:
+    """Dias até o dia 11 do primeiro mês da série de 12 meses (o ponto da borda esquerda)."""
+    hoje = contratos.agora()
+    meses = hoje.year * 12 + hoje.month - 1 - 11
+    primeiro = hoje.replace(year=meses // 12, month=meses % 12 + 1, day=11)
+    return (hoje - primeiro).days
+
+
+@pytest.mark.parametrize(
+    ("dias", "ancora"),
+    [(1, "end"), (200, "middle"), (_dias_ate_o_mes_mais_antigo(), "start")],
+)
+def test_o_rotulo_do_marcador_se_ancora_para_dentro_do_grafico(
+    banco: Path, http: TestClient, dias: int, ancora: str
+) -> None:
+    _marcar_direto(banco, Celula("plat", "incidente", Visao.DOR), dias=dias)
+
+    html = http.get(_celula_url()).text
+
+    assert '<text x="' in html and f'text-anchor="{ancora}"' in html[html.index("<svg class=") :]
 
 
 # ----------------------------------------------------------------- polling
@@ -511,3 +541,31 @@ def test_o_selo_some_do_polling_quando_se_desfaz_em_outra_aba(
     parcial = _poll(http, leitura, cabecalhos).text
 
     assert 'id="grade-vivo"' in parcial and "◆" not in parcial
+
+
+def test_desfazer_o_que_outra_aba_ja_desfez_volta_a_tela_com_a_mensagem(http: TestClient) -> None:
+    _enderecar(http)
+    dados = {**RECORTE, **PLAT, "id": "1"}
+    http.post("/mapa/desfazer", data=dados, headers=HX)
+
+    resposta = http.post("/mapa/desfazer", data=dados, headers=HX)
+
+    assert resposta.status_code == 404
+    assert resposta.headers["content-type"].startswith("text/html")
+    assert "já não está ativo" in resposta.text and 'id="painel"' in resposta.text
+
+
+def test_o_miolo_traz_o_aviso_para_as_recusas_sem_tela() -> None:
+    js = (Path(__file__).parents[3] / "frentes/web/static/mapa-ao-vivo.js").read_text()
+
+    # recusas que não voltam em HTML (403, 413, 415, 503...) mostram a mensagem no aviso
+    assert 'getElementById("aviso-enderecar")' in js
+    # o polling não troca o painel com o formulário aberto ou com foco num campo dele
+    assert "htmx:oobBeforeSwap" in js and "details.enderecar[open]" in js
+    assert "preventDefault" in js
+
+
+def test_o_miolo_tem_o_aviso_oculto(http: TestClient) -> None:
+    html = http.get("/").text
+
+    assert re.search(r'<p id="aviso-enderecar"[^>]*role="alert" hidden>', html)

@@ -484,12 +484,15 @@ async def enderecar(request: Request) -> Response:
 async def desfazer(request: Request) -> Response:
     dados = await formulario.campos(request)
     recorte = formulario.recorte(dados)
-    id = formulario.id_da_marca(dados)
+    id_da_marca = formulario.id_da_marca(dados)
 
     def desfeito(con: store.Conexao, lida: Lida) -> bool:
         ativa = lida.enderecados.get((recorte.area, recorte.tipo))
-        return ativa is not None and ativa.id == id and marcas.desfazer(con, id)
+        return ativa is not None and ativa.id == id_da_marca and marcas.desfazer(con, id_da_marca)
 
     if not await run_in_threadpool(_com_a_celula, request, recorte, desfeito):
-        raise HTTPException(status_code=404, detail="a célula não tem esse endereçamento ativo")
+        # desfeito em outra aba: a tela volta atualizada, com a mensagem
+        return await run_in_threadpool(
+            _resposta, request, recorte, "Este endereçamento já não está ativo.", 404
+        )
     return await run_in_threadpool(_resposta, request, recorte)
