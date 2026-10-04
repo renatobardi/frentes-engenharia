@@ -2,3 +2,8 @@
 
 Pode falar com a rede.
 """
+
+from frentes.jev.cliente import ClienteTypesafe, ErroJev, SemChave
+from frentes.jev.pedido import corpo_do_pedido, montar_perguntas
+
+__all__ = ["ClienteTypesafe", "ErroJev", "SemChave", "corpo_do_pedido", "montar_perguntas"]

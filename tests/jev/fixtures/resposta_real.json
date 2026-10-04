@@ -1,0 +1,90 @@
+{
+ "model": "jev-1.13.0",
+ "answers": {
+  "causa_raiz": {
+   "type": "choice",
+   "choice": "nenhum_destes",
+   "confidence": 0.98,
+   "probabilities": {
+    "nenhum_destes": 0.99,
+    "config": 0.01
+   }
+  },
+  "problema": {
+   "type": "choice",
+   "choice": "p1",
+   "confidence": 1.0,
+   "probabilities": {
+    "nenhum_destes": 0.0,
+    "p1": 1.0
+   }
+  },
+  "controle": {
+   "type": "noul",
+   "noul": 0.98
+  },
+  "area": {
+   "type": "choice",
+   "choice": "simulacao",
+   "confidence": 1.0,
+   "probabilities": {
+    "proposta": 0.0,
+    "simulacao": 1.0,
+    "nenhum_destes": 0.0
+   }
+  },
+  "severidade": {
+   "type": "score",
+   "score": 1.0,
+   "confidence": 0.99,
+   "legend": {
+    "0": "leve: incomoda",
+    "1": "grave: para a operação"
+   },
+   "probabilities": {
+    "0": 0.0,
+    "1": 1.0
+   }
+  },
+  "urgencia": {
+   "type": "noul",
+   "noul": 0.7
+  },
+  "tipo": {
+   "type": "choice",
+   "choice": "nenhum_destes",
+   "confidence": 0.84,
+   "probabilities": {
+    "nenhum_destes": 0.89,
+    "erro": 0.1,
+    "lentidao": 0.01
+   }
+  },
+  "natureza": {
+   "type": "choice",
+   "choice": "reativa",
+   "confidence": 1.0,
+   "probabilities": {
+    "reativa": 1.0,
+    "proativa": 0.0
+   }
+  },
+  "impacto": {
+   "type": "score",
+   "score": 0.99,
+   "confidence": 0.99,
+   "legend": {
+    "0": "leve: incomoda",
+    "1": "grave: para a operação"
+   },
+   "probabilities": {
+    "0": 0.01,
+    "1": 0.99
+   }
+  }
+ },
+ "usage": {
+  "input_tokens": 833,
+  "output_tokens": 259
+ }
+}
