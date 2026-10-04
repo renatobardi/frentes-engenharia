@@ -23,6 +23,7 @@ USO = (
     "     python -m frentes seed textos [--teto DÓLARES] [--lotes N] [--paralelo N] "
     "\n     python -m frentes seed relatorio"
 )
+ORGANOGRAMA = "organograma.json"
 SAIDA = validador.PASTA / "gerado"
 
 
@@ -47,7 +48,7 @@ def gerar(argumentos: list[str]) -> int:
         print("\n".join(erros), file=sys.stderr)
         print(f"seed inválida: {len(erros)} problema(s); nada foi gerado", file=sys.stderr)
         return 1
-    org = json.loads((entrada / "organograma.json").read_text(encoding="utf-8"))
+    org = json.loads((entrada / ORGANOGRAMA).read_text(encoding="utf-8"))
     emissores = json.loads((entrada / "emissores.json").read_text(encoding="utf-8"))
     ender = json.loads((entrada / "enderecamentos.json").read_text(encoding="utf-8"))
     historias = (entrada / "historias.md").read_text(encoding="utf-8")
@@ -110,14 +111,14 @@ def _opcoes(argumentos: list[str], padrao: dict[str, str]) -> dict[str, str] | N
 
 
 def _entrada(pasta: Path) -> tuple[textos.Contexto, dict[str, list[str]]]:
-    org = json.loads((pasta / "organograma.json").read_text(encoding="utf-8"))
+    org = json.loads((pasta / ORGANOGRAMA).read_text(encoding="utf-8"))
     emissores = json.loads((pasta / "emissores.json").read_text(encoding="utf-8"))
     termos = validador.ler_termos((pasta / "historias.md").read_text(encoding="utf-8"))[0]
     return textos.contexto_de(org, emissores, termos), termos
 
 
 def _ficha(pasta: Path) -> str:
-    org = json.loads((pasta / "organograma.json").read_text(encoding="utf-8"))
+    org = json.loads((pasta / ORGANOGRAMA).read_text(encoding="utf-8"))
     nomes = [i["nome"] for a in org["organograma"] for t in a["times"] for i in t["itens"]]
     return validador.sem_acento(" | ".join(nomes))
 
@@ -152,7 +153,7 @@ def executar_textos(
         print("seed textos: OPENROUTER_API_KEY não está no ambiente", file=sys.stderr)
         return 1
     try:
-        ctx, termos = _entrada(entrada)
+        ctx, _ = _entrada(entrada)
         esqueletos = dataset.ler_jsonl(gerado / "esqueletos.jsonl")
         llm = ClienteOpenRouter(cfg.openrouter_api_key, cfg.operacao)
         gerador = textos.Gerador(
