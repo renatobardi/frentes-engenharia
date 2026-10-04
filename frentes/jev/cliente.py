@@ -1,7 +1,7 @@
 """Cliente `httpx` assíncrono da TypeSafe: uma chamada por frente, todas as perguntas nela.
 
-Tempo limite de 5 s, 3 tentativas com espera crescente, 429 respeitando `retry-after`
-e no máximo 40 chamadas ao mesmo tempo (docs/spec/03 e 12). Quem chama recebe `ErroJev`
+Tempo limite, tentativas, espera inicial e chamadas simultâneas vêm do `config.Operacao`
+(docs/spec/03 e 12), com 429 respeitando `retry-after`. Quem chama recebe `ErroJev`
 quando as tentativas acabam, ou `SemChave` quando não há chave, e trata os dois como
 "aguardando classificação".
 """
@@ -13,6 +13,7 @@ from typing import Any
 
 import httpx
 
+from frentes.config import Operacao
 from frentes.contratos import (
     Pergunta,
     PerguntaDeLista,
@@ -25,11 +26,7 @@ from frentes.contratos import (
 from frentes.jev.pedido import PerguntaDeRegua, corpo_do_pedido
 
 URL = "https://api.typesafe.ai/v1/systemone"
-TEMPO_LIMITE = 5.0
-TENTATIVAS = 3
-ESPERA_INICIAL = 0.5  # cresce ao dobro a cada tentativa: 0,5 s, 1 s
 ESPERA_MAXIMA = 30.0  # teto do `retry-after`, para um valor absurdo não travar a fila
-CHAMADAS_SIMULTANEAS = 40
 
 
 class ErroJev(Exception):
@@ -63,16 +60,17 @@ class ClienteTypesafe:
         self,
         chave: str | None,
         modelo: str,
+        operacao: Operacao,
         *,
         transporte: httpx.AsyncBaseTransport | None = None,
         dormir: Callable[[float], Awaitable[None]] = asyncio.sleep,
-        simultaneas: int = CHAMADAS_SIMULTANEAS,
     ) -> None:
         self._chave = chave
         self._modelo = modelo
         self._dormir = dormir
-        self._semaforo = asyncio.Semaphore(simultaneas)
-        self._http = httpx.AsyncClient(transport=transporte, timeout=TEMPO_LIMITE)
+        self._operacao = operacao
+        self._semaforo = asyncio.Semaphore(operacao.semaforo_jev)
+        self._http = httpx.AsyncClient(transport=transporte, timeout=operacao.tempo_limite_jev_s)
 
     async def aclose(self) -> None:
         await self._http.aclose()
@@ -81,15 +79,18 @@ class ClienteTypesafe:
         if not self._chave:
             raise SemChave("TYPESAFE_API_KEY não está no ambiente")
         corpo = corpo_do_pedido(self._modelo, texto, perguntas)
-        for tentativa in range(1, TENTATIVAS + 1):
+        tentativas = self._operacao.tentativas
+        for tentativa in range(1, tentativas + 1):
             try:
                 dados, latencia_ms = await self._enviar(corpo)
             except _Tentar as falha:
-                if tentativa == TENTATIVAS:
-                    raise ErroJev(f"Jev sem resposta em {TENTATIVAS} tentativas: {falha}") from None
+                if tentativa == tentativas:
+                    raise ErroJev(f"Jev sem resposta em {tentativas} tentativas: {falha}") from None
                 espera = falha.espera
                 await self._dormir(
-                    ESPERA_INICIAL * 2 ** (tentativa - 1) if espera is None else espera
+                    self._operacao.espera_inicial_s * 2 ** (tentativa - 1)
+                    if espera is None
+                    else espera
                 )
                 continue
             return _ler_resposta(dados, perguntas, latencia_ms)
@@ -121,12 +122,16 @@ class ClienteTypesafe:
         return dados, latencia_ms
 
 
-def _normalizar(r: Mapping[str, Any]) -> float:
-    """O `score` do Jev vem na escala dos níveis (0 a n-1); o contrato é de 0 a 1."""
-    niveis = len(r["probabilities"])
+def _ler_regua(r: Mapping[str, Any]) -> RespostaDeNumero:
+    """O `score` do Jev vem na escala dos níveis (0 a n-1); o contrato é de 0 a 1.
+    A confiança e as probabilidades por nível ficam guardadas ao lado."""
+    probabilidades = {str(k): float(v) for k, v in r["probabilities"].items()}
+    niveis = len(probabilidades)
     if niveis < 2:
         raise ValueError("score com menos de 2 níveis")
-    return float(r["score"]) / (niveis - 1)
+    return RespostaDeNumero(
+        float(r["score"]) / (niveis - 1), float(r["confidence"]), probabilidades
+    )
 
 
 def _ler_resposta(dados: Mapping[str, Any], perguntas: Perguntas, latencia_ms: int) -> RespostaJev:
@@ -142,7 +147,7 @@ def _ler_resposta(dados: Mapping[str, Any], perguntas: Perguntas, latencia_ms: i
                     {str(k): float(v) for k, v in r["probabilities"].items()},
                 )
             elif isinstance(p, PerguntaDeRegua):
-                respostas[pergunta] = RespostaDeNumero(_normalizar(r))
+                respostas[pergunta] = _ler_regua(r)
             else:
                 respostas[pergunta] = RespostaDeNumero(float(r["noul"]))
         usage = dados.get("usage", {})

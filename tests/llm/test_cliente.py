@@ -1,4 +1,5 @@
 import asyncio
+import dataclasses
 import inspect
 import json
 from collections.abc import Callable
@@ -6,10 +7,12 @@ from collections.abc import Callable
 import httpx
 import pytest
 
+from frentes import config
 from frentes.contratos import ClienteLlm, RespostaLlm
 from frentes.llm import ClienteOpenRouter, ErroLlm, ErroLlmEsgotado, ErroSemChave
 
 CHAVE = "chave-falsa-de-teste"
+OPERACAO = config.carregar({}).operacao
 
 
 def ok(conteudo: str = '{"escolha": "cobranca"}', modelo: str = "deepseek/deepseek-v4-flash"):
@@ -25,7 +28,8 @@ def ok(conteudo: str = '{"escolha": "cobranca"}', modelo: str = "deepseek/deepse
 
 def montar(
     respostas: list[Callable[[], httpx.Response] | httpx.Response | Exception],
-    **opcoes,
+    raciocinio: bool = False,
+    **mudancas,
 ):
     """Cliente com transporte falso que devolve `respostas` em ordem; guarda pedidos e esperas."""
     pedidos: list[httpx.Request] = []
@@ -42,7 +46,11 @@ def montar(
         esperas.append(segundos)
 
     cliente = ClienteOpenRouter(
-        CHAVE, transporte=httpx.MockTransport(tratar), dormir=dormir, **opcoes
+        CHAVE,
+        dataclasses.replace(OPERACAO, **mudancas),
+        raciocinio=raciocinio,
+        transporte=httpx.MockTransport(tratar),
+        dormir=dormir,
     )
     return cliente, pedidos, esperas
 
@@ -91,7 +99,7 @@ def test_o_mesmo_cliente_serve_a_loops_diferentes() -> None:
         await asyncio.sleep(0.001)
         return ok()
 
-    cliente = ClienteOpenRouter(CHAVE, transporte=httpx.MockTransport(lenta))
+    cliente = ClienteOpenRouter(CHAVE, OPERACAO, transporte=httpx.MockTransport(lenta))
 
     async def varias() -> None:
         await asyncio.gather(*(cliente.completar("i", "e") for _ in range(12)))
@@ -117,8 +125,8 @@ def test_pedido_leva_modelo_sem_raciocinio_tempo_limite_e_chave() -> None:
     assert pedido.extensions["timeout"]["read"] == 30.0
 
 
-def test_modelo_e_raciocinio_vem_de_quem_monta_o_cliente() -> None:
-    cliente, pedidos, _ = montar([ok()], modelo="qwen/outro", raciocinio=True)
+def test_modelo_vem_da_configuracao_e_raciocinio_de_quem_monta_o_cliente() -> None:
+    cliente, pedidos, _ = montar([ok()], modelo_llm="qwen/outro", raciocinio=True)
 
     completar(cliente)
 
@@ -217,7 +225,7 @@ def test_sem_chave_levanta_erro_proprio_sem_chamar_a_rede(chave: str | None) -> 
         pedidos.append(pedido)
         return ok()
 
-    cliente = ClienteOpenRouter(chave, transporte=httpx.MockTransport(tratar))
+    cliente = ClienteOpenRouter(chave, OPERACAO, transporte=httpx.MockTransport(tratar))
 
     with pytest.raises(ErroSemChave, match="OPENROUTER_API_KEY"):
         completar(cliente)
@@ -247,7 +255,7 @@ def test_no_maximo_oito_chamadas_ao_mesmo_tempo() -> None:
         ativas -= 1
         return ok()
 
-    cliente = ClienteOpenRouter(CHAVE, transporte=httpx.MockTransport(tratar))
+    cliente = ClienteOpenRouter(CHAVE, OPERACAO, transporte=httpx.MockTransport(tratar))
 
     async def todas() -> None:
         await asyncio.gather(*(cliente.completar("i", f"e{n}") for n in range(20)))
@@ -255,3 +263,46 @@ def test_no_maximo_oito_chamadas_ao_mesmo_tempo() -> None:
     asyncio.run(todas())
 
     assert pico == 8
+
+
+def test_tempo_limite_vem_da_configuracao() -> None:
+    cliente, pedidos, _ = montar([ok()], tempo_limite_llm_s=12.5)
+
+    completar(cliente)
+
+    assert pedidos[0].extensions["timeout"]["read"] == 12.5
+
+
+def test_tentativas_e_espera_inicial_vem_da_configuracao() -> None:
+    cliente, pedidos, esperas = montar(
+        [httpx.Response(503)] * 4, tentativas=4, espera_inicial_s=0.5
+    )
+
+    with pytest.raises(ErroLlmEsgotado, match="4 tentativas"):
+        completar(cliente)
+
+    assert len(pedidos) == 4
+    assert esperas == [0.5, 1.0, 2.0]
+
+
+def test_paralelismo_vem_da_configuracao() -> None:
+    ativas = 0
+    pico = 0
+
+    async def tratar(pedido: httpx.Request) -> httpx.Response:
+        nonlocal ativas, pico
+        ativas += 1
+        pico = max(pico, ativas)
+        await asyncio.sleep(0.01)
+        ativas -= 1
+        return ok()
+
+    operacao = dataclasses.replace(OPERACAO, semaforo_llm=3)
+    cliente = ClienteOpenRouter(CHAVE, operacao, transporte=httpx.MockTransport(tratar))
+
+    async def todas() -> None:
+        await asyncio.gather(*(cliente.completar("i", f"e{n}") for n in range(12)))
+
+    asyncio.run(todas())
+
+    assert pico == 3
