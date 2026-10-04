@@ -1,0 +1,13 @@
+{
+  "enderecamentos": [
+    {
+      "historia": "H3",
+      "area": "pos-venda-e-cobranca",
+      "visao": "dor",
+      "decidido_em": "2026-03-31T18:00:00Z",
+      "texto": "Mutirão para corrigir o valor dos boletos e carnês: revisar o cálculo de encargos, reemitir os documentos errados e conferir a conciliação das baixas.",
+      "tipo_solucao": "processo",
+      "frentes_de_referencia": []
+    }
+  ]
+}
