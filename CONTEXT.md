@@ -113,6 +113,13 @@ _Avoid_: outros, diversos
 **Não classificada**:
 Frente cuja resposta em área ou tipo foi "Nenhum destes". Aparece na linha ou coluna própria do mapa. Na prática é rara, porque o desempate da LLM encaixa a maioria num valor vigente.
 
+**Pergunta de controle**:
+A pergunta feita ao Jev na mesma chamada das dimensões, sem ser dimensão da taxonomia: "o texto cita algum sistema, processo, número ou situação específica?". É conferida antes de qualquer outra regra de confiança.
+
+**Texto vago**:
+Frente cuja resposta à pergunta de controle ficou abaixo do corte: traz só a sensação, sem nada concreto. Fica incerta com esse motivo, não vai à LLM, não aparece em nenhuma célula e não conta no sinal de encaixe; é vista num contador próprio, fora da grade do mapa. Não é a frente mal escrita, que cita algo concreto com erros, nem a fora do escopo, que cai em "Nenhum destes".
+_Avoid_: ambígua, incompleta
+
 ### Mapa de calor
 
 **Índice de dor**:
@@ -122,4 +129,4 @@ A soma da severidade das frentes reativas de uma célula no período.
 O ganho estimado de resolver uma frente proativa, numa escala de 0 a 1 medida contra a régua de impacto esperado.
 
 **Incerta**:
-Frente cuja classificação ficou abaixo do limiar de confiança e por isso não pinta o mapa.
+Frente cuja classificação ficou abaixo do limiar de confiança e por isso não pinta o mapa. A de texto vago é incerta por outro motivo, a pergunta de controle, e fica fora das células.
