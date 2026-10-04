@@ -260,7 +260,7 @@ def _com_quem_relata(item: dict[str, Any], esq: dict[str, Any], ctx: Contexto) -
     if esq["origem"] == "mcp":
         item["pessoa"] = esq["emissor"]
         item["abertura"] = ABERTURAS[
-            int(hashlib.sha1(esq["id"].encode()).hexdigest(), 16) % len(ABERTURAS)
+            int(hashlib.sha256(esq["id"].encode()).hexdigest(), 16) % len(ABERTURAS)
         ]
     if esq["objeto_relator"]:
         item["objeto_de_quem_relata"] = esq["objeto_relator"]
