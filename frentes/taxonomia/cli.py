@@ -60,6 +60,8 @@ def descobrir(argumentos: list[str]) -> int:
         f"{len(frentes)} frentes, {resultado.chamadas} chamadas à LLM (piso: sem retentativas), "
         f"{uso.tokens_entrada} tokens de entrada e {uso.tokens_saida} de saída"
     )
+    for motivo in resultado.lotes_descartados:
+        print(f"descobrir: lote fora da consolidação: {motivo}", file=sys.stderr)
     if resultado.versao is None:
         print(f"descobrir: recusada: {resultado.motivo}", file=sys.stderr)
         return 1

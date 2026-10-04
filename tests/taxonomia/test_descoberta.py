@@ -264,17 +264,39 @@ def test_a_evidencia_dos_lotes_se_junta_por_nome_na_consolidada(con) -> None:
     assert list(operacoes["Falha de Integração 1"].frentes_de_evidencia) == ["f0", "f1"]
 
 
-def test_lote_que_nao_fica_valido_encerra_a_descoberta(con) -> None:
-    lidas = frentes(4)
+def test_menos_da_metade_dos_lotes_valida_encerra_a_descoberta(con) -> None:
+    lidas = frentes(6)
     gravacoes: dict = {}
-    grupo_a, grupo_b = lotes(lidas, 2)
+    grupo_a, grupo_b, grupo_c = lotes(lidas, 2)
     gravar_lote(gravacoes, grupo_a, proposta())
     gravar_lote(gravacoes, grupo_b, melhoria(), melhoria(), melhoria())
+    gravar_lote(gravacoes, grupo_c, melhoria(), melhoria(), melhoria())
 
     feito = rodar(con, LlmFalsa(gravacoes), lidas=lidas, tamanho_do_lote=2)
 
     assert feito.versao is None
     assert "lote" in feito.motivo and "tipo_so_de_melhoria" in feito.motivo
+
+
+def test_lote_que_nao_fica_valido_sai_da_consolidacao_e_os_outros_seguem(con) -> None:
+    """Medido com a LLM real (#65): com 12 lotes, um que não se conserta recusava a rodada."""
+    lidas = frentes(6)
+    gravacoes: dict = {}
+    grupo_a, grupo_b, grupo_c = lotes(lidas, 2)
+    gravar_lote(gravacoes, grupo_a, proposta())
+    gravar_lote(gravacoes, grupo_b, melhoria(), melhoria(), melhoria())
+    gravar_lote(gravacoes, grupo_c, proposta())
+    gravar_consolidacao(gravacoes, [proposta()] * 2, proposta(criterio_urgencia="Consolidada?"))
+    llm = LlmFalsa(gravacoes)
+
+    feito = rodar(con, llm, lidas=lidas, tamanho_do_lote=2)
+
+    assert feito.versao is not None
+    assert feito.versao.documento.criterio_urgencia == "Consolidada?"
+    (descartado,) = feito.lotes_descartados
+    assert "lote 2" in descartado and "tipo_so_de_melhoria" in descartado
+    consolidacao = next(e for _, e in llm.chamadas if "PROPOSTA DO LOTE" in e)
+    assert consolidacao.count("PROPOSTA DO LOTE") == 2
 
 
 def test_consolidacao_invalida_tres_vezes_encerra_sem_versao(con) -> None:
