@@ -61,6 +61,7 @@ class Operacao:
     semaforo_llm: int
     tempo_limite_jev_s: float
     tempo_limite_llm_s: float
+    tempo_limite_llm_lote_s: float
     tentativas: int
     espera_inicial_s: float
     varredura_s: float
@@ -137,6 +138,7 @@ def carregar_operacao(caminho: Path = LIMIARES_PADRAO) -> Operacao:
         semaforo_llm=_inteiro(bruto, "concorrencia", "llm"),
         tempo_limite_jev_s=_segundos(bruto, "tempo_limite", "jev_s"),
         tempo_limite_llm_s=_segundos(bruto, "tempo_limite", "llm_s"),
+        tempo_limite_llm_lote_s=_segundos(bruto, "tempo_limite", "llm_lote_s"),
         tentativas=_inteiro(bruto, "retentativa", "tentativas"),
         espera_inicial_s=_segundos(bruto, "retentativa", "espera_inicial_s"),
         varredura_s=_segundos(bruto, "fila", "varredura_s"),

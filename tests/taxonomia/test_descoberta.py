@@ -3,11 +3,11 @@ from datetime import UTC, datetime
 
 import pytest
 
-from frentes.contratos import ResultadoGeracao, TipoGeracao, TipoOperacao
+from frentes.contratos import ResultadoGeracao, TipoGeracao, TipoOperacao, ValorDoDocumento
 from frentes.llm import ErroLlmEsgotado
 from frentes.store import geracao as repo
 from frentes.store import versao as repo_versao
-from frentes.taxonomia import prompts
+from frentes.taxonomia import prompts, prompts_problemas
 from frentes.taxonomia.descoberta import (
     CORRECOES,
     DescobertaJaFeita,
@@ -15,12 +15,17 @@ from frentes.taxonomia.descoberta import (
     descobrir,
     lotes,
 )
+from frentes.taxonomia.validador import Violacao
 from tests.llm.falso import LlmFalsa, SemGravacao, resposta_llm
 from tests.taxonomia.propostas import (
     ORGANOGRAMA,
+    candidato,
     frentes,
+    gravar_candidatos,
     gravar_consolidacao,
+    gravar_juncao,
     gravar_lote,
+    gravar_peneira,
     melhoria,
     proposta,
     tipo,
@@ -45,7 +50,7 @@ def test_proposta_valida_vira_versao_sem_ativacao(con) -> None:
 
     feito = rodar(con, llm)
 
-    assert len(llm.chamadas) == 1 and feito.chamadas == 1
+    assert len(llm.chamadas) == 2 and feito.chamadas == 2
     assert feito.versao is not None and feito.versao.numero == 1
     assert feito.versao.ativada_em is None and feito.versao.modelo_jev == MODELO
     assert repo_versao.versao_vigente(con) is None
@@ -102,7 +107,7 @@ def test_tipo_so_de_melhoria_gera_pedido_de_correcao_dirigido(con) -> None:
 
     feito = rodar(con, llm)
 
-    assert len(llm.chamadas) == 2
+    assert len(llm.chamadas) == 3  # duas da taxonomia e os candidatos a problema
     correcao = llm.chamadas[1][1]
     assert "tipo_so_de_melhoria" in correcao and "'Melhorias de Processo'" in correcao
     assert "Corrija SÓ o que foi apontado" in correcao
@@ -155,7 +160,7 @@ def test_segunda_correcao_ainda_vale(con) -> None:
 
     feito = rodar(con, llm)
 
-    assert len(llm.chamadas) == 3 and feito.versao is not None
+    assert len(llm.chamadas) == 4 and feito.versao is not None
 
 
 def test_llm_fora_do_ar_recusa_com_o_motivo(con) -> None:
@@ -219,14 +224,14 @@ def test_varios_lotes_geram_uma_proposta_por_lote_e_uma_consolidacao(con) -> Non
 
     feito = rodar(con, llm, lidas=lidas, tamanho_do_lote=2)
 
-    assert len(llm.chamadas) == 4 and feito.chamadas == 4
-    consolidacao = llm.chamadas[-1][1]
+    assert len(llm.chamadas) == 7 and feito.chamadas == 7
+    consolidacao = llm.chamadas[3][1]  # depois dos 3 lotes; os candidatos a problema vêm depois
     assert consolidacao.count("PROPOSTA DO LOTE") == 3
     assert "LOTE 3:" in consolidacao and "n_evidencias" in consolidacao
     assert '"evidencias": [1]' not in consolidacao
     assert "frente número" not in consolidacao  # a consolidação não relê as frentes
     assert feito.versao.documento.criterio_urgencia == "Consolidada?"
-    assert feito.uso.tokens_entrada == 4 * 10
+    assert feito.uso.tokens_entrada == 7 * 10
 
 
 def test_a_evidencia_dos_lotes_se_junta_por_nome_na_consolidada(con) -> None:
@@ -288,7 +293,7 @@ def test_o_prompt_de_um_lote_nao_tem_emissor_nem_gabarito(con) -> None:
 
     rodar(con, llm, lidas=lidas)
 
-    assert len(llm.chamadas) == 2
+    assert len(llm.chamadas) == 3
     for instrucao, entrada in llm.chamadas:
         for proibido in ("Zelda", "Quimera", "H9-segredo", "historia", "gabarito"):
             assert proibido.lower() not in (instrucao + entrada).lower()
@@ -336,3 +341,90 @@ def test_resposta_llm_sem_gravacao_falha_dizendo_o_que_faltou(con) -> None:
     with pytest.raises(SemGravacao):
         rodar(con, LlmFalsa({"outra entrada": resposta_llm(proposta())}))
     assert con.execute("SELECT resultado FROM geracao").fetchone()[0] == "recusada"
+
+
+def _com_a_lista_de_problemas(con, candidatos_de_b=None, juncao=None, **opcoes):
+    """4 frentes em 2 lotes (f0, f2 e f1, f3); o mesmo objeto nos dois, com 4 evidências."""
+    lidas = frentes(4)
+    a, b = lotes(lidas, 2)
+    gravacoes: dict = {}
+    for grupo in (a, b):
+        gravar_lote(gravacoes, grupo, proposta())
+    gravar_consolidacao(gravacoes, [proposta()] * 2, proposta())
+    gravar_candidatos(gravacoes, a, candidato("Gravame", 1, 2))
+    gravar_candidatos(gravacoes, b, *(candidatos_de_b or [candidato("Gravame", 1, 2)]))
+    descricao = candidato("Gravame")["descricao"]
+    gravar_peneira(gravacoes, "Gravame", descricao, a)
+    gravar_peneira(gravacoes, "Gravame", descricao, b)
+    gravar_juncao(
+        gravacoes,
+        [("Gravame", descricao, [1]), ("Gravame", descricao, [2])],
+        juncao or {"problemas": [{"nome": "Gravame", "descricao": "d", "candidatos": [1, 2]}]},
+    )
+    llm = LlmFalsa(gravacoes)
+    return llm, rodar(con, llm, lidas=lidas, tamanho_do_lote=2, **opcoes)
+
+
+def test_a_versao_1_traz_a_lista_de_problemas(con) -> None:
+    llm, feito = _com_a_lista_de_problemas(con)
+
+    assert feito.versao is not None
+    assert feito.versao.documento.problemas == (ValorDoDocumento("gravame", "Gravame", "d"),)
+    assert (feito.candidatos, feito.aprovados, feito.problemas) == (2, 2, 1)
+    # 2 lotes + consolidação da taxonomia, 2 candidatos, 2 peneiras, 1 junção
+    assert len(llm.chamadas) == 3 + 2 + 2 + 1 == feito.chamadas
+    linhas = con.execute(
+        "SELECT chave, nome FROM valor WHERE versao = 1 AND dimensao = 'problema'"
+    ).fetchall()
+    assert [tuple(linha) for linha in linhas] == [("gravame", "Gravame")]
+
+
+def test_problema_de_um_lote_so_nao_entra_na_versao_1(con) -> None:
+    lidas = frentes(4)
+    a, b = lotes(lidas, 2)
+    gravacoes: dict = {}
+    for grupo in (a, b):
+        gravar_lote(gravacoes, grupo, proposta())
+    gravar_consolidacao(gravacoes, [proposta()] * 2, proposta())
+    gravar_candidatos(gravacoes, a, candidato("Gravame", 1, 2))  # 2 evidências, 1 lote
+    descricao = candidato("Gravame")["descricao"]
+    gravar_peneira(gravacoes, "Gravame", descricao, a)
+    gravar_juncao(
+        gravacoes,
+        [("Gravame", descricao, [1])],
+        {"problemas": [{"nome": "Gravame", "descricao": "d", "candidatos": [1]}]},
+    )
+
+    feito = rodar(con, LlmFalsa(gravacoes), lidas=lidas, tamanho_do_lote=2)
+
+    assert feito.versao is not None and feito.versao.documento.problemas == ()
+
+
+def test_lista_de_problemas_recusada_encerra_a_descoberta_sem_versao(con) -> None:
+    ruim = {"candidatos": "texto"}
+    lidas = frentes(2)
+    gravacoes: dict = {}
+    gravar_lote(gravacoes, lidas, proposta())
+    pedido = prompts_problemas.candidatos([(f.origem, f.texto) for f in lidas])
+    corrigir = prompts_problemas.correcao(
+        pedido, ruim, [Violacao("formato", "resposta: falta a lista 'candidatos'")]
+    )
+    gravacoes[pedido[1]] = [resposta_llm(ruim)]
+    gravacoes[corrigir[1]] = [resposta_llm(ruim)] * 2
+
+    feito = rodar(con, LlmFalsa(gravacoes), lidas=lidas)
+
+    assert feito.versao is None and repo_versao.numeros(con) == []
+    assert feito.motivo.startswith("lista de problemas, candidatos do lote 1")
+    assert repo.ler(con, feito.geracao.id).resultado is ResultadoGeracao.RECUSADA
+
+
+def test_llm_fora_do_ar_nos_candidatos_recusa_com_o_motivo(con) -> None:
+    lidas = frentes(2)
+    gravacoes: dict = {}
+    gravar_lote(gravacoes, lidas, proposta())
+    gravar_candidatos(gravacoes, lidas, ErroLlmEsgotado("HTTP 503"))
+
+    feito = rodar(con, LlmFalsa(gravacoes), lidas=lidas)
+
+    assert feito.versao is None and feito.motivo.startswith("LLM: ") and "HTTP 503" in feito.motivo

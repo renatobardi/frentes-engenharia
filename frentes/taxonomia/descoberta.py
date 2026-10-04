@@ -3,7 +3,9 @@
 Por lote: proposta → validação em código → pedido de correção só do que falhou, até duas
 vezes. Depois, uma chamada junta as propostas dos lotes, com a mesma validação. A terceira
 proposta inválida encerra a descoberta sem versão e o motivo fica gravado na geração.
-Roda uma vez: a versão 1 é congelada. Spec: docs/spec/04-descoberta-e-revisao.md.
+Depois, a lista de problemas (candidatos, peneira, consolidação: `problemas.py`) lê os mesmos
+lotes e entra na versão 1. Roda uma vez: a versão 1 é congelada.
+Spec: docs/spec/04-descoberta-e-revisao.md.
 
 O módulo só recebe `(origem, texto)` de cada frente: nem o emissor nem o gabarito chegam aqui.
 """
@@ -36,6 +38,7 @@ from frentes.store import Conexao
 from frentes.store import geracao as repo
 from frentes.store import versao as repo_versao
 from frentes.store.geracao import TextoDaFrente
+from frentes.taxonomia import problemas as problemas_
 from frentes.taxonomia import prompts
 from frentes.taxonomia import proposta as proposta_
 from frentes.taxonomia.chaves import chave_nova
@@ -74,6 +77,10 @@ class Descoberta:
     versao: VersaoTaxonomia | None
     chamadas: int
     uso: Uso
+    # a lista de problemas: candidatos, aprovados na peneira e os que entraram na versão 1
+    candidatos: int = 0
+    aprovados: int = 0
+    problemas: int = 0
 
     @property
     def motivo(self) -> str | None:
@@ -134,7 +141,11 @@ async def _propor(
     raise Recusada(etapa, violacoes)
 
 
-def _documento(proposta: Proposta, organograma: Sequence[AreaDoOrganograma]) -> DocumentoTaxonomia:
+def _documento(
+    proposta: Proposta,
+    organograma: Sequence[AreaDoOrganograma],
+    problemas: Sequence[ValorDoDocumento] = (),
+) -> DocumentoTaxonomia:
     """A proposta validada vira o documento: a chave de cada valor é o slug do nome."""
     usadas: set[str] = set()
 
@@ -160,7 +171,7 @@ def _documento(proposta: Proposta, organograma: Sequence[AreaDoOrganograma]) -> 
         organograma=organograma,
         tipos=tipos,
         causas_raiz=causas,
-        problemas=(),  # a lista de problemas é a fatia seguinte
+        problemas=problemas,
         regua_severidade=regua(proposta.regua_severidade),
         regua_impacto=regua(proposta.regua_impacto),
         criterio_urgencia=proposta.criterio_urgencia,
@@ -300,11 +311,15 @@ async def descobrir(
     )
     registro = _Registro(llm)
     versao = None
+    lista = problemas_.ListaGerada([], 0, 0)
     try:
         proposta, evidencias = await _gerar(registro, frentes, organograma, tamanho_do_lote)
-        documento = _documento(proposta, organograma)
+        # A lista de problemas lê os mesmos lotes (e a regra da v1 pede 2 ou mais deles).
+        lista = await problemas_.gerar(registro, lotes(frentes, tamanho_do_lote))
+        problemas = problemas_.valores_da_v1(problemas_.regra_v1(lista.problemas))
+        documento = _documento(proposta, organograma, problemas)
         versao = gravar(con, documento, modelo_jev, geracao_id=geracao_id)
-    except (Recusada, ErroLlm, TaxonomiaInvalida) as erro:
+    except (Recusada, problemas_.ListaRecusada, ErroLlm, TaxonomiaInvalida) as erro:
         motivo = f"LLM: {erro}" if isinstance(erro, ErroLlm) else str(erro)
         repo.fechar(con, geracao_id, ResultadoGeracao.RECUSADA, resumo=motivo)
     except BaseException as erro:
@@ -322,7 +337,15 @@ async def descobrir(
         )
     geracao = repo.ler(con, geracao_id)
     assert geracao is not None
-    return Descoberta(geracao, versao, registro.chamadas, registro.uso)
+    return Descoberta(
+        geracao,
+        versao,
+        registro.chamadas,
+        registro.uso,
+        lista.candidatos,
+        lista.aprovados,
+        len(versao.documento.problemas) if versao else 0,
+    )
 
 
 __all__ = ["Descoberta", "DescobertaJaFeita", "Recusada", "SemFrentes", "descobrir"]

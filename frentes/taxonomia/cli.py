@@ -41,7 +41,10 @@ def descobrir(argumentos: list[str]) -> int:
         return 2
     desde = de_iso(primeira)
     frentes = repo.textos_do_periodo(con, para_iso(desde), para_iso(desde + PERIODO))
-    llm = ClienteOpenRouter(cfg.openrouter_api_key, cfg.operacao)
+    # chamada de lote (80 a 140 s medidos): tempo limite próprio, maior que o da frente
+    llm = ClienteOpenRouter(
+        cfg.openrouter_api_key, cfg.operacao, tempo_limite_s=cfg.operacao.tempo_limite_llm_lote_s
+    )
     try:
         resultado = asyncio.run(
             descobrir_v1(con, llm, frentes, organograma, cfg.operacao.modelo_jev)
@@ -60,6 +63,17 @@ def descobrir(argumentos: list[str]) -> int:
     print(
         f"versão {resultado.versao.numero} gravada, sem ativação (geração {resultado.geracao.id})"
     )
+    print(
+        f"problemas: {resultado.candidatos} candidatos, {resultado.aprovados} aprovados na "
+        f"peneira, {resultado.problemas} na lista da versão 1"
+    )
+    if resultado.problemas == 0:
+        print(
+            "descobrir: a lista de problemas saiu vazia e a versão 1 foi gravada assim "
+            "(a descoberta roda uma vez)",
+            file=sys.stderr,
+        )
+        return 3
     return 0
 
 

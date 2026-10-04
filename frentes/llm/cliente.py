@@ -63,12 +63,14 @@ class ClienteOpenRouter:
         operacao: Operacao,
         *,
         raciocinio: bool = False,
+        tempo_limite_s: float | None = None,
         transporte: httpx.AsyncBaseTransport | None = None,
         dormir: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
         self._chave = (chave or "").strip() or None
         self._operacao = operacao
         self._raciocinio = raciocinio
+        self._tempo_limite_s = tempo_limite_s or operacao.tempo_limite_llm_s
         # Um semáforo por loop de eventos: o semáforo prende ao loop da primeira espera.
         self._semaforos: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Semaphore] = (
             weakref.WeakKeyDictionary()
@@ -99,7 +101,7 @@ class ClienteOpenRouter:
         semaforo = self._semaforos.setdefault(loop, asyncio.Semaphore(operacao.semaforo_llm))
         async with semaforo:
             async with httpx.AsyncClient(
-                transport=self._transporte, timeout=operacao.tempo_limite_llm_s
+                transport=self._transporte, timeout=self._tempo_limite_s
             ) as http:
                 for tentativa in range(operacao.tentativas):
                     if tentativa:
