@@ -77,3 +77,14 @@
 @media (prefers-reduced-motion: reduce) {
   .celula.piscou, .celula .diferenca { animation: none; }
 }
+.selo { display: block; margin-top: 0.2rem; font-size: 0.75rem; font-weight: 700; background: #fff; color: var(--texto); border-radius: 3px; padding: 0 0.3rem; }
+.painel-indice .selo { display: inline-block; margin: 0; }
+.selo-top3 { font-size: 0.8rem; color: var(--suave); }
+.enderecar { margin-top: 0.4rem; }
+.botao-enderecar { cursor: pointer; font-size: 0.85rem; color: var(--destaque); }
+.enderecar form { display: grid; gap: 0.4rem; margin-top: 0.4rem; }
+.enderecar textarea, .enderecar input[type=text] { font: inherit; width: 100%; box-sizing: border-box; }
+.erro-enderecar { color: #9b1c1c; font-weight: 600; }
+.ja-enderecada, .decisao-meta, .variacao-desde { font-size: 0.85rem; color: var(--suave); }
+.marcador-enderecamento line { stroke: var(--destaque); }
+.marcador-enderecamento text { font-size: 9px; fill: currentColor; }

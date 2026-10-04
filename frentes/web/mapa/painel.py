@@ -3,15 +3,27 @@
 O texto do porquê e as sugestões vêm do `painel_celula` (pré-computado, sobre todas as
 origens, escrito pela LLM: é dado não confiável e o template escapa tudo). O resto sai na
 leitura, com o filtro de origem da tela: drill-down da célula e série mensal. O bloco do
-endereçamento é de outra fatia e não está aqui.
+endereçamento (a decisão, a variação do índice desde a data e o "Desfazer") e o marcador na
+série vêm do endereçamento ativo da célula; o texto dele é digitado na tela e também é escapado.
 """
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from urllib.parse import urlencode
 
 from frentes import contratos
 from frentes.config import Limiares
-from frentes.contratos import Celula, Dimensao, EstadoPainel, Origem, Periodo, TipoSolucao, Visao
+from frentes.contratos import (
+    Celula,
+    Dimensao,
+    Enderecamento,
+    EstadoPainel,
+    Origem,
+    Periodo,
+    TipoSolucao,
+    Visao,
+)
+from frentes.enderecamento import marcas
 from frentes.mapa import agregados
 from frentes.mapa import celula as drilldown
 from frentes.store import Conexao
@@ -33,12 +45,14 @@ NOME_DA_ORIGEM = dict(montagem.ORIGENS)
 
 # o gráfico da evolução: um ponto por mês, em coordenadas do `viewBox`
 LARGURA, ALTURA, MARGEM = 360, 120, 14
+BORDA = 30  # perto da borda, o rótulo do marcador se ancora para dentro do gráfico
 
 
 @dataclass(frozen=True, slots=True)
 class Sugestao:
     texto: str
     tipo: str
+    valor: str = ""  # o valor do `TipoSolucao`, que o formulário de endereçar devolve
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,6 +61,35 @@ class Ponto:
     indice: str
     x: float
     y: float
+
+
+@dataclass(frozen=True, slots=True)
+class Marcador:
+    """O marcador da data do endereçamento, no mês dele da série."""
+
+    x: float
+    rotulo: str  # "◆ 30/06"
+    ancora: str  # "start", "middle" ou "end": o rótulo não corta na borda do gráfico
+
+
+@dataclass(frozen=True, slots=True)
+class BlocoEnderecamento:
+    id: int
+    texto: str
+    data: str  # "30/06/2026"
+    tipo: str  # o nome do tipo de solução
+    quem: str  # vazio quando ninguém assinou
+    variacao: str  # "+25% desde 30/06"; "sem base" quando a série não permite calcular
+
+
+@dataclass(frozen=True, slots=True)
+class Rascunho:
+    """O que o usuário digitou quando o endereçamento foi recusado: o formulário reabre."""
+
+    n: int  # a posição da sugestão
+    texto: str
+    quem: str
+    tipo_solucao: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +147,12 @@ class PainelNaTela:
     frentes: list[FrenteNoPainel]
     total_de_frentes: int
     ver_todas: str
+    recorte: list[tuple[str, str]]  # o endereço da tela, devolvido pelo formulário de endereçar
+    enderecamento: BlocoEnderecamento | None = None
+    marcador: Marcador | None = None
+    selo: str = ""
+    erro: str = ""  # a mensagem de um endereçamento recusado
+    rascunho: Rascunho | None = None
 
 
 def _pontos(serie: list[agregados.PontoMensal]) -> list[Ponto]:
@@ -119,6 +168,29 @@ def _pontos(serie: list[agregados.PontoMensal]) -> list[Ponto]:
         )
         for i, p in enumerate(serie)
     ]
+
+
+def _marcador(marca: Enderecamento, pontos: list[Ponto], serie) -> Marcador | None:
+    mes = marca.decidido_em.strftime("%Y-%m")
+    for p, s in zip(pontos, serie, strict=True):
+        if s.mes == mes:
+            ancora = "start" if p.x < BORDA else "end" if p.x > LARGURA - BORDA else "middle"
+            return Marcador(p.x, f"◆ {montagem.selo_do_dia(marca.decidido_em)}", ancora)
+    return None  # a data está fora dos 12 meses da série
+
+
+def _variacao(marca: Enderecamento, serie: list[agregados.PontoMensal]) -> str:
+    """A variação do índice desde a data, até o último mês fechado: o mês corrente da série é
+    parcial e faria a queda parecer maior do que é (a série vai até hoje)."""
+    desde = montagem.selo_do_dia(marca.decidido_em)
+    fechados = serie[:-1]
+    # o ponto do mês vale desde o primeiro dia dele: a base é o mês da decisão
+    pontos = [(datetime.fromisoformat(f"{p.mes}-01T00:00:00+00:00"), p.indice) for p in fechados]
+    v = marcas.variacao(marca, pontos)
+    if v is None:
+        return f"sem base de comparação desde {desde}"
+    ate = f"{fechados[-1].mes[5:]}/{fechados[-1].mes[:4]}"
+    return f"{v:+.0%}".replace("-", "−") + f" desde {desde}, até {ate}"
 
 
 def trecho(texto: str) -> str:
@@ -151,6 +223,7 @@ def montar(
     limiares: Limiares,
     celula_na_grade: montagem.CelulaNaTela,
     parametros: dict[str, str | list[str]],
+    marca: Enderecamento | None = None,
 ) -> PainelNaTela:
     d = drilldown.ler(
         con,
@@ -197,6 +270,22 @@ def montar(
         )
         for p in d.problemas
     ]
+    pontos = _pontos(serie)
+    bloco = None
+    if marca is not None and marca.id is not None:
+        bloco = BlocoEnderecamento(
+            id=marca.id,
+            texto=marca.texto,
+            data=marca.decidido_em.astimezone(UTC).strftime("%d/%m/%Y"),
+            tipo=TIPO_DE_SOLUCAO[marca.tipo_solucao],
+            quem=marca.quem_decidiu or "",
+            variacao=_variacao(marca, serie),
+        )
+    recorte = [
+        (nome, v)
+        for nome, valor in parametros.items()
+        for v in ([valor] if isinstance(valor, str) else valor)
+    ] + [("area", area.chave), ("tipo", tipo.chave)]
     return PainelNaTela(
         area=area.nome,
         tipo=tipo.nome,
@@ -210,10 +299,10 @@ def montar(
         atualizando=guardado is not None and guardado.estado is EstadoPainel.ATUALIZANDO,
         porque=guardado.porque if guardado else None,
         sugestoes=[
-            Sugestao(s.texto, TIPO_DE_SOLUCAO[s.tipo_solucao])
+            Sugestao(s.texto, TIPO_DE_SOLUCAO[s.tipo_solucao], s.tipo_solucao.value)
             for s in (guardado.sugestoes if guardado and guardado.porque else ())
         ],
-        evolucao=(pontos := _pontos(serie)),
+        evolucao=pontos,
         caminho_da_evolucao=" ".join(f"{p.x},{p.y}" for p in pontos),
         composicao=[
             Composicao("Por time", _barras(d.por_time, nomes, Dimensao.AREA)),
@@ -224,4 +313,8 @@ def montar(
         frentes=frentes,
         total_de_frentes=len(d.frentes),
         ver_todas=montagem.endereco("/frentes", da_celula),
+        recorte=recorte,
+        enderecamento=bloco,
+        marcador=_marcador(marca, pontos, serie) if marca is not None else None,
+        selo=celula_na_grade.selo,
     )
