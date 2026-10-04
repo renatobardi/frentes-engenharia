@@ -21,6 +21,7 @@ for i in "${!args[@]}"; do
   if [ "${args[$i]}" = "--" ]; then cmd=("${args[@]:$((i + 1))}"); fi
 done
 echo "lxc ${args[*]}" >> "$FAKE_LOG"
+cat > /dev/null  # como o lxc de verdade: consome o stdin que receber
 case "${cmd[*]}" in
   "git fetch"*) [ "${FAKE_FALHA:-}" = fetch ] && exit 1; exit 0 ;;
   "git rev-parse"*)
@@ -31,6 +32,7 @@ case "${cmd[*]}" in
   "docker compose up"*) [ "${FAKE_FALHA:-}" = compose ] && exit 1; exit 0 ;;
   "docker compose exec"*)
     leituras=$(grep -c "docker compose exec" "$FAKE_LOG")
+    [ -z "${FAKE_STDERR:-}" ] || echo "$FAKE_STDERR" >&2
     read -ra valores <<< "$FAKE_HEALTH"
     idx=$((leituras - 1)); [ "$idx" -lt "${#valores[@]}" ] || idx=$((${#valores[@]} - 1))
     echo "${valores[$idx]}"; exit 0 ;;
@@ -185,3 +187,44 @@ def test_o_texto_do_script_nao_leva_segredo_nem_le_credencial() -> None:
     texto = SCRIPT.read_text()
     for nome in ("TYPESAFE", "OPENROUTER", "WEBHOOK_TOKEN", "GH_TOKEN", "OCI_S3"):
         assert nome not in texto
+
+
+def test_script_que_chega_por_stdin_nao_para_depois_do_primeiro_passo(
+    ambiente: dict[str, str],
+) -> None:
+    """O canal de aprovação manda o texto por stdin: o lxc não pode comer o resto dele."""
+    r = subprocess.run(
+        ["bash", "-s"],
+        input=f"set -- {SHA}\n" + SCRIPT.read_text(),
+        env=ambiente,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert r.returncode == 0, r.stderr
+    assert f"OK: /healthz devolveu {SHA}" in r.stdout
+    assert any("docker compose up" in c for c in chamadas(ambiente))
+
+
+def test_sha_pode_vir_pela_variavel_deploy_sha(ambiente: dict[str, str]) -> None:
+    r = rodar(ambiente, DEPLOY_SHA=SHA)
+    assert r.returncode == 0, r.stderr
+    assert any(f"git checkout --detach {SHA}" in c for c in chamadas(ambiente))
+
+
+@pytest.mark.parametrize("nome", ["DEPLOY_TENTATIVAS", "DEPLOY_ESPERA"])
+@pytest.mark.parametrize("valor", ["abc", "-1", "1.5"])
+def test_tentativas_e_espera_so_aceitam_digitos(
+    ambiente: dict[str, str], nome: str, valor: str
+) -> None:
+    r = rodar(ambiente, SHA, **{nome: valor})
+    assert r.returncode == 2
+    assert chamadas(ambiente) == []
+
+
+def test_falhou_mostra_o_stderr_da_ultima_tentativa(ambiente: dict[str, str]) -> None:
+    r = rodar(ambiente, SHA, FAKE_HEALTH="b" * 40, FAKE_STDERR="container reiniciando")
+    assert r.returncode != 0
+    assert "stderr da última tentativa" in r.stderr
+    assert "container reiniciando" in r.stderr
