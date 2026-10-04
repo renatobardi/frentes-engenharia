@@ -27,6 +27,7 @@
           {% endfor %}
         </select>
       </label>
+      {% if painel %}<input type="hidden" name="area" value="{{ celula_aberta[0] }}"><input type="hidden" name="tipo" value="{{ celula_aberta[1] }}">{% endif %}
       <noscript><button type="submit">Aplicar</button></noscript>
     </form>
 
@@ -47,6 +48,7 @@
     {% endfor %}
   </ol>
 
+  <div class="corpo{% if painel %} com-painel{% endif %}">
   <table class="grade">
     <thead>
       <tr>
@@ -61,9 +63,11 @@
         <th scope="row">{{ a.nome }}</th>
         {% for t in tipos %}
         {% set c = grade[(a.chave, t.chave)] %}
-        <td class="celula calor-{{ c.calor }}{% if c.vazia %} vazia{% endif %}">
+        <td class="celula calor-{{ c.calor }}{% if c.vazia %} vazia{% endif %}{% if painel and celula_aberta == (a.chave, t.chave) %} aberta{% endif %}">
+          {% if c.endereco %}<a class="abrir" href="{{ c.endereco }}" hx-get="{{ c.endereco }}" hx-target="#mapa" hx-swap="outerHTML" hx-push-url="true"{% if painel and celula_aberta == (a.chave, t.chave) %} aria-current="true"{% endif %}>{% endif %}
           {% if c.indice %}<span class="indice">{{ c.indice }}</span>{% if c.seta %} <span class="seta">{{ c.seta }}{{ c.variacao }}</span>{% endif %}{% endif %}
           {% if c.incertas %}<span class="incertas">+{{ c.incertas }} incertas</span>{% endif %}
+          {% if c.endereco %}</a>{% endif %}
         </td>
         {% endfor %}
         {% if nc_coluna %}<td class="celula nao-classificadas">{{ mapa.nao_classificadas_por_area.get(a.chave, "") }}</td>{% endif %}
@@ -78,4 +82,6 @@
       {% endif %}
     </tbody>
   </table>
+  {% if painel %}{% include "mapa/painel.html" %}{% endif %}
+  </div>
 </section>
