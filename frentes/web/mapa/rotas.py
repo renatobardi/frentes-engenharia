@@ -20,6 +20,7 @@ a faixa conta) viaja no cabeçalho `X-Marca`, que o `#mapa` põe em toda requisi
 from contextlib import closing
 from dataclasses import dataclass, replace
 from typing import Annotated
+from urllib.parse import parse_qs, urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -31,7 +32,7 @@ from frentes.enderecamento import marcas
 from frentes.mapa import agregados
 from frentes.store import chegando
 from frentes.store import versao as store_versao
-from frentes.web.mapa import ao_vivo, formulario, montagem, painel
+from frentes.web.mapa import ao_vivo, formulario, montagem, painel, versoes
 from frentes.web.telas import renderizar
 
 roteador = APIRouter()
@@ -49,6 +50,10 @@ class Lida:
     parametros: dict[str, str | list[str]]
     celula: tuple[montagem.Eixo, montagem.Eixo] | None
     enderecados: dict[tuple[str, str], Enderecamento]  # os ativos da visão, por célula
+
+
+class CelulaForaDaVersao(HTTPException):
+    """A célula pedida não existe na versão pedida (404)."""
 
 
 def _celula_valida(area: str | None, tipo: str | None) -> tuple[str | None, str | None]:
@@ -71,7 +76,7 @@ def _ler(
     """A leitura do mapa; versão ausente vira `SemVersao`, versão ou célula inexistente, 404."""
     try:
         mapa = agregados.ler(con, visao=visao, periodo=periodo, origens=origens, versao=versao)
-        if versao is not None and versao > (store_versao.versao_vigente(con) or 0):
+        if versao is not None and versao not in store_versao.ativadas(con):
             raise agregados.VersaoInexistente(f"a versão {versao} ainda não foi ativada")
     except agregados.VersaoInexistente as erro:
         if versao is None:
@@ -81,7 +86,7 @@ def _ler(
     eixo_area = {a.chave: a for a in areas}.get(area or "")
     eixo_tipo = {t.chave: t for t in tipos}.get(tipo or "")
     if area is not None and (eixo_area is None or eixo_tipo is None):
-        raise HTTPException(status_code=404, detail="a célula não existe nesta versão")
+        raise CelulaForaDaVersao(status_code=404, detail="a célula não existe nesta versão")
     parametros = montagem.consulta(visao, periodo, origens, versao)
     enderecados = {
         (m.celula.area, m.celula.tipo): m
@@ -96,6 +101,18 @@ def _ler(
 
 class SemVersao(Exception):
     """Não há versão vigente: a tela não tem o que mostrar (503)."""
+
+
+def _versao_de_origem(request: Request, vigente: int | None) -> int | None:
+    """A versão que a página aberta mostrava antes do pedido do HTMX (`HX-Current-URL`); sem
+    versão no endereço dela, a vigente. Sem o cabeçalho, None."""
+    atual = request.headers.get("hx-current-url")
+    if not atual:
+        return None
+    valores = parse_qs(urlsplit(atual).query).get("versao", [])
+    if not valores:
+        return vigente
+    return int(valores[0]) if valores[0].isdecimal() and len(valores[0]) < 10 else None
 
 
 def _painel(
@@ -190,14 +207,29 @@ def _tela(
     except store.BancoAusente:
         return renderizar(request, "mapa/sem_banco.html", status=503)
     with closing(con):
+        vigente = store_versao.versao_vigente(con)
+        fechou = ""
         try:
             lida = _ler(con, visao, periodo, origens, versao, area, tipo)
         except SemVersao as erro_de_versao:
             return renderizar(request, "mapa/sem_banco.html", {"motivo": str(erro_de_versao)}, 503)
+        except CelulaForaDaVersao:
+            # trocar a versão com o painel aberto numa célula que a outra não tem: fecha o
+            # painel e avisa; o endereço que chega direto com a célula errada continua 404
+            origem = _versao_de_origem(request, vigente)
+            if not request.headers.get("HX-Request") or origem in (None, versao or vigente):
+                raise
+            fechou = (
+                f"A célula {area} × {tipo} não existe na versão {versao or vigente}: "
+                "o painel foi fechado."
+            )
+            area = tipo = None
+            lida = _ler(con, visao, periodo, origens, versao, None, None)
         mapa = lida.mapa
-        vigente = store_versao.versao_vigente(con)
         # só as ativadas: a versão em reclassificação ainda não tem o histórico inteiro
-        versoes = [n for n in store_versao.numeros(con) if vigente is not None and n <= vigente]
+        seletor = store_versao.ativadas(con)
+        corte = request.app.state.config.limiares.sinal_de_encaixe
+        da_versao = versoes.da_versao(con, mapa.versao, corte)
         aberto = _painel(request, con, lida, visao, periodo, origens) if lida.celula else None
         if aberto is not None and erro:
             aberto = replace(aberto, erro=erro, rascunho=rascunho)
@@ -218,8 +250,11 @@ def _tela(
         "origens": set(origens),
         "painel": aberto,
         "celula_aberta": (area, tipo),
-        "versoes": versoes,
+        "versoes": seletor,
         "vigente": vigente,
+        "da_versao": da_versao,
+        "tipos_novos": da_versao.chaves_novas,
+        "aviso_da_celula": fechou,
         "nc_coluna": bool(mapa.nao_classificadas_por_area or mapa.nao_classificadas_sem_ambos),
         "nc_linha": bool(mapa.nao_classificadas_por_tipo or mapa.nao_classificadas_sem_ambos),
         "marca": marca,
@@ -240,6 +275,8 @@ def _tela(
     pagina = "mapa/miolo.html" if parcial else "mapa/pagina.html"
     resposta = renderizar(request, pagina, contexto, status)
     resposta.headers["Vary"] = "HX-Request"
+    if fechou:
+        resposta.headers["HX-Push-Url"] = montagem.endereco("/", lida.parametros)
     return resposta
 
 
@@ -304,6 +341,8 @@ def mapa_ao_vivo(
             _com_novas(con, lida, origens, marca), ao_vivo.ler_leitura(leitura)
         )
         dados_da_faixa = _faixa(con, lida, marca)
+        corte = request.app.state.config.limiares.sinal_de_encaixe
+        novos = versoes.da_versao(con, lida.mapa.versao, corte).chaves_novas
         contadores = montagem.contadores(lida.mapa, lida.parametros)
         agora = _impressoes(lida, contadores, dados_da_faixa)
         celula_mudou = False
@@ -323,6 +362,7 @@ def mapa_ao_vivo(
         "contadores": contadores,
         "painel": aberto,
         "celula_aberta": (area, tipo),
+        "tipos_novos": novos,
         "nc_coluna": bool(
             lida.mapa.nao_classificadas_por_area or lida.mapa.nao_classificadas_sem_ambos
         ),

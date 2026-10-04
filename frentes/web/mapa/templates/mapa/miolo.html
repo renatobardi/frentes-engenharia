@@ -34,6 +34,9 @@
     {% include "mapa/contadores.html" %}
   </div>
 
+  {% if aviso_da_celula %}<p class="aviso-versao" role="status">{{ aviso_da_celula }}</p>{% endif %}
+  {% include "mapa/faixa_versao.html" %}
+
   <p id="aviso-enderecar" class="erro-enderecar" role="alert" hidden></p>
 
   <div id="ao-vivo" hidden hx-get="{{ polling }}" hx-trigger="every {{ intervalo }}s [document.visibilityState=='visible']" hx-swap="outerHTML"></div>

@@ -58,7 +58,7 @@ def detalhe_da_frente(
             raise HTTPException(status_code=404, detail="não há frente com esse id")
         vigente = store_versao.versao_vigente(con)
         # só as ativadas: a versão em reclassificação ainda não tem o histórico inteiro
-        versoes = [n for n in store_versao.numeros(con) if vigente is not None and n <= vigente]
+        versoes = store_versao.ativadas(con)
         escolhida = versao if versao is not None else vigente
         if versao is not None and versao not in versoes:
             raise HTTPException(status_code=404, detail=f"a versão {versao} não está ativada")

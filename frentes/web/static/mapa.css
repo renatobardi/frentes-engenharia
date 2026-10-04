@@ -88,3 +88,10 @@
 .ja-enderecada, .decisao-meta, .variacao-desde { font-size: 0.85rem; color: var(--suave); }
 .marcador-enderecamento line { stroke: var(--destaque); }
 .marcador-enderecamento text { font-size: 9px; fill: currentColor; }
+
+.faixa-versao { border: 1px solid #c9d1dc; background: #f3f6fa; border-radius: 6px; padding: 0.5rem 1rem; margin-bottom: 1rem; }
+.faixa-versao p { margin: 0; }
+.faixa-versao .selo-sinal { background: #fff3cd; border: 1px solid #e0c36a; border-radius: 4px; padding: 0 0.4rem; margin: 0 0.5rem; }
+.faixa-versao .criou, .faixa-versao .resumo { margin-left: 0.5rem; }
+.aviso-versao { background: #fff3cd; border: 1px solid #e0c36a; border-radius: 6px; padding: 0.4rem 1rem; margin-bottom: 1rem; }
+th .nova { font-size: 0.7rem; font-weight: 600; background: #1d2430; color: #fff; border-radius: 4px; padding: 0 0.3rem; vertical-align: middle; }
