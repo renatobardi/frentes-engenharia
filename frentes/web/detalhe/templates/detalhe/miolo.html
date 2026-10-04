@@ -34,17 +34,6 @@
   </p>
   {% endif %}
 
-  {% if d.versoes %}
-  <nav class="versoes" aria-label="Versão da taxonomia">
-    {% for n in d.versoes %}
-    <a href="/frentes/{{ f.id | urlencode }}?versao={{ n }}"
-       hx-get="/frentes/{{ f.id | urlencode }}?versao={{ n }}" hx-target="#detalhe"
-       hx-swap="outerHTML" hx-push-url="true"
-       {% if n == d.versao %}aria-current="true"{% endif %}>na v{{ n }}{% if n == d.vigente %} (vigente){% endif %}</a>
-    {% endfor %}
-  </nav>
-  {% endif %}
-
   {% if d.linhas %}
   <table class="dimensoes">
     <caption class="visually-hidden">As 8 dimensões da classificação na v{{ d.versao }}</caption>
@@ -88,6 +77,17 @@
     <p>Modelo do Jev: <code>{{ r.modelo }}</code> · {{ r.tokens_entrada }} + {{ r.tokens_saida }} tokens · {{ r.latencia_ms }} ms</p>
     {% if r.desempate %}<p>Desempate da LLM: <code>{{ r.desempate }}</code></p>{% endif %}
   </footer>
+  {% endif %}
+
+  {% if d.versoes %}
+  <nav class="versoes" aria-label="Versão da taxonomia">
+    {% for n in d.versoes %}
+    <a href="/frentes/{{ f.id | urlencode }}?versao={{ n }}"
+       hx-get="/frentes/{{ f.id | urlencode }}?versao={{ n }}" hx-target="#detalhe"
+       hx-swap="outerHTML" hx-push-url="true"
+       {% if n == d.versao %}aria-current="true"{% endif %}>na v{{ n }}{% if n == d.vigente %} (vigente){% endif %}</a>
+    {% endfor %}
+  </nav>
   {% endif %}
 
   {% if d.metadados %}

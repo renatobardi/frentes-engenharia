@@ -7,6 +7,7 @@ veio (o template escapa). O que o Jev disse fica na classificação; o final, na
 """
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from urllib.parse import urlencode
@@ -31,6 +32,7 @@ from frentes.contratos import (
 )
 
 NOME_NENHUM_DESTES = "Nenhum destes"
+AUSENTE = "—"
 TOP = 3
 _AO_VIVO = (Origem.RELATO, Origem.WEBHOOK)  # as origens ao vivo da spec 01
 _NATUREZAS = {Natureza.REATIVA: "Reativa", Natureza.PROATIVA: "Proativa"}
@@ -167,21 +169,21 @@ def _periodo(ocorrida: datetime) -> Periodo:
     return Periodo.M12
 
 
-def _onde(c: Classificacao, frente: Frente, nomes: _Nomes, vigente: int | None) -> Onde | None:
+def _onde(c: Classificacao, frente: Frente, nomes: _Nomes) -> Onde | None:
     texto_vago = c.estado is Estado.INCERTA and c.motivo is MotivoIncerta.TEXTO_VAGO
     if texto_vago or c.estado in (Estado.AGUARDANDO_LLM, Estado.NAO_CLASSIFICADA):
         return None
     if c.area_final is None or c.tipo_final is None:
         return None
+    if c.natureza_final is None:
+        return None
     visao = Visao.DOR if c.natureza_final is Natureza.REATIVA else Visao.OPORTUNIDADE
+    # só o que o mapa entende: visão, período e versão
     parametros = {
         "visao": visao.value,
         "periodo": _periodo(frente.data).value,
-        "area": c.area_final,
-        "tipo": c.tipo_final,
+        "versao": str(c.versao),
     }
-    if c.versao != vigente:
-        parametros["versao"] = str(c.versao)
     return Onde(
         celula=f"{_Nomes.de(nomes.areas, c.area_final)} × {_Nomes.de(nomes.tipos, c.tipo_final)}",
         visao="Onde dói" if visao is Visao.DOR else "Onde há oportunidade",
@@ -243,9 +245,10 @@ def _desempate(
     c: Classificacao, dimensao: Dimensao, jev: str, final: str, confianca: float
 ) -> str | None:
     """A frase do desempate: o que o Jev tinha dito e o que a LLM escolheu."""
-    if c.resposta_llm is None or dimensao.value not in c.resposta_llm.conteudo:
+    conteudo = None if c.resposta_llm is None else c.resposta_llm.conteudo
+    if not isinstance(conteudo, Mapping) or dimensao.value not in conteudo:
         return None
-    escolha = c.resposta_llm.conteudo[dimensao.value]
+    escolha = conteudo[dimensao.value]
     dito = f"O Jev tinha dito {jev} ({numero(confianca)})"
     if escolha is None:
         return f"{dito}; a LLM não escolheu uma opção válida."
@@ -274,7 +277,7 @@ def _linhas(
     time = c.time_final if pronta else c.time
     tipo = c.tipo_final if pronta else c.tipo
     subtipo = c.subtipo_final if pronta else c.subtipo
-    natureza = (c.natureza_final if pronta else c.natureza) or c.natureza
+    natureza = (c.natureza_final if pronta else c.natureza) or c.natureza  # pode ser None
 
     def com_filho(pai: str | None, filho: str | None, n_pai: dict, n_filho: dict) -> str:
         texto = _Nomes.de(n_pai, pai)
@@ -314,10 +317,14 @@ def _linhas(
         ),
         Linha(
             "Natureza",
-            _NATUREZAS[natureza],
+            _NATUREZAS.get(natureza, AUSENTE),
             c.conf_natureza,
             desempate=_desempate(
-                c, Dimensao.NATUREZA, _NATUREZAS[c.natureza], _NATUREZAS[natureza], c.conf_natureza
+                c,
+                Dimensao.NATUREZA,
+                _NATUREZAS.get(c.natureza, AUSENTE),
+                _NATUREZAS.get(natureza, AUSENTE),
+                c.conf_natureza,
             ),
         ),
     ]  # fmt: skip
@@ -411,7 +418,7 @@ def montar(
         if frente.metadados
         else None,
         motivo=_motivo(classificacao, versao, vigente, limiares, sem_typesafe, sem_openrouter),
-        onde=_onde(classificacao, frente, nomes, vigente) if pronto else None,
+        onde=_onde(classificacao, frente, nomes) if pronto else None,
         linhas=_linhas(classificacao, documento, limiares) if pronto else (),
         rodape=_rodape(classificacao, documento) if pronto else None,
         versao=versao,

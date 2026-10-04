@@ -6,6 +6,7 @@ da TypeSafe" é o estado normal do teste. Datas relativas a hoje, com semanas de
 
 import json
 import re
+from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path
 
@@ -183,7 +184,8 @@ def test_classificada_mostra_tudo_na_ordem_da_spec(banco: Path, http: TestClient
     html = _pagina(http, "f1")
 
     ordem = ["Frente <code>f1</code>", "REF-9", "A fila de pagamentos parou", "Conta em",
-             "Plataforma × Incidente", "<table", "Pergunta de controle", "jev-1.13.0"]  # fmt: skip
+             "Plataforma × Incidente", "<table", "Pergunta de controle", "jev-1.13.0",
+             "na v1"]  # fmt: skip
     posicoes = [html.index(trecho) for trecho in ordem]
     assert posicoes == sorted(posicoes)
     assert 'class="motivo"' not in html  # pinta: não há motivo
@@ -371,6 +373,9 @@ def test_seletor_de_versao_troca_a_classificacao_mostrada(banco: Path, http: Tes
     assert re.search(r'aria-current="true">na v1', antiga)
     assert "versao=3" not in padrao  # a versão sem ativação não é oferecida
     assert "/?visao=dor" in antiga and "versao=1" in antiga.split("Conta em")[1]
+    link = re.search(r'Conta em\s*<a href="([^"]+)"', padrao).group(1)
+    assert link.startswith("/?") and "area=" not in link and "tipo=" not in link
+    assert "versao=2" in link
 
 
 def test_frente_sem_classificacao_numa_versao_antiga(banco: Path, http: TestClient) -> None:
@@ -530,3 +535,66 @@ def test_o_link_da_celula_usa_o_menor_periodo_da_frente(banco: Path, http: TestC
 
     assert "periodo=12m" in _pagina(http, "l1")
     assert "periodo=30d" in _pagina(http, "l2")
+
+
+def test_natureza_nula_aparece_como_ausente(banco: Path, http: TestClient) -> None:
+    c = _classificacao("n1", natureza=None, natureza_final=None)
+    _gravar(banco, c, frente="n1")
+
+    html = _pagina(http, "n1")
+
+    assert "<strong>—</strong>" in _linha(html, "Natureza")
+    assert "Conta em" not in html
+    assert 'class="apagada"' not in html
+
+
+def test_nomes_da_taxonomia_com_html_sao_escapados(banco: Path, http: TestClient) -> None:
+    ruim = "<b>ruim</b>"
+    documento = _documento(ruim)
+    documento = replace(
+        documento,
+        pergunta_de_controle=ruim,
+        causas_raiz=(_valor("capacidade", ruim),),
+        regua_severidade=tuple(contratos.NivelDaRegua(ruim, "c") for _ in range(4)),
+    )
+    con = store.abrir(banco)
+    _versao(con, 4, documento, ativada=True)
+    con.commit()
+    con.close()
+    _gravar(banco, _classificacao("t1", versao=4), frente="t1")
+
+    html = _pagina(http, "t1")
+
+    assert "<b>ruim" not in html and "&lt;b&gt;ruim&lt;/b&gt;" in html
+
+
+def test_gabarito_gravado_nao_aparece(banco: Path, http: TestClient) -> None:
+    _gravar(banco, _classificacao("g1"), frente="g1")
+    con = store.abrir(banco)
+    con.execute("INSERT INTO gabarito (frente_id, historia_id) VALUES ('g1', 'historia-secreta')")
+    con.commit()
+    con.close()
+
+    assert "historia-secreta" not in _pagina(http, "g1")
+
+
+def test_conteudo_da_llm_que_nao_e_objeto_nao_derruba_a_tela(banco: Path, http: TestClient) -> None:
+    _gravar(banco, _classificacao("o1"), frente="o1")
+    con = store.abrir(banco)  # o store só grava objeto: o JSON torto entra direto
+    con.execute(
+        "UPDATE classificacao SET resposta_llm = ? WHERE frente_id = 'o1'",
+        (
+            '{"modelo": "deepseek/x", "conteudo": ["area"], "uso": '
+            '{"tokens_entrada": 1, "tokens_saida": 1, "latencia_ms": 1}}',
+        ),
+    )
+    con.commit()
+    con.close()
+
+    html = _pagina(http, "o1")
+
+    assert "O Jev tinha dito" not in html and "deepseek/x" in html
+
+
+def test_id_longo_demais_e_422(http: TestClient) -> None:
+    assert http.get("/frentes/" + "a" * 201).status_code == 422
