@@ -11,12 +11,14 @@ from contextlib import closing, suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import IO
 
 from frentes import config, contratos, store
 from frentes.store import snapshot as sql
-from frentes.store.snapshot import SnapshotInvalido
+from frentes.store.snapshot import BancoNaoTrocavel, SnapshotInvalido
 
 __all__ = [
+    "BancoNaoTrocavel",
     "CAMINHO_PADRAO",
     "Carregado",
     "Gravado",
@@ -31,6 +33,9 @@ __all__ = [
 CAMINHO_PADRAO = config.RAIZ / "data" / "snapshot" / "frentes.sqlite.gz"
 # Acima disso o arquivo deixa de caber no repo e passa a anexo de release (09-snapshot).
 LIMITE_DO_REPO_BYTES = 50 * 1024 * 1024
+# Teto do banco descompactado: protege o volume de um .gz que se expande sem fim.
+LIMITE_DESCOMPACTADO_BYTES = 2 * 1024 * 1024 * 1024
+BLOCO = 1024 * 1024
 
 
 class SnapshotAusente(Exception):
@@ -45,6 +50,7 @@ class SnapshotRecusado(Exception):
 class Gravado:
     dia_d: str
     tamanho_bytes: int
+    commit: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,16 +113,15 @@ def gravar(
             os.replace(compactado, destino)
         finally:
             _descartar(bruto, compactado)
-    return Gravado(dia_d=dia_d, tamanho_bytes=destino.stat().st_size)
+    return Gravado(dia_d=dia_d, tamanho_bytes=destino.stat().st_size, commit=cfg.commit)
 
 
 def precisa_carregar(banco: Path) -> bool:
-    """Não há banco no caminho (nem arquivo, nem arquivo com o esquema)."""
-    try:
-        store.abrir_existente(banco).close()
-    except store.BancoAusente:
-        return True
-    return False
+    """Não há banco no caminho (nem arquivo, nem arquivo com o esquema).
+
+    Levanta `BancoNaoTrocavel` se há um arquivo que não é SQLite.
+    """
+    return not sql.banco_existe(banco)
 
 
 def carregar(banco: Path, origem: Path | None = None, agora: datetime | None = None) -> Carregado:
@@ -133,22 +138,31 @@ def carregar(banco: Path, origem: Path | None = None, agora: datetime | None = N
     try:
         try:
             with gzip.open(origem, "rb") as entrada, lado.open("wb") as saida:
-                shutil.copyfileobj(entrada, saida)
+                _copiar_com_teto(entrada, saida)
         except (OSError, EOFError) as erro:
             raise SnapshotInvalido(f"não consegui descompactar {origem}: {erro}") from erro
         ontem = (agora - timedelta(days=1)).astimezone(UTC).date()
         dias = sql.deslocar_arquivo(lado, ontem, contratos.para_iso(agora))
         dia_d = _dia_d(lado)
-        # O banco em uso fica em WAL: sem consolidar, o WAL antigo sobraria ao lado do
-        # arquivo novo.
-        if banco.exists():
-            sql.consolidar(banco)
+        # O banco em uso fica em WAL: esvazia e remove o WAL antigo antes da troca, para ele
+        # não ser aplicado sobre o arquivo novo. Banco ocupado ou ilegível: recusa.
+        sql.liberar_para_troca(banco)
         os.replace(lado, banco)
-        for sobra in (banco.with_name(banco.name + "-wal"), banco.with_name(banco.name + "-shm")):
-            _descartar(sobra)
     finally:
         _descartar(lado)
     return Carregado(dia_d=dia_d, deslocamento_dias=dias)
+
+
+def _copiar_com_teto(entrada: IO[bytes], saida: IO[bytes]) -> None:
+    total = 0
+    while bloco := entrada.read(BLOCO):
+        total += len(bloco)
+        if total > LIMITE_DESCOMPACTADO_BYTES:
+            raise SnapshotInvalido(
+                f"o snapshot passa de {LIMITE_DESCOMPACTADO_BYTES // 1024 // 1024} MB "
+                "descompactado: recusado"
+            )
+        saida.write(bloco)
 
 
 def _dia_d(arquivo: Path) -> str:

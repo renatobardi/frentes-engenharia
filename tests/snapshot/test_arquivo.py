@@ -315,3 +315,64 @@ def test_precisa_carregar_so_quando_nao_ha_banco_com_o_esquema(tmp_path: Path) -
     assert arquivo.precisa_carregar(sem_esquema) is True
     assert arquivo.precisa_carregar(com_esquema) is False
     assert not ausente.parent.exists()
+
+
+def test_carregar_sobre_arquivo_que_nao_e_sqlite_recusa_e_nao_o_apaga(
+    snapshot_gravado: Path, tmp_path: Path
+) -> None:
+    destino = tmp_path / "volume" / "frentes.sqlite"
+    destino.parent.mkdir()
+    destino.write_text("isto não é um banco, é o arquivo de alguém " * 20)
+    antes = destino.read_bytes()
+
+    with pytest.raises(arquivo.BancoNaoTrocavel, match="não é um banco SQLite"):
+        arquivo.carregar(destino, snapshot_gravado, AGORA)
+
+    assert destino.read_bytes() == antes
+    assert sorted(p.name for p in destino.parent.iterdir()) == ["frentes.sqlite"]
+
+
+def test_precisa_carregar_com_arquivo_que_nao_e_sqlite_e_erro_claro(tmp_path: Path) -> None:
+    estranho = tmp_path / "frentes.sqlite"
+    estranho.write_text("isto não é um banco, é o arquivo de alguém " * 20)
+
+    with pytest.raises(arquivo.BancoNaoTrocavel, match="não é um banco SQLite"):
+        arquivo.precisa_carregar(estranho)
+
+
+def test_carregar_com_banco_ocupado_recusa_e_deixa_o_banco_e_o_wal_como_estavam(
+    snapshot_gravado: Path, tmp_path: Path
+) -> None:
+    destino = tmp_path / "frentes.sqlite"
+    banco_anterior(destino)
+    leitor = store.abrir(destino)
+    leitor.execute("BEGIN")
+    leitor.execute("SELECT count(*) FROM frente").fetchone()
+    escritor = store.abrir(destino)
+    escritor.execute("UPDATE frente SET texto = 'mudou depois'")
+    escritor.commit()
+    escritor.close()
+
+    with pytest.raises(arquivo.BancoNaoTrocavel, match="ocupado"):
+        arquivo.carregar(destino, snapshot_gravado, AGORA)
+    leitor.close()
+
+    assert lido(destino, "SELECT id, texto FROM frente")[0][1] == "mudou depois"
+    assert sorted(p.name for p in tmp_path.iterdir() if p.name.startswith(".snapshot")) == []
+
+
+def test_carregar_arquivo_que_se_expande_alem_do_teto_e_recusado(
+    snapshot_gravado: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(arquivo, "LIMITE_DESCOMPACTADO_BYTES", 1024)
+    destino = tmp_path / "volume" / "frentes.sqlite"
+
+    with pytest.raises(arquivo.SnapshotInvalido, match="descompactado"):
+        arquivo.carregar(destino, snapshot_gravado, AGORA)
+
+    assert not destino.exists()
+    assert list(destino.parent.iterdir()) == []
+
+
+def test_gravar_devolve_o_commit_do_snapshot_meta(cfg: config.Config, tmp_path: Path) -> None:
+    assert arquivo.gravar(cfg, tmp_path / "s.gz", AGORA).commit == "abc1234"

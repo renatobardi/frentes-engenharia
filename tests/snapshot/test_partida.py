@@ -89,3 +89,14 @@ def test_o_gancho_com_app_sem_config_nao_faz_nada() -> None:
     from frentes.snapshot import partida
 
     partida.ao_partir(SimpleNamespace(state=SimpleNamespace()))  # type: ignore[arg-type]
+
+
+def test_subir_com_arquivo_que_nao_e_sqlite_no_banco_falha_com_erro_claro(tmp_path: Path) -> None:
+    banco = tmp_path / "frentes.sqlite"
+    banco.write_text("isto não é um banco " * 20)
+    antes = banco.read_bytes()
+
+    with pytest.raises(arquivo.BancoNaoTrocavel, match="não é um banco SQLite"):
+        subir(banco)
+
+    assert banco.read_bytes() == antes

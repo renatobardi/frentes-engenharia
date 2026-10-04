@@ -15,7 +15,14 @@ def _exigir_token(esperado: str | None, authorization: str | None) -> None:
     enviado = ""
     if authorization and authorization.lower().startswith("bearer "):
         enviado = authorization[len("bearer ") :].strip()
-    if not esperado or not enviado or not hmac.compare_digest(enviado, esperado):
+    # Em bytes: compare_digest com str recusa não ASCII (TypeError, e daria 500). O Starlette
+    # lê o header como latin-1, então voltamos a ele para recuperar os bytes que o cliente
+    # mandou, e o token do ambiente vai em UTF-8.
+    if (
+        not esperado
+        or not enviado
+        or not hmac.compare_digest(enviado.encode("latin-1"), esperado.encode())
+    ):
         raise HTTPException(
             status_code=401,
             detail="token de demo ausente ou inválido",
@@ -37,6 +44,8 @@ def carregar_snapshot(
         carregado = arquivo.carregar(cfg.banco)
     except arquivo.SnapshotAusente as erro:
         raise HTTPException(status_code=404, detail=str(erro)) from None
+    except arquivo.BancoNaoTrocavel as erro:
+        raise HTTPException(status_code=409, detail=str(erro)) from None
     except (arquivo.SnapshotInvalido, OSError) as erro:
         raise HTTPException(
             status_code=500, detail=f"o snapshot não carregou; o banco anterior ficou: {erro}"

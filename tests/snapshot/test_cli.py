@@ -12,6 +12,7 @@ def ambiente(
 ) -> tuple[Path, Path]:
     """(banco de origem, arquivo do snapshot) com o ambiente apontando para o banco."""
     monkeypatch.setenv("FRENTES_DB", str(banco_populado))
+    monkeypatch.setenv("FRENTES_COMMIT", "abc1234")
     return banco_populado, tmp_path / "repo" / "frentes.sqlite.gz"
 
 
@@ -126,3 +127,31 @@ def test_gravar_em_caminho_que_nao_da_para_escrever_sai_com_1(
 
     assert main(["snapshot", "gravar", "--saida", str(arquivo_comum / "s.gz")]) == 1
     assert "snapshot gravar:" in capsys.readouterr().err
+
+
+def test_gravar_sem_commit_definido_avisa(
+    ambiente: tuple[Path, Path],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _, saida = ambiente
+    monkeypatch.delenv("FRENTES_COMMIT")
+
+    assert main(["snapshot", "gravar", "--saida", str(saida)]) == 0
+    assert "FRENTES_COMMIT não está definido" in capsys.readouterr().err
+
+
+def test_carregar_sobre_arquivo_que_nao_e_sqlite_sai_com_1(
+    ambiente: tuple[Path, Path],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _, saida = ambiente
+    assert main(["snapshot", "gravar", "--saida", str(saida)]) == 0
+    estranho = tmp_path / "estranho.sqlite"
+    estranho.write_text("não é banco " * 50)
+    monkeypatch.setenv("FRENTES_DB", str(estranho))
+
+    assert main(["snapshot", "carregar", "--de", str(saida)]) == 1
+    assert "não é um banco SQLite" in capsys.readouterr().err

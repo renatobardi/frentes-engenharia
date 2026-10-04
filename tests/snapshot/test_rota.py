@@ -48,10 +48,11 @@ def frentes(banco: Path) -> list[str]:
         pytest.param({"Authorization": "Bearer outro-token"}, id="token_errado"),
         pytest.param({"Authorization": f"Basic {TOKEN}"}, id="esquema_errado"),
         pytest.param({"Authorization": "Bearer "}, id="token_vazio"),
+        pytest.param({"Authorization": "Bearer tókén-ñão-ascii".encode()}, id="nao_ascii"),
     ],
 )
 def test_a_rota_sem_o_token_certo_responde_401_e_nao_troca_nada(
-    banco: Path, cabecalhos: dict[str, str]
+    banco: Path, cabecalhos: dict[str, str | bytes]
 ) -> None:
     antes = banco.read_bytes()
 
@@ -60,6 +61,39 @@ def test_a_rota_sem_o_token_certo_responde_401_e_nao_troca_nada(
     assert resposta.status_code == 401
     assert resposta.headers["www-authenticate"] == "Bearer"
     assert banco.read_bytes() == antes
+    assert frentes(banco) == ["da-tela"]
+
+
+def test_a_rota_com_token_configurado_nao_ascii_confere_em_bytes(banco: Path) -> None:
+    token = "démo-ñ"
+
+    certo = cliente(banco, FRENTES_WEBHOOK_TOKEN=token).post(
+        ROTA, headers={"Authorization": f"Bearer {token}".encode()}
+    )
+    errado = cliente(banco, FRENTES_WEBHOOK_TOKEN=token).post(
+        ROTA, headers={"Authorization": b"Bearer demo-n"}
+    )
+
+    assert (certo.status_code, errado.status_code) == (200, 401)
+
+
+def test_a_rota_com_banco_ocupado_responde_409_e_o_banco_fica(banco: Path) -> None:
+    leitor = store.abrir(banco)
+    leitor.execute("BEGIN")
+    leitor.execute("SELECT count(*) FROM frente").fetchone()
+    # uma escrita depois do início da leitura deixa WAL que o checkpoint não consegue esvaziar
+    escritor = store.abrir(banco)
+    escritor.execute("UPDATE frente SET texto = 'mudou'")
+    escritor.commit()
+    escritor.close()
+
+    resposta = cliente(banco, FRENTES_WEBHOOK_TOKEN=TOKEN).post(
+        ROTA, headers={"Authorization": f"Bearer {TOKEN}"}
+    )
+    leitor.close()
+
+    assert resposta.status_code == 409
+    assert "ocupado" in resposta.json()["detail"]
     assert frentes(banco) == ["da-tela"]
 
 

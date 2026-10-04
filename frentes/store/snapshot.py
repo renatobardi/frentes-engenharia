@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from frentes import contratos
-from frentes.store import Conexao
+from frentes.store import BancoAusente, Conexao, abrir_existente
 
 # Chave em `frente.metadados` com que o script da rajada marca as frentes que envia.
 MARCA_DA_RAJADA = "rajada"
@@ -74,13 +74,43 @@ def copiar_para(
         copia.execute("VACUUM")
 
 
-def consolidar(caminho: Path) -> None:
-    """Passa o WAL de um banco em uso para o arquivo principal, se é um banco que abre."""
+class BancoNaoTrocavel(Exception):
+    """O banco no caminho não pode ser trocado com segurança. A mensagem diz por quê."""
+
+
+def banco_existe(caminho: Path) -> bool:
+    """Há um banco com o esquema no caminho. Arquivo que não é SQLite é erro, não ausência."""
+    try:
+        abrir_existente(caminho).close()
+    except BancoAusente:
+        return False
+    except sqlite3.DatabaseError:
+        raise BancoNaoTrocavel(f"o arquivo em {caminho} não é um banco SQLite") from None
+    return True
+
+
+def liberar_para_troca(caminho: Path) -> None:
+    """Deixa o banco em uso sem WAL, para o arquivo novo poder tomar o lugar dele.
+
+    Passa o WAL para o arquivo principal e o esvazia; se alguma conexão ainda lê ou escreve
+    nele (checkpoint ocupado), recusa em vez de trocar. Depois remove o `-wal` e o `-shm`.
+    """
+    if not caminho.exists():
+        return
     try:
         with closing(sqlite3.connect(caminho)) as con:
-            con.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-    except sqlite3.Error:
-        pass
+            ocupado = con.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()[0]
+    except sqlite3.DatabaseError as erro:
+        raise BancoNaoTrocavel(f"o arquivo em {caminho} não é um banco SQLite: {erro}") from None
+    if ocupado:
+        raise BancoNaoTrocavel(
+            f"o banco em {caminho} está ocupado (uma conexão ainda o usa): tente de novo"
+        )
+    for sobra in (
+        caminho.with_name(caminho.name + "-wal"),
+        caminho.with_name(caminho.name + "-shm"),
+    ):
+        sobra.unlink(missing_ok=True)
 
 
 def deslocar_texto(valor: str, dias: int, *, estrito: bool = True) -> str:

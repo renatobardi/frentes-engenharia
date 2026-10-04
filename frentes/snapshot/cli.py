@@ -36,6 +36,12 @@ def snapshot(argumentos: list[str]) -> int:
                 f"snapshot gravado em {caminho}: dia D {gravado.dia_d}, "
                 f"{gravado.tamanho_bytes / 1024 / 1024:.1f} MB"
             )
+            if gravado.commit == config.COMMIT_DESCONHECIDO:
+                print(
+                    "aviso: FRENTES_COMMIT não está definido: o snapshot leva o commit "
+                    f"{gravado.commit!r} no snapshot_meta",
+                    file=sys.stderr,
+                )
             if gravado.tamanho_bytes > arquivo.LIMITE_DO_REPO_BYTES:
                 print(
                     "aviso: passou de 50 MB compactado: pela spec (09-snapshot) o snapshot "
@@ -55,6 +61,7 @@ def snapshot(argumentos: list[str]) -> int:
         arquivo.SnapshotRecusado,
         arquivo.SnapshotAusente,
         arquivo.SnapshotInvalido,
+        arquivo.BancoNaoTrocavel,
         OSError,
     ) as erro:
         print(f"snapshot {acao}: {erro}", file=sys.stderr)
