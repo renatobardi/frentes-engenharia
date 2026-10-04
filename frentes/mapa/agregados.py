@@ -48,7 +48,7 @@ class Mapa:
     desde: datetime  # início da janela (inclusive)
     ate: datetime  # fim da janela (exclusive)
     com_tendencia: bool  # False em 12 meses: a seta não aparece
-    celulas: tuple[Celula, ...]  # só as que têm frente que pinta ou incerta; por área e tipo
+    celulas: tuple[Celula, ...]  # só as que têm frente que pinta, incerta ou pintava antes
     top3: tuple[Celula, ...]  # maior índice primeiro; célula de índice 0 não entra
     texto_vago: int  # contadores fora da grade
     incertas: int  # incertas da visão, com ou sem célula, sem as de texto vago
@@ -104,9 +104,10 @@ def ler(
 ) -> Mapa:
     """O mapa da visão: grade área × tipo, tendência, "+N incertas", contadores e Top 3."""
     numero = _versao(con, versao)
+    periodo = Periodo(periodo)
     natureza, score = _VISAO[Visao(visao)]
     filtro = _origens(origens)
-    dias = timedelta(days=DIAS[Periodo(periodo)])
+    dias = timedelta(days=DIAS[periodo])
     ate = _fim_do_dia(referencia or contratos.agora().date())
     desde = ate - dias
     d, a = contratos.para_iso(desde), contratos.para_iso(ate)
@@ -123,7 +124,8 @@ def ler(
     incertas = consultas.incertas_por_celula(con, numero, natureza.value, d, a, filtro)
 
     celulas = []
-    for area, tipo in sorted(atual.keys() | incertas.keys()):
+    # a célula que zerou no período aparece com a queda: tinha índice antes, não tem agora
+    for area, tipo in sorted(atual.keys() | incertas.keys() | anterior.keys()):
         indice, frentes = atual.get((area, tipo), (0.0, 0))
         antes = anterior.get((area, tipo), (0.0, 0))[0] if com_tendencia else None
         celulas.append(
@@ -155,7 +157,7 @@ def ler(
     return Mapa(
         versao=numero,
         visao=Visao(visao),
-        periodo=Periodo(periodo),
+        periodo=periodo,
         desde=desde,
         ate=ate,
         com_tendencia=com_tendencia,

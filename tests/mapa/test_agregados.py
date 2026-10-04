@@ -419,3 +419,62 @@ def test_banco_sem_frentes_devolve_mapa_vazio() -> None:
         0,
         0,
     )
+
+
+def test_periodo_em_texto_vale_como_o_enum(con: store.Conexao) -> None:
+    doze = agregados.ler(con, visao=Visao.DOR, periodo="12m", referencia=REF)  # type: ignore[arg-type]
+    assert doze.periodo is Periodo.M12 and not doze.com_tendencia
+    assert all(c.variacao is None for c in doze.celulas)
+    assert agregados.ler(con, visao=Visao.DOR, periodo="30d", referencia=REF).periodo is Periodo.D30  # type: ignore[arg-type]
+
+
+def test_celula_que_zerou_volta_com_queda_de_100_por_cento(con: store.Conexao) -> None:
+    # só tinha frente no período anterior (2026-05-15)
+    _pinta(con, "seg", "risco", 0.4, quando="2026-05-15")
+    mapa = agregados.ler(con, visao=Visao.DOR, referencia=REF)
+    seg = _celula(mapa, "seg", "risco")
+    assert (seg.indice, seg.frentes, seg.anterior) == (0.0, 0, pytest.approx(0.4))
+    assert seg.variacao == pytest.approx(-1.0)
+    assert seg not in mapa.top3
+    # em 12 meses não há anterior: a célula não volta
+    doze = agregados.ler(con, visao=Visao.DOR, periodo=Periodo.M12, referencia=REF)
+    assert _celula(doze, "seg", "risco").indice == pytest.approx(0.4)
+
+
+def test_bordas_da_janela() -> None:
+    con = store.abrir()
+    _versao(con, 1, True)
+    # janela de 90 dias com referência 2026-10-03: [2026-07-06 00:00, 2026-10-04 00:00)
+    for quando, area in [
+        ("2026-07-05T23:59:59Z", "antes"),
+        ("2026-07-06T00:00:00Z", "inicio"),
+        ("2026-10-03T23:59:59Z", "fim"),
+        ("2026-10-04T00:00:00Z", "depois"),
+    ]:
+        id = _frente(con, quando="2026-01-01")
+        con.execute("UPDATE frente SET ocorrido_em = ? WHERE id = ?", (quando, id))
+        _class(con, id, area_final=area, tipo_final="t", severidade=0.5)
+    mapa = agregados.ler(con, visao=Visao.DOR, referencia=REF)
+    assert {c.area: c.indice for c in mapa.celulas if c.indice} == {"inicio": 0.5, "fim": 0.5}
+    # a que ficou fora no início pertence ao período anterior
+    assert {c.area: c.anterior for c in mapa.celulas}["antes"] == pytest.approx(0.5)
+    assert "depois" not in {c.area for c in mapa.celulas}
+
+
+def test_empate_no_top3_desempata_por_area_e_tipo() -> None:
+    con = store.abrir()
+    _versao(con, 1, True)
+    for area in ["d", "b", "a", "c"]:
+        _pinta(con, area, "t", 0.5)
+    mapa = agregados.ler(con, visao=Visao.DOR, referencia=REF)
+    assert [c.area for c in mapa.top3] == ["a", "b", "c"]
+
+
+def test_enderecamento_ativo_nao_muda_indice_tendencia_nem_top3(con: store.Conexao) -> None:
+    antes = agregados.ler(con, visao=Visao.DOR, referencia=REF)
+    con.execute(
+        "INSERT INTO enderecamento (area, tipo, visao, decidido_em, texto, tipo_solucao,"
+        " procedencia, ativo) VALUES ('plat', 'incidente', 'dor', '2026-09-01T10:00:00Z',"
+        " 'trocar o gateway', 'ferramenta_automacao', 'tela', 1)"
+    )
+    assert agregados.ler(con, visao=Visao.DOR, referencia=REF) == antes
