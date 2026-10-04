@@ -1,22 +1,28 @@
 """`python -m frentes seed gerar`: o roteiro com seed fixa, gravado em `seed/gerado/`.
 
-Não precisa de chave nem de rede. Os textos de relato e mcp ficam para a fatia da LLM:
-`frentes.jsonl` traz as frentes de log, webhook e banco, e `esqueletos.jsonl` traz todas.
+`gerar` não precisa de chave nem de rede: `frentes.jsonl` traz as frentes de log, webhook e
+banco, e `esqueletos.jsonl` traz todas. `textos` escreve relato e mcp pela LLM (com a
+`OPENROUTER_API_KEY`) e completa o `frentes.jsonl`; sem texto novo a pedir, só o recompõe.
 """
 
+import asyncio
 import json
 import sys
 from datetime import date
 from pathlib import Path
 
 from frentes import config, store
-from frentes.seed import carga, validador
+from frentes.llm import ClienteOpenRouter, ErroLlm
+from frentes.seed import carga, curvas, dataset, textos, validador
 from frentes.seed.roteiro import SEED, TOTAL, ErroDeRoteiro, gerar_roteiro
 from frentes.seed.saida import gravar
 
 USO = (
     "uso: python -m frentes seed gerar [--seed N] [--total N] [--entrada PASTA] [--saida PASTA]\n"
-    "     python -m frentes seed carregar [--entrada PASTA] [--gerado PASTA] [--banco CAMINHO]"
+    "     python -m frentes seed carregar [--entrada PASTA] [--gerado PASTA] [--banco CAMINHO]\n"
+    "     python -m frentes seed textos [--teto DÓLARES] [--lotes N] [--paralelo N] "
+    "[--entrada PASTA] [--gerado PASTA]\n"
+    "     python -m frentes seed relatorio [--entrada PASTA] [--gerado PASTA]"
 )
 SAIDA = validador.PASTA / "gerado"
 
@@ -94,9 +100,111 @@ def carregar(argumentos: list[str]) -> int:
     return 0
 
 
+def _opcoes(argumentos: list[str], padrao: dict[str, str]) -> dict[str, str] | None:
+    opcoes, resto = dict(padrao), list(argumentos)
+    while resto:
+        nome = resto.pop(0)
+        if nome not in opcoes or not resto:
+            return None
+        opcoes[nome] = resto.pop(0)
+    return opcoes
+
+
+def _entrada(pasta: Path) -> tuple[textos.Contexto, dict[str, list[str]]]:
+    org = json.loads((pasta / "organograma.json").read_text(encoding="utf-8"))
+    emissores = json.loads((pasta / "emissores.json").read_text(encoding="utf-8"))
+    termos = validador.ler_termos((pasta / "historias.md").read_text(encoding="utf-8"))[0]
+    return textos.contexto_de(org, emissores, termos), termos
+
+
+def _ficha(pasta: Path) -> str:
+    org = json.loads((pasta / "organograma.json").read_text(encoding="utf-8"))
+    nomes = [i["nome"] for a in org["organograma"] for t in a["times"] for i in t["itens"]]
+    return validador.sem_acento(" | ".join(nomes))
+
+
+def escrever_textos(argumentos: list[str]) -> int:
+    """Escreve os textos de relato e mcp pela LLM e, com todos prontos, grava `frentes.jsonl`."""
+    padrao = {
+        "--teto": str(textos.TETO_EM_DOLARES),
+        "--lotes": "",
+        "--paralelo": str(textos.PARALELO),
+        "--entrada": str(validador.PASTA),
+        "--gerado": str(SAIDA),
+    }
+    opcoes = _opcoes(argumentos, padrao)
+    try:
+        assert opcoes is not None
+        teto, paralelo = float(opcoes["--teto"]), int(opcoes["--paralelo"])
+        lotes = int(opcoes["--lotes"]) if opcoes["--lotes"] else None
+    except (AssertionError, ValueError):
+        print(USO, file=sys.stderr)
+        return 2
+    entrada, gerado = Path(opcoes["--entrada"]), Path(opcoes["--gerado"])
+    cfg = config.carregar()
+    if not cfg.openrouter_api_key:
+        print("seed textos: OPENROUTER_API_KEY não está no ambiente", file=sys.stderr)
+        return 1
+    try:
+        ctx, termos = _entrada(entrada)
+        esqueletos = dataset.ler_jsonl(gerado / "esqueletos.jsonl")
+        llm = ClienteOpenRouter(cfg.openrouter_api_key, cfg.operacao)
+        gerador = textos.Gerador(
+            llm, ctx, gerado, cfg.operacao.modelo_llm, teto=teto, paralelo=paralelo, avisar=print
+        )
+        resultado = asyncio.run(gerador.gerar(esqueletos, lotes))
+    except (textos.ErroDeGeracao, ErroLlm, OSError) as erro:
+        print(f"seed textos: {erro}", file=sys.stderr)
+        return 1
+    if resultado.parou_no_teto:
+        print(f"seed textos: gasto passou do teto de US$ {teto:.2f}; parei", file=sys.stderr)
+        return 1
+    faltam = sum(
+        1 for e in esqueletos if e["origem"] in ("relato", "mcp") and e["id"] not in gerador.livro
+    )
+    if faltam:
+        print(f"{faltam} textos ainda por escrever; frentes.jsonl não foi alterado")
+        return 0
+    try:
+        total = dataset.compor(gerado)
+    except textos.ErroDeGeracao as erro:
+        print(f"seed textos: {erro}", file=sys.stderr)
+        return 1
+    print(f"frentes.jsonl: {total} frentes")
+    return relatorio(["--entrada", str(entrada), "--gerado", str(gerado)])
+
+
+def relatorio(argumentos: list[str]) -> int:
+    """O relatório de curvas do dataset gravado, em `relatorio-textos.md`."""
+    opcoes = _opcoes(argumentos, {"--entrada": str(validador.PASTA), "--gerado": str(SAIDA)})
+    if opcoes is None:
+        print(USO, file=sys.stderr)
+        return 2
+    gerado = Path(opcoes["--gerado"])
+    _, termos = _entrada(Path(opcoes["--entrada"]))
+    objetos = {h: curvas.HISTORIAS[h].objeto if h in curvas.HISTORIAS else None for h in termos}
+    cfg = config.carregar()
+    gasto = textos.ler_gasto(gerado)
+    ficha = _ficha(Path(opcoes["--entrada"]))
+    texto, problemas = dataset.relatorio(
+        gerado, termos, objetos, ficha, gasto, gasto.em_dolares(cfg.operacao.modelo_llm),
+        cfg.operacao.modelo_llm,
+    )  # fmt: skip
+    (gerado / "relatorio-textos.md").write_text(texto, encoding="utf-8")
+    print(
+        "\n".join(problemas) or "dataset conferido: sem problemas",
+        file=sys.stderr if problemas else sys.stdout,
+    )
+    return 1 if problemas else 0
+
+
 def seed(argumentos: list[str]) -> int:
     if argumentos[:1] == ["gerar"]:
         return gerar(argumentos[1:])
+    if argumentos[:1] == ["textos"]:
+        return escrever_textos(argumentos[1:])
+    if argumentos[:1] == ["relatorio"]:
+        return relatorio(argumentos[1:])
     if argumentos[:1] == ["carregar"]:
         return carregar(argumentos[1:])
     print(USO, file=sys.stderr)
@@ -105,7 +213,8 @@ def seed(argumentos: list[str]) -> int:
 
 COMANDOS = {
     "seed": (
-        "seed gerar: roteiro com seed fixa → seed/gerado/ | seed carregar: seed no banco",
+        "seed gerar: roteiro com seed fixa → seed/gerado/ | seed textos: relato e mcp pela LLM | "
+        "seed relatorio: curvas do dataset | seed carregar: seed no banco",
         seed,
     )
 }

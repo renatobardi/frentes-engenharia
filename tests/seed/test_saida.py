@@ -370,5 +370,14 @@ def test_o_que_esta_em_seed_gerado_e_o_que_o_comando_gera(pasta: Path) -> None:
     versionado = validador.PASTA / "gerado"
     nomes = {p.name for p in pasta.iterdir()}
     assert nomes <= {p.name for p in versionado.iterdir()}
-    for nome in nomes:
+    for nome in nomes - {"frentes.jsonl"}:
         assert (versionado / nome).read_bytes() == (pasta / nome).read_bytes(), nome
+    # `frentes.jsonl` versionado é o do roteiro mais os textos da LLM (`dataset.compor`): as
+    # frentes de template têm de ser as mesmas, linha a linha
+    gerado = (pasta / "frentes.jsonl").read_text(encoding="utf-8").splitlines()
+    de_template = {
+        json.loads(ln)["id"]: ln
+        for ln in (versionado / "frentes.jsonl").read_text(encoding="utf-8").splitlines()
+        if json.loads(ln)["origem"] in ("log", "webhook", "banco")
+    }
+    assert [ln for ln in gerado] == [de_template[json.loads(ln)["id"]] for ln in gerado]
