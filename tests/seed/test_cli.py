@@ -6,14 +6,13 @@ from pathlib import Path
 import pytest
 
 from frentes import __main__ as principal
-from frentes.__main__ import PLANEJADOS, declarados, main
+from frentes.__main__ import declarados, main
 from frentes.seed import cli, saida, validador
 
 
 def test_seed_gerar_esta_declarado_e_nao_e_mais_planejado() -> None:
     assert "seed" in declarados()
     assert declarados()["seed"][1] is cli.seed
-    assert "rajada" in PLANEJADOS  # a rajada é o cliente do webhook, de outra fatia
 
 
 def test_seed_gerar_grava_os_arquivos_e_sai_com_0(

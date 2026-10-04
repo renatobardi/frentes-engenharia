@@ -13,7 +13,7 @@ from pathlib import Path
 
 from frentes import config, store
 from frentes.llm import ClienteOpenRouter, ErroLlm
-from frentes.seed import carga, curvas, dataset, textos, validador
+from frentes.seed import carga, curvas, dataset, rajada, textos, validador
 from frentes.seed.roteiro import SEED, TOTAL, ErroDeRoteiro, gerar_roteiro
 from frentes.seed.saida import gravar
 
@@ -226,5 +226,9 @@ COMANDOS = {
         "seed gerar: roteiro com seed fixa → seed/gerado/ | seed textos: relato e mcp pela LLM | "
         "seed relatorio: curvas do dataset | seed carregar: seed no banco",
         seed,
-    )
+    ),
+    "rajada": (
+        "envia a rajada pelo webhook (FRENTES_URL e FRENTES_WEBHOOK_TOKEN)",
+        rajada.rajada,
+    ),
 }
