@@ -1,0 +1,99 @@
+{% set f = d.frente %}
+<article id="detalhe" class="detalhe">
+  <header class="identificacao">
+    <h1>Frente <code>{{ f.id }}</code></h1>
+    <dl class="ficha">
+      <dt>Origem</dt><dd>{{ f.origem.value }}</dd>
+      <dt>Emissor</dt><dd>{{ f.emissor }}</dd>
+      <dt>Ocorreu em</dt><dd>{{ d.quando }}</dd>
+      {% if f.ref_externa %}<dt>Referência externa</dt><dd>{{ f.ref_externa }}</dd>{% endif %}
+    </dl>
+    {% if d.marcas %}
+    <ul class="marcas">
+      {% for marca in d.marcas %}<li class="marca-estado">{{ marca }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </header>
+
+  <section class="texto" aria-label="Texto original">
+    <blockquote class="original">{{ f.texto }}</blockquote>
+    {% if f.complemento %}
+    <div class="complemento">
+      <h2>Complemento{% if d.complementado %} <small>({{ d.complementado }})</small>{% endif %}</h2>
+      <p>{{ f.complemento }}</p>
+    </div>
+    {% endif %}
+  </section>
+
+  {% if d.motivo %}<p class="motivo" role="note">{{ d.motivo }}</p>{% endif %}
+
+  {% if d.onde %}
+  <p class="onde">
+    {% if d.onde.pinta %}Conta em{% else %}Não pinta o mapa; entra no “+N incertas” de{% endif %}
+    <a href="{{ d.onde.destino }}">{{ d.onde.celula }}</a>, visão “{{ d.onde.visao }}”.
+  </p>
+  {% endif %}
+
+  {% if d.versoes %}
+  <nav class="versoes" aria-label="Versão da taxonomia">
+    {% for n in d.versoes %}
+    <a href="/frentes/{{ f.id | urlencode }}?versao={{ n }}"
+       hx-get="/frentes/{{ f.id | urlencode }}?versao={{ n }}" hx-target="#detalhe"
+       hx-swap="outerHTML" hx-push-url="true"
+       {% if n == d.versao %}aria-current="true"{% endif %}>na v{{ n }}{% if n == d.vigente %} (vigente){% endif %}</a>
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  {% if d.linhas %}
+  <table class="dimensoes">
+    <caption class="visually-hidden">As 8 dimensões da classificação na v{{ d.versao }}</caption>
+    <thead>
+      <tr><th scope="col">Dimensão</th><th scope="col">Resposta</th><th scope="col">Confiança</th></tr>
+    </thead>
+    <tbody>
+      {% for l in d.linhas %}
+      <tr{% if l.apagada %} class="apagada" aria-disabled="true"{% endif %}>
+        <th scope="row">{{ l.rotulo }}</th>
+        <td>
+          <strong>{{ l.resposta }}</strong>
+          {% if l.nivel %}<span class="nivel">{{ l.nivel }}</span>{% endif %}
+          {% if l.apagada %}<span class="nivel">não vale para esta natureza</span>{% endif %}
+          {% for marca in l.marcas %}<span class="marca-dimensao">{{ marca }}</span>{% endfor %}
+          {% if l.desempate %}<p class="desempate">{{ l.desempate }}</p>{% endif %}
+          {% if l.top %}
+          <ol class="top">
+            {% for o in l.top %}
+            <li{% if o.do_jev %} class="do-jev"{% endif %}>{{ o.nome }} <span>{{ o.percentual }}</span></li>
+            {% endfor %}
+          </ol>
+          {% endif %}
+        </td>
+        <td>
+          {% if l.barra is not none %}
+          <div class="barra" role="img" aria-label="confiança {{ l.barra }}%"><span style="width: {{ l.barra }}%"></span></div>
+          <small>{{ l.barra }}%</small>
+          {% else %}<small>sem confiança</small>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if d.rodape %}
+  {% set r = d.rodape %}
+  <footer class="rodape">
+    <p>Pergunta de controle: “{{ r.pergunta }}” <strong>{{ r.controle }}</strong></p>
+    <p>Modelo do Jev: <code>{{ r.modelo }}</code> · {{ r.tokens_entrada }} + {{ r.tokens_saida }} tokens · {{ r.latencia_ms }} ms</p>
+    {% if r.desempate %}<p>Desempate da LLM: <code>{{ r.desempate }}</code></p>{% endif %}
+  </footer>
+  {% endif %}
+
+  {% if d.metadados %}
+  <details class="metadados" open>
+    <summary>metadados</summary>
+    <pre>{{ d.metadados }}</pre>
+  </details>
+  {% endif %}
+</article>

@@ -1,0 +1,29 @@
+/* Tela de detalhe da frente. Escrito à mão, sem endereço externo. */
+.detalhe { max-width: 56rem; margin: 0 auto; padding: 1rem 1.5rem; }
+.detalhe h1 { margin: 0 0 0.5rem; font-size: 1.3rem; }
+.ficha { display: grid; grid-template-columns: max-content 1fr; gap: 0.2rem 1rem; margin: 0; }
+.ficha dt { color: var(--suave); }
+.ficha dd { margin: 0; }
+.marcas { display: flex; flex-wrap: wrap; gap: 0.4rem; list-style: none; padding: 0; margin: 0.6rem 0; }
+.marca-estado, .marca-dimensao { font-size: 0.75rem; border: 1px solid var(--linha); border-radius: 999px; padding: 0 0.5rem; background: #fff; }
+.marca-dimensao { margin-left: 0.4rem; }
+.original { margin: 1rem 0; padding: 0.8rem 1rem; background: #fff; border-left: 4px solid var(--destaque); font-size: 1.1rem; white-space: pre-wrap; }
+.complemento { margin: 0 0 1rem; padding: 0.6rem 1rem; border-top: 1px dashed var(--linha); color: var(--suave); white-space: pre-wrap; }
+.complemento h2 { font-size: 0.9rem; margin: 0; }
+.motivo { padding: 0.6rem 1rem; background: #fff6df; border: 1px solid #ecd9a0; border-radius: 4px; }
+.versoes { display: flex; gap: 1rem; margin: 1rem 0; }
+.versoes a { color: var(--suave); text-decoration: none; }
+.versoes a[aria-current] { color: var(--texto); font-weight: 700; border-bottom: 2px solid var(--destaque); }
+.dimensoes { width: 100%; border-collapse: collapse; background: #fff; }
+.dimensoes th, .dimensoes td { text-align: left; vertical-align: top; padding: 0.5rem; border-bottom: 1px solid var(--linha); }
+.dimensoes tr.apagada { opacity: 0.45; }
+.nivel { margin-left: 0.5rem; color: var(--suave); font-size: 0.85rem; }
+.desempate { margin: 0.2rem 0 0; font-size: 0.85rem; color: var(--suave); }
+.top { margin: 0.3rem 0 0; padding-left: 1.2rem; font-size: 0.85rem; color: var(--suave); }
+.top .do-jev { color: var(--texto); font-weight: 600; }
+.barra { width: 8rem; height: 0.6rem; background: var(--linha); border-radius: 3px; overflow: hidden; }
+.barra span { display: block; height: 100%; background: var(--destaque); }
+.rodape { margin-top: 1rem; font-size: 0.85rem; color: var(--suave); }
+.rodape p { margin: 0.2rem 0; }
+.metadados pre { overflow-x: auto; background: #fff; padding: 0.6rem; border: 1px solid var(--linha); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
