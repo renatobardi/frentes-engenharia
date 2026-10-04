@@ -11,6 +11,7 @@ dispara a revisão em segundo plano e volta para a tela.
 import logging
 from contextlib import closing
 from typing import Annotated
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -48,14 +49,14 @@ def _nomes(con: store.Conexao, versoes: list[int | None]) -> dict[tuple[str, str
     return nomes
 
 
-def _diff(con: store.Conexao, g: Geracao, vigente: int | None, limiares) -> dict[str, object]:
+def _diff(con: store.Conexao, g: Geracao, ativadas: list[int], limiares) -> dict[str, object]:
     nomes = _nomes(con, [g.versao_base, g.versao_resultante])
     textos = store_revisao.textos(con, montagem.ids_de_evidencia(g.operacoes))
     resultante = g.versao_resultante
     # os marcadores «1 · 2 · 3»: o mapa na versão anterior, esta tela, o mapa na nova
     marcadores = None
     if g.versao_base is not None and resultante is not None:
-        ativada = vigente is not None and resultante <= vigente
+        ativada = resultante in ativadas
         marcadores = {
             "v1": f"/?versao={g.versao_base}",
             "diff": f"/taxonomia?geracao={g.id}",
@@ -73,7 +74,7 @@ def _diff(con: store.Conexao, g: Geracao, vigente: int | None, limiares) -> dict
         "frentes_no_sinal": g.sinal.frentes if g.sinal else 0,
         "operacoes": montagem.operacoes(g.operacoes, nomes, textos),
         "marcadores": marcadores,
-        "ativada": resultante is not None and vigente is not None and resultante <= vigente,
+        "ativada": resultante is not None and resultante in ativadas,
     }
 
 
@@ -84,7 +85,8 @@ def _contexto(
     versão ainda não foi ativada)."""
     limiares = request.app.state.config.limiares
     vigente = store_versao.versao_vigente(con)
-    if versao is not None and (vigente is None or versao > vigente):
+    ativadas = store_versao.ativadas(con)
+    if versao is not None and versao not in ativadas:
         raise HTTPException(404, detail=f"a versão {versao} ainda não foi ativada")
     lida = versao if versao is not None else vigente
     gravada = None if lida is None else store_versao.ler(con, lida)
@@ -97,9 +99,9 @@ def _contexto(
     else:
         escolhida = next((g for g in todas if g.tipo is TipoGeracao.REVISAO), None)
     return {
-        "diff": _diff(con, escolhida, vigente, limiares) if escolhida else None,
+        "diff": _diff(con, escolhida, ativadas, limiares) if escolhida else None,
         "historico": montagem.historico(todas, escolhida.id if escolhida else None),
-        "versoes": [n for n in store_versao.numeros(con) if vigente is not None and n <= vigente],
+        "versoes": ativadas,
         "vigente": vigente,
         "lida": lida,
         "documento": gravada.documento if gravada else None,
@@ -161,11 +163,23 @@ async def _revisar_em_segundo_plano(app, llm, em) -> None:
         app.state.revisao_em_curso = False
 
 
+def _mesma_origem(request: Request) -> None:
+    """Recusa (403) o POST que o navegador diz vir de outra origem (CSRF): sem login, a
+    defesa é conferir `Sec-Fetch-Site` e o `Origin` contra o `Host`."""
+    if request.headers.get("sec-fetch-site", "same-origin") not in {"same-origin", "none"}:
+        raise HTTPException(status_code=403, detail="origem não permitida")
+    origem = request.headers.get("origin")
+    if origem is not None and urlsplit(origem).netloc != request.headers.get("host"):
+        raise HTTPException(status_code=403, detail="origem não permitida")
+
+
 @roteador.post("/taxonomia/revisar", response_model=None)
-def revisar_agora(request: Request, segundo_plano: BackgroundTasks) -> Response:
+async def revisar_agora(request: Request, segundo_plano: BackgroundTasks) -> Response:
     """Dispara a revisão (gatilho `botao`) em segundo plano e volta para a tela. Sem chave da
     LLM, sem versão vigente, sem frente na janela ou com uma revisão já rodando, responde 409
     com o motivo e não cria geração."""
+    # `async` e sem `await`: conferir e marcar `revisao_em_curso` não se intercala com outro POST
+    _mesma_origem(request)
     cfg = request.app.state.config
     try:
         con = store.abrir_existente(cfg.banco)

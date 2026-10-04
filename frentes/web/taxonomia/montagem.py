@@ -120,8 +120,14 @@ def _detalhes(op: Operacao, nomes: Nomes) -> list[str]:
             saida.append("O tema estava concentrado num tipo só: virou subtipo dele.")
     elif op.tipo is TipoOperacao.DIVIDIR_TIPO:
         partes = p.get("partes")
+        novos = []
         if isinstance(partes, Sequence) and not isinstance(partes, str):
-            saida += [_texto(x.get("nome")) for x in partes if isinstance(x, Mapping)]
+            novos = [_texto(x.get("nome")) for x in partes if isinstance(x, Mapping)]
+        original = ", ".join(_nomes_dos_tipos(nomes, op.chaves))
+        saida.append(f"{original} → {' e '.join(novos)}")
+    elif op.tipo is TipoOperacao.JUNTAR_TIPOS:
+        juntados = " e ".join(_nomes_dos_tipos(nomes, op.chaves))
+        saida.append(f"{juntados} → {nome}")
     elif op.chaves and op.tipo in (TipoOperacao.REMOVER, TipoOperacao.REESCREVER_DESCRICAO):
         saida.append(nome_de(nomes, op.dimensao, op.chaves[0]) or nome)
     elif nome:
@@ -210,6 +216,7 @@ class ItemDoHistorico:
     titulo: str
     quando: str
     gatilho: str | None
+    parte_da: int | None  # a versão de que a revisão partiu
     situacao: str
     aberta: bool  # é a geração que a tela mostra
 
@@ -221,6 +228,7 @@ def historico(geracoes: Sequence[Geracao], aberta: int | None) -> list[ItemDoHis
             titulo=titulo_da_geracao(g),
             quando=data(g.disparada_em),
             gatilho=GATILHO[g.gatilho] if g.gatilho else None,
+            parte_da=g.versao_base,
             situacao=situacao(g),
             aberta=g.id == aberta,
         )

@@ -139,13 +139,14 @@
     <h2 id="t-historico">Histórico</h2>
     {% if historico %}
     <table class="tabela">
-      <thead><tr><th scope="col">Quando</th><th scope="col">O quê</th><th scope="col">Gatilho</th><th scope="col">Resultado</th></tr></thead>
+      <thead><tr><th scope="col">Quando</th><th scope="col">O quê</th><th scope="col">Gatilho</th><th scope="col">Partiu da</th><th scope="col">Resultado</th></tr></thead>
       <tbody>
         {% for h in historico %}
         <tr{% if h.aberta %} aria-current="true"{% endif %}>
           <td>{{ h.quando }}</td>
           <td><a href="/taxonomia?geracao={{ h.id }}{% if lida and lida != vigente %}&amp;versao={{ lida }}{% endif %}">{{ h.titulo }}</a></td>
           <td>{{ h.gatilho or "" }}</td>
+          <td>{% if h.parte_da %}v{{ h.parte_da }}{% endif %}</td>
           <td>{{ h.situacao }}</td>
         </tr>
         {% endfor %}

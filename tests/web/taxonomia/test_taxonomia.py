@@ -393,3 +393,120 @@ def test_historico_ids_da_mais_recente_para_a_mais_antiga(tmp_path: Path) -> Non
         _revisar(con, LlmDaRevisao(resposta()))
         _revisar(con, LlmDaRevisao(resposta()))
         assert historico.ids(con) == [2, 1]
+
+
+# --------------------------------------------------------------------------- ajustes da auditoria
+
+
+def _v3_ativada_pulando_a_v2(caminho: Path) -> None:
+    with closing(store.abrir(caminho)) as con:
+        con.execute(
+            "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
+            " SELECT 3, documento, modelo_jev, criada_em, '2026-10-03T14:00:00Z'"
+            " FROM versao_taxonomia WHERE numero = 1"
+        )
+        con.commit()
+
+
+def test_versao_pulada_nao_e_ativada_mesmo_abaixo_da_vigente(com_versao_nova: Path) -> None:
+    _v3_ativada_pulando_a_v2(com_versao_nova)
+    cliente = _cliente(com_versao_nova)
+
+    html = cliente.get("/taxonomia").text
+
+    assert re.findall(r'<option value="(\d+)"', html) == ["1", "3"]  # a v2 não está
+    assert cliente.get("/taxonomia?versao=2").status_code == 404
+    assert cliente.get("/taxonomia?versao=3").status_code == 200
+    assert 'href="/?versao=2"' not in html  # o marcador «3» não leva a um mapa que dá 404
+
+
+def test_cross_site_no_botao_e_403_e_nao_cria_geracao(tmp_path: Path) -> None:
+    caminho = _banco(tmp_path)
+    cliente = _cliente(caminho)
+    cliente.app.state.revisao_llm = LlmDaRevisao(resposta())
+
+    de_fora = cliente.post("/taxonomia/revisar", headers={"Sec-Fetch-Site": "cross-site"})
+    origem_alheia = cliente.post("/taxonomia/revisar", headers={"Origin": "http://outro.exemplo"})
+
+    assert de_fora.status_code == 403 and origem_alheia.status_code == 403
+    assert _geracoes(caminho) == 0
+    assert not getattr(cliente.app.state, "revisao_em_curso", False)
+
+
+def test_mesma_origem_passa_pela_conferencia(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(rotas, "agora", lambda: AGORA)
+    cliente = _cliente(_banco(tmp_path))
+    cliente.app.state.revisao_llm = LlmDaRevisao(resposta())
+
+    resposta_http = cliente.post(
+        "/taxonomia/revisar",
+        headers={"Origin": "http://testserver", "Sec-Fetch-Site": "same-origin"},
+    )
+
+    assert resposta_http.status_code == 303
+
+
+def test_dois_posts_simultaneos_disparam_uma_revisao_so(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import httpx
+
+    monkeypatch.setattr(rotas, "agora", lambda: AGORA)
+    caminho = _banco(tmp_path)
+
+    class Lenta(LlmDaRevisao):
+        async def completar(self, instrucao, entrada):
+            await asyncio.sleep(0.3)  # a revisão ainda roda quando o segundo POST chega
+            return await super().completar(instrucao, entrada)
+
+    llm = Lenta(resposta(resumo="Nada novo."))
+    app = criar_app(config.carregar({"FRENTES_DB": str(caminho)}))
+    app.state.revisao_llm = llm
+
+    async def disparar() -> list[int]:
+        transporte = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transporte, base_url="http://testserver") as c:
+            disparos = [c.post("/taxonomia/revisar") for _ in range(2)]
+            respostas = await asyncio.gather(*disparos)
+        return sorted(r.status_code for r in respostas)
+
+    assert asyncio.run(disparar()) == [303, 409]
+    assert len(llm.revisoes) == 1 and _geracoes(caminho) == 1
+
+
+def test_o_historico_diz_de_que_versao_cada_revisao_partiu(com_versao_nova: Path) -> None:
+    html = _cliente(com_versao_nova).get("/taxonomia").text
+    historico_html = html.split('id="t-historico"')[1]
+
+    assert "Partiu da" in historico_html
+    assert re.search(r"<td>v1</td>", historico_html)
+
+
+def test_o_diff_de_dividir_e_juntar_diz_quais_tipos() -> None:
+    from frentes.contratos import Dimensao, Operacao, TipoOperacao
+    from frentes.web.taxonomia import montagem
+
+    nomes = {("tipo", "t1"): "Incidente", ("tipo", "t2"): "Falha", ("tipo", "t3"): "Pedido"}
+    dividir = Operacao(
+        TipoOperacao.DIVIDIR_TIPO,
+        Dimensao.TIPO,
+        ("t1",),
+        {"partes": [{"chave": "n1", "nome": "Queda"}, {"chave": "n2", "nome": "Lentidão"}]},
+        ("f1",) * 5,
+        True,
+    )
+    juntar = Operacao(
+        TipoOperacao.JUNTAR_TIPOS,
+        Dimensao.TIPO,
+        ("t2", "t3"),
+        {"chave": "n3", "nome": "Atendimento"},
+        ("f1",) * 5,
+        True,
+    )
+
+    dividida, juntada = montagem.operacoes([dividir, juntar], nomes, {})
+
+    assert dividida.detalhes[0] == "Incidente → Queda e Lentidão"
+    assert juntada.detalhes[0] == "Falha e Pedido → Atendimento"
