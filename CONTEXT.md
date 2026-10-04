@@ -29,6 +29,10 @@ _Avoid_: edição, correção, nova frente
 As cerca de 20 frentes sobre a mesma história que um script manda pelo webhook, de uma vez, no ato ao vivo da demo. Ficam fora da seed e do snapshot, e cada envio leva identificadores novos para não ser descartado como reenvio.
 _Avoid_: carga, lote, teste de carga
 
+**Relato cruzado**:
+Relato em que o emissor é de um time e o objeto de que a frente fala é de outro. A área é a do dono do objeto, não a de quem relata. O caso difícil é o relato que cita dois objetos, o de quem sofre e o que falha: vale o que falha.
+_Avoid_: relato de terceiro, frente de outra área
+
 **Reativa**:
 Frente sobre algo que já quebrou ou está doendo.
 
