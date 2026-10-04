@@ -273,6 +273,23 @@ def test_tempo_limite_vem_da_configuracao() -> None:
     assert pedidos[0].extensions["timeout"]["read"] == 12.5
 
 
+def test_tempo_limite_proprio_vale_no_lugar_do_da_configuracao() -> None:
+    pedidos: list[httpx.Request] = []
+
+    def tratar(pedido: httpx.Request) -> httpx.Response:
+        pedidos.append(pedido)
+        return ok()
+
+    cliente = ClienteOpenRouter(
+        CHAVE, OPERACAO, tempo_limite_s=180.0, transporte=httpx.MockTransport(tratar)
+    )
+
+    completar(cliente)
+
+    assert pedidos[0].extensions["timeout"]["read"] == 180.0
+    assert OPERACAO.tempo_limite_llm_s != 180.0
+
+
 def test_tentativas_e_espera_inicial_vem_da_configuracao() -> None:
     cliente, pedidos, esperas = montar(
         [httpx.Response(503)] * 4, tentativas=4, espera_inicial_s=0.5

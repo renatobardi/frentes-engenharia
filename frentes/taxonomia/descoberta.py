@@ -77,6 +77,10 @@ class Descoberta:
     versao: VersaoTaxonomia | None
     chamadas: int
     uso: Uso
+    # a lista de problemas: candidatos, aprovados na peneira e os que entraram na versão 1
+    candidatos: int = 0
+    aprovados: int = 0
+    problemas: int = 0
 
     @property
     def motivo(self) -> str | None:
@@ -307,11 +311,12 @@ async def descobrir(
     )
     registro = _Registro(llm)
     versao = None
+    lista = problemas_.ListaGerada([], 0, 0)
     try:
         proposta, evidencias = await _gerar(registro, frentes, organograma, tamanho_do_lote)
         # A lista de problemas lê os mesmos lotes (e a regra da v1 pede 2 ou mais deles).
-        gerados = await problemas_.gerar(registro, lotes(frentes, tamanho_do_lote))
-        problemas = problemas_.valores_da_v1(problemas_.regra_v1(gerados))
+        lista = await problemas_.gerar(registro, lotes(frentes, tamanho_do_lote))
+        problemas = problemas_.valores_da_v1(problemas_.regra_v1(lista.problemas))
         documento = _documento(proposta, organograma, problemas)
         versao = gravar(con, documento, modelo_jev, geracao_id=geracao_id)
     except (Recusada, problemas_.ListaRecusada, ErroLlm, TaxonomiaInvalida) as erro:
@@ -332,7 +337,15 @@ async def descobrir(
         )
     geracao = repo.ler(con, geracao_id)
     assert geracao is not None
-    return Descoberta(geracao, versao, registro.chamadas, registro.uso)
+    return Descoberta(
+        geracao,
+        versao,
+        registro.chamadas,
+        registro.uso,
+        lista.candidatos,
+        lista.aprovados,
+        len(versao.documento.problemas) if versao else 0,
+    )
 
 
 __all__ = ["Descoberta", "DescobertaJaFeita", "Recusada", "SemFrentes", "descobrir"]

@@ -370,6 +370,7 @@ def test_a_versao_1_traz_a_lista_de_problemas(con) -> None:
 
     assert feito.versao is not None
     assert feito.versao.documento.problemas == (ValorDoDocumento("gravame", "Gravame", "d"),)
+    assert (feito.candidatos, feito.aprovados, feito.problemas) == (2, 2, 1)
     # 2 lotes + consolidação da taxonomia, 2 candidatos, 2 peneiras, 1 junção
     assert len(llm.chamadas) == 3 + 2 + 2 + 1 == feito.chamadas
     linhas = con.execute(

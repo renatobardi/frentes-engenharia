@@ -16,7 +16,7 @@ Spec: docs/spec/05-problema-e-recorrencia.md, "Como a lista sai". O módulo só 
 """
 
 import asyncio
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Coroutine, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -31,8 +31,8 @@ from frentes.taxonomia.validador import MAX_PROBLEMAS, Violacao
 MIN_LOTES_V1 = 2
 MIN_EVIDENCIAS_V1 = 3
 MIN_EVIDENCIAS_REVISAO = 5
+MIN_EVIDENCIAS_NA_PENEIRA = 2  # a peneira compara frentes: uma só não prova nada
 CORRECOES = 2  # a resposta e mais duas correções: a terceira inválida encerra
-CONCORRENCIA = 8  # chamadas da peneira ao mesmo tempo
 
 
 class _Llm(Protocol):
@@ -66,6 +66,15 @@ class ProblemaGerado:
     descricao: str
     evidencias: tuple[str, ...]  # ids das frentes, sem repetir
     lotes: frozenset[int]
+
+
+@dataclass(frozen=True, slots=True)
+class ListaGerada:
+    """A saída de `gerar`, com as contagens que a CLI mostra."""
+
+    problemas: list[ProblemaGerado]
+    candidatos: int
+    aprovados: int  # os que passaram na peneira
 
 
 # --------------------------------------------------------------------------- pedir e ler
@@ -160,7 +169,10 @@ def _ler_candidatos(
                     )
                 )
                 continue
-            ids = tuple(dict.fromkeys(grupo[n - 1].id for n in numeros))
+            # só as 8 primeiras contam: são as que a peneira lê
+            ids = tuple(dict.fromkeys(grupo[n - 1].id for n in numeros))[
+                : prompts.MAX_EVIDENCIAS_NA_PENEIRA
+            ]
             saida.append(Candidato(nome, descricao, ids, lote))
         return saida, violacoes
 
@@ -189,17 +201,17 @@ async def _peneirar(
     llm: _Llm,
     candidato: Candidato,
     textos: Mapping[str, TextoDaFrente],
-    limite: asyncio.Semaphore,
 ) -> bool:
-    lidas = [textos[i] for i in candidato.evidencias][: prompts.MAX_EVIDENCIAS_NA_PENEIRA]
+    lidas = [textos[i] for i in candidato.evidencias]
+    if len(lidas) < MIN_EVIDENCIAS_NA_PENEIRA:
+        return False  # com uma frente só, "todas citam o mesmo objeto" é verdade por construção
     pedido = prompts.peneira(
         candidato.nome, candidato.descricao, [(f.origem, f.texto) for f in lidas]
     )
-    async with limite:
-        try:
-            resposta = await llm.completar(*pedido)
-        except ErroLlm:
-            return False  # a chamada que falha não aprova
+    try:
+        resposta = await llm.completar(*pedido)
+    except ErroLlm:
+        return False  # a chamada que falha não aprova
     return _passou(resposta.conteudo, len(lidas))
 
 
@@ -279,13 +291,22 @@ def _juntar(
 # --------------------------------------------------------------------------- a geração
 
 
+async def _reunir[T](coros: Iterable[Coroutine[Any, Any, T]]) -> list[T]:
+    """Espera todas terminarem e só então levanta a primeira falha: uma que falha não deixa as
+    outras chamando a LLM em segundo plano."""
+    resultados = await asyncio.gather(*coros, return_exceptions=True)
+    for resultado in resultados:
+        if isinstance(resultado, BaseException):
+            raise resultado
+    return [r for r in resultados if not isinstance(r, BaseException)]
+
+
 async def gerar(
     llm: _Llm,
     grupos: Sequence[Sequence[TextoDaFrente]],
     *,
     vigentes: Sequence[ValorDoDocumento] = (),
-    concorrencia: int = CONCORRENCIA,
-) -> list[ProblemaGerado]:
+) -> ListaGerada:
     """Candidatos, peneira e consolidação sobre os lotes. Não aplica a regra de contagem
     (`regra_v1` ou `regra_revisao`). `ListaRecusada` e `ErroLlm` dos candidatos e da
     consolidação sobem; a peneira que falha só reprova o candidato."""
@@ -296,21 +317,20 @@ async def gerar(
             llm, f"candidatos do lote {n}", prompts.candidatos(amostra), _ler_candidatos(grupo, n)
         )
 
-    por_lote = await asyncio.gather(*(do_lote(n, g) for n, g in enumerate(grupos, 1)))
+    por_lote = await _reunir(do_lote(n, g) for n, g in enumerate(grupos, 1))
     candidatos = [c for do_lote_ in por_lote for c in do_lote_]
     textos = {f.id: f for grupo in grupos for f in grupo}
 
-    limite = asyncio.Semaphore(concorrencia)
-    veredictos = await asyncio.gather(*(_peneirar(llm, c, textos, limite) for c in candidatos))
+    veredictos = await _reunir(_peneirar(llm, c, textos) for c in candidatos)
     aprovados = [c for c, passou in zip(candidatos, veredictos, strict=True) if passou]
     if not aprovados:
-        return []
+        return ListaGerada([], len(candidatos), 0)
 
     pedido = prompts.consolidacao(
         [(c.nome, c.descricao, [c.lote]) for c in aprovados], [v.nome for v in vigentes]
     )
     grupos_ = await _pedir(llm, "consolidação", pedido, _ler_consolidacao(len(aprovados)))
-    return _juntar(aprovados, grupos_)
+    return ListaGerada(_juntar(aprovados, grupos_), len(candidatos), len(aprovados))
 
 
 # --------------------------------------------------------------------------- a regra em código
