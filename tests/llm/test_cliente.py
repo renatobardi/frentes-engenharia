@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import json
 from collections.abc import Callable
 
@@ -64,10 +65,39 @@ def test_sucesso_devolve_json_modelo_e_uso() -> None:
     assert esperas == []
 
 
-def test_cliente_cumpre_o_contrato() -> None:
-    cliente, _, _ = montar([ok()])
-    contrato: ClienteLlm = cliente
-    assert contrato is cliente
+def test_completar_tem_a_assinatura_do_contrato() -> None:
+    assert inspect.signature(ClienteOpenRouter.completar) == inspect.signature(ClienteLlm.completar)
+    assert inspect.iscoroutinefunction(ClienteOpenRouter.completar)
+
+
+@pytest.mark.parametrize(
+    "uso", [None, "muito", {}, {"prompt_tokens": 1}, {"prompt_tokens": "x", "completion_tokens": 2}]
+)
+def test_uso_fora_do_formato_levanta_erro_llm_sem_repetir(uso: object) -> None:
+    resposta = httpx.Response(
+        200, json={"model": "m", "choices": [{"message": {"content": "{}"}}], "usage": uso}
+    )
+    cliente, pedidos, _ = montar([resposta, ok()])
+
+    with pytest.raises(ErroLlm, match="uso") as erro:
+        completar(cliente)
+
+    assert not isinstance(erro.value, ErroLlmEsgotado)
+    assert len(pedidos) == 1
+
+
+def test_o_mesmo_cliente_serve_a_loops_diferentes() -> None:
+    async def lenta(pedido: httpx.Request) -> httpx.Response:
+        await asyncio.sleep(0.001)
+        return ok()
+
+    cliente = ClienteOpenRouter(CHAVE, transporte=httpx.MockTransport(lenta))
+
+    async def varias() -> None:
+        await asyncio.gather(*(cliente.completar("i", "e") for _ in range(12)))
+
+    asyncio.run(varias())
+    asyncio.run(varias())
 
 
 def test_pedido_leva_modelo_sem_raciocinio_tempo_limite_e_chave() -> None:

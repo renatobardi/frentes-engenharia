@@ -7,6 +7,7 @@ ela só vai no cabeçalho `Authorization` e nunca em mensagem de erro.
 import asyncio
 import json
 import time
+import weakref
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
@@ -65,22 +66,16 @@ class ClienteOpenRouter:
         *,
         modelo: str = MODELO_PADRAO,
         raciocinio: bool = False,
-        url: str = URL,
-        tempo_limite: float = TEMPO_LIMITE_S,
-        tentativas: int = TENTATIVAS,
-        espera_base: float = ESPERA_BASE_S,
-        paralelismo: int = PARALELISMO,
         transporte: httpx.AsyncBaseTransport | None = None,
         dormir: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
         self._chave = (chave or "").strip() or None
         self._modelo = modelo
         self._raciocinio = raciocinio
-        self._url = url
-        self._tempo_limite = tempo_limite
-        self._tentativas = tentativas
-        self._espera_base = espera_base
-        self._semaforo = asyncio.Semaphore(paralelismo)
+        # Um semáforo por loop de eventos: o semáforo prende ao loop da primeira espera.
+        self._semaforos: weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Semaphore] = (
+            weakref.WeakKeyDictionary()
+        )
         self._transporte = transporte
         self._dormir = dormir
 
@@ -102,19 +97,21 @@ class ClienteOpenRouter:
         }
         cabecalhos = {"Authorization": f"Bearer {self._chave}"}
         motivo = ""
-        async with self._semaforo:
+        loop = asyncio.get_running_loop()
+        semaforo = self._semaforos.setdefault(loop, asyncio.Semaphore(PARALELISMO))
+        async with semaforo:
             async with httpx.AsyncClient(
-                transport=self._transporte, timeout=self._tempo_limite
+                transport=self._transporte, timeout=TEMPO_LIMITE_S
             ) as http:
-                for tentativa in range(self._tentativas):
+                for tentativa in range(TENTATIVAS):
                     if tentativa:
-                        await self._dormir(self._espera_base * 2 ** (tentativa - 1))
+                        await self._dormir(ESPERA_BASE_S * 2 ** (tentativa - 1))
                     inicio = time.monotonic()
                     try:
                         return await self._uma_vez(http, corpo, cabecalhos, inicio)
                     except _Retentavel as erro:
                         motivo = str(erro)
-        raise ErroLlmEsgotado(f"sem resposta válida em {self._tentativas} tentativas: {motivo}")
+        raise ErroLlmEsgotado(f"sem resposta válida em {TENTATIVAS} tentativas: {motivo}")
 
     async def _uma_vez(
         self,
@@ -124,7 +121,7 @@ class ClienteOpenRouter:
         inicio: float,
     ) -> RespostaLlm:
         try:
-            resposta = await http.post(self._url, json=corpo, headers=cabecalhos)
+            resposta = await http.post(URL, json=corpo, headers=cabecalhos)
         except httpx.TransportError as erro:
             raise _Retentavel(f"falha de rede ({type(erro).__name__})") from None
         status = resposta.status_code
@@ -141,13 +138,18 @@ class ClienteOpenRouter:
         if not isinstance(texto, str):
             raise _Retentavel("resposta sem texto")
         conteudo = _extrair_json(texto)
-        uso = dados.get("usage") or {}
+        uso = dados.get("usage")
+        try:
+            tokens_entrada = int(uso["prompt_tokens"])
+            tokens_saida = int(uso["completion_tokens"])
+        except (KeyError, TypeError, ValueError):
+            raise ErroLlm("o OpenRouter devolveu o uso fora do formato") from None
         return RespostaLlm(
             modelo=str(dados.get("model") or self._modelo),
             conteudo=conteudo,
             uso=Uso(
-                tokens_entrada=int(uso.get("prompt_tokens") or 0),
-                tokens_saida=int(uso.get("completion_tokens") or 0),
+                tokens_entrada=tokens_entrada,
+                tokens_saida=tokens_saida,
                 latencia_ms=round((time.monotonic() - inicio) * 1000),
             ),
         )
