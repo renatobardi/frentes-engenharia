@@ -1,5 +1,5 @@
 {# O painel da célula (spec 10). O texto do porquê e das sugestões vem da LLM: nunca `|safe`. #}
-<aside class="painel" aria-label="Painel da célula"
+<aside class="painel" id="painel" aria-label="Painel da célula"{% if oob %} hx-swap-oob="true"{% endif %}
        hx-get="{{ painel.fechar }}" hx-trigger="keyup[key=='Escape'] from:body"
        hx-target="#mapa" hx-swap="outerHTML" hx-push-url="true">
   <header class="painel-cabecalho">
