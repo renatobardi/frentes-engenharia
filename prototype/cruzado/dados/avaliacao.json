@@ -1,0 +1,849 @@
+{
+ "v0": {
+  "jev": {
+   "frentes": 348,
+   "erros": 0,
+   "tok_medio": 4641,
+   "custo_usd": 0.0678,
+   "modelo": "jev-1.13.0",
+   "fallback_llm": 90,
+   "custo_llm_usd": 0.0051
+  },
+  "cruzado": {
+   "frentes": 232,
+   "jev_area_certa": "173/232",
+   "jev_time_certo": "162/232",
+   "jev_erro_na_area_de_quem_relata": "35/59",
+   "jev_conf_area_media": 0.85,
+   "jev_area_abaixo_do_limiar": 15,
+   "estados": {
+    "classificada (Jev)": 174,
+    "classificada via LLM": 49,
+    "incerta": 7,
+    "incerta: texto vago": 1,
+    "não classificada": 1
+   },
+   "final_area_certa_das_que_pintam": "169/223",
+   "final_pinta_celula_errada": "54/232",
+   "final_erro_na_area_de_quem_relata": "31/54",
+   "via_llm_area": "5/16",
+   "jev_area_certa_relator_de_outra_area": "130/185",
+   "jev_area_certa_dono_plataforma": "19/30",
+   "jev_area_certa_reativa": "125/172",
+   "jev_area_certa_proativa": "48/60"
+  },
+  "cruzado_listado": {
+   "frentes": 140,
+   "jev_area_certa": "130/140",
+   "jev_time_certo": "127/140",
+   "jev_erro_na_area_de_quem_relata": "10/10",
+   "jev_conf_area_media": 0.93,
+   "jev_area_abaixo_do_limiar": 1,
+   "estados": {
+    "classificada (Jev)": 109,
+    "classificada via LLM": 26,
+    "incerta": 4,
+    "incerta: texto vago": 1
+   },
+   "final_area_certa_das_que_pintam": "125/135",
+   "final_pinta_celula_errada": "10/140",
+   "final_erro_na_area_de_quem_relata": "10/10",
+   "via_llm_area": "0/1"
+  },
+  "cruzado_de_fora": {
+   "frentes": 92,
+   "jev_area_certa": "43/92",
+   "jev_time_certo": "35/92",
+   "jev_erro_na_area_de_quem_relata": "25/49",
+   "jev_conf_area_media": 0.73,
+   "jev_area_abaixo_do_limiar": 14,
+   "estados": {
+    "classificada (Jev)": 65,
+    "classificada via LLM": 23,
+    "incerta": 3,
+    "não classificada": 1
+   },
+   "final_area_certa_das_que_pintam": "44/88",
+   "final_pinta_celula_errada": "44/92",
+   "final_erro_na_area_de_quem_relata": "21/44",
+   "via_llm_area": "5/15"
+  },
+  "so_dono": {
+   "frentes": 116,
+   "jev_area_certa": "97/116",
+   "jev_time_certo": "94/116",
+   "jev_erro_na_area_de_quem_relata": "1/19",
+   "jev_conf_area_media": 0.89,
+   "jev_area_abaixo_do_limiar": 7,
+   "estados": {
+    "classificada (Jev)": 87,
+    "classificada via LLM": 24,
+    "incerta": 3,
+    "incerta: texto vago": 1,
+    "não classificada": 1
+   },
+   "final_area_certa_das_que_pintam": "95/111",
+   "final_pinta_celula_errada": "16/116",
+   "final_erro_na_area_de_quem_relata": "1/16",
+   "via_llm_area": "3/9",
+   "jev_area_certa_relator_de_outra_area": "75/90",
+   "jev_area_certa_dono_plataforma": "13/15",
+   "jev_area_certa_reativa": "71/86",
+   "jev_area_certa_proativa": "26/30"
+  },
+  "so_dono_listado": {
+   "frentes": 70,
+   "jev_area_certa": "70/70",
+   "jev_time_certo": "70/70",
+   "jev_erro_na_area_de_quem_relata": "0/0",
+   "jev_conf_area_media": 0.99,
+   "jev_area_abaixo_do_limiar": 0,
+   "estados": {
+    "classificada (Jev)": 56,
+    "classificada via LLM": 12,
+    "incerta": 1,
+    "incerta: texto vago": 1
+   },
+   "final_area_certa_das_que_pintam": "68/68",
+   "final_pinta_celula_errada": "0/70",
+   "final_erro_na_area_de_quem_relata": "0/0",
+   "via_llm_area": "0/0"
+  },
+  "so_dono_de_fora": {
+   "frentes": 46,
+   "jev_area_certa": "27/46",
+   "jev_time_certo": "24/46",
+   "jev_erro_na_area_de_quem_relata": "1/19",
+   "jev_conf_area_media": 0.75,
+   "jev_area_abaixo_do_limiar": 7,
+   "estados": {
+    "classificada (Jev)": 31,
+    "classificada via LLM": 12,
+    "incerta": 2,
+    "não classificada": 1
+   },
+   "final_area_certa_das_que_pintam": "27/43",
+   "final_pinta_celula_errada": "16/46",
+   "final_erro_na_area_de_quem_relata": "1/16",
+   "via_llm_area": "3/9"
+  },
+  "dois": {
+   "frentes": 116,
+   "jev_area_certa": "76/116",
+   "jev_time_certo": "68/116",
+   "jev_erro_na_area_de_quem_relata": "34/40",
+   "jev_conf_area_media": 0.81,
+   "jev_area_abaixo_do_limiar": 8,
+   "estados": {
+    "classificada (Jev)": 87,
+    "classificada via LLM": 25,
+    "incerta": 4
+   },
+   "final_area_certa_das_que_pintam": "74/112",
+   "final_pinta_celula_errada": "38/116",
+   "final_erro_na_area_de_quem_relata": "30/38",
+   "via_llm_area": "2/7",
+   "jev_area_certa_relator_de_outra_area": "55/95",
+   "jev_area_certa_dono_plataforma": "6/15",
+   "jev_area_certa_reativa": "54/86",
+   "jev_area_certa_proativa": "22/30"
+  },
+  "dois_listado": {
+   "frentes": 70,
+   "jev_area_certa": "60/70",
+   "jev_time_certo": "57/70",
+   "jev_erro_na_area_de_quem_relata": "10/10",
+   "jev_conf_area_media": 0.88,
+   "jev_area_abaixo_do_limiar": 1,
+   "estados": {
+    "classificada (Jev)": 53,
+    "classificada via LLM": 14,
+    "incerta": 3
+   },
+   "final_area_certa_das_que_pintam": "57/67",
+   "final_pinta_celula_errada": "10/70",
+   "final_erro_na_area_de_quem_relata": "10/10",
+   "via_llm_area": "0/1"
+  },
+  "dois_de_fora": {
+   "frentes": 46,
+   "jev_area_certa": "16/46",
+   "jev_time_certo": "11/46",
+   "jev_erro_na_area_de_quem_relata": "24/30",
+   "jev_conf_area_media": 0.71,
+   "jev_area_abaixo_do_limiar": 7,
+   "estados": {
+    "classificada via LLM": 11,
+    "classificada (Jev)": 34,
+    "incerta": 1
+   },
+   "final_area_certa_das_que_pintam": "17/45",
+   "final_pinta_celula_errada": "28/46",
+   "final_erro_na_area_de_quem_relata": "20/28",
+   "via_llm_area": "2/6"
+  },
+  "controle": {
+   "frentes": 116,
+   "jev_area_certa": "93/116",
+   "jev_time_certo": "93/116",
+   "jev_erro_na_area_de_quem_relata": "0/23",
+   "jev_conf_area_media": 0.88,
+   "jev_area_abaixo_do_limiar": 10,
+   "estados": {
+    "classificada (Jev)": 71,
+    "classificada via LLM": 34,
+    "incerta": 10,
+    "não classificada": 1
+   },
+   "final_area_certa_das_que_pintam": "91/105",
+   "final_pinta_celula_errada": "14/116",
+   "final_erro_na_area_de_quem_relata": "0/14",
+   "via_llm_area": "8/16"
+  },
+  "controle_listado": {
+   "frentes": 70,
+   "jev_area_certa": "70/70",
+   "jev_time_certo": "70/70",
+   "jev_erro_na_area_de_quem_relata": "0/0",
+   "jev_conf_area_media": 0.99,
+   "jev_area_abaixo_do_limiar": 0,
+   "estados": {
+    "classificada (Jev)": 51,
+    "classificada via LLM": 13,
+    "incerta": 6
+   },
+   "final_area_certa_das_que_pintam": "64/64",
+   "final_pinta_celula_errada": "0/70",
+   "final_erro_na_area_de_quem_relata": "0/0",
+   "via_llm_area": "0/0"
+  },
+  "controle_de_fora": {
+   "frentes": 46,
+   "jev_area_certa": "23/46",
+   "jev_time_certo": "23/46",
+   "jev_erro_na_area_de_quem_relata": "0/23",
+   "jev_conf_area_media": 0.71,
+   "jev_area_abaixo_do_limiar": 10,
+   "estados": {
+    "classificada (Jev)": 20,
+    "classificada via LLM": 21,
+    "incerta": 4,
+    "não classificada": 1
+   },
+   "final_area_certa_das_que_pintam": "27/41",
+   "final_pinta_celula_errada": "14/46",
+   "final_erro_na_area_de_quem_relata": "0/14",
+   "via_llm_area": "8/16"
+  }
+ },
+ "v1": {
+  "jev": {
+   "frentes": 348,
+   "erros": 0,
+   "tok_medio": 4698,
+   "custo_usd": 0.0687,
+   "modelo": "jev-1.13.0",
+   "fallback_llm": 94,
+   "custo_llm_usd": 0.0037
+  },
+  "cruzado": {
+   "frentes": 232,
+   "jev_area_certa": "184/232",
+   "jev_time_certo": "175/232",
+   "jev_erro_na_area_de_quem_relata": "18/48",
+   "jev_conf_area_media": 0.87,
+   "jev_area_abaixo_do_limiar": 19,
+   "estados": {
+    "classificada (Jev)": 170,
+    "classificada via LLM": 53,
+    "incerta": 4,
+    "incerta: texto vago": 1,
+    "não classificada": 4
+   },
+   "final_area_certa_das_que_pintam": "185/223",
+   "final_pinta_celula_errada": "38/232",
+   "final_erro_na_area_de_quem_relata": "15/38",
+   "via_llm_area": "10/19",
+   "jev_area_certa_relator_de_outra_area": "141/185",
+   "jev_area_certa_dono_plataforma": "22/30",
+   "jev_area_certa_reativa": "134/172",
+   "jev_area_certa_proativa": "50/60"
+  },
+  "cruzado_listado": {
+   "frentes": 140,
+   "jev_area_certa": "136/140",
+   "jev_time_certo": "135/140",
+   "jev_erro_na_area_de_quem_relata": "4/4",
+   "jev_conf_area_media": 0.96,
+   "jev_area_abaixo_do_limiar": 1,
+   "estados": {
+    "classificada (Jev)": 111,
+    "classificada via LLM": 26,
+    "incerta: texto vago": 1,
+    "incerta": 2
+   },
+   "final_area_certa_das_que_pintam": "133/137",
+   "final_pinta_celula_errada": "4/140",
+   "final_erro_na_area_de_quem_relata": "4/4",
+   "via_llm_area": "1/1"
+  },
+  "cruzado_de_fora": {
+   "frentes": 92,
+   "jev_area_certa": "48/92",
+   "jev_time_certo": "40/92",
+   "jev_erro_na_area_de_quem_relata": "14/44",
+   "jev_conf_area_media": 0.74,
+   "jev_area_abaixo_do_limiar": 18,
+   "estados": {
+    "classificada (Jev)": 59,
+    "classificada via LLM": 27,
+    "incerta": 2,
+    "não classificada": 4
+   },
+   "final_area_certa_das_que_pintam": "52/86",
+   "final_pinta_celula_errada": "34/92",
+   "final_erro_na_area_de_quem_relata": "11/34",
+   "via_llm_area": "9/18"
+  },
+  "so_dono": {
+   "frentes": 116,
+   "jev_area_certa": "98/116",
+   "jev_time_certo": "95/116",
+   "jev_erro_na_area_de_quem_relata": "1/18",
+   "jev_conf_area_media": 0.9,
+   "jev_area_abaixo_do_limiar": 8,
+   "estados": {
+    "classificada (Jev)": 87,
+    "classificada via LLM": 24,
+    "incerta": 1,
+    "incerta: texto vago": 1,
+    "não classificada": 3
+   },
+   "final_area_certa_das_que_pintam": "97/111",
+   "final_pinta_celula_errada": "14/116",
+   "final_erro_na_area_de_quem_relata": "0/14",
+   "via_llm_area": "4/9",
+   "jev_area_certa_relator_de_outra_area": "76/90",
+   "jev_area_certa_dono_plataforma": "13/15",
+   "jev_area_certa_reativa": "72/86",
+   "jev_area_certa_proativa": "26/30"
+  },
+  "so_dono_listado": {
+   "frentes": 70,
+   "jev_area_certa": "70/70",
+   "jev_time_certo": "70/70",
+   "jev_erro_na_area_de_quem_relata": "0/0",
+   "jev_conf_area_media": 0.99,
+   "jev_area_abaixo_do_limiar": 0,
+   "estados": {
+    "classificada (Jev)": 57,
+    "classificada via LLM": 12,
+    "incerta: texto vago": 1
+   },
+   "final_area_certa_das_que_pintam": "69/69",
+   "final_pinta_celula_errada": "0/70",
+   "final_erro_na_area_de_quem_relata": "0/0",
+   "via_llm_area": "0/0"
+  },
+  "so_dono_de_fora": {
+   "frentes": 46,
+   "jev_area_certa": "28/46",
+   "jev_time_certo": "25/46",
+   "jev_erro_na_area_de_quem_relata": "1/18",
+   "jev_conf_area_media": 0.76,
+   "jev_area_abaixo_do_limiar": 8,
+   "estados": {
+    "classificada (Jev)": 30,
+    "classificada via LLM": 12,
+    "incerta": 1,
+    "não classificada": 3
+   },
+   "final_area_certa_das_que_pintam": "28/42",
+   "final_pinta_celula_errada": "14/46",
+   "final_erro_na_area_de_quem_relata": "0/14",
+   "via_llm_area": "4/9"
+  },
+  "dois": {
+   "frentes": 116,
+   "jev_area_certa": "86/116",
+   "jev_time_certo": "80/116",
+   "jev_erro_na_area_de_quem_relata": "17/30",
+   "jev_conf_area_media": 0.84,
+   "jev_area_abaixo_do_limiar": 11,
+   "estados": {
+    "classificada (Jev)": 83,
+    "classificada via LLM": 29,
+    "incerta": 3,
+    "não classificada": 1
+   },
+   "final_area_certa_das_que_pintam": "88/112",
+   "final_pinta_celula_errada": "24/116",
+   "final_erro_na_area_de_quem_relata": "15/24",
+   "via_llm_area": "6/10",
+   "jev_area_certa_relator_de_outra_area": "65/95",
+   "jev_area_certa_dono_plataforma": "9/15",
+   "jev_area_certa_reativa": "62/86",
+   "jev_area_certa_proativa": "24/30"
+  },
+  "dois_listado": {
+   "frentes": 70,
+   "jev_area_certa": "66/70",
+   "jev_time_certo": "65/70",
+   "jev_erro_na_area_de_quem_relata": "4/4",
+   "jev_conf_area_media": 0.93,
+   "jev_area_abaixo_do_limiar": 1,
+   "estados": {
+    "classificada (Jev)": 54,
+    "classificada via LLM": 14,
+    "incerta": 2
+   },
+   "final_area_certa_das_que_pintam": "64/68",
+   "final_pinta_celula_errada": "4/70",
+   "final_erro_na_area_de_quem_relata": "4/4",
+   "via_llm_area": "1/1"
+  },
+  "dois_de_fora": {
+   "frentes": 46,
+   "jev_area_certa": "20/46",
+   "jev_time_certo": "15/46",
+   "jev_erro_na_area_de_quem_relata": "13/26",
+   "jev_conf_area_media": 0.72,
+   "jev_area_abaixo_do_limiar": 10,
+   "estados": {
+    "classificada via LLM": 15,
+    "classificada (Jev)": 29,
+    "incerta": 1,
+    "não classificada": 1
+   },
+   "final_area_certa_das_que_pintam": "24/44",
+   "final_pinta_celula_errada": "20/46",
+   "final_erro_na_area_de_quem_relata": "11/20",
+   "via_llm_area": "5/9"
+  },
+  "controle": {
+   "frentes": 116,
+   "jev_area_certa": "93/116",
+   "jev_time_certo": "92/116",
+   "jev_erro_na_area_de_quem_relata": "0/23",
+   "jev_conf_area_media": 0.87,
+   "jev_area_abaixo_do_limiar": 12,
+   "estados": {
+    "classificada (Jev)": 70,
+    "classificada via LLM": 29,
+    "incerta": 10,
+    "incerta: texto vago": 1,
+    "aguardando LLM": 4,
+    "não classificada": 2
+   },
+   "final_area_certa_das_que_pintam": "87/99",
+   "final_pinta_celula_errada": "12/116",
+   "final_erro_na_area_de_quem_relata": "0/12",
+   "via_llm_area": "8/14"
+  },
+  "controle_listado": {
+   "frentes": 70,
+   "jev_area_certa": "70/70",
+   "jev_time_certo": "70/70",
+   "jev_erro_na_area_de_quem_relata": "0/0",
+   "jev_conf_area_media": 0.99,
+   "jev_area_abaixo_do_limiar": 0,
+   "estados": {
+    "classificada (Jev)": 51,
+    "classificada via LLM": 12,
+    "incerta": 6,
+    "incerta: texto vago": 1
+   },
+   "final_area_certa_das_que_pintam": "63/63",
+   "final_pinta_celula_errada": "0/70",
+   "final_erro_na_area_de_quem_relata": "0/0",
+   "via_llm_area": "0/0"
+  },
+  "controle_de_fora": {
+   "frentes": 46,
+   "jev_area_certa": "23/46",
+   "jev_time_certo": "22/46",
+   "jev_erro_na_area_de_quem_relata": "0/23",
+   "jev_conf_area_media": 0.7,
+   "jev_area_abaixo_do_limiar": 12,
+   "estados": {
+    "classificada (Jev)": 19,
+    "classificada via LLM": 17,
+    "incerta": 4,
+    "aguardando LLM": 4,
+    "não classificada": 2
+   },
+   "final_area_certa_das_que_pintam": "24/36",
+   "final_pinta_celula_errada": "12/46",
+   "final_erro_na_area_de_quem_relata": "0/12",
+   "via_llm_area": "8/14"
+  }
+ },
+ "v2": {
+  "jev": {
+   "frentes": 232,
+   "erros": 0,
+   "tok_medio": 4656,
+   "custo_usd": 0.0454,
+   "modelo": "jev-1.13.0",
+   "fallback_llm": 67,
+   "custo_llm_usd": 0.0038
+  },
+  "cruzado": {
+   "frentes": 232,
+   "jev_area_certa": "192/232",
+   "jev_time_certo": "189/232",
+   "jev_erro_na_area_de_quem_relata": "13/40",
+   "jev_conf_area_media": 0.88,
+   "jev_area_abaixo_do_limiar": 22,
+   "estados": {
+    "classificada (Jev)": 162,
+    "classificada via LLM": 61,
+    "incerta": 6,
+    "não classificada": 3
+   },
+   "final_area_certa_das_que_pintam": "192/223",
+   "final_pinta_celula_errada": "31/232",
+   "final_erro_na_area_de_quem_relata": "13/31",
+   "via_llm_area": "15/27",
+   "jev_area_certa_relator_de_outra_area": "150/185",
+   "jev_area_certa_dono_plataforma": "23/30",
+   "jev_area_certa_reativa": "141/172",
+   "jev_area_certa_proativa": "51/60"
+  },
+  "cruzado_listado": {
+   "frentes": 140,
+   "jev_area_certa": "140/140",
+   "jev_time_certo": "140/140",
+   "jev_erro_na_area_de_quem_relata": "0/0",
+   "jev_conf_area_media": 0.98,
+   "jev_area_abaixo_do_limiar": 1,
+   "estados": {
+    "classificada (Jev)": 112,
+    "incerta": 5,
+    "classificada via LLM": 23
+   },
+   "final_area_certa_das_que_pintam": "134/135",
+   "final_pinta_celula_errada": "1/140",
+   "final_erro_na_area_de_quem_relata": "1/1",
+   "via_llm_area": "0/1"
+  },
+  "cruzado_de_fora": {
+   "frentes": 92,
+   "jev_area_certa": "52/92",
+   "jev_time_certo": "49/92",
+   "jev_erro_na_area_de_quem_relata": "13/40",
+   "jev_conf_area_media": 0.73,
+   "jev_area_abaixo_do_limiar": 21,
+   "estados": {
+    "classificada (Jev)": 50,
+    "classificada via LLM": 38,
+    "incerta": 1,
+    "não classificada": 3
+   },
+   "final_area_certa_das_que_pintam": "58/88",
+   "final_pinta_celula_errada": "30/92",
+   "final_erro_na_area_de_quem_relata": "12/30",
+   "via_llm_area": "15/26"
+  },
+  "so_dono": {
+   "frentes": 116,
+   "jev_area_certa": "99/116",
+   "jev_time_certo": "98/116",
+   "jev_erro_na_area_de_quem_relata": "1/17",
+   "jev_conf_area_media": 0.91,
+   "jev_area_abaixo_do_limiar": 7,
+   "estados": {
+    "classificada (Jev)": 79,
+    "classificada via LLM": 33,
+    "incerta": 2,
+    "não classificada": 2
+   },
+   "final_area_certa_das_que_pintam": "100/112",
+   "final_pinta_celula_errada": "12/116",
+   "final_erro_na_area_de_quem_relata": "0/12",
+   "via_llm_area": "7/11",
+   "jev_area_certa_relator_de_outra_area": "78/90",
+   "jev_area_certa_dono_plataforma": "12/15",
+   "jev_area_certa_reativa": "73/86",
+   "jev_area_certa_proativa": "26/30"
+  },
+  "so_dono_listado": {
+   "frentes": 70,
+   "jev_area_certa": "70/70",
+   "jev_time_certo": "70/70",
+   "jev_erro_na_area_de_quem_relata": "0/0",
+   "jev_conf_area_media": 1.0,
+   "jev_area_abaixo_do_limiar": 0,
+   "estados": {
+    "classificada (Jev)": 56,
+    "classificada via LLM": 13,
+    "incerta": 1
+   },
+   "final_area_certa_das_que_pintam": "69/69",
+   "final_pinta_celula_errada": "0/70",
+   "final_erro_na_area_de_quem_relata": "0/0",
+   "via_llm_area": "0/0"
+  },
+  "so_dono_de_fora": {
+   "frentes": 46,
+   "jev_area_certa": "29/46",
+   "jev_time_certo": "28/46",
+   "jev_erro_na_area_de_quem_relata": "1/17",
+   "jev_conf_area_media": 0.77,
+   "jev_area_abaixo_do_limiar": 7,
+   "estados": {
+    "classificada (Jev)": 23,
+    "classificada via LLM": 20,
+    "incerta": 1,
+    "não classificada": 2
+   },
+   "final_area_certa_das_que_pintam": "31/43",
+   "final_pinta_celula_errada": "12/46",
+   "final_erro_na_area_de_quem_relata": "0/12",
+   "via_llm_area": "7/11"
+  },
+  "dois": {
+   "frentes": 116,
+   "jev_area_certa": "93/116",
+   "jev_time_certo": "91/116",
+   "jev_erro_na_area_de_quem_relata": "12/23",
+   "jev_conf_area_media": 0.85,
+   "jev_area_abaixo_do_limiar": 15,
+   "estados": {
+    "classificada (Jev)": 83,
+    "classificada via LLM": 28,
+    "incerta": 4,
+    "não classificada": 1
+   },
+   "final_area_certa_das_que_pintam": "92/111",
+   "final_pinta_celula_errada": "19/116",
+   "final_erro_na_area_de_quem_relata": "13/19",
+   "via_llm_area": "8/16",
+   "jev_area_certa_relator_de_outra_area": "72/95",
+   "jev_area_certa_dono_plataforma": "11/15",
+   "jev_area_certa_reativa": "68/86",
+   "jev_area_certa_proativa": "25/30"
+  },
+  "dois_listado": {
+   "frentes": 70,
+   "jev_area_certa": "70/70",
+   "jev_time_certo": "70/70",
+   "jev_erro_na_area_de_quem_relata": "0/0",
+   "jev_conf_area_media": 0.96,
+   "jev_area_abaixo_do_limiar": 1,
+   "estados": {
+    "classificada (Jev)": 56,
+    "incerta": 4,
+    "classificada via LLM": 10
+   },
+   "final_area_certa_das_que_pintam": "65/66",
+   "final_pinta_celula_errada": "1/70",
+   "final_erro_na_area_de_quem_relata": "1/1",
+   "via_llm_area": "0/1"
+  },
+  "dois_de_fora": {
+   "frentes": 46,
+   "jev_area_certa": "23/46",
+   "jev_time_certo": "21/46",
+   "jev_erro_na_area_de_quem_relata": "12/23",
+   "jev_conf_area_media": 0.69,
+   "jev_area_abaixo_do_limiar": 14,
+   "estados": {
+    "classificada (Jev)": 27,
+    "classificada via LLM": 18,
+    "não classificada": 1
+   },
+   "final_area_certa_das_que_pintam": "27/45",
+   "final_pinta_celula_errada": "18/46",
+   "final_erro_na_area_de_quem_relata": "12/18",
+   "via_llm_area": "8/15"
+  }
+ },
+ "v3": {
+  "jev": {
+   "frentes": 232,
+   "erros": 0,
+   "tok_medio": 4713,
+   "custo_usd": 0.0459,
+   "modelo": "jev-1.13.0",
+   "fallback_llm": 65,
+   "custo_llm_usd": 0.0024
+  },
+  "cruzado": {
+   "frentes": 232,
+   "jev_area_certa": "190/232",
+   "jev_time_certo": "188/232",
+   "jev_erro_na_area_de_quem_relata": "9/42",
+   "jev_conf_area_media": 0.89,
+   "jev_area_abaixo_do_limiar": 19,
+   "estados": {
+    "classificada (Jev)": 163,
+    "classificada via LLM": 58,
+    "aguardando LLM": 2,
+    "incerta": 8,
+    "não classificada": 1
+   },
+   "final_area_certa_das_que_pintam": "193/221",
+   "final_pinta_celula_errada": "28/232",
+   "final_erro_na_area_de_quem_relata": "10/28",
+   "via_llm_area": "15/23",
+   "jev_area_certa_relator_de_outra_area": "148/185",
+   "jev_area_certa_dono_plataforma": "23/30",
+   "jev_area_certa_reativa": "140/172",
+   "jev_area_certa_proativa": "50/60"
+  },
+  "cruzado_listado": {
+   "frentes": 140,
+   "jev_area_certa": "139/140",
+   "jev_time_certo": "139/140",
+   "jev_erro_na_area_de_quem_relata": "1/1",
+   "jev_conf_area_media": 0.99,
+   "jev_area_abaixo_do_limiar": 0,
+   "estados": {
+    "classificada (Jev)": 110,
+    "classificada via LLM": 25,
+    "aguardando LLM": 1,
+    "incerta": 4
+   },
+   "final_area_certa_das_que_pintam": "134/135",
+   "final_pinta_celula_errada": "1/140",
+   "final_erro_na_area_de_quem_relata": "1/1",
+   "via_llm_area": "0/0"
+  },
+  "cruzado_de_fora": {
+   "frentes": 92,
+   "jev_area_certa": "51/92",
+   "jev_time_certo": "49/92",
+   "jev_erro_na_area_de_quem_relata": "8/41",
+   "jev_conf_area_media": 0.73,
+   "jev_area_abaixo_do_limiar": 19,
+   "estados": {
+    "classificada (Jev)": 53,
+    "classificada via LLM": 33,
+    "incerta": 4,
+    "não classificada": 1,
+    "aguardando LLM": 1
+   },
+   "final_area_certa_das_que_pintam": "59/86",
+   "final_pinta_celula_errada": "27/92",
+   "final_erro_na_area_de_quem_relata": "9/27",
+   "via_llm_area": "15/23"
+  },
+  "so_dono": {
+   "frentes": 116,
+   "jev_area_certa": "98/116",
+   "jev_time_certo": "97/116",
+   "jev_erro_na_area_de_quem_relata": "1/18",
+   "jev_conf_area_media": 0.91,
+   "jev_area_abaixo_do_limiar": 9,
+   "estados": {
+    "classificada (Jev)": 79,
+    "classificada via LLM": 31,
+    "aguardando LLM": 1,
+    "incerta": 4,
+    "não classificada": 1
+   },
+   "final_area_certa_das_que_pintam": "99/110",
+   "final_pinta_celula_errada": "11/116",
+   "final_erro_na_area_de_quem_relata": "1/11",
+   "via_llm_area": "8/13",
+   "jev_area_certa_relator_de_outra_area": "77/90",
+   "jev_area_certa_dono_plataforma": "12/15",
+   "jev_area_certa_reativa": "72/86",
+   "jev_area_certa_proativa": "26/30"
+  },
+  "so_dono_listado": {
+   "frentes": 70,
+   "jev_area_certa": "70/70",
+   "jev_time_certo": "70/70",
+   "jev_erro_na_area_de_quem_relata": "0/0",
+   "jev_conf_area_media": 1.0,
+   "jev_area_abaixo_do_limiar": 0,
+   "estados": {
+    "classificada (Jev)": 56,
+    "aguardando LLM": 1,
+    "incerta": 1,
+    "classificada via LLM": 12
+   },
+   "final_area_certa_das_que_pintam": "68/68",
+   "final_pinta_celula_errada": "0/70",
+   "final_erro_na_area_de_quem_relata": "0/0",
+   "via_llm_area": "0/0"
+  },
+  "so_dono_de_fora": {
+   "frentes": 46,
+   "jev_area_certa": "28/46",
+   "jev_time_certo": "27/46",
+   "jev_erro_na_area_de_quem_relata": "1/18",
+   "jev_conf_area_media": 0.77,
+   "jev_area_abaixo_do_limiar": 9,
+   "estados": {
+    "classificada (Jev)": 23,
+    "classificada via LLM": 19,
+    "incerta": 3,
+    "não classificada": 1
+   },
+   "final_area_certa_das_que_pintam": "31/42",
+   "final_pinta_celula_errada": "11/46",
+   "final_erro_na_area_de_quem_relata": "1/11",
+   "via_llm_area": "8/13"
+  },
+  "dois": {
+   "frentes": 116,
+   "jev_area_certa": "92/116",
+   "jev_time_certo": "91/116",
+   "jev_erro_na_area_de_quem_relata": "8/24",
+   "jev_conf_area_media": 0.87,
+   "jev_area_abaixo_do_limiar": 10,
+   "estados": {
+    "classificada (Jev)": 84,
+    "classificada via LLM": 27,
+    "incerta": 4,
+    "aguardando LLM": 1
+   },
+   "final_area_certa_das_que_pintam": "94/111",
+   "final_pinta_celula_errada": "17/116",
+   "final_erro_na_area_de_quem_relata": "9/17",
+   "via_llm_area": "7/10",
+   "jev_area_certa_relator_de_outra_area": "71/95",
+   "jev_area_certa_dono_plataforma": "11/15",
+   "jev_area_certa_reativa": "68/86",
+   "jev_area_certa_proativa": "24/30"
+  },
+  "dois_listado": {
+   "frentes": 70,
+   "jev_area_certa": "69/70",
+   "jev_time_certo": "69/70",
+   "jev_erro_na_area_de_quem_relata": "1/1",
+   "jev_conf_area_media": 0.98,
+   "jev_area_abaixo_do_limiar": 0,
+   "estados": {
+    "classificada (Jev)": 54,
+    "classificada via LLM": 13,
+    "incerta": 3
+   },
+   "final_area_certa_das_que_pintam": "66/67",
+   "final_pinta_celula_errada": "1/70",
+   "final_erro_na_area_de_quem_relata": "1/1",
+   "via_llm_area": "0/0"
+  },
+  "dois_de_fora": {
+   "frentes": 46,
+   "jev_area_certa": "23/46",
+   "jev_time_certo": "22/46",
+   "jev_erro_na_area_de_quem_relata": "7/23",
+   "jev_conf_area_media": 0.7,
+   "jev_area_abaixo_do_limiar": 10,
+   "estados": {
+    "classificada (Jev)": 30,
+    "classificada via LLM": 14,
+    "aguardando LLM": 1,
+    "incerta": 1
+   },
+   "final_area_certa_das_que_pintam": "28/44",
+   "final_pinta_celula_errada": "16/46",
+   "final_erro_na_area_de_quem_relata": "8/16",
+   "via_llm_area": "7/10"
+  }
+ }
+}
