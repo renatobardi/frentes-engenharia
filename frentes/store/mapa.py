@@ -181,3 +181,85 @@ def soma_por_mes(
         [versao, natureza, area, tipo, *args],
     )
     return {r["mes"]: r["soma"] for r in linhas}
+
+
+def frentes_da_celula(
+    con: Conexao,
+    versao: int,
+    natureza: str,
+    score: str,
+    area: str,
+    tipo: str,
+    desde: str,
+    ate: str,
+    origens: Sequence[str] = (),
+) -> list[dict[str, object]]:
+    """As frentes da célula na visão: as que pintam e as incertas dela (sem as de texto vago).
+
+    Ordem: as que pintam primeiro, maior score primeiro, depois as incertas na mesma ordem;
+    o mais recente e o id desempatam.
+    """
+    if score not in _SCORES:
+        raise ValueError(f"score desconhecido: {score!r}")
+    janela, args = _janela(desde, ate, origens)
+    linhas = con.execute(
+        f"""
+        SELECT f.id AS frente_id, f.origem AS origem, {_DATA} AS data, c.estado AS estado,
+               c.motivo AS motivo, c.{score} AS score, c.conf_area AS conf_area,
+               c.conf_tipo AS conf_tipo, c.time_final AS time, c.subtipo_final AS subtipo,
+               c.causa_raiz AS causa_raiz, c.conf_causa AS conf_causa,
+               c.problema AS problema, c.conf_problema AS conf_problema
+        FROM classificacao c JOIN frente f ON f.id = c.frente_id
+        WHERE c.versao = ? AND c.natureza_final = ? AND c.area_final = ? AND c.tipo_final = ?
+          AND (c.estado IN {_PINTAM} OR (c.estado = 'incerta' AND c.motivo != 'texto_vago'))
+          AND {janela}
+        ORDER BY (c.estado = 'incerta'), c.{score} DESC, {_DATA} DESC, f.id
+        """,
+        [versao, natureza, area, tipo, *args],
+    )
+    return [dict(r) for r in linhas]
+
+
+def problemas_por_dia(
+    con: Conexao,
+    versao: int,
+    area: str,
+    tipo: str,
+    visao_natureza: str,
+    desde: str,
+    ate: str,
+    confianca_problema: float,
+    origens: Sequence[str] = (),
+) -> list[dict[str, object]]:
+    """Os problemas que as frentes da célula citam, em todas as células e nas duas naturezas.
+
+    Só frentes que pintam e com problema que vale (não "Nenhum destes" e confiança de
+    `confianca_problema` para cima). Uma linha por problema, natureza, célula e dia (de
+    `ocorrido_em`): `n` frentes, `soma` do score da natureza da frente. `visao_natureza` é a
+    natureza da célula, que escolhe quais problemas entram.
+    """
+    janela, args = _janela(desde, ate, origens)
+    valido = "c.problema IS NOT NULL AND c.conf_problema >= ?"
+    linhas = con.execute(
+        f"""
+        SELECT c.problema AS problema, c.natureza_final AS natureza,
+               c.area_final AS area, c.tipo_final AS tipo,
+               substr({_DATA}, 1, 10) AS dia, count(*) AS n,
+               sum(CASE c.natureza_final WHEN 'reativa' THEN c.severidade ELSE c.impacto END)
+                   AS soma
+        FROM classificacao c JOIN frente f ON f.id = c.frente_id
+        WHERE c.versao = ? AND c.estado IN {_PINTAM} AND {valido}
+          AND c.area_final IS NOT NULL AND c.tipo_final IS NOT NULL AND {janela}
+          AND c.problema IN (
+              SELECT c2.problema FROM classificacao c2 JOIN frente f ON f.id = c2.frente_id
+              WHERE c2.versao = ? AND c2.estado IN {_PINTAM} AND c2.natureza_final = ?
+                AND c2.area_final = ? AND c2.tipo_final = ?
+                AND c2.problema IS NOT NULL AND c2.conf_problema >= ? AND {janela})
+        GROUP BY c.problema, c.natureza_final, c.area_final, c.tipo_final, dia
+        """,
+        [
+            versao, confianca_problema, *args,
+            versao, visao_natureza, area, tipo, confianca_problema, *args,
+        ],
+    )  # fmt: skip
+    return [dict(r) for r in linhas]
