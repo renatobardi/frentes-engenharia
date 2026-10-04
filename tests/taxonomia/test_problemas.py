@@ -573,3 +573,14 @@ def test_a_correcao_da_lista_traz_a_resposta_antes_dos_problemas() -> None:
     )
     assert entrada.index("RESPOSTA ANTERIOR:") < entrada.index("PROBLEMAS (")
     assert "Devolver a mesma resposta é erro" in entrada
+
+
+def test_descricao_acima_do_teto_e_cortada_na_ultima_frase_sem_pedir_correcao() -> None:
+    longa = "Frentes que citam o conciliador. " + "x" * 300 + ". " + "y" * 300
+    lidos, violacoes = problemas._ler_consolidacao(1)(
+        {"problemas": [{"nome": "Conciliador", "descricao": longa, "candidatos": [1]}]}
+    )
+    assert violacoes == []
+    assert lidos[0][1] == "Frentes que citam o conciliador. " + "x" * 300 + "."
+    assert problemas._no_teto("curta") == "curta"
+    assert len(problemas._no_teto("palavra " * 100)) <= 500  # sem frase que caiba: na palavra

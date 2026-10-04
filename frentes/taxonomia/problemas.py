@@ -126,6 +126,19 @@ def _lista(dados: Any, chave: str, onde: str) -> list[Any]:
     return valor
 
 
+def _no_teto(descricao: str) -> str:
+    """A descrição cortada no teto, no fim da última frase que cabe (ou da última palavra).
+    Pedir correção de tamanho à LLM real não adiantou (#65): a consolidação com descrições de
+    511 a 631 caracteres continuou igual e recusou a descoberta inteira."""
+    if len(descricao) <= proposta_.MAX_DESCRICAO:
+        return descricao
+    corte = descricao[: proposta_.MAX_DESCRICAO]
+    fim = corte.rfind(". ")
+    if fim >= proposta_.MAX_DESCRICAO // 2:
+        return corte[: fim + 1]
+    return corte[: corte.rfind(" ")].rstrip(" ,;:") if " " in corte else corte
+
+
 def _do_nome(nome: str, descricao: str, onde: str) -> list[Violacao]:
     """O nome e a descrição de um problema: tetos de tamanho, genérico, "Nenhum destes".
     Nome de sistema é o que se quer aqui, então não há a conferência de nome de produto."""
@@ -145,7 +158,7 @@ def _ler_candidatos(
             brutos = [
                 (
                     _texto(c, "nome", "candidato"),
-                    _texto(c, "descricao", "candidato"),
+                    _no_teto(_texto(c, "descricao", "candidato")),
                     _numeros(c, "evidencias", "candidato"),
                 )
                 for c in _lista(conteudo, "candidatos", "resposta")
@@ -227,7 +240,7 @@ def _ler_consolidacao(
             brutos = [
                 (
                     _texto(p, "nome", "problema"),
-                    _texto(p, "descricao", "problema"),
+                    _no_teto(_texto(p, "descricao", "problema")),
                     _numeros(p, "candidatos", "problema"),
                 )
                 for p in _lista(conteudo, "problemas", "resposta")
