@@ -1,7 +1,7 @@
 """O que a tela do mapa mostra, montado a partir dos agregados: texto pronto, sem regra de HTML.
 
 A grade é a da versão pedida: as áreas nas linhas e os tipos nas colunas, na ordem da
-taxonomia. O calor é o índice absoluto da célula contra o maior índice da grade, em seis
+taxonomia. O calor é o índice absoluto da célula contra o maior índice da grade, em cinco
 degraus (a classe `calor-N` do CSS); célula sem índice não tem calor.
 """
 
@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from urllib.parse import urlencode
 
 from frentes.contratos import Dimensao, Origem, Periodo, Visao
-from frentes.mapa.agregados import Celula, Mapa
+from frentes.mapa.agregados import TOP, Celula, Mapa
 from frentes.store import Conexao
 from frentes.store import versao as store_versao
 
@@ -23,7 +23,14 @@ PERIODOS = (
     (Periodo.D180, "180 dias"),
     (Periodo.M12, "12 meses"),
 )
-ORIGENS = tuple((o, o.value) for o in Origem)
+_NOME_ORIGEM = {
+    Origem.RELATO: "Relato",
+    Origem.WEBHOOK: "Webhook",
+    Origem.LOG: "Log",
+    Origem.BANCO: "Banco",
+    Origem.MCP: "MCP",
+}
+ORIGENS = tuple((o, _NOME_ORIGEM[o]) for o in Origem)
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,15 +67,24 @@ class Contador:
 
 
 def formatar_indice(indice: float) -> str:
-    return f"{indice:.0f}" if indice >= 10 else f"{indice:.1f}".replace(".0", "")
+    """Inteiro a partir de 10; uma casa abaixo, com vírgula, e nunca "0" para índice positivo."""
+    if indice >= 10:
+        return f"{indice:.0f}"
+    return f"{max(indice, 0.1):.1f}".replace(".", ",").removesuffix(",0")
 
 
 def _seta(celula: Celula, com_tendencia: bool) -> tuple[str, str]:
+    """A seta e o tamanho da variação ("↑", "32%"): o sinal já está na seta."""
     if not com_tendencia or celula.variacao is None:
         return "", ""
     v = celula.variacao
-    seta = "↑" if v > LIMITE_DA_SETA else "↓" if v < -LIMITE_DA_SETA else "→"
-    return seta, f"{v:+.0%}"
+    if v > LIMITE_DA_SETA:
+        seta = "↑"
+    elif v < -LIMITE_DA_SETA:
+        seta = "↓"
+    else:
+        seta = "→"
+    return seta, f"{abs(v):.0%}"
 
 
 def _calor(indice: float, maior: float) -> int:
@@ -102,37 +118,46 @@ def _endereco(base: str, parametros: dict[str, str | list[str]]) -> str:
     return f"{base}?{urlencode(parametros, doseq=True)}"
 
 
+def _celula_na_tela(c: Celula | None, mapa: Mapa, maior: float) -> CelulaNaTela:
+    if c is None:
+        return CelulaNaTela("", 0, "", "", 0, True)
+    seta, variacao = _seta(c, mapa.com_tendencia)
+    # a célula que zerou mostra o "0" e a queda; sem queda nem incerta, fica vazia
+    tem_indice = c.indice > 0 or bool(seta)
+    return CelulaNaTela(
+        indice=formatar_indice(c.indice) if c.indice > 0 else "0" if tem_indice else "",
+        calor=_calor(c.indice, maior),
+        seta=seta,
+        variacao=variacao,
+        incertas=c.incertas,
+        vazia=not tem_indice and c.incertas == 0,
+    )
+
+
 def celulas_da_grade(
     mapa: Mapa, areas: list[Eixo], tipos: list[Eixo]
 ) -> tuple[dict[tuple[str, str], CelulaNaTela], list[Destaque]]:
-    por_chave = {(c.area, c.tipo): c for c in mapa.celulas}
+    """A grade e o Top 3, só com as células cujas chaves estão nos eixos da versão."""
     nomes_area = {a.chave: a.nome for a in areas}
     nomes_tipo = {t.chave: t.nome for t in tipos}
-    maior = max((c.indice for c in mapa.celulas), default=0.0)
-    grade: dict[tuple[str, str], CelulaNaTela] = {}
-    for area in areas:
-        for tipo in tipos:
-            c = por_chave.get((area.chave, tipo.chave))
-            if c is None:
-                grade[(area.chave, tipo.chave)] = CelulaNaTela("", 0, "", "", 0, True)
-                continue
-            seta, variacao = _seta(c, mapa.com_tendencia)
-            grade[(area.chave, tipo.chave)] = CelulaNaTela(
-                indice=formatar_indice(c.indice) if c.indice > 0 else "",
-                calor=_calor(c.indice, maior),
-                seta=seta if c.indice > 0 else "",
-                variacao=variacao if c.indice > 0 else "",
-                incertas=c.incertas,
-                vazia=c.indice <= 0 and c.incertas == 0,
-            )
+    na_grade = {
+        (c.area, c.tipo): c for c in mapa.celulas if c.area in nomes_area and c.tipo in nomes_tipo
+    }
+    maior = max((c.indice for c in na_grade.values()), default=0.0)
+    grade = {
+        (a.chave, t.chave): _celula_na_tela(na_grade.get((a.chave, t.chave)), mapa, maior)
+        for a in areas
+        for t in tipos
+    }
+    quentes = sorted((c for c in na_grade.values() if c.indice > 0), key=lambda c: -c.indice)
     destaques = []
-    for posicao, c in enumerate(mapa.top3, start=1):
+    for posicao, c in enumerate(quentes[:TOP], start=1):
         seta, variacao = _seta(c, mapa.com_tendencia)
         destaques.append(
             Destaque(
                 posicao,
-                nomes_area.get(c.area, c.area),
-                nomes_tipo.get(c.tipo, c.tipo),
+                nomes_area[c.area],
+                nomes_tipo[c.tipo],
                 formatar_indice(c.indice),
                 seta,
                 variacao,

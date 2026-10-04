@@ -21,13 +21,17 @@ from frentes.web.telas import renderizar
 roteador = APIRouter()
 
 
-@roteador.get("/", response_class=HTMLResponse)
+@roteador.get(
+    "/",
+    response_class=HTMLResponse,
+    responses={404: {"description": "a versão pedida não existe ou ainda não foi ativada"}},
+)
 def mapa_de_calor(
     request: Request,
     visao: Visao = Visao.DOR,
     periodo: Periodo = Periodo.D90,
     origem: Annotated[list[Origem] | None, Query()] = None,
-    versao: int | None = None,
+    versao: Annotated[int | None, Query(ge=1, le=2**31 - 1)] = None,
 ) -> HTMLResponse:
     origens = origem or []
     try:
@@ -37,13 +41,16 @@ def mapa_de_calor(
     with closing(con):
         try:
             mapa = agregados.ler(con, visao=visao, periodo=periodo, origens=origens, versao=versao)
+            if versao is not None and versao > (store_versao.versao_vigente(con) or 0):
+                raise agregados.VersaoInexistente(f"a versão {versao} ainda não foi ativada")
         except agregados.VersaoInexistente as erro:
             if versao is None:
                 return renderizar(request, "mapa/sem_banco.html", {"motivo": str(erro)}, 503)
             raise HTTPException(status_code=404, detail=str(erro)) from None
         areas, tipos = montagem.eixos(con, mapa.versao)
         vigente = store_versao.versao_vigente(con)
-        versoes = store_versao.numeros(con)
+        # só as ativadas: a versão em reclassificação ainda não tem o histórico inteiro
+        versoes = [n for n in store_versao.numeros(con) if vigente is not None and n <= vigente]
 
     parametros = montagem.consulta(visao, periodo, origens, versao)
     grade, top3 = montagem.celulas_da_grade(mapa, areas, tipos)
@@ -63,7 +70,11 @@ def mapa_de_calor(
         "nc_coluna": bool(mapa.nao_classificadas_por_area or mapa.nao_classificadas_sem_ambos),
         "nc_linha": bool(mapa.nao_classificadas_por_tipo or mapa.nao_classificadas_sem_ambos),
     }
-    pagina = "mapa/miolo.html" if request.headers.get("HX-Request") else "mapa/pagina.html"
+    # voltar no navegador sem cache do HTMX pede a página inteira, não o miolo
+    parcial = request.headers.get("HX-Request") and not request.headers.get(
+        "HX-History-Restore-Request"
+    )
+    pagina = "mapa/miolo.html" if parcial else "mapa/pagina.html"
     resposta = renderizar(request, pagina, contexto)
     resposta.headers["Vary"] = "HX-Request"
     return resposta

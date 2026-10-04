@@ -20,7 +20,7 @@
 .celula.calor-1 { background: #fde9d4; }
 .celula.calor-2 { background: #fbcb9c; }
 .celula.calor-3 { background: #f6a15f; }
-.celula.calor-4 { background: #ec7233; color: #fff; }
+.celula.calor-4 { background: #ec7233; color: var(--texto); }
 .celula.calor-5 { background: #c9421a; color: #fff; }
-.celula.calor-4 .incertas, .celula.calor-5 .incertas { color: #fff; }
+.celula.calor-5 .incertas { color: #fff; }
 .grade .nao-classificadas, .grade td.nao-classificadas { background: #e6e8ec; color: var(--suave); }

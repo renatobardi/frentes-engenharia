@@ -166,9 +166,9 @@ def test_top3_na_ordem_do_indice_e_celula_incerta_mostra_o_mais_n(http: TestClie
 
     top = _top3(html)
     assert len(top) == 3
-    assert "Plataforma × Incidente" in top[0] and "<strong>2.7</strong>" in top[0]
-    assert "Operações × Processo" in top[1] and "<strong>1.6</strong>" in top[1]
-    assert "Plataforma × Processo" in top[2] and "<strong>0.5</strong>" in top[2]
+    assert "Plataforma × Incidente" in top[0] and "<strong>2,7</strong>" in top[0]
+    assert "Operações × Processo" in top[1] and "<strong>1,6</strong>" in top[1]
+    assert "Plataforma × Processo" in top[2] and "<strong>0,5</strong>" in top[2]
     # as duas incertas de confiança baixa; a de texto vago não entra
     assert "+2 incertas" in _celula(html, "Plataforma", 0)
     assert "incertas" not in _celula(html, "Plataforma", 1)
@@ -294,7 +294,7 @@ def test_em_30_dias_ha_seta_e_em_12_meses_nenhuma(http: TestClient) -> None:
     assert _setas_na_grade(longo) == 0
     assert 'class="seta"' not in longo  # nem no Top 3
     # o índice continua lá: 12 meses soma também a célula de 200 dias
-    assert 'class="indice">0.3<' in _celula(longo, "Operações", 0)
+    assert 'class="indice">0,3<' in _celula(longo, "Operações", 0)
 
 
 # --------------------------------------------------------------------------- erros
@@ -321,6 +321,72 @@ def test_versao_inexistente_responde_404(http: TestClient) -> None:
     assert http.get("/?versao=9").status_code == 404
 
 
-@pytest.mark.parametrize("consulta", ["visao=x", "periodo=7d", "origem=fax", "versao=abc"])
+@pytest.mark.parametrize(
+    "consulta",
+    ["visao=x", "periodo=7d", "origem=fax", "versao=abc", "versao=0", "versao=" + "9" * 20],
+)
 def test_parametro_invalido_responde_422(http: TestClient, consulta: str) -> None:
     assert http.get(f"/?{consulta}").status_code == 422
+
+
+def test_versao_nao_ativada_nao_esta_no_seletor_e_da_404(banco: Path, http: TestClient) -> None:
+    _escrever(banco, lambda con: _versao(con, 3, TIPOS_V2, False))
+
+    html = http.get("/").text
+
+    assert '<option value="2" selected>v2 vigente</option>' in html
+    assert 'value="3"' not in html
+    assert http.get("/?versao=3").status_code == 404
+
+
+def test_restauracao_do_historico_devolve_a_pagina_inteira(http: TestClient) -> None:
+    cabecalhos = {"HX-Request": "true", "HX-History-Restore-Request": "true"}
+
+    html = http.get("/?periodo=30d", headers=cabecalhos).text
+
+    assert "<html" in html and 'href="/static/mapa.css"' in html
+
+
+def test_tendencia_sai_como_seta_e_valor_sem_sinal_repetido(http: TestClient) -> None:
+    html = http.get("/?periodo=30d").text
+
+    # Plataforma × Incidente: 2,7 contra 0,9 no período anterior = +200%
+    assert '<span class="seta">↑200%</span>' in html
+    assert "↑+" not in html and "↓-" not in html
+
+
+def test_celula_que_zerou_mostra_a_queda(banco: Path, http: TestClient) -> None:
+    # Operações × Fornecedor tinha índice há 40 dias e nada agora
+    _escrever(banco, lambda con: _pinta(con, "ops", "fornecedor", 0.5, 40))
+
+    celula = _celula(http.get("/?periodo=30d").text, "Operações", 2)
+
+    assert 'class="indice">0<' in celula and "↓100%" in celula
+    assert "calor-0" in celula and "vazia" not in celula
+
+
+def test_celula_com_chave_fora_dos_eixos_nao_entra_no_top3_nem_na_escala(
+    banco: Path, http: TestClient
+) -> None:
+    sem = http.get("/?periodo=30d").text
+    for dias in (3, 4, 5):
+        _escrever(banco, lambda con, d=dias: _pinta(con, "plat", "fantasma", 0.9, d))
+
+    html = http.get("/?periodo=30d").text
+
+    assert "fantasma" not in html
+    assert _top3(html) == _top3(sem)
+    # a escala de cor segue a maior célula da grade: o mapa fica igual ao de antes
+    assert re.findall(r"calor-\d", html) == re.findall(r"calor-\d", sem)
+
+
+def test_origens_com_nome_de_exibicao_e_indice_pequeno_com_virgula(
+    banco: Path, http: TestClient
+) -> None:
+    html = http.get("/").text
+
+    for nome in ("Relato", "Webhook", "Log", "Banco", "MCP"):
+        assert f"> {nome}</label>" in html
+    # Plataforma × Processo: 0,5 em 30 dias; um índice positivo nunca vira "0"
+    _escrever(banco, lambda con: _pinta(con, "ops", "fornecedor", 0.02, 3))
+    assert 'class="indice">0,1<' in http.get("/?periodo=30d").text
