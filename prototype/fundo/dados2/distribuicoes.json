@@ -1,0 +1,115 @@
+{
+ "total": 5999,
+ "times_trocados": 21,
+ "por_area_antes": {
+  "Formalização": 823,
+  "Plataforma e Sustentação": 802,
+  "Canal Parceiro": 763,
+  "Pós-venda e Cobrança": 761,
+  "Canal Digital": 739,
+  "Crédito": 732,
+  "Originação": 638,
+  "Dados e Regulatório": 621
+ },
+ "por_area_depois": {
+  "Formalização": 818,
+  "Plataforma e Sustentação": 798,
+  "Canal Parceiro": 763,
+  "Pós-venda e Cobrança": 761,
+  "Canal Digital": 754,
+  "Crédito": 731,
+  "Originação": 638,
+  "Dados e Regulatório": 616
+ },
+ "origens_pct": {
+  "webhook": 15.0,
+  "log": 20.0,
+  "relato": 40.0,
+  "banco": 15.0,
+  "mcp": 10.0
+ },
+ "natureza_pct": {
+  "reativa": 64.6,
+  "proativa": 33.4,
+  "None": 2.0
+ },
+ "par_servico_sintoma_meses_1a6": {
+  "pares": 966,
+  "mediana": 1,
+  "p90": 2,
+  "maximo": 4,
+  "top": [
+   [
+    "politicas-regras · banco:qualidade de dados:0",
+    4
+   ],
+   [
+    "docs-validade · log:observabilidade:0",
+    4
+   ],
+   [
+    "lojas-cadastro · banco:fornecedor:0",
+    4
+   ],
+   [
+    "app-bff · banco:qualidade de dados:0",
+    4
+   ],
+   [
+    "pre-analise-form · banco:operação e atendimento:0",
+    3
+   ]
+  ]
+ },
+ "servico_meses_1a6": {
+  "servicos": 72,
+  "mediana": 16,
+  "maximo": 23,
+  "top": [
+   [
+    "consentimento-api",
+    23
+   ],
+   [
+    "ofertas-vitrine",
+    23
+   ],
+   [
+    "pre-analise-form",
+    23
+   ],
+   [
+    "fraude-score",
+    23
+   ],
+   [
+    "credenciamento-api",
+    23
+   ]
+  ]
+ },
+ "objeto_meses_1a6": {
+  "objetos": 144,
+  "mediana": 8,
+  "maximo": 17
+ },
+ "cenario_meses_1a6": {
+  "cenarios": 31,
+  "mediana": 70,
+  "maximo": 118
+ },
+ "historias_meses_1a6": {
+  "H1": 73,
+  "H3": 108,
+  "H7": 100,
+  "H4": 58,
+  "H6": 47,
+  "H2": 90
+ },
+ "par_no_ano": {
+  "maximo": 6,
+  "max_dias_distintos": 6
+ },
+ "teto_por_item": 23,
+ "estouros_do_teto": 4
+}

@@ -9,8 +9,9 @@ sys.path.insert(0, str(AQUI.parent / "descoberta"))
 import taxonomia as tx  # noqa: E402
 from llm import chat  # noqa: E402
 
-N = int(sys.argv[1]) if len(sys.argv) > 1 else 3
-FONTES = {"antes": AQUI.parent / "descoberta" / "dados", "depois": AQUI / "dados"}
+N = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 3
+FONTES = {"final": AQUI / "dados2"} if "--final" in sys.argv else {"antes": AQUI.parent / "descoberta" / "dados", "depois": AQUI / "dados"}
+SAIDA = AQUI / ("dados2" if "--final" in sys.argv else "dados") / "problemas13.json"
 
 
 def rodada(arg):
@@ -43,7 +44,7 @@ def rodada(arg):
 
 with ThreadPoolExecutor(6) as ex:
     res = list(ex.map(rodada, [(f, k) for f in FONTES for k in range(1, N + 1)]))
-(AQUI / "dados" / "problemas13.json").write_text(json.dumps(res, ensure_ascii=False, indent=1))
+SAIDA.write_text(json.dumps(res, ensure_ascii=False, indent=1))
 for r in res:
     if "erro" in r:
         print(f"== {r['fonte']} #{r['rodada']}: ERRO {r['erro']}")

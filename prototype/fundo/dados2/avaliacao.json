@@ -1,0 +1,158 @@
+{
+ "jev": {
+  "frentes": 216,
+  "erros": 0,
+  "parede_s": 5.7,
+  "tok_medio": 4636,
+  "custo_usd": 0.0421,
+  "fallback_llm": 60
+ },
+ "fundo": {
+  "frentes": 170,
+  "estados": {
+   "classificada (Jev)": 124,
+   "classificada via LLM": 27,
+   "incerta": 17,
+   "não classificada": 1,
+   "aguardando LLM": 1
+  },
+  "area_certa": "123/151",
+  "area_certa_antes": "108/156",
+  "time_certo": "117/151",
+  "listado": "103/111",
+  "nao_listado": "20/40",
+  "por_origem": {
+   "relato": "44/53",
+   "mcp": "11/11",
+   "log": "39/45",
+   "webhook": "16/26",
+   "banco": "13/16"
+  },
+  "nao_listado_por_origem": {
+   "relato": "11/16",
+   "mcp": "2/2",
+   "log": "3/8",
+   "webhook": "1/8",
+   "banco": "3/6"
+  },
+  "conf_area_media": {
+   "listado": 0.93,
+   "nao_listado": 0.69
+  },
+  "via_llm_nao_listado": 16,
+  "linha_do_mapa": {
+   "Originação": {
+    "gabarito": 19,
+    "jev": 18,
+    "jev_antes": 14
+   },
+   "Crédito": {
+    "gabarito": 18,
+    "jev": 15,
+    "jev_antes": 15
+   },
+   "Formalização": {
+    "gabarito": 17,
+    "jev": 12,
+    "jev_antes": 13
+   },
+   "Canal Parceiro": {
+    "gabarito": 12,
+    "jev": 14,
+    "jev_antes": 13
+   },
+   "Canal Digital": {
+    "gabarito": 17,
+    "jev": 16,
+    "jev_antes": 10
+   },
+   "Pós-venda e Cobrança": {
+    "gabarito": 26,
+    "jev": 17,
+    "jev_antes": 18
+   },
+   "Plataforma e Sustentação": {
+    "gabarito": 20,
+    "jev": 36,
+    "jev_antes": 45
+   },
+   "Dados e Regulatório": {
+    "gabarito": 22,
+    "jev": 23,
+    "jev_antes": 28
+   }
+  },
+  "erros_vao_para": {
+   "Plataforma e Sustentação": 17,
+   "Dados e Regulatório": 4,
+   "Crédito": 3,
+   "Canal Parceiro": 2,
+   "Originação": 2
+  },
+  "encaixe_fraco": {
+   "antes": 11,
+   "depois": 29
+  }
+ },
+ "H7": {
+  "frentes": 6,
+  "estados": {
+   "classificada (Jev)": 4,
+   "classificada via LLM": 2
+  },
+  "area_certa": "4/6",
+  "area_certa_antes": "3/6",
+  "time_certo": "4/6",
+  "listado": "4/5",
+  "nao_listado": "0/1",
+  "por_origem": {
+   "relato": "1/3",
+   "mcp": "0/0",
+   "log": "0/0",
+   "webhook": "3/3",
+   "banco": "0/0"
+  },
+  "nao_listado_por_origem": {
+   "relato": "0/1",
+   "mcp": "0/0",
+   "log": "0/0",
+   "webhook": "0/0",
+   "banco": "0/0"
+  },
+  "conf_area_media": {
+   "listado": 0.67,
+   "nao_listado": 0.48
+  }
+ },
+ "H5": {
+  "frentes": 40,
+  "estados": {
+   "classificada (Jev)": 18,
+   "classificada via LLM": 20,
+   "não classificada": 2
+  },
+  "area_certa": "17/38",
+  "area_certa_antes": "17/35",
+  "time_certo": "9/38",
+  "listado": "9/10",
+  "nao_listado": "2/4",
+  "por_origem": {
+   "relato": "8/13",
+   "mcp": "9/13",
+   "log": "0/8",
+   "webhook": "0/4",
+   "banco": "0/0"
+  },
+  "nao_listado_por_origem": {
+   "relato": "1/2",
+   "mcp": "1/2",
+   "log": "0/0",
+   "webhook": "0/0",
+   "banco": "0/0"
+  },
+  "conf_area_media": {
+   "listado": 0.84,
+   "nao_listado": 0.6
+  }
+ }
+}

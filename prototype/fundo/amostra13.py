@@ -17,12 +17,10 @@ AQUI = pathlib.Path(__file__).parent
 sys.path.insert(0, str(AQUI.parent / "seed"))
 sys.path.insert(0, str(AQUI))
 import gerar  # noqa: E402
-from ficha import FICHA, CENARIO_PRESO  # noqa: E402
+from ficha import FICHA, N_OBJ_LISTADOS, N_SVC_LISTADOS  # noqa: E402
 
 ANTES = AQUI.parent / "descoberta" / "dados"
-DADOS = AQUI / "dados"
-BUREAU = "fornecedor de bureau de crédito fora do SLA"
-COM_FORNECEDOR = [t for t, f in FICHA.items() if f["fornecedor"]]
+DADOS = AQUI / "dados2"   # regra final (dados/ guarda a primeira medição)
 LIBS = ["jackson-databind", "log4j", "lodash", "openssl"]
 
 
@@ -30,43 +28,62 @@ def sem_artigo(s):
     return re.sub(r"^(o|a|os|as) ", "", s)
 
 
+CENARIO_SEM_OBJETO = {   # o fundo só tem espécie de queixa: nenhum cenário nomeia um objeto único da empresa
+    "fornecedor de bureau de crédito fora do SLA": "fornecedor fora do SLA",
+    "prazo de envio de relatório ao regulador apertado": "prazo regulatório apertado para adequar o sistema",
+    "pedido de titular LGPD atendido fora do prazo": "exigência de auditoria atendida fora do prazo",
+    "cliente sem retorno sobre a proposta": "usuário sem retorno sobre uma solicitação",
+}
+HIST_FIXAS = ("H1", "H2", "H3", "H4", "H6")
+
+
 def regra_nova(esq, pessoas):
-    """Aplica a regra do #13 ao roteiro inteiro. Devolve os ids cujo texto muda."""
+    """Aplica a regra do #13 ao roteiro inteiro. Devolve (ids cujo texto muda, teto, quantas vezes o teto estourou)."""
     rng = random.Random(13)
+    m16 = collections.Counter(e["historia_id"] for e in esq if e["mes"] <= 6)
+    teto = min(m16[h] for h in HIST_FIXAS) // 2      # metade da menor história nos meses 1–6
+    uso = collections.Counter()                      # (semestre, item) -> frentes do fundo
+    estouros = 0
+
+    def escolhe(itens, sem, conta=True):
+        nonlocal estouros
+        if not conta:                                # item que não aparece no texto desta frente: não gasta o teto
+            return rng.choice(itens)
+        livres = [x for x in itens if uso[(sem, x)] < teto]
+        if not livres:
+            estouros += 1
+            livres = [min(itens, key=lambda x: uso[(sem, x)])]
+        x = rng.choice(livres)
+        uso[(sem, x)] += 1
+        return x
+
     mudam = set()
     for e in sorted(esq, key=lambda e: e["id"]):
         hid = e["historia_id"]
         if hid not in ("fundo", "H5", "H7"):
             continue
         mudam.add(e["id"])
-        time0, livre = e["time"], e["origem"] in ("relato", "mcp")
-        if hid == "H5" and e["origem"] in ("log", "webhook"):
-            e["time"] = "App"
-        elif hid == "fundo" and livre and e["cenario"] in CENARIO_PRESO and e["time"] not in CENARIO_PRESO[e["cenario"]]:
-            e["time"] = rng.choice(CENARIO_PRESO[e["cenario"]])   # só no texto livre: o template não escreve o cenário
-        elif hid == "fundo" and e["tema"] == "fornecedor" and not (livre and e["cenario"] == BUREAU) \
-                and not FICHA[e["time"]]["fornecedor"]:
-            e["time"] = rng.choice(COM_FORNECEDOR)
-        if e["time"] != time0:
-            e["area"] = gerar.AREA_DO_TIME[e["time"]]
-            outras = [a for a in e["areas_aceitas"][1:] if a != e["area"]]
-            if len(e["areas_aceitas"]) > 1 and not outras:
-                outras = [rng.choice([a for a in gerar.ORGANOGRAMA if a != e["area"]])]
-            e["areas_aceitas"] = [e["area"]] + outras
-            if e["origem"] == "relato":
-                e["emissor"] = rng.choice([p for p in pessoas if p["time"] == e["time"]])["nome"]
+        sem = 1 if e["mes"] <= 6 else 2
+        e["cenario"] = CENARIO_SEM_OBJETO.get(e["cenario"], e["cenario"])
+        if hid == "H5" and e["origem"] in ("log", "webhook") and e["time"] != "App":
+            e["time"] = "App"                        # log e webhook do assistente de IA são sempre do App
+            e["area"] = gerar.AREA_DO_TIME["App"]
+            e["areas_aceitas"] = [e["area"]] + [x for x in e["areas_aceitas"][1:] if x != e["area"]]
         f = FICHA[e["time"]]
-        e["servico"] = rng.choice(f["servicos"])
+        livre = e["origem"] in ("relato", "mcp") or e["emissor"] == "atendimento-lojista"
+        e["servico"] = escolhe(f["servicos"], sem, conta=e["origem"] in ("log", "webhook", "banco") and hid != "H5")
         e["variante"] = rng.randrange(3)
         if hid == "fundo" and e["tema"] == "fornecedor":
-            e["objeto"] = "o bureau de crédito" if livre and e["cenario"] == BUREAU else f["fornecedor"]
+            e["objeto"] = escolhe([f["fornecedor"]], sem)
+            e["listado"] = True
         elif hid == "H5" and e["time"] == "App":
-            e["objeto"] = None          # o objeto é o próprio assistente, que já está no cenário
+            e["objeto"], e["listado"] = None, None   # o objeto é o próprio assistente, que já está no cenário
         else:
-            e["objeto"] = rng.choice(f["objetos"])
+            e["objeto"] = escolhe(f["objetos"], sem, conta=livre)
+            e["listado"] = (e["objeto"] in f["objetos"][:N_OBJ_LISTADOS]) if livre else (e["servico"] in f["servicos"][:N_SVC_LISTADOS])
         if e["origem"] == "log":
             e["emissor"] = e["servico"]
-    return mudam
+    return mudam, teto, estouros
 
 
 SINTOMAS_LOG = {
@@ -194,8 +211,11 @@ def distribuicoes(esq, antes):
             if e["mes"] <= 6:
                 pares_m16[par] += 1
     svc = collections.Counter()
-    for (s, _), v in pares_m16.items():
-        svc[s] += v
+    for (sv, _), v in pares_m16.items():
+        svc[sv] += v
+    obj = collections.Counter(e["objeto"] for e in esq if e["historia_id"] == "fundo" and e["mes"] <= 6 and e.get("objeto")
+                              and (e["origem"] in ("relato", "mcp") or e["tema"] == "fornecedor"))
+    cen = collections.Counter(e["cenario"] for e in esq if e["historia_id"] == "fundo" and e["mes"] <= 6)
     q = sorted(pares_m16.values())
     return dict(
         total=n, times_trocados=sum(1 for e in esq if e["id"] in antes and antes[e["id"]] != e["time"]),
@@ -207,6 +227,9 @@ def distribuicoes(esq, antes):
                                            top=[[f"{s} · {k}", v] for (s, k), v in pares_m16.most_common(5)]),
         servico_meses_1a6=dict(servicos=len(svc), mediana=sorted(svc.values())[len(svc) // 2], maximo=max(svc.values()),
                                top=svc.most_common(5)),
+        objeto_meses_1a6=dict(objetos=len(obj), mediana=sorted(obj.values())[len(obj) // 2], maximo=max(obj.values())),
+        cenario_meses_1a6=dict(cenarios=len(cen), mediana=sorted(cen.values())[len(cen) // 2], maximo=max(cen.values())),
+        historias_meses_1a6=dict(collections.Counter(e["historia_id"] for e in esq if e["mes"] <= 6 and e["historia_id"].startswith("H"))),
         par_no_ano=dict(maximo=max(pares.values()), max_dias_distintos=max(len(d) for d in dias.values())))
 
 
@@ -217,9 +240,10 @@ def main():
     for e in esq:
         e["mes"] = gerar.mes_de(e["ocorrido_em"].date())
     antes = {e["id"]: e["time"] for e in esq}
-    mudam = regra_nova(esq, pessoas)
+    mudam, teto, estouros = regra_nova(esq, pessoas)
     DADOS.mkdir(exist_ok=True)
     dist = distribuicoes(esq, antes)
+    dist["teto_por_item"], dist["estouros_do_teto"] = teto, estouros
     (DADOS / "distribuicoes.json").write_text(json.dumps(dist, ensure_ascii=False, indent=1))
     print(json.dumps(dist, ensure_ascii=False, indent=1))
 
@@ -266,7 +290,7 @@ def main():
                                     ocorrido_em=e["ocorrido_em"].isoformat()), ensure_ascii=False) + "\n")
             g.write(json.dumps(dict(id=e["id"], grupo=e["grupo"], mes=e["mes"], historia_id=e["historia_id"], tema=e["tema"],
                                     area=e["area"], time=e["time"], time_antes=antes[e["id"]], areas_aceitas=e["areas_aceitas"],
-                                    objeto=e.get("objeto"), servico=e.get("servico"), natureza=e["natureza"],
+                                    objeto=e.get("objeto"), servico=e.get("servico"), listado=e.get("listado"), natureza=e["natureza"],
                                     ambigua=e["sabor"] if e["ambigua"] else False, fora_de_escopo=e["fora_de_escopo"],
                                     cenario=e["cenario"], texto_novo=e["id"] in mudam), ensure_ascii=False) + "\n")
     print(json.dumps(dict(frentes=len(amostra), reescritas=sum(e["id"] in mudam for e in amostra), textos_llm=len(livres),

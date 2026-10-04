@@ -1,0 +1,1228 @@
+[
+ {
+  "fonte": "final",
+  "rodada": 1,
+  "frentes": 240,
+  "candidatos": 39,
+  "lista": 2,
+  "da_historia": 1,
+  "do_fundo": 1,
+  "custo_usd": 0.00121,
+  "problemas": [
+   {
+    "nome": "Registro de gravame no Detran",
+    "objeto": "processo: registro de gravame",
+    "entrou": true,
+    "evidencias": 11,
+    "de_onde": {
+     "H2": 11
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Carga noturna com duplicatas",
+    "objeto": "processo: carga noturna",
+    "entrou": false,
+    "evidencias": 10,
+    "de_onde": {
+     "fundo": 10
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Massa de teste perdida na homologação",
+    "objeto": "processo: refresh de homologação",
+    "entrou": false,
+    "evidencias": 6,
+    "de_onde": {
+     "fundo": 6
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Ambientes de teste ligados no fim de semana",
+    "objeto": "processo: gestão de ambientes de teste",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Senha em planilha pública",
+    "objeto": "processo: gestão de segredos",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Alerta falso sem ação corretiva",
+    "objeto": "processo: alertas",
+    "entrou": false,
+    "evidencias": 4,
+    "de_onde": {
+     "fundo": 4
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Dependência com CVE crítica sem correção",
+    "objeto": "processo: correção de vulnerabilidades",
+    "entrou": false,
+    "evidencias": 8,
+    "de_onde": {
+     "fundo": 6,
+     "H7": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Segredo exposto em repositório",
+    "objeto": "processo: segurança de código",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 3,
+     "H7": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Achados de pentest vencidos",
+    "objeto": "processo: correção de pentest",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "H7": 4,
+     "fundo": 1
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Fila de exceções parada",
+    "objeto": "processo: fila de exceções",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Esteira de propostas fora do ar",
+    "objeto": "sistema: esteira de propostas",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "H1": 2
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Custo de nuvem subindo sem explicação",
+    "objeto": "processo: gestão de custos de nuvem",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Comunicação de mudança de regra falha",
+    "objeto": "processo: comunicação de mudanças",
+    "entrou": false,
+    "evidencias": 4,
+    "de_onde": {
+     "fundo": 4
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Dados divergentes entre sistemas",
+    "objeto": "processo: sincronização de dados",
+    "entrou": false,
+    "evidencias": 7,
+    "de_onde": {
+     "fundo": 7
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Falta de rastreamento distribuído (tracing)",
+    "objeto": "processo: observabilidade",
+    "entrou": false,
+    "evidencias": 11,
+    "de_onde": {
+     "fundo": 11
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Pipeline de CI/CD lenta ou travada",
+    "objeto": "processo: pipeline de CI/CD",
+    "entrou": false,
+    "evidencias": 6,
+    "de_onde": {
+     "fundo": 6
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Acoplamento entre serviços",
+    "objeto": "processo: arquitetura de software",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Timeout em integração com parceiro",
+    "objeto": "integração: parceiros externos",
+    "entrou": true,
+    "evidencias": 7,
+    "de_onde": {
+     "fundo": 7
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Fornecedor fora do SLA",
+    "objeto": "fornecedor: fornecedor X",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Suporte N1 com capacidade insuficiente",
+    "objeto": "fornecedor: empresa de suporte N1",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Provedor de nuvem fora do SLA",
+    "objeto": "fornecedor: provedor de nuvem",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Time de plantão sobrecarregado",
+    "objeto": "processo: escala de plantão",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Code review lento",
+    "objeto": "processo: code review",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Ambiente local demora para subir",
+    "objeto": "processo: ambiente de desenvolvimento",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Fila de atendimento travada",
+    "objeto": "processo: fila de atendimento",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Boletos com valor divergente do contrato",
+    "objeto": "processo: geração de boletos",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "H3": 2
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Carnê com data de vencimento incorreta",
+    "objeto": "processo: geração de carnê",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "H3": 2
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Registro de consentimento sem CPF",
+    "objeto": "processo: registro de consentimento",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Solicitação de acesso sem retorno",
+    "objeto": "processo: solicitação de acesso",
+    "entrou": false,
+    "evidencias": 4,
+    "de_onde": {
+     "fundo": 4
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Ex-colaborador ainda com acesso",
+    "objeto": "processo: gestão de acessos",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "H7": 2
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Fechamento contábil lento",
+    "objeto": "sistema: fechamento contábil",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Consulta à Receita Federal lenta",
+    "objeto": "integração: Receita Federal",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Certificado digital prestes a vencer",
+    "objeto": "processo: renovação de certificado",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Prazo regulatório apertado sem planejamento",
+    "objeto": "processo: cumprimento de prazos regulatórios",
+    "entrou": false,
+    "evidencias": 6,
+    "de_onde": {
+     "fundo": 6
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Perda de conhecimento com saída de pessoas-chave",
+    "objeto": "processo: passagem de conhecimento",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Onboarding de novo colaborador lento",
+    "objeto": "processo: onboarding",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Falta de priorização entre produto e sustentação",
+    "objeto": "processo: priorização de demandas",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Conferência manual em planilha",
+    "objeto": "processo: validação manual",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Falta de automação em varredura de segurança",
+    "objeto": "processo: segurança em pipeline",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "H7": 2
+    },
+    "do_fundo": false
+   }
+  ]
+ },
+ {
+  "fonte": "final",
+  "rodada": 2,
+  "erro": "HTTP Error 504: Gateway Timeout"
+ },
+ {
+  "fonte": "final",
+  "rodada": 3,
+  "frentes": 240,
+  "candidatos": 40,
+  "lista": 5,
+  "da_historia": 3,
+  "do_fundo": 2,
+  "custo_usd": 0.00213,
+  "problemas": [
+   {
+    "nome": "Gravame no Detran",
+    "objeto": "processo: registro de gravame no Detran",
+    "entrou": true,
+    "evidencias": 11,
+    "de_onde": {
+     "H2": 11
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Carga noturna duplicada",
+    "objeto": "processo: carga noturna de dados",
+    "entrou": false,
+    "evidencias": 10,
+    "de_onde": {
+     "fundo": 10
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Massa de teste perdida",
+    "objeto": "processo: refresh de homologação",
+    "entrou": false,
+    "evidencias": 6,
+    "de_onde": {
+     "fundo": 6
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Ambientes ligados no fim de semana",
+    "objeto": "processo: gestão de ambientes de teste",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Senha em planilha pública",
+    "objeto": "processo: gestão de segredos",
+    "entrou": false,
+    "evidencias": 7,
+    "de_onde": {
+     "fundo": 5,
+     "H7": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Alerta falso sem ação",
+    "objeto": "processo: alertas de monitoramento",
+    "entrou": false,
+    "evidencias": 4,
+    "de_onde": {
+     "fundo": 4
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Dependência com CVE crítica",
+    "objeto": "processo: correção de vulnerabilidades",
+    "entrou": false,
+    "evidencias": 7,
+    "de_onde": {
+     "fundo": 5,
+     "H7": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Achados de pentest vencidos",
+    "objeto": "processo: correção de achados de pentest",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "H7": 4,
+     "fundo": 1
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Timeout em /propostas",
+    "objeto": "sistema: svc-infra-e-cloud",
+    "entrou": true,
+    "evidencias": 9,
+    "de_onde": {
+     "H1": 9
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Bloqueio no banco compartilhado",
+    "objeto": "integração: banco compartilhado",
+    "entrou": true,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Fila de exceções parada",
+    "objeto": "processo: fila de exceções",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Registro de boletos no banco",
+    "objeto": "processo: registro de boletos",
+    "entrou": true,
+    "evidencias": 3,
+    "de_onde": {
+     "H3": 2,
+     "fundo": 1
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Custo de nuvem subindo",
+    "objeto": "processo: gestão de custos de nuvem",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Comunicação de mudança falha",
+    "objeto": "processo: comunicação de mudanças",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Fechamento contábil lento",
+    "objeto": "sistema: contabil-fechamento",
+    "entrou": true,
+    "evidencias": 3,
+    "de_onde": {
+     "fundo": 3
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Carga do IOF duplicada",
+    "objeto": "processo: carga noturna de IOF",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Tracing ausente",
+    "objeto": "processo: rastreamento distribuído",
+    "entrou": false,
+    "evidencias": 11,
+    "de_onde": {
+     "fundo": 11
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Pipeline lenta",
+    "objeto": "processo: pipeline de CI/CD",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Code review demorado",
+    "objeto": "processo: revisão de código",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Ambiente local lento",
+    "objeto": "processo: ambiente de desenvolvimento",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Dados divergentes entre sistemas",
+    "objeto": "processo: sincronização de dados",
+    "entrou": false,
+    "evidencias": 8,
+    "de_onde": {
+     "fundo": 8
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Fornecedor fora do SLA",
+    "objeto": "fornecedor: fornecedor X",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Suporte N1 sobrecarregado",
+    "objeto": "fornecedor: empresa de suporte N1",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Ex-colaborador com acesso",
+    "objeto": "processo: gestão de acessos",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "H7": 2
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Onboarding lento",
+    "objeto": "processo: onboarding de colaboradores",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Perda de conhecimento",
+    "objeto": "processo: passagem de conhecimento",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Prazo regulatório apertado",
+    "objeto": "processo: cumprimento de prazos regulatórios",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Solicitação sem resposta",
+    "objeto": "processo: atendimento de solicitações",
+    "entrou": false,
+    "evidencias": 4,
+    "de_onde": {
+     "fundo": 4
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Certificado digital vencendo",
+    "objeto": "processo: renovação de certificados",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Fila de atendimento travada",
+    "objeto": "processo: fila de atendimento",
+    "entrou": false,
+    "evidencias": 4,
+    "de_onde": {
+     "fundo": 4
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Acoplamento entre serviços",
+    "objeto": "processo: arquitetura de serviços",
+    "entrou": false,
+    "evidencias": 4,
+    "de_onde": {
+     "fundo": 4
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Priorização confusa",
+    "objeto": "processo: priorização de demandas",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Teste instável",
+    "objeto": "processo: testes automatizados",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Código legado sem testes",
+    "objeto": "processo: manutenção de código legado",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Conferência manual em planilha",
+    "objeto": "processo: validação manual",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Auditoria não atendida",
+    "objeto": "processo: atendimento de auditoria",
+    "entrou": false,
+    "evidencias": 4,
+    "de_onde": {
+     "fundo": 4
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Gargalo entre times",
+    "objeto": "processo: dependência entre times",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Falta de documentação",
+    "objeto": "processo: documentação de processos",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "API descontinuada",
+    "objeto": "processo: atualização de bibliotecas",
+    "entrou": false,
+    "evidencias": 7,
+    "de_onde": {
+     "fundo": 7
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Log descartado",
+    "objeto": "processo: logging",
+    "entrou": false,
+    "evidencias": 3,
+    "de_onde": {
+     "fundo": 3
+    },
+    "do_fundo": true
+   }
+  ]
+ },
+ {
+  "fonte": "final",
+  "rodada": 4,
+  "frentes": 240,
+  "candidatos": 38,
+  "lista": 7,
+  "da_historia": 2,
+  "do_fundo": 5,
+  "custo_usd": 0.00218,
+  "problemas": [
+   {
+    "nome": "Gravame não registrado",
+    "objeto": "processo: registro de gravame no Detran",
+    "entrou": true,
+    "evidencias": 7,
+    "de_onde": {
+     "H2": 7
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Duplicatas em carga noturna",
+    "objeto": "processo: carga noturna de dados",
+    "entrou": false,
+    "evidencias": 10,
+    "de_onde": {
+     "fundo": 10
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Massa de teste perdida",
+    "objeto": "processo: refresh de homologação",
+    "entrou": false,
+    "evidencias": 6,
+    "de_onde": {
+     "fundo": 6
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Custo de nuvem elevado",
+    "objeto": "processo: gestão de custos de nuvem",
+    "entrou": false,
+    "evidencias": 10,
+    "de_onde": {
+     "fundo": 10
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Senha em planilha pública",
+    "objeto": "processo: gestão de segredos",
+    "entrou": false,
+    "evidencias": 7,
+    "de_onde": {
+     "fundo": 5,
+     "H7": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Achados de pentest vencidos",
+    "objeto": "processo: correção de achados de segurança",
+    "entrou": false,
+    "evidencias": 11,
+    "de_onde": {
+     "H7": 6,
+     "fundo": 5
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Alerta falso sem ação",
+    "objeto": "processo: gestão de alertas",
+    "entrou": false,
+    "evidencias": 7,
+    "de_onde": {
+     "fundo": 7
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Timeout em integração com parceiro",
+    "objeto": "integração: parceiros externos (despachante, cartório, gráfica, banco)",
+    "entrou": true,
+    "evidencias": 7,
+    "de_onde": {
+     "fundo": 7
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Esteira de propostas fora do ar",
+    "objeto": "sistema: esteira de propostas",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "H1": 2
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Fila de exceções parada",
+    "objeto": "processo: fila de exceções de processamento",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Registro de boletos sem resposta",
+    "objeto": "processo: registro de boletos no banco",
+    "entrou": true,
+    "evidencias": 3,
+    "de_onde": {
+     "H3": 2,
+     "fundo": 1
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Dados divergentes entre sistemas",
+    "objeto": "processo: sincronização de dados cadastrais",
+    "entrou": false,
+    "evidencias": 6,
+    "de_onde": {
+     "fundo": 6
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Comunicação de mudança falha",
+    "objeto": "processo: comunicação de mudanças",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Falta de tracing distribuído",
+    "objeto": "processo: rastreamento distribuído",
+    "entrou": false,
+    "evidencias": 11,
+    "de_onde": {
+     "fundo": 11
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Pipeline de CI/CD lenta",
+    "objeto": "processo: pipeline de CI/CD",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Code review demorado",
+    "objeto": "processo: revisão de código",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Ambiente local lento para subir",
+    "objeto": "processo: setup de ambiente local",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Fornecedor fora do SLA",
+    "objeto": "fornecedor: fornecedor X / empresa de suporte N1",
+    "entrou": true,
+    "evidencias": 3,
+    "de_onde": {
+     "fundo": 3
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Acesso de ex-colaborador não removido",
+    "objeto": "processo: gestão de acessos",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "H7": 2
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Carga de dados incompleta",
+    "objeto": "processo: carga de dados de parceiros",
+    "entrou": false,
+    "evidencias": 5,
+    "de_onde": {
+     "fundo": 5
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Campo obrigatório vazio em envio regulatório",
+    "objeto": "processo: envio regulatório",
+    "entrou": true,
+    "evidencias": 3,
+    "de_onde": {
+     "fundo": 3
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Pendências de assinatura digital vencendo",
+    "objeto": "processo: assinatura digital",
+    "entrou": true,
+    "evidencias": 3,
+    "de_onde": {
+     "fundo": 3
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Sistema acoplado dificulta deploy",
+    "objeto": "processo: acoplamento entre sistemas",
+    "entrou": false,
+    "evidencias": 4,
+    "de_onde": {
+     "fundo": 4
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Fila de atendimento travada",
+    "objeto": "processo: fila de atendimento",
+    "entrou": false,
+    "evidencias": 4,
+    "de_onde": {
+     "fundo": 4
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Lentidão em horário de pico",
+    "objeto": "sistema: comparador de planos / pré-análise / envio de carnês",
+    "entrou": true,
+    "evidencias": 3,
+    "de_onde": {
+     "fundo": 3
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Cálculo de IOF/limite lento",
+    "objeto": "processo: cálculo de IOF e limite",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Registro de consentimento sem CPF",
+    "objeto": "processo: registro de consentimento",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Proposta com CPF divergente",
+    "objeto": "sistema: tela de digitação de proposta",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Fechamento contábil lento",
+    "objeto": "sistema: API de fechamento contábil",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Certificado digital prestes a vencer",
+    "objeto": "processo: renovação de certificado digital",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Solicitação de acesso sem resposta",
+    "objeto": "processo: solicitação de acesso a sistemas",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Onboarding de colaborador lento",
+    "objeto": "processo: onboarding de novos colaboradores",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Perda de conhecimento com saída de pessoas",
+    "objeto": "processo: passagem de conhecimento",
+    "entrou": false,
+    "evidencias": 1,
+    "de_onde": {
+     "fundo": 1
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Prazo regulatório apertado sem início",
+    "objeto": "processo: cumprimento de prazos regulatórios",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Exigência de auditoria não atendida",
+    "objeto": "processo: atendimento a auditorias",
+    "entrou": false,
+    "evidencias": 4,
+    "de_onde": {
+     "fundo": 4
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Lojista sem extrato de comissão",
+    "objeto": "processo: disponibilização de extrato de comissão",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "H4": 2
+    },
+    "do_fundo": false
+   },
+   {
+    "nome": "Priorização confusa entre produto e sustentação",
+    "objeto": "processo: priorização de demandas",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   },
+   {
+    "nome": "Gerenciador de segredos com biblioteca descontinuada",
+    "objeto": "sistema: gerenciador de segredos",
+    "entrou": false,
+    "evidencias": 2,
+    "de_onde": {
+     "fundo": 2
+    },
+    "do_fundo": true
+   }
+  ]
+ },
+ {
+  "fonte": "final",
+  "rodada": 5,
+  "erro": "HTTP Error 504: Gateway Timeout"
+ }
+]
