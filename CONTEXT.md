@@ -21,6 +21,10 @@ _Avoid_: fonte, canal
 Quem mandou a frente, que pode ser uma pessoa fictícia ou o nome de um sistema.
 _Avoid_: autor, remetente
 
+**Complemento**:
+O texto que o emissor acrescenta a um relato que ficou com texto vago. É guardado na mesma frente, ao lado do texto original, e a frente é classificada de novo com os dois juntos.
+_Avoid_: edição, correção, nova frente
+
 **Reativa**:
 Frente sobre algo que já quebrou ou está doendo.
 
@@ -38,10 +42,18 @@ Uma pergunta da taxonomia feita a toda frente, como área, tipo ou natureza.
 _Avoid_: campo, atributo
 
 **Versão da taxonomia**:
-Um retrato imutável da taxonomia. Uma versão nova passa a valer para todas as frentes, e as anteriores continuam guardadas.
+Um retrato imutável de tudo o que entra na chamada ao Jev: as dimensões com os valores e as descrições, o organograma com a ficha do time, as réguas, os critérios, a pergunta de controle e o modelo do Jev. Limiares e cortes ficam fora dela, em configuração. Uma versão nova passa a valer para todas as frentes, e as anteriores continuam guardadas.
+
+**Versão vigente**:
+A versão da taxonomia mais recente em que o histórico inteiro já foi reclassificado. É a que classifica as frentes novas e a que o mapa lê quando nenhuma outra é pedida.
+_Avoid_: versão atual, versão ativa
+
+**Chave**:
+O identificador de um valor da taxonomia que continua o mesmo de uma versão para a outra enquanto o valor for o mesmo, ainda que mude de nome ou de descrição. Valor criado, dividido ou juntado ganha chave nova.
+_Avoid_: id do tipo, slug
 
 **Classificação**:
-As respostas que uma frente recebeu em cada dimensão de uma versão da taxonomia, cada uma com a sua confiança. Uma frente acumula uma classificação por versão, e só a da versão vigente conta no mapa.
+As respostas que uma frente recebeu em cada dimensão de uma versão da taxonomia, cada uma com a sua confiança. Uma frente acumula uma classificação por versão, e só a da versão vigente conta no mapa. Guarda a resposta inteira do Jev, com a probabilidade de cada opção, e o resultado final sai dela pelas regras de confiança.
 _Avoid_: categorização, rótulo
 
 **Área**:
@@ -143,6 +155,14 @@ A soma da severidade das frentes reativas de uma célula no período.
 
 **Impacto esperado**:
 O ganho estimado de resolver uma frente proativa, numa escala de 0 a 1 medida contra a régua de impacto esperado.
+
+**Painel da célula**:
+O que o clique numa célula mostra primeiro: por que ela está quente e a sugestão de investimento, escritos pela LLM e guardados prontos por célula, visão, período e versão da taxonomia.
+_Avoid_: resumo, insight
+
+**Snapshot**:
+O estado gravado de que a demo sobe: a seed já classificada em cada versão da taxonomia, com a descoberta, a revisão e os painéis das células. Ao carregar, as datas são deslocadas para o último dia da seed virar ontem.
+_Avoid_: dump, backup
 
 **Incerta**:
 Frente cuja classificação ficou abaixo do limiar de confiança e por isso não pinta o mapa. A de texto vago é incerta por outro motivo, a pergunta de controle, e fica fora das células.
