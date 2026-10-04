@@ -1,0 +1,52 @@
+{
+ "listado": {
+  "frentes": 100,
+  "so_frase": {
+   "total": "77/100",
+   "texto_livre": "40/50",
+   "template": "37/50"
+  },
+  "lista_inteira": {
+   "total": "97/100",
+   "texto_livre": "47/50",
+   "template": "50/50"
+  },
+  "lista_com_itens_de_fora": {
+   "total": "97/100",
+   "texto_livre": "47/50",
+   "template": "50/50"
+  },
+  "conf_area_media_itens_de_fora": 0.94,
+  "abaixo_de_0,5_itens_de_fora": 2,
+  "erros_vao_para": {
+   "Originação": 2,
+   "Plataforma e Sustentação": 1
+  }
+ },
+ "nao_listado": {
+  "frentes": 69,
+  "so_frase": {
+   "total": "47/69",
+   "texto_livre": "24/29",
+   "template": "23/40"
+  },
+  "lista_inteira": {
+   "total": "65/69",
+   "texto_livre": "28/29",
+   "template": "37/40"
+  },
+  "lista_com_itens_de_fora": {
+   "total": "52/69",
+   "texto_livre": "23/29",
+   "template": "29/40"
+  },
+  "conf_area_media_itens_de_fora": 0.75,
+  "abaixo_de_0,5_itens_de_fora": 14,
+  "erros_vao_para": {
+   "Plataforma e Sustentação": 7,
+   "Originação": 4,
+   "Dados e Regulatório": 3
+  }
+ },
+ "tok_medio": 4250
+}
