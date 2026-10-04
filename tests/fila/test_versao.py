@@ -1,0 +1,437 @@
+"""`Fila.classificar_versao` e o comando `classificar --versao N`, com o Jev e a LLM falsos, o
+banco em arquivo e nenhuma rede."""
+
+import asyncio
+from contextlib import closing
+from dataclasses import replace
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from frentes import config, fila, store
+from frentes.classificacao import cli
+from frentes.contratos import Estado, Perguntas, RespostaJev, VersaoTaxonomia, para_iso
+from frentes.jev import ErroJev
+from frentes.store import classificacao as armazem
+from frentes.store import versao as armazem_versao
+from tests.fila.documento import DOCUMENTO, QUANDO
+from tests.fila.test_fila import (  # noqa: F401  (fixtures)
+    AREA_BAIXA,
+    CFG,
+    LlmPorTexto,
+    ganchos_limpos,
+    gravar_frente,
+    jev,
+    montar,
+)
+from tests.jev.falso import JevFalso
+from tests.llm.falso import LlmFalsa, resposta_llm
+
+
+@pytest.fixture
+def banco(tmp_path: Path) -> Path:
+    """A v1 vigente e a v2 gravada, sem ativação; as frentes entram em cada teste."""
+    caminho = tmp_path / "frentes.sqlite"
+    with closing(store.abrir(caminho)) as con:
+        armazem_versao.inserir(con, VersaoTaxonomia(1, DOCUMENTO, "jev-latest", QUANDO), [])
+        assert armazem_versao.ativar(con, 1, para_iso(QUANDO))
+        armazem_versao.inserir(
+            con, VersaoTaxonomia(2, DOCUMENTO, "jev-latest", QUANDO, None, 1), []
+        )
+    return caminho
+
+
+def vigente(banco: Path) -> int | None:
+    with closing(store.abrir(banco)) as con:
+        return store.versao_vigente(con)
+
+
+def da_versao(banco: Path, numero: int = 2) -> dict[str, Any]:
+    with closing(store.abrir(banco)) as con:
+        return {c.frente_id: c for c in armazem.da_versao(con, numero)}
+
+
+def tres_frentes(banco: Path) -> JevFalso:
+    gravar_frente(banco, "clara", "o simulador caiu")
+    gravar_frente(banco, "baixa", "algo em plataforma ou dados")
+    gravar_frente(banco, "vaga", "tá tudo ruim")
+    return JevFalso(
+        {
+            "o simulador caiu": jev(),
+            "algo em plataforma ou dados": jev(AREA_BAIXA),
+            "tá tudo ruim": jev(AREA_BAIXA, controle=0.1),
+        }
+    )
+
+
+LLM_DA_BAIXA = {"algo em plataforma ou dados": resposta_llm({"area": "plat"})}
+
+
+def rodar(f: fila.Fila, numero: int = 2) -> fila.ResumoDaVersao:
+    return asyncio.run(f.classificar_versao(numero))
+
+
+# ---------------------------------------------------------------------------- critérios
+
+
+def test_classifica_tudo_ativa_a_versao_e_o_resumo_bate_com_o_banco(banco: Path) -> None:
+    falso = tres_frentes(banco)
+    f = montar(banco, falso, LlmPorTexto(LLM_DA_BAIXA))
+
+    resumo = rodar(f)
+
+    assert vigente(banco) == 2 and resumo.ativada and resumo.completo
+    linhas = da_versao(banco)
+    assert {i: c.estado for i, c in linhas.items()} == {
+        "clara": Estado.CLASSIFICADA,
+        "baixa": Estado.VIA_LLM,
+        "vaga": Estado.INCERTA,
+    }
+    assert resumo.totais.frentes == 3
+    assert dict(resumo.totais.por_estado) == {
+        Estado.CLASSIFICADA: 1,
+        Estado.VIA_LLM: 1,
+        Estado.INCERTA: 1,
+    }
+    # 3 chamadas ao Jev (10 de entrada, 5 de saída) e 1 à LLM (10 e 5), como no banco
+    assert (resumo.totais.jev_entrada, resumo.totais.jev_saida) == (30, 15)
+    assert (resumo.totais.llm_entrada, resumo.totais.llm_saida) == (10, 5)
+    assert resumo.custo_estimado_usd == pytest.approx(30 * 0.042 / 1_000_000)
+    assert not resumo.falhas and resumo.segundos >= 0
+    texto = resumo.texto()
+    assert "versão 2: 3 de 3 frentes classificadas" in texto
+    assert "via_llm: 1" in texto and "versão 2 ativada" in texto and "US$" in texto
+
+
+def test_nao_toca_na_versao_vigente_nem_dispara_ganchos_do_painel(banco: Path) -> None:
+    chamados: list[Any] = []
+    fila.registrar_depois_de_classificar(lambda app, c: chamados.append(c))
+    falso = tres_frentes(banco)
+
+    rodar(montar(banco, falso, LlmPorTexto(LLM_DA_BAIXA)))
+
+    assert da_versao(banco, 1) == {}  # a v1 não ganhou linha
+    assert chamados == []  # o painel é da vigente
+
+
+class JevQueTrava(JevFalso):
+    """Responde os textos gravados e deixa pendurada a chamada dos textos em `travados`."""
+
+    def __init__(self, gravacoes: Any, travados: set[str]) -> None:
+        super().__init__(gravacoes)
+        self._travados = travados
+        self.travadas = 0
+
+    async def perguntar(self, texto: str, perguntas: Perguntas) -> RespostaJev:
+        if texto in self._travados:
+            self.travadas += 1
+            await asyncio.Event().wait()
+        return await super().perguntar(texto, perguntas)
+
+
+def test_interrompido_no_meio_nao_ativa_e_a_segunda_execucao_completa_e_ativa(
+    banco: Path,
+) -> None:
+    for id_ in ("a", "b", "c", "d"):
+        gravar_frente(banco, id_, f"texto {id_}")
+    gravacoes = {f"texto {i}": jev() for i in "abcd"}
+    travando = JevQueTrava(gravacoes, {"texto c", "texto d"})
+
+    async def interrompida() -> None:
+        tarefa = asyncio.create_task(montar(banco, travando, LlmFalsa({})).classificar_versao(2))
+        for _ in range(500):  # a e b gravadas, c e d penduradas no Jev
+            if len(da_versao(banco)) == 2 and travando.travadas == 2:
+                break
+            await asyncio.sleep(0.01)
+        tarefa.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await tarefa
+
+    asyncio.run(interrompida())
+
+    assert sorted(da_versao(banco)) == ["a", "b"]
+    assert vigente(banco) == 1  # a v2 não foi ativada
+
+    retomada = JevFalso(gravacoes)
+    resumo = rodar(montar(banco, retomada, LlmFalsa({})))
+
+    assert sorted(t for t, _ in retomada.chamadas) == ["texto c", "texto d"]  # só o que faltava
+    assert resumo.ativada and vigente(banco) == 2
+    assert sorted(da_versao(banco)) == ["a", "b", "c", "d"]
+
+
+def test_frente_que_falhou_fica_listada_e_a_versao_nao_e_ativada(banco: Path) -> None:
+    falso = tres_frentes(banco)
+    gravar_frente(banco, "quebrada", "o jev não responde")
+    falso = JevFalso(
+        {
+            **{
+                t: jev()
+                for t in ("o simulador caiu", "algo em plataforma ou dados", "tá tudo ruim")
+            },
+            "o jev não responde": [ErroJev("Jev sem resposta em 3 tentativas"), jev()],
+        }
+    )
+
+    resumo = rodar(montar(banco, falso, LlmPorTexto(LLM_DA_BAIXA)))
+
+    assert not resumo.ativada and not resumo.completo and vigente(banco) == 1
+    assert list(resumo.falhas) == ["quebrada"] and "3 tentativas" in resumo.falhas["quebrada"]
+    assert "NÃO ativada" in resumo.texto() and "quebrada: Jev" in resumo.texto()
+    assert sorted(da_versao(banco)) == ["baixa", "clara", "vaga"]  # as outras seguiram
+
+    # a execução seguinte só faz a que falhou e ativa
+    segunda = rodar(montar(banco, falso, LlmFalsa({})))
+
+    assert segunda.ativada and not segunda.falhas and vigente(banco) == 2
+    assert [t for t, _ in falso.chamadas].count("o jev não responde") == 2
+
+
+def test_llm_que_falha_deixa_aguardando_llm_e_a_versao_nao_e_ativada(banco: Path) -> None:
+    falso = tres_frentes(banco)
+
+    resumo = rodar(montar(banco, falso, LlmPorTexto({"algo em plataforma ou dados": ErroJev("x")})))
+
+    assert not resumo.ativada and list(resumo.falhas) == ["baixa"]
+    assert da_versao(banco)["baixa"].estado is Estado.AGUARDANDO_LLM
+    assert resumo.totais.por_estado[Estado.AGUARDANDO_LLM] == 1
+
+    # retomada: o Jev não é chamado de novo, só a LLM
+    chamadas = len(falso.chamadas)
+    segunda = rodar(montar(banco, falso, LlmPorTexto(LLM_DA_BAIXA)))
+
+    assert segunda.ativada and len(falso.chamadas) == chamadas
+
+
+def test_recalcula_por_limiar_chamando_a_llm_so_para_quem_passou_a_precisar(
+    banco: Path,
+) -> None:
+    gravar_frente(banco, "clara", "o simulador caiu")  # área com 0,9
+    gravar_frente(banco, "forte", "tudo certo na plataforma")  # área com 0,95
+    gravar_frente(banco, "baixa", "algo em plataforma ou dados")  # área com 0,45
+    falso = JevFalso(
+        {
+            "o simulador caiu": jev(),
+            "tudo certo na plataforma": jev({"plat_a": 0.95, "dados_a": 0.05}),
+            "algo em plataforma ou dados": jev(AREA_BAIXA),
+        }
+    )
+    llm = LlmPorTexto(
+        {
+            "algo em plataforma ou dados": resposta_llm({"area": "plat"}),
+            "o simulador caiu": resposta_llm({"area": "dados"}),
+        }
+    )
+    rodar(montar(banco, falso, LlmPorTexto(LLM_DA_BAIXA)))
+    assert da_versao(banco)["clara"].estado is Estado.CLASSIFICADA
+    chamadas_do_jev = len(falso.chamadas)
+
+    # o corte da área sobe para 0,92: a clara (0,9) passa a precisar da LLM, a forte não
+    mais_exigente = replace(CFG.limiares, confianca=replace(CFG.limiares.confianca, area=0.92))
+    f = fila.Fila(
+        None, banco, mais_exigente, montar(banco, falso, llm)._operacao, lambda m: falso, llm
+    )
+    resumo = rodar(f)
+
+    linhas = da_versao(banco)
+    assert resumo.recalculadas == 1
+    assert (linhas["clara"].estado, linhas["clara"].area_final) == (Estado.VIA_LLM, "dados")
+    assert linhas["forte"].estado is Estado.CLASSIFICADA
+    assert linhas["baixa"].estado is Estado.VIA_LLM and linhas["baixa"].area_final == "plat"
+    assert [json_texto(e) for e in llm.entradas] == [
+        "o simulador caiu"
+    ]  # só a que passou a precisar
+    assert len(falso.chamadas) == chamadas_do_jev  # o Jev não foi chamado de novo
+    assert dict(resumo.totais.por_estado) == {Estado.CLASSIFICADA: 1, Estado.VIA_LLM: 2}
+
+    # o corte desce para 0,2: a via_llm que o Jev já cobria vira classificada, sem chamar ninguém
+    menos_exigente = replace(CFG.limiares, confianca=replace(CFG.limiares.confianca, area=0.2))
+    llm_zero = LlmPorTexto({})
+    f = fila.Fila(None, banco, menos_exigente, f._operacao, lambda m: falso, llm_zero)
+    resumo = rodar(f)
+
+    assert resumo.recalculadas >= 1 and llm_zero.entradas == []
+    assert da_versao(banco)["clara"].estado is Estado.CLASSIFICADA
+    assert len(falso.chamadas) == chamadas_do_jev
+
+
+def json_texto(entrada: str) -> str:
+    import json
+
+    return json.loads(entrada)["texto"]
+
+
+def test_sem_mudanca_de_limiar_nada_e_recalculado_nem_chamado(banco: Path) -> None:
+    falso = tres_frentes(banco)
+    llm = LlmPorTexto(LLM_DA_BAIXA)
+    rodar(montar(banco, falso, llm))
+    antes = (len(falso.chamadas), len(llm.entradas))
+
+    resumo = rodar(montar(banco, falso, llm))
+
+    assert resumo.recalculadas == 0 and (len(falso.chamadas), len(llm.entradas)) == antes
+    assert not resumo.ativada and resumo.motivo_nao_ativada is None  # já estava ativa
+    assert "já estava ativa" in resumo.texto() and resumo.completo
+
+
+# ---------------------------------------------------------------------------- ramos de estado
+
+
+def test_versao_que_nao_existe_levanta(banco: Path) -> None:
+    with pytest.raises(fila.VersaoInexistente, match="versão 9"):
+        rodar(montar(banco, JevFalso({}), LlmFalsa({})), 9)
+
+
+def test_versao_menor_que_a_vigente_classifica_mas_nao_ativa(banco: Path) -> None:
+    with closing(store.abrir(banco)) as con:
+        armazem_versao.inserir(con, VersaoTaxonomia(3, DOCUMENTO, "jev-latest", QUANDO), [])
+        assert armazem_versao.ativar(con, 3, para_iso(QUANDO))
+    gravar_frente(banco, "f1", "texto")
+    falso = JevFalso({"texto": jev()})
+
+    # a v3 vale e a v2 não: classificar a v2 (menor que a vigente) não a ativa
+    resumo = rodar(montar(banco, falso, LlmFalsa({})), 2)
+
+    assert not resumo.ativada and "não é maior que a vigente (3)" in resumo.motivo_nao_ativada
+    assert not resumo.completo and vigente(banco) == 3
+
+
+def test_frente_nova_durante_a_execucao_impede_a_ativacao(banco: Path) -> None:
+    gravar_frente(banco, "velha", "texto velho")
+
+    class JevQueRecebeFrente(JevFalso):
+        async def perguntar(self, texto: str, perguntas: Perguntas) -> RespostaJev:
+            gravar_frente(banco, "nova", "texto novo")  # chega no meio da execução
+            return await super().perguntar(texto, perguntas)
+
+    resumo = rodar(montar(banco, JevQueRecebeFrente({"texto velho": jev()}), LlmFalsa({})))
+
+    assert (
+        not resumo.ativada and "1 frente(s) sem classificação pronta" in resumo.motivo_nao_ativada
+    )
+    assert vigente(banco) == 1
+
+
+def test_o_semaforo_limita_as_chamadas_ao_jev_em_voo(banco: Path) -> None:
+    for i in range(6):
+        gravar_frente(banco, f"f{i}", f"texto {i}")
+    em_voo = maximo = 0
+
+    class JevContado(JevFalso):
+        async def perguntar(self, texto: str, perguntas: Perguntas) -> RespostaJev:
+            nonlocal em_voo, maximo
+            em_voo += 1
+            maximo = max(maximo, em_voo)
+            await asyncio.sleep(0.01)
+            em_voo -= 1
+            return await super().perguntar(texto, perguntas)
+
+    operacao = replace(CFG.operacao, semaforo_jev=2, varredura_s=0.05, espera_inicial_s=0.001)
+    falso = JevContado({f"texto {i}": jev() for i in range(6)})
+    f = fila.Fila(None, banco, CFG.limiares, operacao, lambda m: falso, LlmFalsa({}))
+
+    resumo = rodar(f)
+
+    assert resumo.ativada and maximo == 2
+
+
+# ---------------------------------------------------------------------------- o comando
+
+
+@pytest.fixture
+def comando(banco: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
+    monkeypatch.setenv("FRENTES_DB", str(banco))
+    monkeypatch.setenv("TYPESAFE_API_KEY", "chave-falsa-de-teste")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
+
+    def com(falso: Any, llm: Any) -> None:
+        monkeypatch.setattr(fila, "montar_fila", lambda app, cfg: (montar(banco, falso, llm), {}))
+
+    return com
+
+
+def test_o_comando_esta_declarado_no_modulo_da_classificacao() -> None:
+    from frentes.__main__ import declarados
+
+    assert declarados()["classificar"][1] is cli.classificar
+
+
+def test_comando_classifica_ativa_imprime_o_resumo_e_sai_com_0(
+    banco: Path, comando: Any, capsys: pytest.CaptureFixture[str]
+) -> None:
+    comando(tres_frentes(banco), LlmPorTexto(LLM_DA_BAIXA))
+
+    assert cli.classificar(["--versao", "2"]) == 0
+
+    saida = capsys.readouterr().out
+    assert "versão 2: 3 de 3 frentes classificadas" in saida and "versão 2 ativada" in saida
+    assert vigente(banco) == 2
+
+
+def test_comando_com_frente_que_falhou_sai_com_1(
+    banco: Path, comando: Any, capsys: pytest.CaptureFixture[str]
+) -> None:
+    gravar_frente(banco, "f1", "texto")
+    comando(JevFalso({"texto": ErroJev("Jev fora do ar")}), LlmFalsa({}))
+
+    assert cli.classificar(["--versao", "2"]) == 1
+
+    assert "f1: Jev: ErroJev: Jev fora do ar" in capsys.readouterr().out
+    assert vigente(banco) == 1
+
+
+@pytest.mark.parametrize(
+    "argumentos", [[], ["--versao"], ["--versao", "x"], ["2"], ["--versao", "2", "3"]]
+)
+def test_comando_com_argumento_errado_sai_com_2(
+    argumentos: list[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert cli.classificar(argumentos) == 2
+    assert "uso: python -m frentes classificar --versao N" in capsys.readouterr().err
+
+
+def test_comando_sem_as_chaves_sai_com_2(
+    banco: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("FRENTES_DB", str(banco))
+
+    assert cli.classificar(["--versao", "2"]) == 2
+    assert "faltam TYPESAFE_API_KEY e OPENROUTER_API_KEY" in capsys.readouterr().err
+
+
+def test_comando_com_versao_inexistente_sai_com_2(
+    comando: Any, capsys: pytest.CaptureFixture[str]
+) -> None:
+    comando(JevFalso({}), LlmFalsa({}))
+
+    assert cli.classificar(["--versao", "9"]) == 2
+    assert "a versão 9 não existe" in capsys.readouterr().err
+
+
+def test_comando_sem_banco_sai_com_2(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("FRENTES_DB", str(tmp_path / "nao-existe.sqlite"))
+    monkeypatch.setenv("TYPESAFE_API_KEY", "chave-falsa-de-teste")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
+    monkeypatch.setattr(
+        fila,
+        "montar_fila",
+        lambda app, cfg: (montar(tmp_path / "nao-existe.sqlite", JevFalso({}), LlmFalsa({})), {}),
+    )
+
+    assert cli.classificar(["--versao", "2"]) == 2
+    assert "não há banco" in capsys.readouterr().err
+
+
+def test_comando_interrompido_sai_com_130(
+    comando: Any, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def interrompe(cfg: config.Config, numero: int) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(cli, "_rodar", interrompe)
+
+    assert cli.classificar(["--versao", "2"]) == 130
+    assert "interrompido" in capsys.readouterr().err
