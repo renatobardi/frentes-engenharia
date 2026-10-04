@@ -1,0 +1,26 @@
+/* Tela do mapa de calor. Escrito à mão, sem endereço externo. */
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.mapa .barra { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+.filtros fieldset { display: flex; gap: 0.6rem; border: 0; padding: 0; margin: 0; }
+.filtros legend { float: left; margin-right: 0.6rem; color: var(--suave); }
+.filtros select { font: inherit; padding: 0.2rem; }
+.contadores { display: flex; gap: 1rem; list-style: none; margin: 0; padding: 0; }
+.contadores a { color: var(--suave); text-decoration: none; border-bottom: 1px dotted var(--suave); }
+.contadores strong { color: var(--texto); }
+.top3 { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; list-style: none; margin: 0 0 1rem; padding: 0; }
+.top3-titulo { font-weight: 700; }
+.posicao { display: inline-block; width: 1.4rem; text-align: center; border-radius: 50%; background: var(--texto); color: #fff; }
+.grade { border-collapse: separate; border-spacing: 3px; width: 100%; }
+.grade th { text-align: left; font-weight: 600; padding: 0.4rem; }
+.grade thead th { text-align: center; }
+.celula { text-align: center; padding: 0.6rem; border-radius: 4px; background: #fff; vertical-align: middle; }
+.celula .indice { font-size: 1.2rem; font-weight: 700; }
+.celula .incertas { display: block; font-size: 0.75rem; color: var(--suave); }
+.celula.calor-1 { background: #fde9d4; }
+.celula.calor-2 { background: #fbcb9c; }
+.celula.calor-3 { background: #f6a15f; }
+.celula.calor-4 { background: #ec7233; color: #fff; }
+.celula.calor-5 { background: #c9421a; color: #fff; }
+.celula.calor-4 .incertas, .celula.calor-5 .incertas { color: #fff; }
+.grade .nao-classificadas, .grade td.nao-classificadas { background: #e6e8ec; color: var(--suave); }
