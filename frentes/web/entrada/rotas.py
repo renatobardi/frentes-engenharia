@@ -1,10 +1,12 @@
-"""`POST /frentes`: a porta única de entrada, do webhook e do formulário de relato."""
+"""`POST /frentes`: a porta de entrada do webhook (a origem gravada é sempre `webhook`).
+
+O formulário de relato não manda origem: a tela chama `recepcao.receber` com `Origem.RELATO`.
+"""
 
 from contextlib import closing
-from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from pydantic import AwareDatetime, BaseModel, ConfigDict, field_validator
+from fastapi import APIRouter, HTTPException, Request
+from starlette.concurrency import run_in_threadpool
 
 from frentes import contratos, store
 from frentes.entrada import recepcao
@@ -12,55 +14,39 @@ from frentes.entrada import recepcao
 roteador = APIRouter()
 
 
-class CorpoDaFrente(BaseModel):
-    """O corpo do POST. A origem é `webhook`, salvo o formulário, que manda `relato`."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    texto: str
-    emissor: str = recepcao.EMISSOR_PADRAO
-    origem: contratos.Origem = contratos.Origem.WEBHOOK
-    ocorrido_em: AwareDatetime | None = None
-    ref_externa: str | None = None
-    metadados: dict[str, Any] = {}
-
-    @field_validator("texto")
-    @classmethod
-    def _texto_nao_vazio(cls, texto: str) -> str:
-        if not texto.strip():
-            raise ValueError("texto é obrigatório")
-        return texto  # o original nunca é alterado
-
-    @field_validator("origem")
-    @classmethod
-    def _origem_ao_vivo(cls, origem: contratos.Origem) -> contratos.Origem:
-        if origem not in recepcao.ORIGENS_AO_VIVO:
-            raise ValueError("origem aceita: relato ou webhook")
-        return origem
+def _token(request: Request) -> str | None:
+    recebido = request.headers.get("x-webhook-token")
+    if recebido:
+        return recebido
+    autorizacao = request.headers.get("authorization", "")
+    if autorizacao.lower().startswith("bearer "):
+        return autorizacao[7:].strip()
+    return None
 
 
-def _autenticar(
-    request: Request,
-    x_webhook_token: Annotated[str | None, Header()] = None,
-    authorization: Annotated[str | None, Header()] = None,
-) -> None:
-    """Roda antes da validação do corpo: token errado é 401 mesmo com corpo inválido."""
-    recebido = x_webhook_token
-    if not recebido and authorization and authorization.lower().startswith("bearer "):
-        recebido = authorization[7:].strip()
-    if not recepcao.token_confere(request.app.state.config.webhook_token, recebido):
-        raise HTTPException(status_code=401, detail="token inválido ou ausente")
-
-
-@roteador.post("/frentes", status_code=202, dependencies=[Depends(_autenticar)])
-def receber_frente(request: Request, corpo: CorpoDaFrente) -> dict[str, str]:
-    bruta = contratos.FrenteBruta(
-        emissor=corpo.emissor,
-        texto=corpo.texto,
-        ocorrido_em=corpo.ocorrido_em,
-        ref_externa=corpo.ref_externa,
-        metadados=corpo.metadados,
-    )
+def _gravar(request: Request, bruto: bytes) -> dict[str, str]:
+    try:
+        bruta = recepcao.ler_corpo(bruto)
+    except recepcao.CorpoInvalido as erro:
+        raise HTTPException(status_code=422, detail=str(erro)) from None
     with closing(store.abrir(request.app.state.config.banco)) as con:
-        gravada = recepcao.receber(con, bruta, corpo.origem)
+        gravada = recepcao.receber(con, bruta, contratos.Origem.WEBHOOK)
     return {"id": gravada.id}
+
+
+@roteador.post("/frentes", status_code=202)
+async def receber_frente(request: Request) -> dict[str, str]:
+    # Só o Request: o token é conferido antes de ler uma linha do corpo.
+    if not recepcao.token_confere(request.app.state.config.webhook_token, _token(request)):
+        raise HTTPException(status_code=401, detail="token inválido ou ausente")
+    declarado = request.headers.get("content-length", "")
+    if declarado.isdecimal() and int(declarado) > recepcao.LIMITE_CORPO:
+        raise HTTPException(status_code=413, detail="corpo grande demais")
+    pedacos: list[bytes] = []
+    total = 0
+    async for pedaco in request.stream():
+        total += len(pedaco)
+        if total > recepcao.LIMITE_CORPO:
+            raise HTTPException(status_code=413, detail="corpo grande demais")
+        pedacos.append(pedaco)
+    return await run_in_threadpool(_gravar, request, b"".join(pedacos))
