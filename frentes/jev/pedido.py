@@ -5,6 +5,7 @@ spec fica lá, parte do retrato imutável); aqui só se montam os critérios.
 """
 
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from typing import Any
 
 from frentes.contratos import (
@@ -19,9 +20,6 @@ from frentes.contratos import (
     TimeDoOrganograma,
     ValorDoDocumento,
 )
-
-# As perguntas numéricas que o Jev responde como `score` (régua); as demais são `noul`.
-COM_REGUA = frozenset({Pergunta.SEVERIDADE, Pergunta.IMPACTO})
 
 CRITERIO_NENHUM_DESTES: Mapping[Pergunta, str] = {
     Pergunta.AREA: "A frente não fala de nenhum destes times",
@@ -66,8 +64,19 @@ def _opcoes_planas(valores: Sequence[ValorDoDocumento]) -> dict[str, str]:
     return {v.chave: f"{v.nome}: {v.descricao}" for v in valores}
 
 
-def _regua(niveis: Sequence[NivelDaRegua]) -> str:
-    return "\n".join(f"{n.nome}: {n.criterio}" for n in niveis)
+@dataclass(frozen=True, slots=True)
+class PerguntaDeRegua(PerguntaDeNumero):
+    """Pergunta `score`: o Jev recebe os níveis da régua como lista, na ordem (0 a n-1).
+
+    `criterio` é o mesmo texto em uma string só, para quem lê as `Perguntas`.
+    """
+
+    niveis: tuple[str, ...] = ()
+
+
+def _regua(instrucao: str, niveis: Sequence[NivelDaRegua]) -> PerguntaDeRegua:
+    textos = tuple(f"{n.nome}: {n.criterio}" for n in niveis)
+    return PerguntaDeRegua(instrucao, "\n".join(textos), textos)
 
 
 def montar_perguntas(documento: DocumentoTaxonomia) -> Perguntas:
@@ -85,12 +94,10 @@ def montar_perguntas(documento: DocumentoTaxonomia) -> Perguntas:
             {n.value: documento.criterio_natureza[n] for n in Natureza},
             com_nenhum_destes=False,
         ),
-        Pergunta.SEVERIDADE: PerguntaDeNumero(
-            _instrucao(documento, Pergunta.SEVERIDADE), _regua(documento.regua_severidade)
+        Pergunta.SEVERIDADE: _regua(
+            _instrucao(documento, Pergunta.SEVERIDADE), documento.regua_severidade
         ),
-        Pergunta.IMPACTO: PerguntaDeNumero(
-            _instrucao(documento, Pergunta.IMPACTO), _regua(documento.regua_impacto)
-        ),
+        Pergunta.IMPACTO: _regua(_instrucao(documento, Pergunta.IMPACTO), documento.regua_impacto),
         Pergunta.CAUSA_RAIZ: lista(Pergunta.CAUSA_RAIZ, _opcoes_planas(documento.causas_raiz)),
         Pergunta.URGENCIA: PerguntaDeNumero(
             _instrucao(documento, Pergunta.URGENCIA), documento.criterio_urgencia
@@ -110,8 +117,11 @@ def _pergunta_para_json(
         if p.com_nenhum_destes:
             criterios[NENHUM_DESTES] = CRITERIO_NENHUM_DESTES[pergunta]
         return {"type": "choice", "instructions": p.instrucao, "criteria": criterios}
-    tipo = "score" if pergunta in COM_REGUA else "noul"
-    return {"type": tipo, "instructions": p.instrucao, "criteria": p.criterio}
+    if isinstance(p, PerguntaDeRegua):
+        return {"type": "score", "instructions": p.instrucao, "criteria": list(p.niveis)}
+    # A `noul` não leva `criteria`: o critério vai junto da instrução.
+    instrucao = f"{p.instrucao} {p.criterio}" if p.criterio else p.instrucao
+    return {"type": "noul", "instructions": instrucao}
 
 
 def corpo_do_pedido(modelo: str, texto: str, perguntas: Perguntas) -> dict[str, Any]:

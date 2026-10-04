@@ -22,7 +22,7 @@ from frentes.contratos import (
     RespostaJev,
     Uso,
 )
-from frentes.jev.pedido import COM_REGUA, corpo_do_pedido
+from frentes.jev.pedido import PerguntaDeRegua, corpo_do_pedido
 
 URL = "https://api.typesafe.ai/v1/systemone"
 TEMPO_LIMITE = 5.0
@@ -64,14 +64,12 @@ class ClienteTypesafe:
         chave: str | None,
         modelo: str,
         *,
-        url: str = URL,
         transporte: httpx.AsyncBaseTransport | None = None,
         dormir: Callable[[float], Awaitable[None]] = asyncio.sleep,
         simultaneas: int = CHAMADAS_SIMULTANEAS,
     ) -> None:
         self._chave = chave
         self._modelo = modelo
-        self._url = url
         self._dormir = dormir
         self._semaforo = asyncio.Semaphore(simultaneas)
         self._http = httpx.AsyncClient(transport=transporte, timeout=TEMPO_LIMITE)
@@ -84,9 +82,8 @@ class ClienteTypesafe:
             raise SemChave("TYPESAFE_API_KEY não está no ambiente")
         corpo = corpo_do_pedido(self._modelo, texto, perguntas)
         for tentativa in range(1, TENTATIVAS + 1):
-            inicio = time.perf_counter()
             try:
-                dados = await self._enviar(corpo)
+                dados, latencia_ms = await self._enviar(corpo)
             except _Tentar as falha:
                 if tentativa == TENTATIVAS:
                     raise ErroJev(f"Jev sem resposta em {TENTATIVAS} tentativas: {falha}") from None
@@ -95,19 +92,21 @@ class ClienteTypesafe:
                     ESPERA_INICIAL * 2 ** (tentativa - 1) if espera is None else espera
                 )
                 continue
-            latencia_ms = round((time.perf_counter() - inicio) * 1000)
             return _ler_resposta(dados, perguntas, latencia_ms)
         raise AssertionError("inalcançável")  # pragma: no cover
 
-    async def _enviar(self, corpo: dict[str, Any]) -> Mapping[str, Any]:
+    async def _enviar(self, corpo: dict[str, Any]) -> tuple[Mapping[str, Any], int]:
         cabecalhos = {"Authorization": f"Bearer {self._chave}"}
         async with self._semaforo:
+            # A latência é só a do `post`: a espera pelo semáforo não conta.
+            inicio = time.perf_counter()
             try:
-                resposta = await self._http.post(self._url, json=corpo, headers=cabecalhos)
+                resposta = await self._http.post(URL, json=corpo, headers=cabecalhos)
             except httpx.TimeoutException:
                 raise _Tentar("tempo esgotado") from None
             except httpx.TransportError as erro:
                 raise _Tentar(f"falha de conexão ({type(erro).__name__})") from None
+            latencia_ms = round((time.perf_counter() - inicio) * 1000)
         if resposta.status_code == 429 or resposta.status_code >= 500:
             raise _Tentar(f"HTTP {resposta.status_code}", _retry_after(resposta))
         if resposta.status_code >= 400:
@@ -119,7 +118,15 @@ class ClienteTypesafe:
             raise ErroJev("resposta do Jev não é JSON") from None
         if not isinstance(dados, dict):
             raise ErroJev("resposta do Jev não é um objeto JSON")
-        return dados
+        return dados, latencia_ms
+
+
+def _normalizar(r: Mapping[str, Any]) -> float:
+    """O `score` do Jev vem na escala dos níveis (0 a n-1); o contrato é de 0 a 1."""
+    niveis = len(r["probabilities"])
+    if niveis < 2:
+        raise ValueError("score com menos de 2 níveis")
+    return float(r["score"]) / (niveis - 1)
 
 
 def _ler_resposta(dados: Mapping[str, Any], perguntas: Perguntas, latencia_ms: int) -> RespostaJev:
@@ -134,9 +141,10 @@ def _ler_resposta(dados: Mapping[str, Any], perguntas: Perguntas, latencia_ms: i
                     float(r["confidence"]),
                     {str(k): float(v) for k, v in r["probabilities"].items()},
                 )
+            elif isinstance(p, PerguntaDeRegua):
+                respostas[pergunta] = RespostaDeNumero(_normalizar(r))
             else:
-                campo = "score" if pergunta in COM_REGUA else "noul"
-                respostas[pergunta] = RespostaDeNumero(float(r[campo]))
+                respostas[pergunta] = RespostaDeNumero(float(r["noul"]))
         usage = dados.get("usage", {})
         uso = Uso(int(usage["input_tokens"]), int(usage.get("output_tokens", 0)), latencia_ms)
         return RespostaJev(str(dados["model"]), respostas, uso)

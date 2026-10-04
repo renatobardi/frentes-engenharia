@@ -1,0 +1,72 @@
+{
+ "model": "jev-latest",
+ "state": "O simulador de parcelas está fora do ar desde as 9h e os lojistas não conseguem fechar propostas.",
+ "questions": {
+  "area": {
+   "type": "choice",
+   "instructions": "instrução de area",
+   "criteria": {
+    "simulacao": "Time Simulação, da área Originação: Calcula parcelas e taxas para o cliente. Sistemas e rotinas: simulador de parcelas, tabela de taxas, serviço de cálculo",
+    "proposta": "Time Proposta, da área Originação: Registra propostas. Sistemas e rotinas: ",
+    "nenhum_destes": "A frente não fala de nenhum destes times"
+   }
+  },
+  "tipo": {
+   "type": "choice",
+   "instructions": "instrução de tipo",
+   "criteria": {
+    "lentidao": "Tipo Falha › Lentidão: demora para responder",
+    "erro": "Tipo Falha › Erro: resposta errada",
+    "nenhum_destes": "A frente não cabe em nenhum destes tipos"
+   }
+  },
+  "natureza": {
+   "type": "choice",
+   "instructions": "instrução de natureza",
+   "criteria": {
+    "reativa": "falha acontecendo",
+    "proativa": "melhoria"
+   }
+  },
+  "severidade": {
+   "type": "score",
+   "instructions": "instrução de severidade",
+   "criteria": [
+    "leve: incomoda",
+    "grave: para a operação"
+   ]
+  },
+  "impacto": {
+   "type": "score",
+   "instructions": "instrução de impacto",
+   "criteria": [
+    "leve: incomoda",
+    "grave: para a operação"
+   ]
+  },
+  "causa_raiz": {
+   "type": "choice",
+   "instructions": "instrução de causa_raiz",
+   "criteria": {
+    "config": "Configuração: ajuste errado",
+    "nenhum_destes": "Nenhuma destas causas explica a frente"
+   }
+  },
+  "urgencia": {
+   "type": "noul",
+   "instructions": "instrução de urgencia a janela de tempo para agir"
+  },
+  "problema": {
+   "type": "choice",
+   "instructions": "instrução de problema",
+   "criteria": {
+    "p1": "Simulador fora: Frentes que citam o simulador",
+    "nenhum_destes": "A frente não cita o objeto de nenhum destes problemas"
+   }
+  },
+  "controle": {
+   "type": "noul",
+   "instructions": "instrução de controle O texto cita algum sistema, processo, número ou situação?"
+  }
+ }
+}
