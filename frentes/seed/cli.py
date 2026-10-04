@@ -21,8 +21,7 @@ USO = (
     "uso: python -m frentes seed gerar [--seed N] [--total N] [--entrada PASTA] [--saida PASTA]\n"
     "     python -m frentes seed carregar [--entrada PASTA] [--gerado PASTA] [--banco CAMINHO]\n"
     "     python -m frentes seed textos [--teto DÓLARES] [--lotes N] [--paralelo N] "
-    "[--entrada PASTA] [--gerado PASTA]\n"
-    "     python -m frentes seed relatorio [--entrada PASTA] [--gerado PASTA]"
+    "\n     python -m frentes seed relatorio"
 )
 SAIDA = validador.PASTA / "gerado"
 
@@ -124,13 +123,12 @@ def _ficha(pasta: Path) -> str:
 
 
 def escrever_textos(argumentos: list[str]) -> int:
-    """Escreve os textos de relato e mcp pela LLM e, com todos prontos, grava `frentes.jsonl`."""
+    """`seed textos`: as pastas são fixas (`seed/` e `seed/gerado/`); só o gasto e o ritmo vêm
+    da linha de comando."""
     padrao = {
         "--teto": str(textos.TETO_EM_DOLARES),
         "--lotes": "",
         "--paralelo": str(textos.PARALELO),
-        "--entrada": str(validador.PASTA),
-        "--gerado": str(SAIDA),
     }
     opcoes = _opcoes(argumentos, padrao)
     if opcoes is None:
@@ -142,7 +140,13 @@ def escrever_textos(argumentos: list[str]) -> int:
     except ValueError:
         print(USO, file=sys.stderr)
         return 2
-    entrada, gerado = Path(opcoes["--entrada"]), Path(opcoes["--gerado"])
+    return executar_textos(validador.PASTA, SAIDA, teto, paralelo, lotes)
+
+
+def executar_textos(
+    entrada: Path, gerado: Path, teto: float, paralelo: int, lotes: int | None
+) -> int:
+    """Escreve os textos de relato e mcp pela LLM e, com todos prontos, grava `frentes.jsonl`."""
     cfg = config.carregar()
     if not cfg.openrouter_api_key:
         print("seed textos: OPENROUTER_API_KEY não está no ambiente", file=sys.stderr)
@@ -173,21 +177,24 @@ def escrever_textos(argumentos: list[str]) -> int:
         print(f"seed textos: {erro}", file=sys.stderr)
         return 1
     print(f"frentes.jsonl: {total} frentes")
-    return relatorio(["--entrada", str(entrada), "--gerado", str(gerado)])
+    return executar_relatorio(entrada, gerado)
 
 
 def relatorio(argumentos: list[str]) -> int:
-    """O relatório de curvas do dataset gravado, em `relatorio-textos.md`."""
-    opcoes = _opcoes(argumentos, {"--entrada": str(validador.PASTA), "--gerado": str(SAIDA)})
-    if opcoes is None:
+    """`seed relatorio`: o relatório de curvas do dataset de `seed/gerado/`."""
+    if argumentos:
         print(USO, file=sys.stderr)
         return 2
-    gerado = Path(opcoes["--gerado"])
-    _, termos = _entrada(Path(opcoes["--entrada"]))
+    return executar_relatorio(validador.PASTA, SAIDA)
+
+
+def executar_relatorio(entrada: Path, gerado: Path) -> int:
+    """O relatório de curvas do dataset gravado em `gerado`, em `relatorio-textos.md`."""
+    _, termos = _entrada(entrada)
     objetos = {h: curvas.HISTORIAS[h].objeto if h in curvas.HISTORIAS else None for h in termos}
     cfg = config.carregar()
     gasto = textos.ler_gasto(gerado)
-    ficha = _ficha(Path(opcoes["--entrada"]))
+    ficha = _ficha(entrada)
     texto, problemas = dataset.relatorio(
         gerado, termos, objetos, ficha, gasto, gasto.em_dolares(cfg.operacao.modelo_llm),
         cfg.operacao.modelo_llm,

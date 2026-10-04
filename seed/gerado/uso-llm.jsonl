@@ -697,3 +697,4 @@
 {"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1271, "tokens_saida": 178, "ids": ["fr-4959"]}
 {"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1276, "tokens_saida": 170, "ids": ["fr-5600"]}
 {"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1335, "tokens_saida": 158, "ids": ["fr-5600"]}
+{"modelo": "deepseek/deepseek-v4-flash", "tokens_entrada": 1390, "tokens_saida": 136, "ids": ["fr-0802", "fr-1756"]}

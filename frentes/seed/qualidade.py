@@ -23,7 +23,7 @@ PRIMEIRA_PESSOA = re.compile(
     r"acho|penso|venho|vejo|vimos|fizemos|tivemos|somos|mim|me|a gente)(?![a-z])"
 )
 PALAVROES = re.compile(
-    r"(?<![a-z])(porra|merda\w*|caralh\w*|foda\w*|fode\w*|foder|puta|puto|putaria|cacete|"
+    r"(?<![a-z])(porra|merda\w*|caralh\w*|foda\w*|fode\w*|foder|fud\w*|puta|puto|putaria|cacete|"
     r"bosta|cu|buceta|arrombad\w*|desgraca\w*|fdp|vsf|krl|pqp|zuad\w*|"
     r"idiota|imbecil|estupid\w*)(?![a-z])"
 )
