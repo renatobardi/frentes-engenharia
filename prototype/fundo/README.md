@@ -29,4 +29,4 @@ Lista de problemas, 3 rodadas (na lista / do fundo): texto do #9: 6/4, 7/5, 4/3 
 "Bureau", "regulador" e "LGPD" entram em todas as rodadas do texto do #9 e em nenhuma da regra final.
 
 Pedidos no canal de aprovação: `20261003-234615` e `20261003-235418`. As duas últimas rodadas do Jev foram no container.
-Custo total: cerca de US$0,17 (Jev ~US$0,14; LLM ~US$0,03).
+Custo total: cerca de US$0,20 (Jev US$0,17, 4,0 milhões de tokens; LLM ~US$0,03).
