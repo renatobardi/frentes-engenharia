@@ -42,6 +42,9 @@ NOMES_REAIS = (
     "bacen", "banco central", "detran", "denatran", "senatran", "anbima", "febraban",
     "docusign", "clicksign", "zapsign", "idwall", "whatsapp", "openai", "chatgpt",
     "claude", "gemini", "copilot",
+    "excel", "kafka", "chrome", "correios", "outlook", "sharepoint", "power bi", "tableau",
+    "postgres", "postgresql", "mysql", "mongodb", "redis", "rabbitmq", "linkedin", "facebook",
+    "instagram", "telegram", "elasticsearch", "kibana", "sonarqube", "firefox", "safari",
 )  # fmt: skip
 
 
