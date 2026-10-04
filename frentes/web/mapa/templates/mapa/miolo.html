@@ -1,4 +1,4 @@
-<section id="mapa" class="mapa">
+<section id="mapa" class="mapa" hx-headers='{"X-Marca": "{{ marca }}"}'>
   <div class="barra">
     <form class="filtros" action="/" method="get"
           hx-get="/" hx-trigger="change" hx-target="#mapa" hx-swap="outerHTML" hx-push-url="true">
@@ -38,50 +38,13 @@
     </ul>
   </div>
 
-  <ol class="top3" aria-label="Top 3 onde investir">
-    <li class="top3-titulo">Top 3 onde investir</li>
-    {% for d in top3 %}
-    <li class="destaque"><span class="posicao">{{ d.posicao }}</span> {{ d.area }} × {{ d.tipo }}
-      <strong>{{ d.indice }}</strong>{% if d.seta %} <span class="seta">{{ d.seta }}{{ d.variacao }}</span>{% endif %}</li>
-    {% else %}
-    <li class="vazio">Nenhuma célula com índice neste recorte.</li>
-    {% endfor %}
-  </ol>
+  <div id="ao-vivo" hidden hx-get="{{ polling }}" hx-trigger="every {{ intervalo }}s" hx-swap="outerHTML"></div>
+
+  {% include "mapa/faixa.html" %}
+  {% include "mapa/top3.html" %}
 
   <div class="corpo{% if painel %} com-painel{% endif %}">
-  <table class="grade">
-    <thead>
-      <tr>
-        <th scope="col"><span class="visually-hidden">Área</span></th>
-        {% for t in tipos %}<th scope="col">{{ t.nome }}</th>{% endfor %}
-        {% if nc_coluna %}<th scope="col" class="nao-classificadas">Não classificadas</th>{% endif %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for a in areas %}
-      <tr>
-        <th scope="row">{{ a.nome }}</th>
-        {% for t in tipos %}
-        {% set c = grade[(a.chave, t.chave)] %}
-        <td class="celula calor-{{ c.calor }}{% if c.vazia %} vazia{% endif %}{% if painel and celula_aberta == (a.chave, t.chave) %} aberta{% endif %}">
-          {% if c.endereco %}<a class="abrir" href="{{ c.endereco }}" hx-get="{{ c.endereco }}" hx-target="#mapa" hx-swap="outerHTML" hx-push-url="true"{% if painel and celula_aberta == (a.chave, t.chave) %} aria-current="true"{% endif %}>{% endif %}
-          {% if c.indice %}<span class="indice">{{ c.indice }}</span>{% if c.seta %} <span class="seta">{{ c.seta }}{{ c.variacao }}</span>{% endif %}{% endif %}
-          {% if c.incertas %}<span class="incertas">+{{ c.incertas }} incertas</span>{% endif %}
-          {% if c.endereco %}</a>{% endif %}
-        </td>
-        {% endfor %}
-        {% if nc_coluna %}<td class="celula nao-classificadas">{{ mapa.nao_classificadas_por_area.get(a.chave, "") }}</td>{% endif %}
-      </tr>
-      {% endfor %}
-      {% if nc_linha %}
-      <tr class="nao-classificadas">
-        <th scope="row">Não classificadas</th>
-        {% for t in tipos %}<td class="celula nao-classificadas">{{ mapa.nao_classificadas_por_tipo.get(t.chave, "") }}</td>{% endfor %}
-        {% if nc_coluna %}<td class="celula nao-classificadas">{{ mapa.nao_classificadas_sem_ambos or "" }}</td>{% endif %}
-      </tr>
-      {% endif %}
-    </tbody>
-  </table>
+  {% include "mapa/grade.html" %}
   {% if painel %}{% include "mapa/painel.html" %}{% endif %}
   </div>
 </section>

@@ -48,6 +48,10 @@ class CelulaNaTela:
     incertas: int
     vazia: bool
     endereco: str = ""  # abre o painel da célula; vazio na célula sem nada
+    bruto: float = 0.0  # o índice sem arredondar: é o que a leitura seguinte compara
+    piscou: bool = False  # o índice mudou desde a leitura anterior: o CSS pisca a célula
+    de: str = ""  # o índice da leitura anterior, de onde o número conta ("" se não piscou)
+    diferenca: str = ""  # "+0,9" ou "−0,9", o que mudou
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,6 +131,7 @@ def _celula_na_tela(c: Celula | None, mapa: Mapa, maior: float) -> CelulaNaTela:
     tem_indice = c.indice > 0 or bool(seta)
     return CelulaNaTela(
         indice=formatar_indice(c.indice) if c.indice > 0 else "0" if tem_indice else "",
+        bruto=c.indice,
         calor=_calor(c.indice, maior),
         seta=seta,
         variacao=variacao,

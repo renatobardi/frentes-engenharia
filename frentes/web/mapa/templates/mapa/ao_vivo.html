@@ -1,0 +1,7 @@
+{# A leitura parcial do polling: o próprio gatilho (que traz a leitura de agora no endereço)
+   e, fora de banda, a faixa, o Top 3, a grade e, se mudou, o painel. #}
+<div id="ao-vivo" hidden hx-get="{{ polling }}" hx-trigger="every {{ intervalo }}s" hx-swap="outerHTML"></div>
+{% include "mapa/faixa.html" %}
+{% include "mapa/top3.html" %}
+{% include "mapa/grade.html" %}
+{% if painel %}{% include "mapa/painel.html" %}{% endif %}
