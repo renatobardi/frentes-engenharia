@@ -226,3 +226,45 @@ def test_versao_pulada_nao_entra_no_seletor_nem_no_mapa(tmp_path: Path) -> None:
 
     assert 'value="1"' in html and 'value="3"' in html and 'value="2"' not in html
     assert http.get("/?versao=2").status_code == 404
+
+
+@pytest.mark.parametrize(
+    "atual", ["http://[bad", "http://t/?versao=abc", "http://t/?versao=" + "9" * 30]
+)
+def test_endereco_de_origem_malformado_nao_derruba_a_tela(banco: Path, atual: str) -> None:
+    resposta = _cliente(banco).get(
+        "/?versao=2&area=plat&tipo=tecnologia",
+        headers={"HX-Request": "true", "HX-Current-URL": atual},
+    )
+
+    assert resposta.status_code == 404
+
+
+def test_sem_javascript_o_formulario_leva_a_versao_de_origem_e_o_painel_fecha(
+    banco: Path,
+) -> None:
+    http = _cliente(banco)
+
+    aberta = http.get("/?versao=1&area=plat&tipo=tecnologia").text
+    # o campo `de` só existe dentro do <noscript>: com JavaScript ele não vai no pedido
+    assert re.search(r'<noscript><input type="hidden" name="de" value="1">', aberta)
+    # o que o navegador sem JavaScript pede ao aplicar: sem HX-*, com `de`
+    resposta = http.get("/?visao=dor&periodo=90d&versao=2&area=plat&tipo=tecnologia&de=1")
+
+    assert resposta.status_code == 200
+    assert "o painel foi fechado" in resposta.text and 'name="area"' not in resposta.text
+    # `de` igual à versão pedida: a célula errada continua sendo 404
+    assert http.get("/?versao=2&area=plat&tipo=tecnologia&de=2").status_code == 404
+
+
+def test_o_selo_diz_a_janela_e_o_gatilho_de_verdade(tmp_path: Path) -> None:
+    for gatilho, texto in (
+        (Gatilho.BOTAO, "disparada por botão «Revisar a taxonomia agora»"),
+        (Gatilho.MENSAL, "disparada por revisão mensal"),
+        (Gatilho.MAIOR_TIPO, "disparada por um tipo grande demais"),
+    ):
+        pasta = tmp_path / gatilho.value
+        pasta.mkdir()
+        html = _cliente(_banco(pasta, gatilho=gatilho)).get("/?versao=1").text
+
+        assert "janela de 30 dias" in html and texto in html

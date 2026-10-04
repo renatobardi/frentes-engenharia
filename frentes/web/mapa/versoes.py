@@ -22,7 +22,8 @@ class Selo:
     rotulo: str
     medido: str
     limite: str
-    disparou: bool
+    janela_dias: int
+    gatilho: str  # o que disparou a revisão: um sinal, a mensal ou o botão
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,7 +34,6 @@ class Anterior:
     data: str
     selo: Selo | None
     diff: str  # o endereço da revisão na tela Taxonomia
-    seguinte: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,7 +60,8 @@ def _selo(g: Geracao, corte: SinalDeEncaixe) -> Selo | None:
     escolhida = next((linha for linha in linhas if linha.disparou), linhas[0] if linhas else None)
     if escolhida is None:
         return None
-    return Selo(escolhida.rotulo, escolhida.medido, escolhida.limite, escolhida.disparou)
+    gatilho = taxonomia.GATILHO[g.gatilho] if g.gatilho else "não gravado"
+    return Selo(escolhida.rotulo, escolhida.medido, escolhida.limite, corte.janela_dias, gatilho)
 
 
 def _data(g: Geracao) -> str:
@@ -91,9 +92,7 @@ def da_versao(con: store.Conexao, versao: int, corte: SinalDeEncaixe) -> DaVersa
     # as revisões vêm da mais recente: a primeira que casa é a que vale
     for g in revisoes:
         if anterior is None and g.versao_base == versao and g.versao_resultante is not None:
-            anterior = Anterior(
-                versao, _data(g), _selo(g, corte), f"/taxonomia?geracao={g.id}", g.versao_resultante
-            )
+            anterior = Anterior(versao, _data(g), _selo(g, corte), f"/taxonomia?geracao={g.id}")
         if criada is None and g.versao_resultante == versao and g.versao_base is not None:
             base = _tipos(con, g.versao_base)
             novos = {c: n for c, n in _tipos(con, versao).items() if c not in base}

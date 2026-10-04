@@ -109,7 +109,10 @@ def _versao_de_origem(request: Request, vigente: int | None) -> int | None:
     atual = request.headers.get("hx-current-url")
     if not atual:
         return None
-    valores = parse_qs(urlsplit(atual).query).get("versao", [])
+    try:
+        valores = parse_qs(urlsplit(atual).query).get("versao", [])
+    except ValueError:  # endereço malformado (ex.: "http://[bad")
+        return None
     if not valores:
         return vigente
     return int(valores[0]) if valores[0].isdecimal() and len(valores[0]) < 10 else None
@@ -199,6 +202,7 @@ def _tela(
     erro: str = "",
     rascunho: painel.Rascunho | None = None,
     status: int = 200,
+    de: int | None = None,
 ) -> HTMLResponse:
     """A tela do endereço: o miolo para o HTMX, a página inteira sem ele. Com `erro`, o painel
     da célula traz a mensagem de um endereçamento recusado (e o que se digitou)."""
@@ -216,8 +220,8 @@ def _tela(
         except CelulaForaDaVersao:
             # trocar a versão com o painel aberto numa célula que a outra não tem: fecha o
             # painel e avisa; o endereço que chega direto com a célula errada continua 404
-            origem = _versao_de_origem(request, vigente)
-            if not request.headers.get("HX-Request") or origem in (None, versao or vigente):
+            origem = de if de is not None else _versao_de_origem(request, vigente)
+            if origem in (None, versao or vigente):
                 raise
             fechou = (
                 f"A célula {area} × {tipo} não existe na versão {versao or vigente}: "
@@ -295,9 +299,10 @@ def mapa_de_calor(
     versao: Annotated[int | None, Query(ge=1, le=2**31 - 1)] = None,
     area: str | None = None,
     tipo: str | None = None,
+    de: Annotated[int | None, Query(ge=1, le=2**31 - 1)] = None,
 ) -> HTMLResponse:
     area, tipo = _celula_valida(area, tipo)
-    return _tela(request, visao, periodo, origem or [], versao, area, tipo)
+    return _tela(request, visao, periodo, origem or [], versao, area, tipo, de=de)
 
 
 @roteador.get(
