@@ -41,3 +41,32 @@ dias_distintos = 3
 # Selo "urgente". PROVISÓRIO: as resoluções deixaram o valor para a construção (#3).
 [urgencia]
 selo = 0.7
+
+# Operação (12-operacao-e-deploy): concorrência, tempos, retentativa e fila. Não são limiares
+# de confiança, mas moram aqui para nenhuma fatia precisar editar o config.py.
+[concorrencia]
+jev = 40
+llm = 8
+
+# Tempo limite de uma chamada, em segundos.
+[tempo_limite]
+jev_s = 5
+llm_s = 30
+
+# Tentativas por chamada, com espera crescente a partir de espera_inicial_s (dobra a cada
+# tentativa). A espera inicial é valor da construção: a spec só diz "espera crescente".
+# Depois das tentativas a frente continua pendente e a varredura tenta de novo.
+[retentativa]
+tentativas = 3
+espera_inicial_s = 1
+
+[fila]
+varredura_s = 30
+# Espera do painel da célula depois de uma frente nova, para a rajada gerar uma chamada só.
+painel_espera_s = 30
+
+# Modelos. O do Jev vai no retrato da versão da taxonomia (modelo_jev); aqui é o que a
+# primeira versão pede. A LLM roda sem raciocínio em todos os papéis.
+[modelos]
+jev = "jev-latest"
+llm = "deepseek/deepseek-v4-flash"

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}frentes-engenharia{% endblock %}</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/htmx.min.js" defer></script>
+</head>
+<body>
+  <header class="topo">
+    <a class="marca" href="/">frentes-engenharia</a>
+    <nav class="menu" aria-label="Principal">
+      {% for nome, destino in menu %}
+      <a href="{{ destino }}"{% if (destino == "/" and caminho == "/") or (destino != "/" and caminho.startswith(destino)) %} aria-current="page"{% endif %}>{{ nome }}</a>
+      {% endfor %}
+    </nav>
+    <a class="botao" href="{{ relatar[1] }}">{{ relatar[0] }}</a>
+  </header>
+  <main>
+    {% block conteudo %}{% endblock %}
+  </main>
+</body>
+</html>

@@ -1,16 +1,37 @@
 """A aplicação FastAPI. Um processo, um worker."""
 
-from contextlib import closing
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager, closing
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
-from frentes import config, store
+from frentes import config, partida, store
+from frentes.web import telas
 
 
 def criar_app(cfg: config.Config | None = None) -> FastAPI:
     cfg = cfg or config.carregar()
-    app = FastAPI(title="frentes-engenharia", docs_url=None, redoc_url=None, openapi_url=None)
+    ganchos = partida.descobrir()
+
+    @asynccontextmanager
+    async def ciclo(app: FastAPI) -> AsyncIterator[None]:
+        await partida.partir(ganchos, app)
+        try:
+            yield
+        finally:
+            await partida.parar(ganchos, app)
+
+    app = FastAPI(
+        title="frentes-engenharia",
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+        lifespan=ciclo,
+    )
     app.state.config = cfg
+    app.mount("/static", StaticFiles(directory=telas.ESTATICOS), name="static")
+    telas.montar(app)
 
     @app.get("/healthz")
     def healthz() -> dict[str, str | int | None]:

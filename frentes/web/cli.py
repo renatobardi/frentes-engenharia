@@ -16,3 +16,6 @@ def servir(argumentos: list[str]) -> int:
     # Um worker só: a fila é em memória e o banco é SQLite.
     uvicorn.run(criar_app(cfg), host=cfg.host, port=cfg.porta, workers=1)
     return 0
+
+
+COMANDOS = {"servir": ("sobe a aplicação", servir)}
