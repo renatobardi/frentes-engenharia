@@ -17,6 +17,7 @@ from frentes.seed.roteiro import (
     Itens,
     Roteiro,
     gerar_roteiro,
+    sortear_relator,
     sortear_time_e_item,
     teto_por_item,
 )
@@ -175,7 +176,7 @@ def test_curvas_das_historias(roteiro: Roteiro) -> None:
         assert (serie[11] / serie[0]) ** (1 / 11) - 1 == pytest.approx(alvo, abs=0.03)
     assert max(h2) - min(h2) <= 1  # estável
     assert sum(h3[6:]) / sum(h3[:6]) == pytest.approx(0.4, abs=0.05)  # cai ~60%
-    assert sum(h5[:6]) == 0 and h5[11] > 4 * h5[6]  # tema novo no mês 7
+    assert sum(h5[:6]) == 0 and h5[11] > 1.5 * h5[6]  # tema novo no mês 7
     assert max(h7) == h7[10] and h7[10] > 2 * h7[9]  # pico no mês 11
 
 
@@ -195,13 +196,18 @@ def test_h1_e_h6_reativas_levam_episodio_e_as_outras_nao(roteiro: Roteiro) -> No
     com = {e.historia_id for e in roteiro.esqueletos if e.episodio_id}
     assert com == {"H1", "H6"}
     episodios = Counter(e.episodio_id for e in roteiro.esqueletos if e.episodio_id)
-    assert min(episodios.values()) >= 2
+    assert min(episodios.values()) >= 1
     for e in roteiro.esqueletos:
         if e.episodio_id:
             assert e.natureza is Natureza.REATIVA
             assert e.episodio_id.endswith(f"{e.ocorrido_em:%Y%m%d}")  # mesmo dia
-    h1 = [e for e in roteiro.esqueletos if e.historia_id == "H1"]
-    assert sum(1 for e in h1 if e.episodio_id) / len(h1) > 0.4
+    # a spec: toda reativa de H1 e H6 leva episódio
+    reativas = [
+        e
+        for e in roteiro.esqueletos
+        if e.historia_id in ("H1", "H6") and e.natureza is Natureza.REATIVA
+    ]
+    assert reativas and all(e.episodio_id for e in reativas)
 
 
 def test_h5_log_e_webhook_sao_sempre_do_time_app(roteiro: Roteiro) -> None:
@@ -382,7 +388,7 @@ def test_o_teto_conta_tambem_o_objeto_do_relator() -> None:
 
 def test_volume_pequeno_demais_para_o_teto_e_erro() -> None:
     with pytest.raises(ErroDeRoteiro):
-        gerar(total=300)  # o teto cai para 1 e os times estouram
+        gerar(total=400)  # o teto cai para 1 e os times estouram
     with pytest.raises(ErroDeRoteiro, match="pequeno demais"):
         gerar(total=10)
 
@@ -412,3 +418,37 @@ def test_naturezas_que_nao_fecham_sao_erro(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr(curvas, "REATIVA", 0.0)
     with pytest.raises(ErroDeRoteiro, match="naturezas não fecham"):
         gerar()
+
+
+def test_h1_e_o_top_1_de_onde_doi_nos_ultimos_90_dias(roteiro: Roteiro) -> None:
+    """O roteiro da demo exige a H1 na frente da H5, por história, por time e por área."""
+    fim = max(e.ocorrido_em for e in roteiro.esqueletos)
+    janela = [
+        e
+        for e in roteiro.esqueletos
+        if e.natureza is Natureza.REATIVA and (fim - e.ocorrido_em).days < 90
+    ]
+    h1 = next(e for e in janela if e.historia_id == "H1")
+    h5 = next(e for e in janela if e.historia_id == "H5" and e.cenario != "pedido")
+    historias = Counter(e.historia_id for e in janela if e.historia_id != "fundo")
+    assert historias["H1"] > historias["H5"] > 0
+    assert historias.most_common(1)[0][0] == "H1"
+    for campo in ("time", "area"):
+        contagem = Counter(getattr(e, campo) for e in janela)
+        assert contagem[getattr(h1, campo)] > contagem[getattr(h5, campo)], campo
+        assert contagem.most_common(1)[0][0] == getattr(h1, campo), campo
+
+
+def test_objeto_do_relator_no_teto_sorteia_outro_objeto_e_depois_outro_relator() -> None:
+    a, b, _ = times_de_teste()
+    objetos_a = [i.nome for i in a.itens if i.especie is EspecieDeItem.OBJETO]
+    itens = Itens(teto=1)
+    for o in objetos_a[:-1]:
+        itens.usar(1, a.chave, o)
+    time, objeto = sortear_relator(random.Random(1), [a], itens, 1)
+    assert time is a and objeto == objetos_a[-1]  # sobrava só um objeto livre
+    # `a` está cheio: o relator passa a ser `b`, sem erro
+    time, objeto = sortear_relator(random.Random(1), [a, b], itens, 1)
+    assert time is b and not itens.livre(1, b.chave, objeto)
+    with pytest.raises(ErroDeRoteiro, match="nenhum relator tem objeto livre"):
+        sortear_relator(random.Random(1), [a], itens, 1)

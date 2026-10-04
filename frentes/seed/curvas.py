@@ -176,7 +176,7 @@ HISTORIAS: dict[str, Historia] = {
     "H5": Historia(
         "H5",
         0.03,
-        lambda m: 0.0 if m <= 6 else 1.5 ** (m - 7),
+        lambda m: 0.0 if m <= 6 else 1.15 ** (m - 7),
         "assistente virtual do app",
         (DIG,),
         (

@@ -68,7 +68,7 @@ def test_seed_invalida_nao_gera_nada_e_sai_com_1(
 def test_volume_pequeno_demais_sai_com_1_e_diz_o_motivo(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    assert cli.seed(["gerar", "--saida", str(tmp_path), "--total", "300"]) == 1
+    assert cli.seed(["gerar", "--saida", str(tmp_path), "--total", "400"]) == 1
     assert "estouraram o teto" in capsys.readouterr().err
     assert cli.seed(["gerar", "--saida", str(tmp_path), "--total", "0"]) == 1
     assert "seed gerar:" in capsys.readouterr().err

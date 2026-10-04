@@ -8,7 +8,7 @@ import random
 import re
 from collections import Counter
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
 from frentes.contratos import (
@@ -77,7 +77,6 @@ class Roteiro:
     teto: int
     estouros: int
     meses: list[tuple[int, int]]
-    historias_por_mes: dict[str, list[int]] = field(default_factory=dict)
 
     def mes_de(self, esq: Esqueleto) -> int:
         """O mês 1–12 da frente, contado do dia D."""
@@ -125,6 +124,25 @@ def sortear_time_e_item(
             return time, item
         itens.estouros += 1
         tentados.add(time.chave)
+
+
+def sortear_relator(
+    rng: random.Random, candidatos: Sequence[TimeDoOrganograma], itens: Itens, semestre: int
+) -> tuple[TimeDoOrganograma, str]:
+    """Sorteia o relator e um objeto da ficha dele que ainda caiba no teto.
+
+    Objeto no teto não derruba o roteiro: sorteia outro objeto e, se o time inteiro estiver
+    no teto, outro relator. Só falha quando nenhum candidato tem objeto livre.
+    """
+    for time in rng.sample(list(candidatos), len(candidatos)):
+        livres = [
+            o for o in _itens(time, EspecieDeItem.OBJETO) if itens.livre(semestre, time.chave, o)
+        ]
+        if livres:
+            objeto = rng.choice(livres)
+            itens.usar(semestre, time.chave, objeto)
+            return time, objeto
+    raise ErroDeRoteiro("nenhum relator tem objeto livre no teto neste semestre")
 
 
 def teto_por_item(contagens_historias: dict[str, list[int]]) -> int:
@@ -189,7 +207,6 @@ class Gerador:
         self.pessoas = ler_pessoas(emissores)
         self.pesos_time = [self.rng.uniform(0.7, 1.5) for _ in self.times]
         self.esqueletos: list[Esqueleto] = []
-        self.meses_do: dict[int, int] = {}
 
     # ------------------------------------------------------------------ totais
 
@@ -272,7 +289,6 @@ class Gerador:
             **campos,
         )
         self.esqueletos.append(esq)
-        self.meses_do[id(esq)] = mes
         return esq
 
     @staticmethod
@@ -326,8 +342,6 @@ class Gerador:
             else:
                 objeto = item
             listado = _listado(time, item)
-            if h.id == "H5":
-                objeto = item
         emissor, time_emissor = self.emissor(origem, time.chave)
         areas = h.areas_aceitas if c.times else (area,)
         n_sint = len(SINTOMAS_HISTORIAS.get(h.id, ()))
@@ -351,15 +365,14 @@ class Gerador:
         )
 
     def episodios(self, h: Historia) -> None:
-        """Frentes reativas da mesma história no mesmo dia viram um episódio."""
+        """Toda frente reativa da história leva o episódio do seu dia (a mesma ocorrência)."""
         por_dia: dict[date, list[Esqueleto]] = {}
         for e in self.esqueletos:
             if e.historia_id == h.id and e.natureza is Natureza.REATIVA:
                 por_dia.setdefault(e.ocorrido_em.date(), []).append(e)
         for dia, lista in por_dia.items():
-            if len(lista) >= 2:
-                for e in lista:
-                    e.episodio_id = f"ep-{h.id.lower()}-{dia:%Y%m%d}"
+            for e in lista:
+                e.episodio_id = f"ep-{h.id.lower()}-{dia:%Y%m%d}"
 
     # ------------------------------------------------------------------ fora e fundo
 
@@ -433,7 +446,6 @@ class Gerador:
         self.rng.shuffle(grupos)
         for i, mes in enumerate(slots):
             self.frente_de_fundo(
-                i,
                 mes,
                 origens[i],
                 naturezas[i],
@@ -442,7 +454,7 @@ class Gerador:
                 sabor_amb.get(i),
             )
 
-    def frente_de_fundo(self, i, mes, origem, natureza, temas, cruzado, ambigua) -> None:
+    def frente_de_fundo(self, mes, origem, natureza, temas, cruzado, ambigua) -> None:
         sem = curvas.semestre(mes)
         tema = self.rng.choices(temas, [t.peso for t in temas])[0]
         if tema.chave == "fornecedor":
@@ -464,19 +476,13 @@ class Gerador:
                 for t in self.times
                 if t.chave != time.chave and (self.area_de[t.chave] == area_dono) == mesma
             ]
-            relator = self.rng.choice(outros)
+            if cruzado is Cruzado.DOIS_OBJETOS:
+                relator, objeto_relator = sortear_relator(self.rng, outros, self.itens, sem)
+                extra["objeto_relator"] = objeto_relator
+            else:
+                relator = self.rng.choice(outros)
             emissor_time = relator.chave
             extra.update(time_relator=relator.chave, cruzado=cruzado)
-            if cruzado is Cruzado.DOIS_OBJETOS:
-                _, objeto_relator = sortear_time_e_item(
-                    self.rng,
-                    [relator],
-                    [1.0],
-                    self.escolher_item(EspecieDeItem.OBJETO),
-                    self.itens,
-                    sem,
-                )
-                extra["objeto_relator"] = objeto_relator
         if ambigua == "duas_areas":
             area_dono = self.area_de[time.chave]
             outros = [t for t in self.times if self.area_de[t.chave] != area_dono]
@@ -539,7 +545,6 @@ class Gerador:
             teto=self.teto,
             estouros=self.itens.estouros,
             meses=self.meses,
-            historias_por_mes=self.historia_por_mes,
         )
 
 
