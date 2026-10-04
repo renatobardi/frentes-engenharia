@@ -236,6 +236,7 @@ LIDOS_DO_ARQUIVO = [
     ("urgencia", "selo", "0.7", "0.72", lambda c: c.limiares.urgencia_selo),
     ("concorrencia", "jev", "40", "41", lambda c: c.operacao.semaforo_jev),
     ("concorrencia", "llm", "8", "9", lambda c: c.operacao.semaforo_llm),
+    ("concorrencia", "jev_por_s", "60", "61", lambda c: c.operacao.jev_por_s),
     ("tempo_limite", "jev_s", "5", "6", lambda c: c.operacao.tempo_limite_jev_s),
     ("tempo_limite", "llm_s", "30", "31", lambda c: c.operacao.tempo_limite_llm_s),
     ("tempo_limite", "llm_lote_s", "180", "181", lambda c: c.operacao.tempo_limite_llm_lote_s),
@@ -282,6 +283,7 @@ def test_operacao_do_repo_traz_os_valores_decididos() -> None:
     assert config.carregar_operacao() == config.Operacao(
         semaforo_jev=40,
         semaforo_llm=8,
+        jev_por_s=60.0,
         tempo_limite_jev_s=5.0,
         tempo_limite_llm_s=30.0,
         tempo_limite_llm_lote_s=180.0,

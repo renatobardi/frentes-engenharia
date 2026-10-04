@@ -7,7 +7,7 @@ prontas de `frentes.classificacao.regras`.
 
 import json
 from collections.abc import Mapping
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from typing import Any
 
 from frentes.contratos import (
@@ -162,3 +162,52 @@ def aguardando_llm(con: Conexao, versao: int) -> list[str]:
         (versao,),
     )
     return [linha["frente_id"] for linha in linhas]
+
+
+def da_versao(con: Conexao, versao: int) -> list[Classificacao]:
+    """Todas as classificações da versão, as mais antigas primeiro."""
+    linhas = con.execute(
+        "SELECT frente_id FROM classificacao WHERE versao = ? ORDER BY classificada_em, frente_id",
+        (versao,),
+    ).fetchall()
+    achadas = (ler(con, linha["frente_id"], versao) for linha in linhas)
+    return [c for c in achadas if c is not None]
+
+
+@dataclass(frozen=True, slots=True)
+class Totais:
+    """O que o banco guarda de uma versão: frentes, estados e tokens (Jev e LLM)."""
+
+    frentes: int
+    por_estado: Mapping[Estado, int]
+    jev_entrada: int
+    jev_saida: int
+    llm_entrada: int
+    llm_saida: int
+
+
+def totais(con: Conexao, versao: int) -> Totais:
+    """Contagens e somas da versão, direto do banco. As frentes são todas as do banco, com ou
+    sem classificação; os tokens da LLM vêm do `uso` guardado em `resposta_llm`."""
+    frentes = con.execute("SELECT count(*) AS n FROM frente").fetchone()["n"]
+    por_estado = {
+        Estado(linha["estado"]): linha["n"]
+        for linha in con.execute(
+            "SELECT estado, count(*) AS n FROM classificacao WHERE versao = ? GROUP BY estado",
+            (versao,),
+        )
+    }
+    jev = con.execute(
+        "SELECT coalesce(sum(tokens_entrada), 0) AS e, coalesce(sum(tokens_saida), 0) AS s "
+        "FROM classificacao WHERE versao = ?",
+        (versao,),
+    ).fetchone()
+    llm_entrada = llm_saida = 0
+    for linha in con.execute(
+        "SELECT resposta_llm FROM classificacao WHERE versao = ? AND resposta_llm IS NOT NULL",
+        (versao,),
+    ):
+        uso = _llm_de_json(linha["resposta_llm"]).uso
+        llm_entrada += uso.tokens_entrada
+        llm_saida += uso.tokens_saida
+    return Totais(frentes, por_estado, jev["e"], jev["s"], llm_entrada, llm_saida)

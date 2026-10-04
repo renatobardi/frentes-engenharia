@@ -660,7 +660,7 @@ def test_erro_de_banco_na_tarefa_vai_ao_log_com_traceback_e_deixa_pendente(
     gravar_frente(banco, "f1", "texto")
     f = montar(banco, JevFalso({}), LlmFalsa({}))
 
-    def quebrar(_: str) -> None:
+    def quebrar(*_: Any) -> None:
         raise OSError("disco")
 
     monkeypatch.setattr(f, "_carregar", quebrar)

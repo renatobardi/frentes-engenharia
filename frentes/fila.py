@@ -14,14 +14,19 @@ Quem fala com a fila:
 * `agendar(app, frente_id)`: a rota que grava a frente chama depois de gravar;
 * `reclassificar(app, frente_id)`: o complemento, que substitui a classificação da versão;
 * `motivo_pendente(app, frente_id)`: por que a frente ainda está pendente (em memória);
-* `registrar_depois_de_classificar(f)` e `registrar_a_cada_varredura(f)`: os dois ganchos.
+* `registrar_depois_de_classificar(f)` e `registrar_a_cada_varredura(f)`: os dois ganchos;
+* `Fila.classificar_versao(numero)`: classifica o histórico inteiro numa versão (o comando
+  `python -m frentes classificar --versao N`) e a ativa quando ele está completo.
 """
 
 import asyncio
+import fcntl
 import json
 import logging
-from collections.abc import AsyncIterator, Awaitable, Callable, Coroutine
-from contextlib import asynccontextmanager, closing
+import time
+from collections.abc import AsyncIterator, Awaitable, Callable, Coroutine, Iterator
+from contextlib import asynccontextmanager, closing, contextmanager, nullcontext
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +44,7 @@ from frentes.contratos import (
     RespostaLlm,
     VersaoTaxonomia,
     agora,
+    para_iso,
 )
 from frentes.jev import ErroJev, montar_perguntas
 from frentes.llm import ErroLlm
@@ -89,6 +95,88 @@ async def _chamar(gancho: Gancho, *args: Any) -> None:
 FabricaJev = Callable[[str], ClienteJev]
 
 
+class _Ritmo:
+    """No máximo `por_s` largadas por segundo: cada chamada reserva a vez e espera até ela.
+    Vale além do semáforo, que limita quantas estão em voo, não quantas largam por segundo."""
+
+    def __init__(self, por_s: float) -> None:
+        self._passo = 1.0 / por_s
+        self._proximo = 0.0
+
+    async def esperar(self) -> None:
+        loop = asyncio.get_running_loop()
+        agora_ = loop.time()
+        vez = max(agora_, self._proximo)
+        self._proximo = vez + self._passo
+        if vez > agora_:
+            await asyncio.sleep(vez - agora_)
+
+
+class ClassificandoEmOutroProcesso(Exception):
+    """Outro processo já classifica: duas cópias chamariam o Jev para a mesma frente."""
+
+
+def _arquivo_de_trava(banco: Path, nome: str) -> Path:
+    return banco.with_name(f"{banco.name}.{nome}.lock")
+
+
+def _tentar_travar(caminho: Path, *, exclusiva: bool) -> Any:
+    """Abre o arquivo de trava e pega `flock` sem esperar. Devolve o arquivo aberto (a trava
+    vale até fechá-lo, ou até o processo morrer) ou `None` se outro processo a segura."""
+    arquivo = open(caminho, "a")  # noqa: SIM115  (fica aberto enquanto a trava vale)
+    try:
+        fcntl.flock(arquivo, (fcntl.LOCK_EX if exclusiva else fcntl.LOCK_SH) | fcntl.LOCK_NB)
+    except BlockingIOError:
+        arquivo.close()
+        return None
+    return arquivo
+
+
+@contextmanager
+def _travas_da_execucao(banco: Path, vigente: bool) -> Iterator[None]:
+    """A trava de quem roda `classificar` (uma execução por banco) e, se a versão é a vigente,
+    a do servidor, que classifica a vigente em segundo plano (ele a segura enquanto está no ar)."""
+    pegas: list[Any] = []
+    try:
+        for nome, quem in (("classificar", "outro `classificar`"), ("servidor", "o servidor")):
+            if nome == "servidor" and not vigente:
+                continue
+            arquivo = _tentar_travar(_arquivo_de_trava(banco, nome), exclusiva=True)
+            if arquivo is None:
+                raise ClassificandoEmOutroProcesso(f"{quem} já está classificando neste banco")
+            pegas.append(arquivo)
+        yield
+    finally:
+        for arquivo in pegas:
+            arquivo.close()
+
+
+@dataclass(frozen=True, slots=True)
+class Progresso:
+    """Uma foto da execução de `classificar_versao`: o que está feito, pendente e falho, e os
+    tokens da versão (banco). O custo é só do Jev: a spec não traz preço da LLM."""
+
+    feitas: int
+    pendentes: int
+    falhas: int
+    totais: "armazem.Totais"
+
+    @property
+    def custo_jev_usd(self) -> float:
+        return self.totais.jev_entrada * PRECO_JEV_USD_POR_MTOK / 1_000_000
+
+    def texto(self) -> str:
+        t = self.totais
+        return (
+            f"{self.feitas} feitas, {self.pendentes} pendentes, {self.falhas} com falha; "
+            f"tokens Jev {t.jev_entrada}/{t.jev_saida}, LLM {t.llm_entrada}/{t.llm_saida}; "
+            f"custo Jev US$ {self.custo_jev_usd:.4f} (LLM sem preço na spec)"
+        )
+
+
+PROGRESSO_A_CADA = 100
+
+
 class Fila:
     """O que roda em segundo plano. `jev_para` recebe o modelo da versão e devolve o cliente."""
 
@@ -114,6 +202,10 @@ class Fila:
         self._refazer: set[str] = set()
         self._tarefas: set[asyncio.Task[None]] = set()
         self._laco: asyncio.Task[None] | None = None
+        self._trava_do_servidor: Any = None
+        self._ritmo = _Ritmo(operacao.jev_por_s)
+        # vagas do Jev na reclassificação de uma versão: segurada só na chamada ao Jev
+        self._vaga_jev: asyncio.Semaphore | None = None
 
     # ------------------------------------------------------------------ o que se pede à fila
 
@@ -133,11 +225,13 @@ class Fila:
         self._tarefas.add(tarefa)
         tarefa.add_done_callback(self._tarefas.discard)
 
-    async def classificar(self, frente_id: str) -> None:
+    async def classificar(self, frente_id: str, numero: int | None = None) -> None:
         """Leva a frente até o resultado final, se não há outra tarefa nela. Não levanta: a
-        falha do Jev ou da LLM deixa a frente pendente, com o motivo, e a varredura retoma."""
+        falha do Jev ou da LLM deixa a frente pendente, com o motivo, e a varredura retoma.
+
+        `numero` é a versão da taxonomia; sem ele, a vigente."""
         async with self._exclusiva(frente_id):
-            await self._tentar(frente_id, refazer=False)
+            await self._tentar(frente_id, refazer=False, numero=numero)
 
     async def reclassificar(self, frente_id: str) -> bool:
         """Refaz a classificação da versão vigente com o texto atual (original + complemento).
@@ -187,14 +281,16 @@ class Fila:
         for gancho in list(_a_cada_varredura):
             await _chamar(gancho, self._app)
 
-    async def _pendentes(self) -> list[str]:
+    async def _pendentes(self, numero: int | None = None) -> list[str]:
+        """Sem classificação ou `aguardando_llm`, na versão `numero` (padrão: a vigente)."""
+
         def ler() -> list[str]:
             try:
                 con = store.abrir_existente(self._banco)
             except store.BancoAusente:
                 return []
             with closing(con):
-                versao = store.versao_vigente(con)
+                versao = numero if numero is not None else store.versao_vigente(con)
                 if versao is None:
                     return []
                 return armazem.aguardando_llm(con, versao) + armazem.sem_classificacao(con, versao)
@@ -204,7 +300,20 @@ class Fila:
     def partir(self) -> None:
         """Liga a varredura periódica: a primeira roda já, as outras a cada `varredura_s`."""
         if self._laco is None:
+            self._segurar_trava_do_servidor()
             self._laco = asyncio.get_running_loop().create_task(self._varrer_sempre())
+
+    def _segurar_trava_do_servidor(self) -> None:
+        """Enquanto a varredura roda, o `classificar` na versão vigente se recusa. Sem a trava
+        (pasta sem escrita, ou `classificar` já na vigente) o servidor sobe do mesmo jeito."""
+        try:
+            self._trava_do_servidor = _tentar_travar(
+                _arquivo_de_trava(self._banco, "servidor"), exclusiva=True
+            )
+        except OSError:
+            self._trava_do_servidor = None
+        if self._trava_do_servidor is None:
+            registro.warning("sem a trava do servidor: o `classificar` na vigente não vai recusar")
 
     async def _varrer_sempre(self) -> None:
         while True:
@@ -222,13 +331,119 @@ class Fila:
         for tarefa in tarefas:
             tarefa.cancel()
         await asyncio.gather(*tarefas, return_exceptions=True)
+        if self._trava_do_servidor is not None:
+            self._trava_do_servidor.close()
+            self._trava_do_servidor = None
+
+    # ------------------------------------------------------------------ o histórico numa versão
+
+    async def classificar_versao(
+        self,
+        numero: int,
+        progresso: Callable[[Progresso], None] | None = None,
+        a_cada: int = PROGRESSO_A_CADA,
+    ) -> "ResumoDaVersao":
+        """Classifica o histórico inteiro na versão `numero` e a ativa se ele ficou completo.
+
+        Recusa antes de qualquer chamada: versão que não existe (`VersaoInexistente`), versão
+        menor que a vigente (`VersaoAntiga`) e outro processo já classificando
+        (`ClassificandoEmOutroProcesso`; para a vigente, também o servidor no ar).
+
+        Retomável: refaz o estado das linhas que já existem com os limiares de agora (a LLM só é
+        chamada para quem passou a precisar de desempate) e classifica só as frentes sem linha
+        ou `aguardando_llm`. No máximo `semaforo_jev` chamadas ao Jev em voo, a vaga solta
+        enquanto a frente espera a LLM, e no máximo `jev_por_s` largadas por segundo. A falha de
+        uma frente não para as outras: ela fica no resumo, com o motivo, e a versão não é
+        ativada. A cada `a_cada` frentes terminadas, `progresso` recebe uma foto. Interrompida,
+        deixa o que já gravou; rodar de novo faz o que falta."""
+        inicio = time.monotonic()
+        versao, vigente = await asyncio.to_thread(self._ler_versao, numero)
+        with _travas_da_execucao(self._banco, vigente=numero == vigente):
+            recalculadas = await asyncio.to_thread(self._recalcular, versao)
+            self._vaga_jev = asyncio.Semaphore(self._operacao.semaforo_jev)
+            pendentes = await self._pendentes(numero)
+            contagem = {"feitas": 0, "falhas": 0}
+
+            async def uma(frente_id: str) -> None:
+                await self.classificar(frente_id, numero)
+                contagem["feitas"] += 1
+                contagem["falhas"] += frente_id in self._motivos
+                if progresso is not None and contagem["feitas"] % a_cada == 0:
+                    totais = await asyncio.to_thread(self._totais, numero)
+                    progresso(
+                        Progresso(
+                            contagem["feitas"],
+                            len(pendentes) - contagem["feitas"],
+                            contagem["falhas"],
+                            totais,
+                        )
+                    )
+
+            try:
+                await asyncio.gather(*(uma(i) for i in pendentes))
+            finally:
+                self._vaga_jev = None
+            falhas = {
+                i: self._motivos.get(i, "sem motivo registrado")
+                for i in await self._pendentes(numero)
+            }
+            ativada, motivo = await asyncio.to_thread(self._ativar, numero, bool(falhas))
+            totais = await asyncio.to_thread(self._totais, numero)
+        return ResumoDaVersao(
+            numero, totais, recalculadas, falhas, ativada, motivo, time.monotonic() - inicio
+        )
+
+    def _ler_versao(self, numero: int) -> tuple[VersaoTaxonomia, int | None]:
+        """A versão pedida e o número da vigente. Recusa a que não existe e a menor que a
+        vigente: frente que chega depois só é classificada na vigente e nas seguintes."""
+        with closing(store.abrir_existente(self._banco)) as con:
+            versao = armazem_versao.ler(con, numero)
+            vigente = store.versao_vigente(con)
+        if versao is None:
+            raise VersaoInexistente(f"a versão {numero} não existe")
+        if vigente is not None and numero < vigente:
+            raise VersaoAntiga(f"a versão {numero} é menor que a vigente ({vigente})")
+        return versao, vigente
+
+    def _recalcular(self, versao: VersaoTaxonomia) -> int:
+        """Refaz estado e colunas finais das linhas da versão com os limiares de agora, sem
+        chamar modelo. Grava só as que mudaram; as que passaram a precisar de desempate ficam
+        `aguardando_llm` e entram nas pendentes. Devolve quantas mudaram."""
+        with closing(store.abrir_existente(self._banco)) as con:
+            antigas = {c.frente_id: c for c in armazem.da_versao(con, versao.numero)}
+            novas = regras.recalcular(antigas.values(), versao.documento, self._limiares)
+            mudadas = [c for i, c in novas.classificacoes.items() if c != antigas[i]]
+            for c in mudadas:
+                armazem.gravar(con, c)
+        return len(mudadas)
+
+    def _ativar(self, numero: int, ha_falhas: bool) -> tuple[bool, str | None]:
+        """Ativa a versão se o histórico inteiro tem classificação pronta nela. Devolve se
+        ativou agora e, se não, por quê (versão que já valia não é falha)."""
+        with closing(store.abrir_existente(self._banco)) as con:
+            if armazem_versao.ativar(con, numero, para_iso(agora())):
+                return True, None
+            versao = armazem_versao.ler(con, numero)
+            if versao is not None and versao.ativada_em is not None:
+                return False, None
+            faltam = armazem_versao.frentes_sem_classificacao(con, numero)
+            if faltam or ha_falhas:
+                return False, f"{faltam} frente(s) sem classificação pronta"
+            return (
+                False,
+                f"a versão {numero} não é maior que a vigente ({store.versao_vigente(con)})",
+            )
+
+    def _totais(self, numero: int) -> armazem.Totais:
+        with closing(store.abrir_existente(self._banco)) as con:
+            return armazem.totais(con, numero)
 
     # ------------------------------------------------------------------ uma frente
 
-    async def _tentar(self, frente_id: str, *, refazer: bool) -> bool:
+    async def _tentar(self, frente_id: str, *, refazer: bool, numero: int | None = None) -> bool:
         """Devolve se a frente chegou aonde devia; `False` deixa pendente, com o motivo."""
         try:
-            return await self._classificar(frente_id, refazer=refazer)
+            return await self._classificar(frente_id, refazer=refazer, numero=numero)
         except asyncio.CancelledError:
             raise
         except Exception as erro:
@@ -244,10 +459,13 @@ class Fila:
             registro.warning("frente %s pendente: %s", frente_id, motivo)
         return False
 
-    def _carregar(self, frente_id: str) -> tuple[Frente, VersaoTaxonomia, Classificacao | None]:
+    def _carregar(
+        self, frente_id: str, numero: int | None
+    ) -> tuple[Frente, VersaoTaxonomia, Classificacao | None]:
         with closing(store.abrir_existente(self._banco)) as con:
             frente = armazem.ler_frente(con, frente_id)
-            numero = store.versao_vigente(con)
+            if numero is None:
+                numero = store.versao_vigente(con)
             versao = armazem_versao.ler(con, numero) if numero is not None else None
             if frente is None or versao is None:
                 raise _SemTrabalho("não há versão vigente da taxonomia" if frente else "")
@@ -257,9 +475,9 @@ class Fila:
         with closing(store.abrir_existente(self._banco)) as con:
             armazem.gravar(con, c)
 
-    async def _classificar(self, frente_id: str, *, refazer: bool) -> bool:
+    async def _classificar(self, frente_id: str, *, refazer: bool, numero: int | None) -> bool:
         try:
-            frente, versao, existente = await asyncio.to_thread(self._carregar, frente_id)
+            frente, versao, existente = await asyncio.to_thread(self._carregar, frente_id, numero)
         except store.BancoAusente:
             return True
         except _SemTrabalho as sem:
@@ -274,9 +492,12 @@ class Fila:
             atual, pedido = await self._retomar(existente, documento)
         else:
             try:
-                resposta = await self._jev_para(versao.modelo_jev).perguntar(
-                    frente.texto_para_o_jev, montar_perguntas(documento)
-                )
+                vaga = self._vaga_jev if numero is not None else None
+                async with vaga or nullcontext():
+                    await self._ritmo.esperar()
+                    resposta = await self._jev_para(versao.modelo_jev).perguntar(
+                        frente.texto_para_o_jev, montar_perguntas(documento)
+                    )
                 atual, pedido = regras.classificar(
                     frente_id, versao.numero, resposta, documento, self._limiares, agora()
                 )
@@ -304,7 +525,8 @@ class Fila:
             await asyncio.to_thread(self._gravar, atual)
 
         self._motivos.pop(frente_id, None)
-        if atual.estado is not Estado.AGUARDANDO_LLM:
+        # versão que ainda não vale (a reclassificação do histórico): o painel é da vigente
+        if atual.estado is not Estado.AGUARDANDO_LLM and numero is None:
             for gancho in list(_depois_de_classificar):
                 await _chamar(gancho, self._app, atual)
         return True
@@ -352,6 +574,67 @@ class Fila:
         return RespostaLlm(resposta.modelo, conteudo, resposta.uso)
 
 
+class VersaoInexistente(Exception):
+    """Pediram para classificar uma versão que não está gravada."""
+
+
+class VersaoAntiga(Exception):
+    """Pediram para classificar uma versão menor que a vigente."""
+
+
+# Preço do Jev: US$ 0,042 por milhão de tokens de entrada, saída grátis (spec 02, [R5]).
+# A spec não traz preço da LLM: o custo estimado cobre só o Jev.
+PRECO_JEV_USD_POR_MTOK = 0.042
+
+
+@dataclass(frozen=True, slots=True)
+class ResumoDaVersao:
+    """O fim de `classificar_versao`. Estados e tokens vêm do banco: valem para a versão
+    inteira, não só para esta execução; o tempo é o desta execução."""
+
+    versao: int
+    totais: armazem.Totais
+    recalculadas: int
+    falhas: dict[str, str] = field(default_factory=dict)
+    ativada: bool = False
+    motivo_nao_ativada: str | None = None
+    segundos: float = 0.0
+
+    @property
+    def custo_estimado_usd(self) -> float:
+        return self.totais.jev_entrada * PRECO_JEV_USD_POR_MTOK / 1_000_000
+
+    @property
+    def completo(self) -> bool:
+        return not self.falhas and self.motivo_nao_ativada is None
+
+    def texto(self) -> str:
+        t = self.totais
+        classificadas = sum(t.por_estado.values())
+        linhas = [f"versão {self.versao}: {classificadas} de {t.frentes} frentes classificadas"]
+        linhas += [f"  {estado.value}: {n}" for estado, n in sorted(t.por_estado.items())]
+        if self.recalculadas:
+            linhas.append(f"{self.recalculadas} classificação(ões) recalculada(s) pelos limiares")
+        linhas.append(
+            f"tokens: Jev {t.jev_entrada} de entrada e {t.jev_saida} de saída; "
+            f"LLM {t.llm_entrada} e {t.llm_saida}"
+        )
+        linhas.append(
+            f"custo estimado: US$ {self.custo_estimado_usd:.4f} (só o Jev; "
+            f"a spec não tem preço da LLM), tempo: {self.segundos:.1f} s"
+        )
+        if self.falhas:
+            linhas.append(f"{len(self.falhas)} frente(s) pendente(s):")
+            linhas += [f"  {i}: {m}" for i, m in sorted(self.falhas.items())]
+        if self.ativada:
+            linhas.append(f"versão {self.versao} ativada")
+        elif self.motivo_nao_ativada:
+            linhas.append(f"versão {self.versao} NÃO ativada: {self.motivo_nao_ativada}")
+        else:
+            linhas.append(f"versão {self.versao} já estava ativa")
+        return "\n".join(linhas)
+
+
 class _SemTrabalho(Exception):
     """Não há o que classificar agora (frente sumiu ou não há versão vigente)."""
 
@@ -388,29 +671,29 @@ def motivo_pendente(app: FastAPI, frente_id: str) -> str | None:
     return fila.motivo_pendente(frente_id) if fila is not None else None
 
 
-def ao_partir(app: FastAPI) -> None:
+def montar_fila(app: FastAPI | None, cfg: config.Config) -> tuple[Fila, dict[str, Any]]:
+    """A fila com os clientes reais, e os clientes do Jev para quem fechar (`aclose`) depois."""
     # Import aqui: a rede só entra na hora de montar os clientes reais.
     from frentes.jev import ClienteTypesafe
     from frentes.llm import ClienteOpenRouter
 
-    cfg: config.Config | None = getattr(app.state, "config", None)
-    if cfg is None:
-        return  # sem configuração (app de teste montada à mão) não há o que varrer
-    clientes: dict[str, ClienteTypesafe] = {}
+    clientes: dict[str, Any] = {}
 
     def jev_para(modelo: str) -> ClienteTypesafe:
         if modelo not in clientes:
             clientes[modelo] = ClienteTypesafe(cfg.typesafe_api_key, modelo, cfg.operacao)
         return clientes[modelo]
 
-    fila = Fila(
-        app,
-        cfg.banco,
-        cfg.limiares,
-        cfg.operacao,
-        jev_para,
-        ClienteOpenRouter(cfg.openrouter_api_key, cfg.operacao),
-    )
+    llm = ClienteOpenRouter(cfg.openrouter_api_key, cfg.operacao)
+    fila = Fila(app, cfg.banco, cfg.limiares, cfg.operacao, jev_para, llm)
+    return fila, clientes
+
+
+def ao_partir(app: FastAPI) -> None:
+    cfg: config.Config | None = getattr(app.state, "config", None)
+    if cfg is None:
+        return  # sem configuração (app de teste montada à mão) não há o que varrer
+    fila, clientes = montar_fila(app, cfg)
     app.state.fila = fila
     app.state.fila_clientes = clientes
     fila.partir()
