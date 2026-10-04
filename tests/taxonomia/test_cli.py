@@ -1,14 +1,17 @@
 import json
 import sqlite3
+from contextlib import closing
 
 import pytest
 
 from frentes import __main__ as principal
 from frentes import store
+from frentes.llm import ErroLlmEsgotado
 from frentes.store.geracao import TextoDaFrente
-from frentes.taxonomia import cli
+from frentes.taxonomia import cli, revisao
 from frentes.taxonomia.descoberta import lotes
 from tests.llm.falso import LlmFalsa
+from tests.taxonomia.conftest import montar
 from tests.taxonomia.propostas import (
     candidato,
     gravar_candidatos,
@@ -18,6 +21,16 @@ from tests.taxonomia.propostas import (
     gravar_peneira,
     melhoria,
     proposta,
+)
+from tests.taxonomia.revisoes import (
+    AGORA,
+    LlmDaRevisao,
+    banco_vigente,
+    criar_tipo,
+    firmes,
+    fracas,
+    numeros,
+    resposta,
 )
 
 descricao_padrao = candidato("Gravame")["descricao"]
@@ -180,3 +193,112 @@ def test_lista_com_problema_sai_com_0_e_diz_as_contagens(banco, monkeypatch, cap
     saida = capsys.readouterr()
     assert "problemas: 2 candidatos, 2 aprovados na peneira, 1 na lista da versão 1" in saida.out
     assert saida.err == ""
+
+
+# --------------------------------------------------------------------------- revisar
+
+
+def banco_da_revisao(monkeypatch, tmp_path, *respostas, com_frentes: bool = True):
+    """O banco da versão 1 vigente, com 12 frentes de encaixe fraco, e a LLM falsa no cliente."""
+    caminho = tmp_path / "revisao.sqlite"
+    with closing(banco_vigente(montar(), caminho=caminho)) as con:
+        if com_frentes:
+            fracas(con, "a", ["tipo1", "tipo2"] * 6)
+            firmes(con, "b", 6)
+    monkeypatch.setenv("FRENTES_DB", str(caminho))
+    monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
+    monkeypatch.setattr(revisao, "agora", lambda: AGORA)  # o relógio das frentes do teste
+    llm = LlmDaRevisao(*respostas)
+    llm.opcoes = {}
+
+    def cliente(chave, operacao, **opcoes):
+        llm.opcoes = opcoes
+        return llm
+
+    monkeypatch.setattr(cli, "ClienteOpenRouter", cliente)
+    return caminho, llm
+
+
+def test_o_comando_revisar_esta_declarado_no_modulo_da_taxonomia() -> None:
+    comandos = principal.declarados()
+    assert comandos["revisar"][1] is cli.revisar
+    assert "revisar" not in principal.PLANEJADOS or comandos["revisar"][1] is cli.revisar
+
+
+def test_revisar_com_versao_nova_diz_o_sinal_as_operacoes_e_o_proximo_passo(
+    monkeypatch, tmp_path, capsys
+) -> None:
+    caminho, llm = banco_da_revisao(
+        monkeypatch,
+        tmp_path,
+        resposta(
+            criar_tipo("Assistente Virtual", numeros(12)),
+            criar_tipo("Hack Raso", numeros(3)),
+            resumo="Surgiu o tema assistentes virtuais.",
+        ),
+    )
+
+    assert cli.revisar([]) == 0
+
+    saida = capsys.readouterr().out
+    assert "sinal em 18 frentes: encaixe fraco 67%" in saida
+    assert "criar_tipo: aplicada" in saida
+    assert "criar_tipo: descartada (evidência insuficiente: 3 frentes" in saida
+    assert "resumo: Surgiu o tema assistentes virtuais." in saida
+    assert "versão 2 gravada, sem ativação" in saida
+    assert "python -m frentes classificar --versao 2" in saida
+    assert llm.opcoes == {"tempo_limite_s": 180.0}  # chamada de lote: tempo limite próprio
+    assert conta(caminho, "versao_taxonomia") == 2 and conta(caminho, "geracao") == 1
+
+
+def test_revisar_sem_mudanca_sai_com_0_e_a_geracao_fica(monkeypatch, tmp_path, capsys) -> None:
+    caminho, _ = banco_da_revisao(monkeypatch, tmp_path, resposta(resumo="Nada mudou."))
+
+    assert cli.revisar([]) == 0
+
+    assert "sem mudança" in capsys.readouterr().out
+    assert conta(caminho, "versao_taxonomia") == 1 and conta(caminho, "geracao") == 1
+
+
+def test_revisar_recusada_sai_com_1(monkeypatch, tmp_path, capsys) -> None:
+    banco_da_revisao(monkeypatch, tmp_path, ErroLlmEsgotado("fora do ar"))
+
+    assert cli.revisar([]) == 1
+
+    assert "recusada: LLM:" in capsys.readouterr().err
+
+
+def test_revisar_sem_chave_argumento_sobrando_banco_ou_vigente_sai_com_2(
+    monkeypatch, tmp_path, capsys
+) -> None:
+    caminho, llm = banco_da_revisao(monkeypatch, tmp_path, resposta())
+
+    assert cli.revisar(["--x"]) == 2
+    assert "argumento não esperado" in capsys.readouterr().err
+
+    monkeypatch.delenv("OPENROUTER_API_KEY")
+    assert cli.revisar([]) == 2
+    assert "OPENROUTER_API_KEY" in capsys.readouterr().err
+    monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
+
+    monkeypatch.setenv("FRENTES_DB", str(tmp_path / "nao-existe.sqlite"))
+    assert cli.revisar([]) == 2
+    assert "não há banco" in capsys.readouterr().err
+
+    vazio = tmp_path / "vazio.sqlite"
+    store.abrir(vazio).close()
+    monkeypatch.setenv("FRENTES_DB", str(vazio))
+    assert cli.revisar([]) == 2
+    assert "não há versão vigente" in capsys.readouterr().err
+    assert llm.chamadas == [] and conta(caminho, "geracao") == 0
+
+
+def test_revisar_sem_frente_na_janela_sai_com_2_sem_gravar_geracao(
+    monkeypatch, tmp_path, capsys
+) -> None:
+    caminho, llm = banco_da_revisao(monkeypatch, tmp_path, resposta(), com_frentes=False)
+
+    assert cli.revisar([]) == 2
+
+    assert "nenhuma frente classificada" in capsys.readouterr().err
+    assert llm.chamadas == [] and conta(caminho, "geracao") == 0
