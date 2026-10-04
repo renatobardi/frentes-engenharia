@@ -1,0 +1,66 @@
+{% set f = gaveta.frente if gaveta else none %}
+<section id="gaveta" class="gaveta" aria-live="polite"
+  {%- if gaveta and gaveta.estado == "classificando" %} hx-get="/frentes/relatar/{{ f.id }}" hx-trigger="every 1s" hx-target="#gaveta" hx-swap="outerHTML"
+  {%- elif gaveta and gaveta.estado == "aguardando" %} hx-get="/frentes/relatar/{{ f.id }}" hx-trigger="every 5s" hx-target="#gaveta" hx-swap="outerHTML"{% endif %}>
+  <h1>Relatar uma frente</h1>
+
+  {% if not gaveta %}
+  <form method="post" action="/frentes/relatar" hx-post="/frentes/relatar" hx-target="#gaveta" hx-swap="outerHTML">
+    {% if erro %}<p class="erro" role="alert">{{ erro }}</p>{% endif %}
+    <label for="emissor">Quem relata</label>
+    <input id="emissor" name="emissor" list="emissores" maxlength="200" required autocomplete="off"
+           value="{{ valores.emissor or '' }}" placeholder="Escolha da lista ou digite">
+    <datalist id="emissores">
+      {% for e in emissores %}<option value="{{ e.nome }}">{{ e.cargo or e.tipo.value }}</option>{% endfor %}
+    </datalist>
+    <label for="texto">O que está acontecendo</label>
+    <textarea id="texto" name="texto" rows="6" required placeholder="{{ ajuda }}">{{ valores.texto or '' }}</textarea>
+    <p class="ajuda">{{ ajuda }}</p>
+    <button type="submit" class="botao">Enviar</button>
+  </form>
+
+  {% else %}
+  <p class="quem">{{ f.emissor }} relatou:</p>
+  <blockquote class="original">{{ f.texto }}</blockquote>
+  {% if f.complemento %}
+  <p class="quem">Complemento:</p>
+  <blockquote class="original complemento">{{ f.complemento }}</blockquote>
+  {% endif %}
+
+  {% if gaveta.estado == "classificando" %}
+  <p class="estado" role="status">Recebida, classificando…</p>
+
+  {% elif gaveta.estado == "aguardando" %}
+  <p class="estado aguardando" role="status">Recebida. A frente está aguardando classificação.</p>
+  {% if gaveta.motivo %}<p class="ajuda">Motivo: {{ gaveta.motivo }}</p>{% endif %}
+
+  {% else %}
+  <h2>Classificação</h2>
+  {% for b in gaveta.barras %}
+  <div class="linha">
+    <div class="rotulo">{{ b.rotulo }}</div>
+    <div class="resposta">{{ b.resposta }}</div>
+    <div class="barra" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ b.percentual }}" aria-label="Confiança: {{ b.rotulo }}"><span style="width: {{ b.percentual }}%"></span></div>
+    <div class="percentual">{{ b.percentual }}%</div>
+  </div>
+  {% endfor %}
+  {% if gaveta.nivel %}<p class="nivel">{{ gaveta.nivel }}</p>{% endif %}
+  {% if gaveta.via_llm %}<p class="ajuda">Escolhida pela LLM no desempate.</p>{% endif %}
+
+  {% if gaveta.vago %}
+  <div class="vago" role="alert">
+    <p>{{ aviso_vago }}</p>
+    {% if gaveta.pode_completar or erro_complemento %}
+    <form method="post" action="/frentes/relatar/{{ f.id }}/complemento" hx-post="/frentes/relatar/{{ f.id }}/complemento" hx-target="#gaveta" hx-swap="outerHTML">
+      {% if erro_complemento %}<p class="erro">{{ erro_complemento }}</p>{% endif %}
+      <label for="complemento">Completar o relato</label>
+      <textarea id="complemento" name="texto" rows="4" required></textarea>
+      <button type="submit" class="botao">Completar e classificar de novo</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% endif %}
+  <p><a href="/frentes/relatar">Relatar outra frente</a></p>
+  {% endif %}
+</section>
