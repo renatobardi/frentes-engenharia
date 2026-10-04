@@ -18,7 +18,7 @@ Uma linguagem, um processo, um arquivo de banco, um container.
 | 2 | Backend | FastAPI + uvicorn, **um processo e um worker**. Dependências de execução: `fastapi`, `uvicorn`, `jinja2`, `httpx`, `python-multipart`. Sem ORM e sem SDK de LLM |
 | 3 | Front | HTML renderizado no servidor (Jinja2) + HTMX, sem build. Um CSS à mão. Tudo de `static/`, sem CDN e sem fonte web. Efeito ao vivo por polling de 2 s |
 | 4 | Banco | SQLite, um arquivo, `sqlite3` da biblioteca padrão, modo WAL. Todo o SQL em `frentes/store/`; o esquema é o `schema.sql`. Datas em texto ISO 8601 UTC, JSON em coluna de texto. Sem migrações |
-| 5 | Processamento | Tarefas `asyncio` no processo da API. A fila é o próprio banco: frente sem classificação na versão vigente está pendente. Revisão automática desligada por configuração (`REVISAO_AUTOMATICA=0`) |
+| 5 | Processamento | Tarefas `asyncio` no processo da API. A fila é o próprio banco: frente sem classificação na versão vigente está aguardando classificação. Revisão automática desligada por configuração (`REVISAO_AUTOMATICA=0`) |
 | 6 | Linha de comando | `python -m frentes <comando>`: o mesmo pacote serve a API e os comandos |
 | 7 | Snapshot | O arquivo SQLite compactado, versionado no repo (`data/snapshot/frentes.sqlite.gz`), sem o gabarito e sem a rajada |
 | 8 | Limiares | `config/limiares.toml`, no repo, fora da versão da taxonomia |
@@ -35,7 +35,7 @@ O Jev vai pela API direta da TypeSafe (`api.typesafe.ai`) e a LLM comum pelo Ope
 ## Consequências
 
 - Cada teste cria o seu banco em memória e troca o Jev e a LLM por falsos: os gates rodam sem rede e sem chave.
-- Gravar ou restaurar o estado inteiro é copiar um arquivo. Reiniciar o container não perde frente pendente.
+- Gravar ou restaurar o estado inteiro é copiar um arquivo. Reiniciar o container não perde frente aguardando classificação.
 - SQLite e fila em memória servem a ~6 mil frentes e um operador. Não servem ao piloto com dado real e mais de um usuário sem trocar o banco e separar o worker; o `store/` isolado é o que deixa essa troca barata.
 - Um ambiente só e deploy por aprovação: cada deploy pede a aprovação do Bardi no host.
 - As regras de dependência (só `store/` tem SQL; só `jev/` e `llm/` falam com a rede; só `config.py` lê o ambiente; só `conferencia/` lê o gabarito) estão no [`AGENTS.md`](../../AGENTS.md); as três primeiras são conferidas pelo lint.

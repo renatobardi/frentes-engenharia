@@ -1,4 +1,4 @@
--- Esquema do frentes-engenharia (SQLite). Fonte: resolução de "Modelo de dados do PoC" (#20)
+-- Esquema do frentes-engenharia (SQLite). Decidido na resolução de "Modelo de dados do PoC" (#20)
 -- e o endereçamento de "Ciclo de vida da frente depois de classificada" (#19).
 --
 -- Convenções:
@@ -70,7 +70,7 @@ CREATE TABLE geracao (
 -- Versão vigente: a de maior numero com ativada_em preenchido. Não há ponteiro.
 CREATE TABLE versao_taxonomia (
     numero          INTEGER PRIMARY KEY,
-    documento       TEXT NOT NULL CHECK (json_valid(documento)),  -- contratos.DocumentoTaxonomia
+    documento       TEXT NOT NULL CHECK (json_valid(documento)),  -- contratos.DocumentoTaxonomia.para_dict
     modelo_jev      TEXT NOT NULL,
     criada_em       TEXT NOT NULL,
     geracao_id      INTEGER REFERENCES geracao (id),
@@ -103,7 +103,8 @@ CREATE TABLE classificacao (
     frente_id       TEXT NOT NULL REFERENCES frente (id),
     versao          INTEGER NOT NULL REFERENCES versao_taxonomia (numero),
 
-    -- a resposta crua do Jev, inteira: contratos.RespostaJev
+    -- a resposta crua do Jev, inteira: contratos.RespostaJev.para_dict (modelo e respostas;
+    -- o uso da chamada fica só nas colunas tokens_* e latencia_ms, mais abaixo)
     resposta_jev    TEXT NOT NULL CHECK (json_valid(resposta_jev)),
 
     -- o que o Jev disse (chaves de valor; NULL = "Nenhum destes")
@@ -137,10 +138,11 @@ CREATE TABLE classificacao (
     subtipo_final   TEXT,
     natureza_final  TEXT CHECK (natureza_final IN ('reativa', 'proativa')),
 
-    -- uso da chamada ao Jev, para o apêndice de custo
-    tokens_entrada  INTEGER,
-    tokens_saida    INTEGER,
-    latencia_ms     INTEGER,
+    -- uso da chamada ao Jev, para o apêndice de custo. É o único lugar em que ele é
+    -- guardado (contratos.RespostaJev.uso). O uso da LLM vai dentro de resposta_llm.
+    tokens_entrada  INTEGER NOT NULL,
+    tokens_saida    INTEGER NOT NULL,
+    latencia_ms     INTEGER NOT NULL,
 
     classificada_em TEXT NOT NULL,
 
@@ -153,21 +155,26 @@ CREATE INDEX classificacao_celula ON classificacao (versao, area_final, tipo_fin
 CREATE INDEX classificacao_estado ON classificacao (versao, estado);
 
 -- O único pré-computado. Sempre escrito sobre todas as origens.
+-- A célula que esquenta pela primeira vez não tem painel anterior: a linha nasce
+-- 'atualizando', sem texto. Só nesse estado os campos do texto podem ficar vazios.
 CREATE TABLE painel_celula (
     versao             INTEGER NOT NULL REFERENCES versao_taxonomia (numero),
     area               TEXT NOT NULL,  -- chave
     tipo               TEXT NOT NULL,  -- chave
     visao              TEXT NOT NULL CHECK (visao IN ('dor', 'oportunidade')),
     periodo            TEXT NOT NULL CHECK (periodo IN ('30d', '90d', '180d', '12m')),
-    porque             TEXT NOT NULL,  -- por que a célula está quente
+    porque             TEXT,  -- por que a célula está quente
     -- lista de contratos.Sugestao (texto + tipo de solução)
     sugestoes          TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(sugestoes)),
-    gerado_em          TEXT NOT NULL,
-    modelo_llm         TEXT NOT NULL,
+    gerado_em          TEXT,
+    modelo_llm         TEXT,
     estado             TEXT NOT NULL DEFAULT 'atual' CHECK (estado IN ('atual', 'atualizando')),
     -- quantas frentes a célula tinha quando o texto foi gerado, para saber se envelheceu
-    frentes_na_geracao INTEGER NOT NULL,
-    PRIMARY KEY (versao, area, tipo, visao, periodo)
+    frentes_na_geracao INTEGER,
+    PRIMARY KEY (versao, area, tipo, visao, periodo),
+    CHECK (estado = 'atualizando' OR (
+        porque IS NOT NULL AND gerado_em IS NOT NULL
+        AND modelo_llm IS NOT NULL AND frentes_na_geracao IS NOT NULL))
 ) STRICT, WITHOUT ROWID;
 
 -- A marca de que alguém decidiu investir numa célula, numa visão. Fica fora das versões:
@@ -208,7 +215,11 @@ CREATE TABLE gabarito (
     objeto         TEXT,
     servico        TEXT,
     -- se o objeto ou serviço está na ficha do time que vai ao Jev, ou é de fora
-    listado        INTEGER CHECK (listado IN (0, 1))
+    listado        INTEGER CHECK (listado IN (0, 1)),
+    -- só no relato cruzado: o time de quem relata (chave) e o sabor
+    time_relator   TEXT,
+    cruzado        TEXT CHECK (cruzado IN ('so_o_dono', 'dois_objetos')),
+    CHECK ((time_relator IS NULL) = (cruzado IS NULL))
 ) STRICT;
 
 -- Linha única: de que snapshot este banco veio. As datas daqui não são deslocadas.

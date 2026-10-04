@@ -1,3 +1,4 @@
+import json
 import re
 from datetime import UTC, datetime, timedelta, timezone
 from enum import StrEnum
@@ -26,6 +27,7 @@ ENUMS_DO_ESQUEMA: dict[tuple[str, str], type[StrEnum]] = {
     ("enderecamento", "tipo_solucao"): contratos.TipoSolucao,
     ("enderecamento", "procedencia"): contratos.Procedencia,
     ("gabarito", "natureza"): contratos.Natureza,
+    ("gabarito", "cruzado"): contratos.Cruzado,
 }
 
 
@@ -112,3 +114,82 @@ def test_a_data_que_conta_e_ocorrido_em_e_na_falta_recebido_em() -> None:
 
     assert Frente("f1", Origem.LOG, "svc", "x", recebido).data == recebido
     assert Frente("f1", Origem.LOG, "svc", "x", recebido, ocorrido_em=ocorrido).data == ocorrido
+
+
+DOCUMENTO = contratos.DocumentoTaxonomia(
+    organograma=(
+        contratos.AreaDoOrganograma(
+            "cobranca",
+            "Cobrança",
+            (
+                contratos.TimeDoOrganograma(
+                    "cobranca-boletos",
+                    "Boletos e Carnês",
+                    "Emite e registra boletos e carnês.",
+                    (
+                        contratos.ItemDaFicha(
+                            "tela de segunda via", contratos.EspecieDeItem.OBJETO
+                        ),
+                        contratos.ItemDaFicha(
+                            "svc-registro", contratos.EspecieDeItem.SERVICO, listado=False
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ),
+    tipos=(
+        contratos.ValorDoDocumento(
+            "t-integracao",
+            "Integração",
+            "Falha entre sistemas.",
+            (contratos.ValorDoDocumento("st-timeout", "Timeout", "A chamada não volta."),),
+        ),
+    ),
+    causas_raiz=(contratos.ValorDoDocumento("c-fornecedor", "Fornecedor", "Terceiro falhou."),),
+    problemas=(contratos.ValorDoDocumento("p-gravame", "Gravame no Detran", "Cita o gravame."),),
+    regua_severidade=(contratos.NivelDaRegua("baixa", "Incomoda, não para ninguém."),),
+    regua_impacto=(contratos.NivelDaRegua("alto", "Muda o resultado da área."),),
+    criterio_urgencia="A janela de tempo para agir.",
+    criterio_natureza={
+        contratos.Natureza.REATIVA: "Relata uma falha que está acontecendo.",
+        contratos.Natureza.PROATIVA: "Propõe uma melhoria.",
+    },
+    pergunta_de_controle="O texto cita algum sistema, processo, número ou situação específica?",
+    instrucoes={pergunta: f"instrução de {pergunta}" for pergunta in contratos.Pergunta},
+)
+
+
+def test_documento_da_taxonomia_vai_a_json_e_volta_igual() -> None:
+    como_json = json.dumps(DOCUMENTO.para_dict())
+
+    assert contratos.DocumentoTaxonomia.de_dict(json.loads(como_json)) == DOCUMENTO
+
+
+def test_documento_tem_instrucao_para_as_8_dimensoes_e_a_pergunta_de_controle() -> None:
+    dimensoes = {dimensao.value for dimensao in contratos.Dimensao}
+
+    assert {pergunta.value for pergunta in contratos.Pergunta} == dimensoes | {"controle"}
+    assert set(json.loads(json.dumps(DOCUMENTO.para_dict()))["instrucoes"]) == dimensoes | {
+        "controle"
+    }
+
+
+def test_resposta_do_jev_vai_a_json_sem_o_uso_e_volta_igual() -> None:
+    uso = contratos.Uso(tokens_entrada=2100, tokens_saida=180, latencia_ms=310)
+    resposta = contratos.RespostaJev(
+        modelo="jev-1.13.0",
+        respostas={
+            contratos.Pergunta.AREA: contratos.RespostaDeLista(
+                "cobranca-boletos", 0.85, {"cobranca-boletos": 0.88, contratos.NENHUM_DESTES: 0.12}
+            ),
+            contratos.Pergunta.CONTROLE: contratos.RespostaDeNumero(0.91),
+        },
+        uso=uso,
+    )
+
+    guardado = json.loads(json.dumps(resposta.para_dict()))
+
+    assert sorted(guardado) == ["modelo", "respostas"]  # o uso vale só nas colunas
+    assert guardado["respostas"]["controle"] == {"valor": 0.91}
+    assert contratos.RespostaJev.de_dict(guardado, uso) == resposta

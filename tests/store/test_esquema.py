@@ -64,6 +64,9 @@ def classificacao(con: store.Conexao, frente_id: str = "f1", versao: int = 1, **
         "conf_causa": 0.2,
         "conf_problema": 0.1,
         "controle": 0.9,
+        "tokens_entrada": 2100,
+        "tokens_saida": 180,
+        "latencia_ms": 310,
         "estado": "classificada",
         "classificada_em": "2026-10-03T12:00:01Z",
         **campos,
@@ -109,6 +112,32 @@ def test_o_banco_em_arquivo_e_criado_e_relido(tmp_path: Path) -> None:
     assert (linha["id"], linha["origem"], linha["emissor"]) == ("f1", "relato", "Ana Prado")
     assert linha["metadados"] == '{"linhas": ["503 /checkout"]}'
     assert relido.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
+
+
+def test_abrir_existente_nao_cria_arquivo_nem_pasta(tmp_path: Path) -> None:
+    caminho = tmp_path / "pasta-nova" / "frentes.sqlite"
+
+    with pytest.raises(store.BancoAusente, match="não há banco"):
+        store.abrir_existente(caminho)
+
+    assert not caminho.parent.exists()
+
+
+def test_abrir_existente_recusa_arquivo_sem_esquema_e_nao_o_cria(tmp_path: Path) -> None:
+    caminho = tmp_path / "frentes.sqlite"
+    caminho.touch()
+
+    with pytest.raises(store.BancoAusente, match="não tem o esquema"):
+        store.abrir_existente(caminho)
+
+    assert caminho.stat().st_size == 0
+
+
+def test_abrir_existente_le_o_banco_que_ja_foi_criado(tmp_path: Path) -> None:
+    caminho = tmp_path / "frentes.sqlite"
+    store.abrir(caminho).close()
+
+    assert store.tabelas(store.abrir_existente(caminho)) == ENTIDADES
 
 
 def test_abrir_um_banco_que_ja_tem_tabelas_nao_recria_o_esquema(tmp_path: Path) -> None:
@@ -274,6 +303,22 @@ def test_painel_e_um_por_versao_celula_visao_e_periodo(con: store.Conexao) -> No
         con.execute(sql, ("dor", "90d"))
 
 
+def test_celula_sem_painel_anterior_pode_ser_marcada_atualizando(con: store.Conexao) -> None:
+    versao(con)
+    sql = (
+        "INSERT INTO painel_celula (versao, area, tipo, visao, periodo, estado)"
+        " VALUES (1, 'cobranca', 't-boletos', 'dor', ?, ?)"
+    )
+    con.execute(sql, ("90d", "atualizando"))
+
+    linha = con.execute("SELECT porque, gerado_em, sugestoes FROM painel_celula").fetchone()
+    assert (linha["porque"], linha["gerado_em"], linha["sugestoes"]) == (None, None, "[]")
+    with pytest.raises(store.ErroDeIntegridade):
+        con.execute(sql, ("12m", "atual"))  # painel atual sem texto não existe
+    with pytest.raises(store.ErroDeIntegridade):
+        con.execute("UPDATE painel_celula SET estado = 'atual'")
+
+
 def test_no_maximo_um_enderecamento_ativo_por_celula_e_visao(con: store.Conexao) -> None:
     enderecamento(con)
     enderecamento(con, visao="oportunidade")
@@ -310,6 +355,26 @@ def test_gabarito_nao_tem_ligacao_com_as_tabelas_do_pipeline(con: store.Conexao)
         assert "gabarito" not in [r["table"] for r in referencias]
         if tabela == "gabarito":
             assert referencias == []
+
+
+def test_gabarito_do_relato_cruzado_leva_o_time_de_quem_relata_e_o_sabor(
+    con: store.Conexao,
+) -> None:
+    sql = (
+        "INSERT INTO gabarito (frente_id, historia_id, time, time_relator, cruzado)"
+        " VALUES (?, 'fundo', 'cobranca-boletos', ?, ?)"
+    )
+    con.execute(sql, ("f1", None, None))  # relato que não é cruzado
+    con.execute(sql, ("f2", "credito-esteira", "so_o_dono"))
+    con.execute(sql, ("f3", "credito-esteira", "dois_objetos"))
+
+    for id, relator, sabor in [
+        ("f4", "credito-esteira", None),
+        ("f5", None, "so_o_dono"),
+        ("f6", "credito-esteira", "tres_objetos"),
+    ]:
+        with pytest.raises(store.ErroDeIntegridade):
+            con.execute(sql, (id, relator, sabor))
 
 
 def test_dia_do_snapshot_e_linha_unica(con: store.Conexao) -> None:

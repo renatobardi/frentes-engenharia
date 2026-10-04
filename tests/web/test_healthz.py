@@ -16,7 +16,11 @@ def cliente(banco: Path, **ambiente: str) -> TestClient:
     return TestClient(criar_app(config.carregar({"FRENTES_DB": str(banco), **ambiente})))
 
 
-def test_healthz_num_banco_novo_responde_200_com_os_tres_campos(banco: Path) -> None:
+def test_healthz_sem_banco_responde_200_com_os_tres_campos_e_nao_cria_o_banco(
+    tmp_path: Path,
+) -> None:
+    banco = tmp_path / "volume" / "frentes.sqlite"
+
     resposta = cliente(banco).get("/healthz")
 
     assert resposta.status_code == 200
@@ -25,7 +29,22 @@ def test_healthz_num_banco_novo_responde_200_com_os_tres_campos(banco: Path) -> 
         "versao_vigente": None,
         "dia_snapshot": None,
     }
-    assert banco.exists()  # sem banco no volume, o esquema é criado
+    # quem carrega o snapshot precisa continuar vendo que não há banco no volume
+    assert not banco.parent.exists()
+
+
+def test_healthz_com_arquivo_sem_esquema_responde_vazio_e_nao_cria_o_esquema(banco: Path) -> None:
+    banco.touch()
+
+    resposta = cliente(banco).get("/healthz")
+
+    assert resposta.status_code == 200
+    assert resposta.json() == {
+        "commit": "desconhecido",
+        "versao_vigente": None,
+        "dia_snapshot": None,
+    }
+    assert banco.stat().st_size == 0
 
 
 def test_healthz_diz_o_commit_a_versao_vigente_e_o_dia_do_snapshot(banco: Path) -> None:
@@ -53,6 +72,7 @@ def test_healthz_diz_o_commit_a_versao_vigente_e_o_dia_do_snapshot(banco: Path) 
 
 
 def test_healthz_sobe_sem_as_chaves_e_nao_devolve_segredo(banco: Path) -> None:
+    store.abrir(banco).close()
     com_chaves = cliente(
         banco,
         TYPESAFE_API_KEY="segredo-ts",

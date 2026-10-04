@@ -14,8 +14,15 @@ def criar_app(cfg: config.Config | None = None) -> FastAPI:
 
     @app.get("/healthz")
     def healthz() -> dict[str, str | int | None]:
-        """O que o deploy confere: o commit no ar, a versão vigente e o dia do snapshot."""
-        with closing(store.abrir(cfg.banco)) as con:
+        """O que o deploy confere: o commit no ar, a versão vigente e o dia do snapshot.
+
+        Só lê: sem banco no volume, responde os dois últimos vazios e não cria nada.
+        """
+        try:
+            con = store.abrir_existente(cfg.banco)
+        except store.BancoAusente:
+            return {"commit": cfg.commit, "versao_vigente": None, "dia_snapshot": None}
+        with closing(con):
             return {
                 "commit": cfg.commit,
                 "versao_vigente": store.versao_vigente(con),

@@ -13,6 +13,28 @@ Conexao = sqlite3.Connection
 ErroDeIntegridade = sqlite3.IntegrityError
 
 
+class BancoAusente(Exception):
+    """O arquivo do banco não existe, ou existe sem o esquema."""
+
+
+def abrir_existente(caminho: Path | str) -> Conexao:
+    """Abre um banco que já existe, sem criar arquivo, pasta nem esquema.
+
+    É o que a leitura de saúde usa: quem cria o banco é a subida da aplicação
+    (do snapshot ou do esquema), nunca uma consulta.
+    """
+    try:
+        con = sqlite3.connect(f"{Path(caminho).resolve().as_uri()}?mode=rw", uri=True)
+    except sqlite3.OperationalError:
+        raise BancoAusente(f"não há banco em {caminho}") from None
+    con.row_factory = sqlite3.Row
+    con.execute("PRAGMA foreign_keys = ON")
+    if not tabelas(con):
+        con.close()
+        raise BancoAusente(f"o banco em {caminho} não tem o esquema")
+    return con
+
+
 def abrir(caminho: Path | str = EM_MEMORIA) -> Conexao:
     """Abre o banco e, se ele está vazio, cria o esquema.
 
