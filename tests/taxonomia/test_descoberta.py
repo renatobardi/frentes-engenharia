@@ -117,6 +117,23 @@ def test_tipo_so_de_melhoria_gera_pedido_de_correcao_dirigido(con) -> None:
     assert feito.versao is not None and feito.geracao.resultado is ResultadoGeracao.VERSAO_NOVA
 
 
+def test_a_correcao_traz_os_problemas_depois_da_proposta_e_pede_o_que_mudou(con) -> None:
+    """Medido com a LLM real (#65): com os problemas antes da proposta ela devolvia a mesma
+    proposta nas duas correções. A resposta começa por "correcoes", que a leitura ignora."""
+    llm = falsa_de_um_lote(melhoria(), {"correcoes": ["apaguei o tipo"], **proposta()})
+
+    feito = rodar(con, llm)
+
+    correcao = llm.chamadas[1][1]
+    assert correcao.index("PROPOSTA RECUSADA:") < correcao.index("PROBLEMAS (")
+    assert correcao.index("PROBLEMAS (") < correcao.index("Como corrigir:")
+    assert "Devolver a mesma taxonomia é erro" in correcao
+    assert correcao.rstrip().endswith('"criterio_urgencia": ""}')
+    assert '{"correcoes": ["<o que mudei para o problema 1>"], "tipos": [' in correcao
+    assert "o nome tem 'melhorias'" in correcao  # a violação diz a palavra que a denuncia
+    assert feito.versao is not None  # a chave "correcoes" não atrapalha a leitura
+
+
 def test_tipo_sem_exemplo_gera_pedido_de_correcao_e_nome_de_melhoria_e_recusado(con) -> None:
     sem_exemplo = tipo("Falha de Integração")
     del sem_exemplo["exemplo_proativo"]

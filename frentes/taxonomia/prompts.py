@@ -69,9 +69,11 @@ FORMATO = """{"tipos": [{"nome": "", "descricao": "", \
 COMO_CORRIGIR = """Como corrigir:
 - "só de melhoria": apague o tipo e distribua os subtipos dele pelos tipos do seu ASSUNTO \
 (crie um tipo de assunto se faltar), reescrevendo as descrições para valerem para o problema \
-e para a melhoria.
-- "nome de área, time ou produto": troque pelo nome da espécie do problema.
+e para a melhoria. Se o problema cita uma palavra do nome ou da descrição, ela tem de sair.
+- "nome de área, time ou produto": troque o nome por outro, da espécie do problema, SEM a \
+palavra citada entre parênteses.
 - "genérico": dê um nome que diga a espécie da frente.
+- "tamanho": reescreva o nome citado com até 4 palavras.
 - fora dos tetos: junte, divida ou remova até caber."""
 
 TAREFA = f"""
@@ -101,22 +103,28 @@ para agir (semanas, não horas), não sobre o tamanho do estrago.
 Responda só JSON:
 {FORMATO}"""
 
+# Medido com a LLM real (#65): com os problemas antes da proposta e "mantenha o resto igual",
+# ela devolvia a mesma proposta, byte a byte, nas duas correções. Por isso a proposta vem
+# primeiro, os problemas por último, e a resposta começa por "correcoes" (o que mudou em cada
+# problema), que a leitura ignora.
 TAREFA_DE_CORRECAO = """
 
-Você propôs a taxonomia abaixo para estas frentes, e a conferência automática achou problemas. \
-Corrija SÓ o que foi apontado, mantenha o resto igual e devolva a taxonomia inteira no mesmo \
-formato JSON.
+Você propôs a taxonomia abaixo para estas frentes, e a conferência automática a RECUSOU. \
+Devolver a mesma taxonomia é erro: ela será recusada de novo.
 
-PROBLEMAS:
+PROPOSTA RECUSADA:
+{proposta}
+
+PROBLEMAS (cada um tem de sumir na nova versão):
 {problemas}
 
 {como_corrigir}
 
-PROPOSTA:
-{proposta}
+Corrija SÓ o que foi apontado e mantenha igual o que não foi. Devolva a taxonomia inteira, em \
+JSON, começando pela chave "correcoes": uma frase por problema, dizendo o que você mudou.
 
 Responda só JSON:
-{formato}"""
+{{"correcoes": ["<o que mudei para o problema 1>"], {formato}"""
 
 TAREFA_DE_CORRECAO_SEM_AMOSTRA = TAREFA_DE_CORRECAO.replace(
     "para estas frentes, e a conferência", "e a conferência"
@@ -182,7 +190,7 @@ def correcao(
         problemas=_problemas(violacoes),
         como_corrigir=COMO_CORRIGIR,
         proposta=_json(proposta),
-        formato=FORMATO,
+        formato=FORMATO[1:],
     )
     return INSTRUCAO, amostra(frentes) + corpo
 
@@ -212,6 +220,6 @@ def correcao_sem_amostra(proposta: object, violacoes: Sequence[Violacao]) -> tup
         problemas=_problemas(violacoes),
         como_corrigir=COMO_CORRIGIR,
         proposta=_json(proposta),
-        formato=FORMATO,
+        formato=FORMATO[1:],
     )
     return INSTRUCAO, corpo

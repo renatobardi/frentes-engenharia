@@ -231,6 +231,18 @@ def test_nome_de_time_no_singular_ou_plural_e_marca(nome: str) -> None:
     assert regras(com_primeiro(tipo(nome)), marcas) == {"nome_de_area_time_ou_produto"}
 
 
+@pytest.mark.parametrize("nome", ["Prazo Regulatório", "Relatório Atrasado", "Política Confusa"])
+def test_palavra_de_assunto_no_plural_do_time_nao_e_marca(nome: str) -> None:
+    organograma = (
+        AreaDoOrganograma(
+            "dados", "Dados e Regulatório", (TimeDoOrganograma("rr", "Relatórios Regulatórios", ""),
+                                             TimeDoOrganograma("pc", "Políticas de Crédito", ""))
+        ),
+    )  # fmt: skip
+    marcas = p.marcas_do_organograma(organograma)
+    assert regras(com_primeiro(tipo(nome)), marcas) == set()
+
+
 @pytest.mark.parametrize(
     "mudanca",
     [
