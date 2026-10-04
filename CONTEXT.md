@@ -146,3 +146,11 @@ O ganho estimado de resolver uma frente proativa, numa escala de 0 a 1 medida co
 
 **Incerta**:
 Frente cuja classificação ficou abaixo do limiar de confiança e por isso não pinta o mapa. A de texto vago é incerta por outro motivo, a pergunta de controle, e fica fora das células.
+
+**Célula**:
+O cruzamento de uma área com um tipo no mapa de calor, lido numa das duas visões. É a unidade da decisão de onde investir.
+_Avoid_: quadrante, ponto quente
+
+**Endereçamento**:
+O registro de que alguém decidiu investir numa célula, numa visão: a data, o texto da decisão e o tipo de solução. É uma marca, não um estado da frente, que não tem ciclo depois de classificada. Não tira nada do índice de dor: o mapa mostra a marca e, na evolução, o que aconteceu com a célula depois da data.
+_Avoid_: tratamento, resolução, plano de ação, fechamento
