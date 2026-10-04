@@ -27,13 +27,13 @@ Histórias ≈ 21% das frentes, fundo ≈ 77%, fora do escopo 2%. Intensidade na
 
 O validador (`frentes/seed/validador.py`) lê esta seção. Nenhum objeto, serviço ou fornecedor do organograma pode conter um destes termos (sem acento e sem diferença de maiúscula), porque o fundo não pode nomear o objeto de uma história.
 
-- H1: esteira de propostas; esteira de proposta
-- H2: registro de gravame; inscricao de gravame
-- H3: emissao de boletos; emissao de carnes; valor do boleto
+- H1: esteira
+- H2: gravame; registro de gravame
+- H3: boleto; boletos; carne; carnes
 - H4: simulacao no portal; status no portal; comissao automatica
-- H5: assistente virtual
+- H5: assistente virtual; assistente de ia
 - H6: deploy manual; homologacao compartilhada; ci/cd; feature flag
-- H7: dependencias vulneraveis; segredos em repositorio; pentest; acesso de ex-colaborador
+- H7: dependencias vulneraveis; segredos em repositorio; pentest; ex-colaborador; ex-colaboradores
 
 Única exceção, escrita na spec: o critério do time App lista o assistente virtual do app.
 

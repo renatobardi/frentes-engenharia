@@ -1,6 +1,6 @@
 """Confere os arquivos da seed que nós escrevemos (`seed/`): contagens e regras da ficha do time.
 
-`python -m frentes.seed.validador [pasta]` imprime cada problema e sai com 1; sem problema, sai
+`python -m frentes.seed.validador` imprime cada problema e sai com 1; sem problema, sai
 com 0.
 Os arquivos do roteiro e os de `seed/gerado/` não passam por aqui.
 """
@@ -12,7 +12,14 @@ import unicodedata
 from datetime import UTC, datetime
 from pathlib import Path
 
-from frentes.contratos import TipoSolucao, Visao
+from frentes.contratos import (
+    AreaDoOrganograma,
+    EspecieDeItem,
+    ItemDaFicha,
+    TimeDoOrganograma,
+    TipoSolucao,
+    Visao,
+)
 
 PASTA = Path(__file__).resolve().parents[2] / "seed"
 
@@ -21,6 +28,7 @@ TIMES = 24
 OBJETOS_POR_TIME = 5
 SERVICOS_POR_TIME = 3
 OBJETOS_DE_FORA_POR_TIME = 1
+HISTORIA_PLANTADA = ("H3", "pos-venda-e-cobranca", Visao.DOR.value)
 PESSOAS = (100, 140)  # "~120"
 DIA_D = re.compile(r"^\*\*Dia D\*\*:\s*(\d{4}-\d{2}-\d{2})\s*$", re.MULTILINE)
 
@@ -57,86 +65,155 @@ def ler_termos(historias_md: str) -> tuple[dict[str, list[str]], list[tuple[str,
         if linha.startswith("## "):
             break
         if m := re.match(r"^- (H\d+): (.+)$", linha):
-            termos[m[1]] = [sem_acento(t) for t in m[2].split(";") if t.strip()]
+            termos[m[1]] = [sem_acento(t).replace("-", " ") for t in m[2].split(";") if t.strip()]
         elif m := re.match(r"^- permitido: (\S+) = (.+)$", linha):
-            permitidos.append((m[1], sem_acento(m[2])))
+            permitidos.append((m[1], sem_acento(m[2]).replace("-", " ")))
     return termos, permitidos
+
+
+def montar_organograma(org: dict) -> tuple[tuple[AreaDoOrganograma, ...], list[str]]:
+    """Monta os tipos do contrato (o que `DocumentoTaxonomia.de_dict` lê) ou diz o que está fora."""
+    erros: list[str] = []
+    areas: list[AreaDoOrganograma] = []
+    for a in org.get("organograma") or []:
+        times: list[TimeDoOrganograma] = []
+        for t in a.get("times") or []:
+            itens: list[ItemDaFicha] = []
+            for i in t.get("itens") or []:
+                try:
+                    itens.append(ItemDaFicha(i["nome"], EspecieDeItem(i["especie"]), i["listado"]))
+                except (KeyError, ValueError, TypeError):
+                    erros.append(f"{t.get('chave')}: item fora do contrato {i!r}")
+                    continue
+                if not isinstance(i["listado"], bool) or not str(i["nome"]).strip():
+                    erros.append(f"{t.get('chave')}: item sem nome ou 'listado' não booleano {i!r}")
+            times.append(
+                TimeDoOrganograma(
+                    str(t.get("chave", "")),
+                    str(t.get("nome", "")),
+                    str(t.get("o_que_faz", "")),
+                    tuple(itens),
+                )
+            )
+        areas.append(
+            AreaDoOrganograma(str(a.get("chave", "")), str(a.get("nome", "")), tuple(times))
+        )
+    return tuple(areas), erros
+
+
+def _contagens(areas: tuple[AreaDoOrganograma, ...]) -> list[str]:
+    times = [t for a in areas for t in a.times]
+    itens = [i for t in times for i in t.itens]
+    esperado = {
+        "áreas": (len(areas), AREAS),
+        "times": (len(times), TIMES),
+        "objetos": (_conta(itens, EspecieDeItem.OBJETO), TIMES * OBJETOS_POR_TIME),
+        "serviços": (_conta(itens, EspecieDeItem.SERVICO), TIMES * SERVICOS_POR_TIME),
+        "fornecedores": (_conta(itens, EspecieDeItem.FORNECEDOR), TIMES),
+    }
+    erros = [f"organograma: {a} {r}, esperados {e}" for r, (a, e) in esperado.items() if a != e]
+    chaves = [x.chave for x in (*areas, *times)]
+    erros += [
+        f"organograma: chave repetida {c!r}" for c in sorted(set(chaves)) if chaves.count(c) > 1
+    ]
+    return erros
+
+
+def _conta(itens: list[ItemDaFicha], especie: EspecieDeItem) -> int:
+    return sum(1 for i in itens if i.especie is especie)
+
+
+def _ficha_do_time(time: TimeDoOrganograma) -> list[str]:
+    chave = time.chave
+    por_especie = {e: [i for i in time.itens if i.especie is e] for e in EspecieDeItem}
+    erros = []
+    if not time.o_que_faz.strip():
+        erros.append(f"{chave}: falta a frase do que o time faz")
+    esperado = {
+        EspecieDeItem.OBJETO: OBJETOS_POR_TIME,
+        EspecieDeItem.SERVICO: SERVICOS_POR_TIME,
+        EspecieDeItem.FORNECEDOR: 1,
+    }
+    for especie, quantos in esperado.items():
+        achado = len(por_especie[especie])
+        if achado != quantos:
+            erros.append(f"{chave}: {achado} itens de espécie {especie.value}, esperados {quantos}")
+    de_fora = [i for i in por_especie[EspecieDeItem.OBJETO] if not i.listado]
+    if len(de_fora) != OBJETOS_DE_FORA_POR_TIME:
+        erros.append(
+            f"{chave}: {len(de_fora)} objetos de fora, esperado {OBJETOS_DE_FORA_POR_TIME}"
+        )
+    for i in (*por_especie[EspecieDeItem.SERVICO], *por_especie[EspecieDeItem.FORNECEDOR]):
+        if not i.listado:
+            erros.append(f"{chave}: {i.especie.value} {i.nome!r} tem de ser listado")
+    for svc in por_especie[EspecieDeItem.SERVICO]:
+        nome = sem_acento(svc.nome)
+        if nome in (chave, f"svc-{chave}") or nome.startswith((f"{chave}-", f"svc-{chave}-")):
+            erros.append(f"{chave}: serviço {svc.nome!r} tem o slug do time")
+    return erros
+
+
+def _repeticoes(times: list[TimeDoOrganograma]) -> list[str]:
+    erros: list[str] = []
+    vistos: dict[str, str] = {}
+    for time in times:
+        for item in time.itens:
+            norma = sem_acento(item.nome)
+            if norma in vistos:
+                onde = (
+                    "no mesmo time" if vistos[norma] == time.chave else f"no time {vistos[norma]}"
+                )
+                erros.append(f"{time.chave}: item {item.nome!r} repetido {onde}")
+            vistos.setdefault(norma, time.chave)
+    return erros
+
+
+def _objetos_de_historia(
+    times: list[TimeDoOrganograma],
+    termos: dict[str, list[str]],
+    permitidos: list[tuple[str, str]],
+) -> list[str]:
+    erros: list[str] = []
+    for time in times:
+        for item in time.itens:
+            norma = sem_acento(item.nome).replace("-", " ")
+            for historia, lista in termos.items():
+                for termo in lista:
+                    if _termo_aparece(termo, norma) and (time.chave, termo) not in permitidos:
+                        erros.append(
+                            f"{time.chave}: item {item.nome!r} repete o objeto da {historia} "
+                            f"({termo!r})"
+                        )
+    return erros
+
+
+def _assistente_do_app(times: list[TimeDoOrganograma]) -> list[str]:
+    app = next((t for t in times if t.chave == "app"), None)
+    if app is None:
+        return []
+    listados = [sem_acento(i.nome) for i in app.itens if i.listado]
+    if any("assistente virtual do app" in nome for nome in listados):
+        return []
+    return ["app: o assistente virtual do app tem de ser objeto listado"]
 
 
 def validar_organograma(
     org: dict, termos: dict[str, list[str]], permitidos: list[tuple[str, str]]
 ) -> list[str]:
-    erros: list[str] = []
-    areas = org.get("areas", [])
-    times = [t for a in areas for t in a.get("times", [])]
-    if len(areas) != AREAS:
-        erros.append(f"organograma: {len(areas)} áreas, esperadas {AREAS}")
-    if len(times) != TIMES:
-        erros.append(f"organograma: {len(times)} times, esperados {TIMES}")
-    chaves = [x.get("chave") for x in (*areas, *times)]
-    for chave in {c for c in chaves if chaves.count(c) > 1}:
-        erros.append(f"organograma: chave repetida {chave!r}")
-
-    objetos = servicos = fornecedores = 0
-    vistos: dict[str, str] = {}
+    areas, erros = montar_organograma(org)
+    times = [t for a in areas for t in a.times]
+    erros += _contagens(areas)
     for time in times:
-        chave = time.get("chave", "?")
-        if not str(time.get("faz", "")).strip():
-            erros.append(f"{chave}: falta a frase do que o time faz")
-        objs = time.get("objetos", [])
-        svcs = time.get("servicos", [])
-        forn = time.get("fornecedor")
-        objetos += len(objs)
-        servicos += len(svcs)
-        fornecedores += 1 if forn else 0
-        if len(objs) != OBJETOS_POR_TIME:
-            erros.append(f"{chave}: {len(objs)} objetos, esperados {OBJETOS_POR_TIME}")
-        if len(svcs) != SERVICOS_POR_TIME:
-            erros.append(f"{chave}: {len(svcs)} serviços, esperados {SERVICOS_POR_TIME}")
-        if not forn:
-            erros.append(f"{chave}: falta o fornecedor")
-        de_fora = [o for o in objs if o.get("listado") is False]
-        if len(de_fora) != OBJETOS_DE_FORA_POR_TIME:
-            erros.append(
-                f"{chave}: {len(de_fora)} objetos de fora, esperado {OBJETOS_DE_FORA_POR_TIME}"
-            )
-        for svc in svcs:
-            if sem_acento(svc) in (chave, f"svc-{chave}"):
-                erros.append(f"{chave}: serviço {svc!r} tem o slug do time")
-        itens = [o.get("nome", "") for o in objs] + list(svcs) + ([forn] if forn else [])
-        for item in itens:
-            norma = sem_acento(item)
-            if norma in vistos:
-                onde = "no mesmo time" if vistos[norma] == chave else f"no time {vistos[norma]}"
-                erros.append(f"{chave}: item {item!r} repetido {onde}")
-            vistos.setdefault(norma, chave)
-            for historia, lista in termos.items():
-                for termo in lista:
-                    if (
-                        _termo_aparece(termo, norma.replace("-", " "))
-                        and (chave, termo) not in permitidos
-                    ):
-                        erros.append(
-                            f"{chave}: item {item!r} repete o objeto da {historia} ({termo!r})"
-                        )
-    app = next((t for t in times if t.get("chave") == "app"), None)
-    if app is not None:
-        listados = [sem_acento(o["nome"]) for o in app.get("objetos", []) if o.get("listado")]
-        if not any("assistente virtual do app" in nome for nome in listados):
-            erros.append("app: o assistente virtual do app tem de ser objeto listado")
-    for rotulo, achado, esperado in (
-        ("objetos", objetos, 120),
-        ("serviços", servicos, 72),
-        ("fornecedores", fornecedores, 24),
-    ):
-        if achado != esperado:
-            erros.append(f"organograma: {achado} {rotulo}, esperados {esperado}")
+        erros += _ficha_do_time(time)
+    erros += _repeticoes(times)
+    erros += _objetos_de_historia(times, termos, permitidos)
+    erros += _assistente_do_app(times)
     return erros
 
 
 def validar_emissores(dados: dict, org: dict) -> list[str]:
     erros: list[str] = []
-    times = {t["chave"] for a in org.get("areas", []) for t in a.get("times", [])}
+    times = {t.chave for a in montar_organograma(org)[0] for t in a.times}
     emissores = dados.get("emissores", [])
     pessoas = [e for e in emissores if e.get("tipo") == "pessoa"]
     sistemas = [e for e in emissores if e.get("tipo") == "sistema"]
@@ -163,37 +240,41 @@ def validar_emissores(dados: dict, org: dict) -> list[str]:
 
 
 def validar_enderecamentos(dados: dict, org: dict, dia_d: str | None) -> list[str]:
-    erros: list[str] = []
-    areas = {a["chave"] for a in org.get("areas", [])}
-    lista = dados.get("enderecamentos", [])
-    if not lista:
-        erros.append("enderecamentos: falta o endereçamento plantado da H3")
-    for e in lista:
-        nome = f"endereçamento {e.get('historia')}"
-        if "tipo" in e:
-            erros.append(f"{nome}: o arquivo não cita tipo (o carregador o descobre)")
-        if e.get("area") not in areas:
-            erros.append(f"{nome}: área {e.get('area')!r} não está no organograma")
-        if e.get("visao") not in {v.value for v in Visao}:
-            erros.append(f"{nome}: visão inválida {e.get('visao')!r}")
-        if e.get("tipo_solucao") not in {t.value for t in TipoSolucao}:
-            erros.append(f"{nome}: tipo de solução inválido {e.get('tipo_solucao')!r}")
-        if not str(e.get("texto", "")).strip():
-            erros.append(f"{nome}: falta o texto da decisão")
-        if not isinstance(e.get("frentes_de_referencia", []), list):
-            erros.append(f"{nome}: frentes_de_referencia tem de ser uma lista")
-        try:
-            quando = datetime.strptime(e.get("decidido_em", ""), "%Y-%m-%dT%H:%M:%SZ").replace(
-                tzinfo=UTC
-            )
-        except ValueError:
-            erros.append(f"{nome}: decidido_em fora do formato ISO 8601 UTC")
-            continue
-        if dia_d:
-            fim_mes6 = _fim_do_mes(dia_d, meses_antes=6)
-            if quando.date().isoformat() != fim_mes6:
-                erros.append(f"{nome}: decidido_em é {quando.date()}, o fim do mês 6 é {fim_mes6}")
-    return erros
+    """A seed planta um só endereçamento: o da H3."""
+    areas = {a.chave for a in montar_organograma(org)[0]}
+    lista = dados.get("enderecamentos") or []
+    if len(lista) != 1:
+        return [f"enderecamentos: {len(lista)} endereçamentos, a seed planta só o da H3"]
+    e = lista[0]
+    historia, area, visao = HISTORIA_PLANTADA
+    erros = []
+    for campo, esperado in (("historia", historia), ("area", area), ("visao", visao)):
+        if e.get(campo) != esperado:
+            erros.append(f"endereçamento: {campo} é {e.get(campo)!r}, esperado {esperado!r}")
+    if "tipo" in e:
+        erros.append("endereçamento: o arquivo não cita tipo (o carregador o descobre)")
+    if e.get("area") not in areas:
+        erros.append(f"endereçamento: área {e.get('area')!r} não está no organograma")
+    if e.get("tipo_solucao") not in {t.value for t in TipoSolucao}:
+        erros.append(f"endereçamento: tipo de solução inválido {e.get('tipo_solucao')!r}")
+    if not str(e.get("texto") or "").strip():
+        erros.append("endereçamento: falta o texto da decisão")
+    if not isinstance(e.get("frentes_de_referencia", []), list):
+        erros.append("endereçamento: frentes_de_referencia tem de ser uma lista")
+    return erros + _data_do_enderecamento(e.get("decidido_em"), dia_d)
+
+
+def _data_do_enderecamento(valor: object, dia_d: str | None) -> list[str]:
+    try:
+        quando = datetime.strptime(str(valor), "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        return ["endereçamento: decidido_em fora do formato ISO 8601 UTC"]
+    if dia_d is None:
+        return []
+    fim_mes6 = _fim_do_mes(dia_d, meses_antes=6)
+    if quando.date().isoformat() != fim_mes6:
+        return [f"endereçamento: decidido_em é {quando.date()}, o fim do mês 6 é {fim_mes6}"]
+    return []
 
 
 def _fim_do_mes(dia_d: str, meses_antes: int) -> str:
@@ -236,6 +317,8 @@ def validar(pasta: Path = PASTA) -> list[str]:
     erros = [] if termos else ["historias.md: falta a seção 'Termos que a ficha não repete'"]
     if achado is None:
         erros.append("historias.md: falta a linha '**Dia D**: AAAA-MM-DD'")
+    elif _ultimo_dia(*(int(p) for p in achado[1].split("-")[:2])) != achado[1]:
+        erros.append(f"historias.md: o dia D {achado[1]} não é o fim de um mês")
     erros += validar_organograma(org, termos, permitidos)
     erros += validar_emissores(emissores, org)
     erros += validar_enderecamentos(enderecamentos, org, achado[1] if achado else None)
@@ -243,8 +326,8 @@ def validar(pasta: Path = PASTA) -> list[str]:
     return erros
 
 
-def main(argumentos: list[str]) -> int:
-    erros = validar(Path(argumentos[0]) if argumentos else PASTA)
+def main() -> int:
+    erros = validar(PASTA)
     for erro in erros:
         print(erro, file=sys.stderr)
     if erros:
@@ -255,4 +338,4 @@ def main(argumentos: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main())

@@ -1,10 +1,12 @@
 import copy
 import json
 import shutil
+from collections import Counter
 from pathlib import Path
 
 import pytest
 
+from frentes.contratos import DocumentoTaxonomia, EspecieDeItem
 from frentes.seed import validador
 
 PASTA = validador.PASTA
@@ -26,7 +28,11 @@ def gravar(pasta: Path, nome: str, dados: dict) -> None:
 
 
 def time(org: dict, chave: str) -> dict:
-    return next(t for a in org["areas"] for t in a["times"] if t["chave"] == chave)
+    return next(t for a in org["organograma"] for t in a["times"] if t["chave"] == chave)
+
+
+def itens(org: dict, chave: str, especie: str) -> list[dict]:
+    return [i for i in time(org, chave)["itens"] if i["especie"] == especie]
 
 
 def com_organograma_alterado(pasta: Path, alterar) -> list[str]:
@@ -44,31 +50,48 @@ def test_a_seed_do_repo_passa() -> None:
     assert validador.validar() == []
 
 
-def test_a_seed_do_repo_tem_as_contagens_da_spec() -> None:
+def test_o_organograma_do_repo_carrega_nos_tipos_do_contrato() -> None:
     org = json.loads((PASTA / "organograma.json").read_text(encoding="utf-8"))
-    times = [t for a in org["areas"] for t in a["times"]]
-    assert len(org["areas"]) == 8
-    assert len(times) == 24
-    assert sum(len(t["objetos"]) for t in times) == 120
-    assert sum(len(t["servicos"]) for t in times) == 72
-    assert len({t["fornecedor"] for t in times}) == 24
-    assert all(sum(not o["listado"] for o in t["objetos"]) == 1 for t in times)
+    areas = DocumentoTaxonomia.de_dict(
+        {
+            "organograma": org["organograma"],
+            "tipos": [],
+            "causas_raiz": [],
+            "problemas": [],
+            "regua_severidade": [],
+            "regua_impacto": [],
+            "criterio_urgencia": "",
+            "criterio_natureza": {},
+            "pergunta_de_controle": "",
+            "instrucoes": {},
+        }
+    ).organograma
+    times = [t for a in areas for t in a.times]
+    por_especie = Counter(i.especie for t in times for i in t.itens)
+    assert (len(areas), len(times)) == (8, 24)
+    assert por_especie == {
+        EspecieDeItem.OBJETO: 120,
+        EspecieDeItem.SERVICO: 72,
+        EspecieDeItem.FORNECEDOR: 24,
+    }
+    for t in times:
+        assert sum(1 for i in t.itens if not i.listado) == 1
 
 
 def test_o_time_app_lista_o_assistente_virtual() -> None:
     org = json.loads((PASTA / "organograma.json").read_text(encoding="utf-8"))
-    app = time(org, "app")
-    assert any(o["nome"] == "assistente virtual do app" and o["listado"] for o in app["objetos"])
+    app = itens(org, "app", "objeto")
+    assert any(i["nome"] == "assistente virtual do app" and i["listado"] for i in app)
 
 
 def test_area_a_menos(pasta: Path) -> None:
-    erros = com_organograma_alterado(pasta, lambda org: org["areas"].pop())
+    erros = com_organograma_alterado(pasta, lambda org: org["organograma"].pop())
     assert algum(erros, "7 áreas")
     assert algum(erros, "21 times")
 
 
 def test_time_a_menos(pasta: Path) -> None:
-    erros = com_organograma_alterado(pasta, lambda org: org["areas"][0]["times"].pop())
+    erros = com_organograma_alterado(pasta, lambda org: org["organograma"][0]["times"].pop())
     assert algum(erros, "23 times")
     assert algum(erros, "115 objetos")
     assert algum(erros, "69 serviços")
@@ -78,45 +101,67 @@ def test_time_a_menos(pasta: Path) -> None:
 def test_objeto_a_mais_ou_servico_a_menos(pasta: Path) -> None:
     def alterar(org: dict) -> None:
         t = time(org, "simulacao")
-        t["objetos"].append({"nome": "tela extra de simulação", "listado": True})
-        t["servicos"].pop()
+        t["itens"].append({"nome": "tela extra", "especie": "objeto", "listado": True})
+        t["itens"].remove(itens(org, "simulacao", "servico")[0])
 
     erros = com_organograma_alterado(pasta, alterar)
-    assert algum(erros, "simulacao: 6 objetos")
-    assert algum(erros, "simulacao: 2 serviços")
+    assert algum(erros, "simulacao: 6 itens de espécie objeto")
+    assert algum(erros, "simulacao: 2 itens de espécie servico")
 
 
 def test_time_sem_fornecedor_ou_sem_frase(pasta: Path) -> None:
     def alterar(org: dict) -> None:
-        time(org, "contratos")["fornecedor"] = ""
-        time(org, "contratos")["faz"] = " "
+        t = time(org, "contratos")
+        t["itens"].remove(itens(org, "contratos", "fornecedor")[0])
+        t["o_que_faz"] = " "
 
     erros = com_organograma_alterado(pasta, alterar)
-    assert algum(erros, "contratos: falta o fornecedor")
+    assert algum(erros, "contratos: 0 itens de espécie fornecedor")
     assert algum(erros, "contratos: falta a frase")
 
 
 def test_exige_exatamente_um_objeto_de_fora(pasta: Path) -> None:
     def alterar(org: dict) -> None:
-        time(org, "cadastro-e-kyc")["objetos"][4]["listado"] = True
-        time(org, "antifraude")["objetos"][0]["listado"] = False
+        for i in itens(org, "cadastro-e-kyc", "objeto"):
+            i["listado"] = True
+        itens(org, "antifraude", "objeto")[0]["listado"] = False
 
     erros = com_organograma_alterado(pasta, alterar)
     assert algum(erros, "cadastro-e-kyc: 0 objetos de fora")
     assert algum(erros, "antifraude: 2 objetos de fora")
 
 
-@pytest.mark.parametrize("nome", ["gravame", "svc-gravame", "Gravame"])
+def test_servico_e_fornecedor_de_fora_sao_recusados(pasta: Path) -> None:
+    def alterar(org: dict) -> None:
+        itens(org, "contratos", "servico")[0]["listado"] = False
+        itens(org, "contratos", "fornecedor")[0]["listado"] = False
+
+    erros = com_organograma_alterado(pasta, alterar)
+    assert algum(erros, "contratos: servico 'montador-de-clausulas' tem de ser listado")
+    assert algum(erros, "contratos: fornecedor")
+
+
+@pytest.mark.parametrize(
+    "nome", ["gravame", "svc-gravame", "Gravame", "gravame-api", "svc-gravame-inscricao"]
+)
 def test_recusa_servico_com_o_slug_do_time(pasta: Path, nome: str) -> None:
-    erros = com_organograma_alterado(
-        pasta, lambda org: time(org, "gravame")["servicos"].__setitem__(0, nome)
-    )
-    assert algum(erros, "tem o slug do time")
+    def alterar(org: dict) -> None:
+        itens(org, "gravame", "servico")[0]["nome"] = nome
+
+    assert algum(com_organograma_alterado(pasta, alterar), "tem o slug do time")
+
+
+def test_servico_que_so_comeca_igual_ao_slug_passa(pasta: Path) -> None:
+    def alterar(org: dict) -> None:
+        itens(org, "app", "servico")[1]["nome"] = "aplicacao-de-sessoes"
+
+    assert com_organograma_alterado(pasta, alterar) == []
 
 
 def test_recusa_item_repetido_entre_times(pasta: Path) -> None:
     def alterar(org: dict) -> None:
-        time(org, "renegociacao")["servicos"][0] = time(org, "contratos")["servicos"][0].upper()
+        origem = itens(org, "contratos", "servico")[0]["nome"]
+        itens(org, "renegociacao", "servico")[0]["nome"] = origem.upper()
 
     erros = com_organograma_alterado(pasta, alterar)
     assert algum(erros, "renegociacao: item 'MONTADOR-DE-CLAUSULAS' repetido no time contratos")
@@ -124,8 +169,8 @@ def test_recusa_item_repetido_entre_times(pasta: Path) -> None:
 
 def test_recusa_item_repetido_dentro_do_time(pasta: Path) -> None:
     def alterar(org: dict) -> None:
-        t = time(org, "contratos")
-        t["objetos"][1]["nome"] = t["objetos"][0]["nome"]
+        objetos = itens(org, "contratos", "objeto")
+        objetos[1]["nome"] = objetos[0]["nome"]
 
     assert algum(com_organograma_alterado(pasta, alterar), "repetido no mesmo time")
 
@@ -141,18 +186,24 @@ def test_recusa_chave_repetida(pasta: Path) -> None:
     ("termo", "historia"),
     [
         ("esteira de propostas", "H1"),
+        ("esteira", "H1"),
         ("registro de gravame", "H2"),
+        ("sistema de gravame", "H2"),
         ("emissão de boletos", "H3"),
+        ("emissão dos boletos", "H3"),
+        ("segunda via do boleto", "H3"),
+        ("carnês", "H3"),
         ("comissão automática", "H4"),
         ("deploy manual", "H6"),
         ("pentest", "H7"),
+        ("acesso de ex-colaboradores", "H7"),
     ],
 )
 def test_recusa_item_que_repete_o_objeto_de_uma_historia(
     pasta: Path, termo: str, historia: str
 ) -> None:
     def alterar(org: dict) -> None:
-        time(org, "contratos")["objetos"][0]["nome"] = f"tela de {termo}"
+        itens(org, "contratos", "objeto")[0]["nome"] = f"tela de {termo}"
 
     erros = com_organograma_alterado(pasta, alterar)
     assert algum(erros, f"repete o objeto da {historia}")
@@ -160,8 +211,8 @@ def test_recusa_item_que_repete_o_objeto_de_uma_historia(
 
 def test_recusa_servico_e_fornecedor_que_repetem_o_objeto_de_uma_historia(pasta: Path) -> None:
     def alterar(org: dict) -> None:
-        time(org, "contratos")["servicos"][0] = "feature-flag"
-        time(org, "contratos")["fornecedor"] = "Pentest Express"
+        itens(org, "contratos", "servico")[0]["nome"] = "feature-flag"
+        itens(org, "contratos", "fornecedor")[0]["nome"] = "Pentest Express"
 
     erros = com_organograma_alterado(pasta, alterar)
     assert algum(erros, "repete o objeto da H6")
@@ -170,17 +221,31 @@ def test_recusa_servico_e_fornecedor_que_repetem_o_objeto_de_uma_historia(pasta:
 
 def test_o_assistente_virtual_so_vale_no_time_app(pasta: Path) -> None:
     def alterar(org: dict) -> None:
-        time(org, "contratos")["objetos"][0]["nome"] = "assistente virtual de contratos"
+        itens(org, "contratos", "objeto")[0]["nome"] = "assistente virtual de contratos"
 
     assert algum(com_organograma_alterado(pasta, alterar), "contratos: item")
 
 
 def test_o_app_sem_o_assistente_virtual_listado_e_recusado(pasta: Path) -> None:
     def alterar(org: dict) -> None:
-        time(org, "app")["objetos"][0]["listado"] = False
-        time(org, "app")["objetos"][4]["listado"] = True
+        objetos = itens(org, "app", "objeto")
+        objetos[0]["listado"] = False
+        objetos[4]["listado"] = True
 
     assert algum(com_organograma_alterado(pasta, alterar), "app: o assistente virtual")
+
+
+def test_item_fora_do_contrato_vira_problema_e_nao_excecao(pasta: Path) -> None:
+    def alterar(org: dict) -> None:
+        app = itens(org, "app", "objeto")
+        del app[0]["nome"]
+        del time(org, "contratos")["chave"]
+        itens(org, "antifraude", "objeto")[0]["especie"] = "coisa"
+        itens(org, "antifraude", "objeto")[1]["listado"] = "sim"
+
+    erros = com_organograma_alterado(pasta, alterar)
+    assert algum(erros, "item fora do contrato")
+    assert algum(erros, "'listado' não booleano")
 
 
 def test_historias_sem_a_secao_de_termos_e_recusada(pasta: Path) -> None:
@@ -288,7 +353,11 @@ def test_o_enderecamento_do_repo_e_o_da_h3() -> None:
     [
         ({"tipo": "incidente"}, "não cita tipo"),
         ({"area": "marte"}, "área 'marte'"),
-        ({"visao": "calor"}, "visão inválida"),
+        ({"visao": "calor"}, "visao é 'calor'"),
+        ({"visao": "oportunidade"}, "visao é 'oportunidade'"),
+        ({"historia": "H9"}, "historia é 'H9'"),
+        ({"area": "credito"}, "area é 'credito'"),
+        ({"decidido_em": None}, "fora do formato ISO"),
         ({"tipo_solucao": "milagre"}, "tipo de solução inválido"),
         ({"texto": " "}, "falta o texto"),
         ({"frentes_de_referencia": "f1"}, "tem de ser uma lista"),
@@ -300,9 +369,18 @@ def test_recusa_enderecamento_errado(pasta: Path, campos: dict, trecho: str) -> 
     assert algum(com_enderecamento_alterado(pasta, **campos), trecho)
 
 
-def test_recusa_arquivo_sem_enderecamento(pasta: Path) -> None:
+def test_recusa_zero_ou_mais_de_um_enderecamento(pasta: Path) -> None:
+    dados = ler(pasta, "enderecamentos.json")
     gravar(pasta, "enderecamentos.json", {"enderecamentos": []})
-    assert algum(validador.validar(pasta), "falta o endereçamento plantado")
+    assert algum(validador.validar(pasta), "0 endereçamentos")
+    gravar(pasta, "enderecamentos.json", {"enderecamentos": dados["enderecamentos"] * 2})
+    assert algum(validador.validar(pasta), "2 endereçamentos")
+
+
+def test_recusa_dia_d_que_nao_e_fim_de_mes(pasta: Path) -> None:
+    texto = (pasta / "historias.md").read_text(encoding="utf-8")
+    (pasta / "historias.md").write_text(texto.replace("2026-09-30", "2026-09-15"), encoding="utf-8")
+    assert algum(validador.validar(pasta), "não é o fim de um mês")
 
 
 @pytest.mark.parametrize(
@@ -321,18 +399,19 @@ def test_arquivo_ausente_e_json_invalido(pasta: Path) -> None:
 
 
 def test_main_sai_com_0_na_seed_valida(capsys: pytest.CaptureFixture[str]) -> None:
-    assert validador.main([]) == 0
+    assert validador.main() == 0
     assert "seed válida" in capsys.readouterr().out
 
 
 def test_main_sai_com_1_e_lista_os_problemas_de_um_arquivo_errado_de_proposito(
-    pasta: Path, capsys: pytest.CaptureFixture[str]
+    pasta: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setattr(validador, "PASTA", pasta)
     org = ler(pasta, "organograma.json")
     copia = copy.deepcopy(org)
-    time(copia, "gravame")["objetos"][0]["nome"] = "registro de gravame"
+    itens(copia, "gravame", "objeto")[0]["nome"] = "registro de gravame"
     gravar(pasta, "organograma.json", copia)
-    assert validador.main([str(pasta)]) == 1
+    assert validador.main() == 1
     erro = capsys.readouterr().err
     assert "gravame: item 'registro de gravame' repete o objeto da H2" in erro
-    assert "seed inválida: 1 problema(s)" in erro
+    assert "seed inválida: " in erro
