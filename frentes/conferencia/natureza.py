@@ -54,7 +54,8 @@ def controle(pares: Sequence[Par]) -> list[Conferencia]:
 
 def selo_urgente(pares: Sequence[Par], corte_do_selo: float) -> list[Conferencia]:
     """A calibração do selo "urgente": que parte das frentes de cada gravidade-alvo do gabarito
-    passa do corte da urgência. O corte do selo é provisório (spec 03); aqui só se mede."""
+    passa do corte da urgência. O corte do selo foi escolhido na seed inteira (#65, no
+    `config/limiares.toml`); aqui só se mede."""
     achados = []
     com_gravidade = onde(pares, lambda p: p.g.gravidade_alvo is not None)
     niveis = ["todas", *sorted({p.g.gravidade_alvo for p in com_gravidade if p.g.gravidade_alvo})]
