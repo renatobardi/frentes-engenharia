@@ -176,6 +176,18 @@ _Avoid_: dump, backup
 O pedido que fecha a demo: rodar o frentes-engenharia com as frentes reais de uma única área, por tempo limitado, para chegar ao mapa de calor real dela. Vem depois do PoC e é outro esforço; o PoC só usa a seed fictícia.
 _Avoid_: projeto, MVP, fase 2, rollout
 
+**Via LLM**:
+Frente em que a área ou o tipo saiu do desempate da LLM, porque a confiança do Jev ficou abaixo do limiar. Pinta o mapa como as outras e leva a marca "via LLM" na lista e no detalhe da frente.
+_Avoid_: corrigida, reclassificada
+
+**Aguardando classificação**:
+Frente já gravada que ainda não tem classificação na versão vigente, ou que espera o desempate da LLM. Não aparece em nenhuma célula; é vista num contador próprio, fora da grade do mapa, e na lista de frentes.
+_Avoid_: pendente, em fila
+
+**Chegando agora**:
+A faixa do mapa que lista as últimas frentes recebidas na sessão, cada uma com a célula em que caiu e a confiança. Só aparece quando há frente nova; é onde a rajada é vista entrando.
+_Avoid_: feed, log, notificações
+
 **Incerta**:
 Frente cuja classificação ficou abaixo do limiar de confiança e por isso não pinta o mapa. A de texto vago é incerta por outro motivo, a pergunta de controle, e fica fora das células.
 
