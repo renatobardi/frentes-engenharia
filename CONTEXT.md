@@ -72,8 +72,16 @@ _Avoid_: motivo, origem (origem é a porta de entrada)
 A dimensão que diz se a frente é reativa ou proativa.
 
 **Problema**:
-O assunto concreto e específico de que várias frentes tratam, seja uma dor ou um pedido, numa lista única gerada pela LLM. Nomeia um objeto da empresa (sistema, integração, processo ou fornecedor); a mesma espécie de queixa em times diferentes não é um problema. Não é eixo do mapa, e um problema pode ter frentes em várias células.
+O assunto concreto e específico de que várias frentes tratam, seja uma dor ou um pedido, numa lista única gerada pela LLM. Nomeia um objeto da empresa (sistema, integração, processo ou fornecedor); a mesma espécie de queixa em times diferentes não é um problema. Não é eixo do mapa, e um problema pode ter frentes em várias células. A descrição de cada problema nomeia o objeto, e a frente só recebe o problema se o texto cita esse objeto.
 _Avoid_: história (é do gabarito), tema, assunto
+
+**Espécie de queixa**:
+Sintoma ou prática que se repete em vários times e sistemas, como "code review lento" ou "timeout em serviço". Se trocar o nome do sistema e a frase continuar valendo, é espécie de queixa. Não é problema: é o que subtipo e causa raiz já dizem.
+_Avoid_: problema genérico, tema
+
+**Peneira**:
+O passo da geração da lista de problemas em que a LLM lê as frentes de evidência de um candidato por vez e só deixa passar o que cita o mesmo objeto em todas. É o que separa problema de espécie de queixa.
+_Avoid_: filtro, validação
 
 **Problema recorrente**:
 Problema com frentes em dias diferentes, acima de um corte, dentro do período do filtro. Aparece só no drill-down e não muda a severidade.
