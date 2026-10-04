@@ -65,7 +65,7 @@ def test_grava_a_versao_1_sem_ativacao_e_diz_o_custo(banco, monkeypatch, capsys)
     assert cli.descobrir([]) == 0
 
     saida = capsys.readouterr().out
-    assert "2 frentes, 1 chamadas" in saida and "10 tokens de entrada e 5 de saída" in saida
+    assert "2 frentes, 2 chamadas" in saida and "20 tokens de entrada e 10 de saída" in saida
     assert "versão 1 gravada, sem ativação" in saida
     entrada = llm.chamadas[0][1]
     assert "o deploy quebrou" in entrada and "feature flag" in entrada

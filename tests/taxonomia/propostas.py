@@ -6,7 +6,7 @@ from typing import Any
 
 from frentes.contratos import RespostaLlm
 from frentes.store.geracao import TextoDaFrente
-from frentes.taxonomia import prompts
+from frentes.taxonomia import prompts, prompts_problemas
 from frentes.taxonomia import proposta as p
 from frentes.taxonomia.documento import organograma_de_dict
 from tests.llm.falso import resposta_llm
@@ -113,6 +113,7 @@ def gravar_lote(
 ) -> None:
     """Respostas de um lote, na ordem: a proposta e as correções."""
     amostra = [(f.origem, f.texto) for f in grupo]
+    gravar_candidatos(gravacoes, grupo)  # a lista de problemas lê o mesmo lote: sem candidato
     _gravar_fluxo(
         gravacoes,
         prompts.descoberta(amostra)[1],
@@ -137,3 +138,55 @@ def gravar_consolidacao(
         lambda anterior, violacoes: prompts.correcao_sem_amostra(anterior, violacoes)[1],
         None,
     )
+
+
+def gravar_candidatos(
+    gravacoes: Gravacoes,
+    grupo: Sequence[TextoDaFrente],
+    *candidatos: Mapping[str, Any] | Exception,
+) -> None:
+    """A resposta dos candidatos a problema de um lote: cada `candidato` é o dict
+    `{nome, descricao, evidencias}` (números da amostra); sem nenhum, a lista vazia; uma
+    exceção é a chamada que falha. Troca o que `gravar_lote` já gravou para o lote."""
+    pedido = prompts_problemas.candidatos([(f.origem, f.texto) for f in grupo])[1]
+    if len(candidatos) == 1 and isinstance(candidatos[0], Exception):
+        gravacoes[pedido] = [candidatos[0]]
+    else:
+        gravacoes[pedido] = [resposta_llm({"candidatos": list(candidatos)})]
+
+
+def candidato(nome: str, *evidencias: int, descricao: str | None = None) -> dict[str, Any]:
+    return {
+        "nome": nome,
+        "descricao": descricao or f"Frentes que citam {nome}: falhas. Não vale para outro sistema.",
+        "evidencias": list(evidencias),
+    }
+
+
+def gravar_peneira(
+    gravacoes: Gravacoes,
+    nome: str,
+    descricao: str,
+    lidas: Sequence[TextoDaFrente],
+    resposta: Mapping[str, Any] | Exception | None = None,
+) -> None:
+    """A resposta da peneira de um candidato com `lidas` como evidência (sem `resposta`,
+    aprova: o mesmo objeto em todas)."""
+    pedido = prompts_problemas.peneira(nome, descricao, [(f.origem, f.texto) for f in lidas])[1]
+    if resposta is None:
+        resposta = {
+            "objetos": [{"frente": n, "objeto": nome} for n in range(1, len(lidas) + 1)],
+            "mesmo_objeto": True,
+        }
+    gravacoes[pedido] = [resposta if isinstance(resposta, Exception) else resposta_llm(resposta)]
+
+
+def gravar_juncao(
+    gravacoes: Gravacoes,
+    candidatos: Sequence[tuple[str, str, Sequence[int]]],
+    *conteudos: Mapping[str, Any] | Exception,
+    vigentes: Sequence[str] = (),
+) -> None:
+    """A resposta da consolidação dos candidatos `(nome, descrição, lotes)` que passaram."""
+    pedido = prompts_problemas.consolidacao(candidatos, vigentes)[1]
+    gravacoes[pedido] = [c if isinstance(c, Exception) else resposta_llm(c) for c in conteudos]
