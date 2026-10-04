@@ -105,6 +105,23 @@ def test_token_ausente_ou_errado_responde_401_e_nao_grava(cliente: TestClient, b
     assert linhas(banco) == []
 
 
+def test_token_com_caractere_nao_ascii_e_401_nunca_500(cliente: TestClient, banco: Path) -> None:
+    corpo = {"texto": "algo quebrou"}
+
+    latin1 = cliente.post(
+        "/frentes", json=corpo, headers=[(b"x-webhook-token", "tókén-çá".encode("latin-1"))]
+    )
+    bytes_altos = cliente.post(
+        "/frentes", json=corpo, headers=[(b"x-webhook-token", "tókén".encode())]
+    )
+    bearer = cliente.post("/frentes", json=corpo, headers=[(b"authorization", "Bearer ñ".encode())])
+
+    assert [r.status_code for r in (latin1, bytes_altos, bearer)] == [401] * 3
+    assert linhas(banco) == []
+    assert recepcao.token_confere("tókén", "tókén")  # o esperado também pode ter acento
+    assert not recepcao.token_confere("tókén", "token")
+
+
 def test_token_errado_com_corpo_invalido_ainda_e_401(cliente: TestClient) -> None:
     assert cliente.post("/frentes", json={}).status_code == 401
 
