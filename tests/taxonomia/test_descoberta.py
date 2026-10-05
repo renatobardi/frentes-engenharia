@@ -117,6 +117,23 @@ def test_tipo_so_de_melhoria_gera_pedido_de_correcao_dirigido(con) -> None:
     assert feito.versao is not None and feito.geracao.resultado is ResultadoGeracao.VERSAO_NOVA
 
 
+def test_a_correcao_traz_os_problemas_depois_da_proposta_e_pede_o_que_mudou(con) -> None:
+    """Medido com a LLM real (#65): com os problemas antes da proposta ela devolvia a mesma
+    proposta nas duas correções. A resposta começa por "correcoes", que a leitura ignora."""
+    llm = falsa_de_um_lote(melhoria(), {"correcoes": ["apaguei o tipo"], **proposta()})
+
+    feito = rodar(con, llm)
+
+    correcao = llm.chamadas[1][1]
+    assert correcao.index("PROPOSTA RECUSADA:") < correcao.index("PROBLEMAS (")
+    assert correcao.index("PROBLEMAS (") < correcao.index("Como corrigir:")
+    assert "Devolver a mesma taxonomia é erro" in correcao
+    assert correcao.rstrip().endswith('"criterio_urgencia": ""}')
+    assert '{"correcoes": ["<o que mudei para o problema 1>"], "tipos": [' in correcao
+    assert "o nome tem 'melhorias'" in correcao  # a violação diz a palavra que a denuncia
+    assert feito.versao is not None  # a chave "correcoes" não atrapalha a leitura
+
+
 def test_tipo_sem_exemplo_gera_pedido_de_correcao_e_nome_de_melhoria_e_recusado(con) -> None:
     sem_exemplo = tipo("Falha de Integração")
     del sem_exemplo["exemplo_proativo"]
@@ -247,17 +264,39 @@ def test_a_evidencia_dos_lotes_se_junta_por_nome_na_consolidada(con) -> None:
     assert list(operacoes["Falha de Integração 1"].frentes_de_evidencia) == ["f0", "f1"]
 
 
-def test_lote_que_nao_fica_valido_encerra_a_descoberta(con) -> None:
-    lidas = frentes(4)
+def test_menos_da_metade_dos_lotes_valida_encerra_a_descoberta(con) -> None:
+    lidas = frentes(6)
     gravacoes: dict = {}
-    grupo_a, grupo_b = lotes(lidas, 2)
+    grupo_a, grupo_b, grupo_c = lotes(lidas, 2)
     gravar_lote(gravacoes, grupo_a, proposta())
     gravar_lote(gravacoes, grupo_b, melhoria(), melhoria(), melhoria())
+    gravar_lote(gravacoes, grupo_c, melhoria(), melhoria(), melhoria())
 
     feito = rodar(con, LlmFalsa(gravacoes), lidas=lidas, tamanho_do_lote=2)
 
     assert feito.versao is None
     assert "lote" in feito.motivo and "tipo_so_de_melhoria" in feito.motivo
+
+
+def test_lote_que_nao_fica_valido_sai_da_consolidacao_e_os_outros_seguem(con) -> None:
+    """Medido com a LLM real (#65): com 12 lotes, um que não se conserta recusava a rodada."""
+    lidas = frentes(6)
+    gravacoes: dict = {}
+    grupo_a, grupo_b, grupo_c = lotes(lidas, 2)
+    gravar_lote(gravacoes, grupo_a, proposta())
+    gravar_lote(gravacoes, grupo_b, melhoria(), melhoria(), melhoria())
+    gravar_lote(gravacoes, grupo_c, proposta())
+    gravar_consolidacao(gravacoes, [proposta()] * 2, proposta(criterio_urgencia="Consolidada?"))
+    llm = LlmFalsa(gravacoes)
+
+    feito = rodar(con, llm, lidas=lidas, tamanho_do_lote=2)
+
+    assert feito.versao is not None
+    assert feito.versao.documento.criterio_urgencia == "Consolidada?"
+    (descartado,) = feito.lotes_descartados
+    assert "lote 2" in descartado and "tipo_so_de_melhoria" in descartado
+    consolidacao = next(e for _, e in llm.chamadas if "PROPOSTA DO LOTE" in e)
+    assert consolidacao.count("PROPOSTA DO LOTE") == 2
 
 
 def test_consolidacao_invalida_tres_vezes_encerra_sem_versao(con) -> None:

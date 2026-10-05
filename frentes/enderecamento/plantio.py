@@ -2,6 +2,7 @@
 frequente das frentes de referência na versão vigente."""
 
 import json
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,34 @@ class ErroDePlantio(Exception):
 
 def ler_arquivo(caminho: Path | str) -> list[dict[str, Any]]:
     return json.loads(Path(caminho).read_text(encoding="utf-8"))["enderecamentos"]
+
+
+def juntar_referencias(
+    itens: list[dict[str, Any]], referencias: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """O item sem frentes de referência recebe as do `referencias.json` gerado com a seed, pela
+    história. O arquivo escrito à mão não cita `id` de frente, que muda a cada geração."""
+    por_historia = {r["historia"]: list(r["frentes_de_referencia"]) for r in referencias}
+    return [
+        item
+        if item.get("frentes_de_referencia")
+        else {**item, "frentes_de_referencia": por_historia.get(item.get("historia"), [])}
+        for item in itens
+    ]
+
+
+def deslocar(itens: list[dict[str, Any]], dias: int) -> list[dict[str, Any]]:
+    """A data da decisão `dias` adiante: o banco que veio de um snapshot carregado tem as
+    datas deslocadas, e a do arquivo (contada do dia D da seed) acompanha."""
+    return [
+        {
+            **item,
+            "decidido_em": contratos.para_iso(
+                contratos.de_iso(item["decidido_em"]) + timedelta(days=dias)
+            ),
+        }
+        for item in itens
+    ]
 
 
 def plantar(con: Conexao, itens: list[dict[str, Any]]) -> int:

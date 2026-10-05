@@ -36,6 +36,14 @@ def dia_dos_dados(con: Conexao) -> str | None:
     return linha["dia"]
 
 
+def deslocamento_dias(con: Conexao) -> int:
+    """Quantos dias o carregador deslocou as datas deste banco; 0 se ele não veio de snapshot."""
+    linha = con.execute(
+        "SELECT deslocamento_dias AS dias FROM snapshot_meta WHERE id = 1"
+    ).fetchone()
+    return int(linha["dias"] or 0) if linha else 0
+
+
 def contar_gabarito(con: Conexao) -> int:
     return con.execute("SELECT count(*) FROM gabarito").fetchone()[0]
 

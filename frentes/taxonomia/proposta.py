@@ -136,8 +136,9 @@ def marcas_do_organograma(organograma: Iterable[AreaDoOrganograma]) -> frozenset
     """As palavras que identificam uma área ou um time (gravame, boleto, lojista...), no radical
     (sem o "s" final), menos as que também são assunto."""
     nomes = [x.nome for a in organograma for x in (a, *a.times)]
-    todas = {p for nome in nomes for p in palavras(nome)} - GENERICAS
-    return frozenset(_radical(p) for p in todas)
+    todas = {_radical(p) for nome in nomes for p in palavras(nome)}
+    # no radical dos dois lados: "Regulatórios" (o time) não pode proibir "Prazo Regulatório"
+    return frozenset(todas - {_radical(g) for g in GENERICAS})
 
 
 # --------------------------------------------------------------------------- leitura
@@ -246,7 +247,7 @@ def _nome(nome: str, onde: str, marcas: frozenset[str]) -> list[Violacao]:
         saida.append(
             Violacao(
                 "tamanho",
-                f"{onde}: nome de {len(nome.split())} palavras e {len(nome)} caracteres, "
+                f"{onde} {nome!r}: nome de {len(nome.split())} palavras e {len(nome)} caracteres, "
                 f"o teto é {MAX_PALAVRAS_DO_NOME} palavras e {MAX_NOME} caracteres",
             )
         )
@@ -263,11 +264,19 @@ def _nome(nome: str, onde: str, marcas: frozenset[str]) -> list[Violacao]:
     return saida
 
 
-def _so_de_melhoria(tipo: TipoProposto) -> bool:
+def _motivo_de_melhoria(tipo: TipoProposto) -> str | None:
+    """Por que o tipo é só de melhoria (a palavra que o denuncia), ou None se não é."""
+    if achado := NOME_DE_MELHORIA.search(normal(tipo.nome)):
+        return f"o nome tem {achado[0]!r}"
     primeira_frase = normal(tipo.descricao.split(".")[0])
-    return bool(NOME_DE_MELHORIA.search(normal(tipo.nome))) or bool(
-        SO_PROATIVA.search(primeira_frase) and not TAMBEM_REATIVA.search(primeira_frase)
-    )
+    achado = SO_PROATIVA.search(primeira_frase)
+    if achado and not TAMBEM_REATIVA.search(primeira_frase):
+        return f"a primeira frase da descrição só fala de melhoria ({achado[0]!r}), sem a falha"
+    return None
+
+
+def _so_de_melhoria(tipo: TipoProposto) -> bool:
+    return _motivo_de_melhoria(tipo) is not None
 
 
 def _sem_descricao(onde: str, descricao: str) -> list[Violacao]:
@@ -315,11 +324,11 @@ def _validar_tipos(
         saida += _nome(tipo.nome, "tipo", marcas)
         saida += _sem_descricao(f"tipo {tipo.nome!r}", tipo.descricao)
         saida += _exemplos(tipo)
-        if _so_de_melhoria(tipo):
+        if motivo := _motivo_de_melhoria(tipo):
             saida.append(
                 Violacao(
                     "tipo_so_de_melhoria",
-                    f"tipo {tipo.nome!r} é só de melhoria (o tipo é o assunto, "
+                    f"tipo {tipo.nome!r} é só de melhoria: {motivo} (o tipo é o assunto, "
                     "e recebe o problema e a melhoria)",
                 )
             )

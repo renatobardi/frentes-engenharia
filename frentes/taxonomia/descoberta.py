@@ -1,8 +1,9 @@
 """A descoberta: a LLM lê as frentes brutas do começo do período e propõe a versão 1.
 
 Por lote: proposta → validação em código → pedido de correção só do que falhou, até duas
-vezes. Depois, uma chamada junta as propostas dos lotes, com a mesma validação. A terceira
-proposta inválida encerra a descoberta sem versão e o motivo fica gravado na geração.
+vezes. Depois, uma chamada junta as propostas dos lotes, com a mesma validação. O lote que
+continua inválido fica fora da consolidação; com menos da metade dos lotes válida, ou com a
+consolidação inválida, a descoberta encerra sem versão e o motivo fica gravado na geração.
 Depois, a lista de problemas (candidatos, peneira, consolidação: `problemas.py`) lê os mesmos
 lotes e entra na versão 1. Roda uma vez: a versão 1 é congelada.
 Spec: docs/spec/04-descoberta-e-revisao.md.
@@ -81,6 +82,8 @@ class Descoberta:
     candidatos: int = 0
     aprovados: int = 0
     problemas: int = 0
+    # os lotes que ficaram fora da consolidação (inválidos depois das correções), com o motivo
+    lotes_descartados: tuple[str, ...] = ()
 
     @property
     def motivo(self) -> str | None:
@@ -196,6 +199,7 @@ async def _gerar(
     frentes: Sequence[TextoDaFrente],
     organograma: Sequence[AreaDoOrganograma],
     tamanho_do_lote: int,
+    descartados: list[str],
 ) -> tuple[Proposta, Evidencias]:
     marcas = proposta_.marcas_do_organograma(organograma)
     grupos = lotes(frentes, tamanho_do_lote)
@@ -215,10 +219,17 @@ async def _gerar(
     resultados = await asyncio.gather(
         *(lote(n, g) for n, g in enumerate(grupos, 1)), return_exceptions=True
     )
+    # O lote que continua inválido depois das correções fica fora da consolidação: com 12 lotes
+    # e a LLM real, exigir os 12 válidos recusava quase toda rodada (#65). Com menos da metade
+    # válida, ou com outra falha (a LLM fora do ar), a descoberta encerra.
+    recusados = [r for r in resultados if isinstance(r, Recusada)]
     for resultado in resultados:
-        if isinstance(resultado, BaseException):
+        if isinstance(resultado, BaseException) and not isinstance(resultado, Recusada):
             raise resultado
     pares = [r for r in resultados if not isinstance(r, BaseException)]
+    if recusados and len(pares) * 2 < len(grupos):
+        raise recusados[0]
+    descartados.extend(str(r) for r in recusados)
     evidencias: Evidencias = {}
     for _, do_lote in pares:
         for nome, ids in do_lote.items():
@@ -312,8 +323,11 @@ async def descobrir(
     registro = _Registro(llm)
     versao = None
     lista = problemas_.ListaGerada([], 0, 0)
+    descartados: list[str] = []
     try:
-        proposta, evidencias = await _gerar(registro, frentes, organograma, tamanho_do_lote)
+        proposta, evidencias = await _gerar(
+            registro, frentes, organograma, tamanho_do_lote, descartados
+        )
         # A lista de problemas lê os mesmos lotes (e a regra da v1 pede 2 ou mais deles).
         lista = await problemas_.gerar(registro, lotes(frentes, tamanho_do_lote))
         problemas = problemas_.valores_da_v1(problemas_.regra_v1(lista.problemas))
@@ -345,6 +359,7 @@ async def descobrir(
         lista.candidatos,
         lista.aprovados,
         len(versao.documento.problemas) if versao else 0,
+        tuple(descartados),
     )
 
 
