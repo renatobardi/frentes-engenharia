@@ -478,3 +478,16 @@ def test_llm_fora_do_ar_nos_candidatos_recusa_com_o_motivo(con) -> None:
     feito = rodar(con, LlmFalsa(gravacoes), lidas=lidas)
 
     assert feito.versao is None and feito.motivo.startswith("LLM: ") and "HTTP 503" in feito.motivo
+
+
+def test_a_correcao_de_tipo_so_de_melhoria_por_uma_palavra_manda_trocar_o_nome() -> None:
+    """Medido na segunda rodada (#109): a consolidação propôs "Processo e Automação", a
+    conferência recusou pela palavra do nome e a correção, que mandava apagar o tipo, deixou a
+    v1 sem lugar para processo manual."""
+    _, entrada = prompts.correcao_sem_amostra(
+        {"tipos": []}, [Violacao("tipo_so_de_melhoria", "tipo 'Processo e Automação' ...")]
+    )
+    assert "MANTENHA o tipo e os subtipos dele e troque só o nome" in entrada
+    assert "Não apague o tipo." in entrada
+    # o caso antigo continua: tipo que é só uma lista de pedidos sai
+    assert "apague o tipo e distribua os subtipos" in entrada
