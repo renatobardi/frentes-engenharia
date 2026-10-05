@@ -133,14 +133,15 @@ def test_sem_filtro_lista_todas_as_mais_recentes_primeiro(http: TestClient):
 def test_colunas_da_spec(http: TestClient):
     html = http.get("/frentes").text
     cabecalho = re.findall(r'<th scope="col">([^<]+)</th>', html)
+    # o redesign junta o emissor ao texto e a natureza à área; a última coluna é a da prévia
     assert cabecalho == [
-        "Data", "Origem", "Emissor", "Texto", "Área › tipo", "Natureza",
-        "Sev. / impacto", "Confiança", "Estado",
+        "Data", "Origem", "Texto", "Área › tipo", "Sev. / impacto", "Confiança", "Estado",
     ]  # fmt: skip
-    linha = re.search(r"<tr>\s*<td>[^<]*</td>.*?fA.*?</tr>", html, re.S)
+    linha = re.search(r'<tr class="linha-clicavel" data-id="fA">.*?</tr>', html, re.S)
     assert linha
     for esperado in ("relato", "Ana", "Plataforma › Incidente", "reativa", "0,90", "80%"):
         assert esperado in linha.group(0)
+    assert 'title="relato">RE</span>' in linha.group(0)
 
 
 def test_filtro_de_periodo(http: TestClient):
@@ -160,10 +161,10 @@ def test_filtro_de_natureza(http: TestClient):
 
 
 def test_filtro_de_estado_tem_os_seis_estados_da_spec(http: TestClient):
-    html = http.get("/frentes").text
-    inicio = html.index('<select name="estado">')
-    seletor = html[inicio : html.index("</select>", inicio)]
-    assert re.findall(r'<option value="([^"]+)"', seletor) == [
+    html = http.get("/frentes?versao=1").text
+    inicio = html.index('aria-label="Estado"')
+    chips = html[inicio : html.index("</ul>", inicio)]
+    assert re.findall(r'href="/frentes\?versao=1&amp;estado=([^"]+)"', chips) == [
         "classificada", "via_llm", "incerta", "texto_vago", "nao_classificada", "aguardando",
     ]  # fmt: skip
     esperado = {
@@ -184,7 +185,7 @@ def test_estado_aparece_em_cada_linha(http: TestClient):
         "Classificada pelo Jev", "Via LLM", "Incerta: confiança baixa", "Texto vago",
         "Não classificada", "Aguardando classificação",
     ):  # fmt: skip
-        assert f"<td>{texto}</td>" in html
+        assert f">{texto}</span></td>" in html
 
 
 def test_ordem_por_severidade_ou_impacto(http: TestClient):
@@ -378,3 +379,113 @@ def test_banco_sem_versao_vigente_responde_503_com_o_motivo(tmp_path: Path):
     resposta = TestClient(criar_app(config.carregar({"FRENTES_DB": str(caminho)}))).get("/frentes")
     assert resposta.status_code == 503
     assert "não há versão vigente" in resposta.text
+
+
+def test_chips_de_estado_trazem_a_contagem_na_versao_e_respeitam_os_outros_filtros(
+    http: TestClient,
+):
+    html = http.get("/frentes?versao=1").text
+    chips = html[html.index('aria-label="Estado"') :]
+    chips = chips[: chips.index("</ul>")]
+    padrao = r'estado=(\w+)".*?</span>[^<]*<span class="num fino">(\d+)</span>'
+    contagens = dict(re.findall(padrao, chips, re.S))
+    assert contagens == {
+        "classificada": "2", "via_llm": "1", "incerta": "1", "texto_vago": "1",
+        "nao_classificada": "1", "aguardando": "2",
+    }  # fmt: skip
+    assert 'Todos <span class="num fino">8</span>' in chips
+    # a contagem não encolhe com o próprio estado, mas encolhe com a origem
+    filtrado = http.get("/frentes?versao=1&estado=via_llm&origem=relato").text
+    assert 'Todos <span class="num fino">4</span>' in filtrado
+    assert 'Via LLM <span class="num fino">0</span>' in filtrado
+
+
+def test_chip_de_estado_ativo_desliga_o_filtro_e_guarda_o_resto(http: TestClient):
+    html = http.get("/frentes?estado=via_llm&origem=log&versao=1").text
+    ativo = re.search(
+        r'<a class="chip chip-ativo" href="([^"]+)"[^>]*aria-current="true"><span', html
+    )
+    assert ativo
+    assert _html.unescape(ativo.group(1)) == "/frentes?origem=log&versao=1"
+    # o formulário leva o estado, para os selects não o perderem
+    assert '<input type="hidden" name="estado" value="via_llm">' in html
+
+
+def test_chips_de_contexto_dizem_de_onde_vem_e_limpam_tudo(http: TestClient):
+    html = http.get("/frentes?area=plat&tipo=incidente").text
+    assert "Vindo do mapa" in html and "Limpar filtros" in html
+    assert "Vindo do mapa" not in http.get("/frentes").text
+
+
+def test_estado_vazio_oferece_limpar_filtros_so_quando_ha_filtro(http: TestClient):
+    assert 'class="estado-vazio"' in http.get("/frentes?busca=zzzz").text
+    assert 'href="/frentes">Limpar filtros' in http.get("/frentes?busca=zzzz").text
+    # só a ordem não é filtro
+    assert "Limpar filtros" not in http.get("/frentes?ordem=score&pagina=1&busca=").text
+
+
+def test_cada_linha_abre_a_previa_e_a_pagina_traz_o_painel_e_o_script(http: TestClient):
+    html = http.get("/frentes?versao=1").text
+    assert 'hx-get="/frentes/previa/fA?versao=1" hx-target="#previa"' in html
+    assert '<aside id="previa"' in html
+    assert "/static/lista.js" in html and "/static/lista.css" in html
+
+
+def test_previa_mostra_texto_campos_e_o_caminho_do_detalhe(http: TestClient):
+    r = http.get("/frentes/previa/fA?versao=1")
+    assert r.status_code == 200
+    assert "<html" not in r.text
+    for esperado in (
+        "Timeout no gateway de pagamento", "Ana", "Plataforma › Incidente", "reativa", "0,90",
+        "80%", "Classificada pelo Jev", "v1",
+    ):  # fmt: skip
+        assert esperado in r.text
+    assert 'href="/frentes/fA?versao=1"' in r.text
+    assert "Não pinta o mapa" not in r.text  # a que pinta o mapa não leva o aviso
+
+
+def test_previa_diz_por_que_nao_pinta_o_mapa(http: TestClient):
+    esperado = {
+        "fC": "confiança baixa",
+        "fD": "vago demais",
+        "fE": "nenhum valor da taxonomia",
+        "fF": "ainda não tem classificação",
+        "fG": "ainda não tem classificação",
+    }
+    for id, trecho in esperado.items():
+        texto = http.get(f"/frentes/previa/{id}?versao=1").text
+        assert "Não pinta o mapa" in texto and trecho in texto, id
+
+
+def test_previa_sem_versao_le_a_vigente_e_mostra_o_complemento_escapado(
+    http: TestClient, tmp_path: Path
+):
+    con = store.abrir(config.carregar({"FRENTES_DB": str(tmp_path / "frentes.db")}).banco)
+    con.execute(
+        "UPDATE frente SET complemento = '<i>é o balanceador</i>', complementado_em = ?"
+        " WHERE id = 'fD'",
+        (_data(1),),
+    )
+    con.commit()
+    con.close()
+    texto = http.get("/frentes/previa/fD").text
+    assert "v2" in texto  # a vigente
+    assert "&lt;i&gt;é o balanceador&lt;/i&gt;" in texto and "<i>" not in texto
+
+
+def test_previa_de_frente_ou_versao_que_nao_existe_e_404(http: TestClient):
+    assert http.get("/frentes/previa/nada").status_code == 404
+    assert http.get("/frentes/previa/fA?versao=3").status_code == 404
+    assert http.get("/frentes/previa/fA?versao=9").status_code == 404
+
+
+def test_previa_sem_banco_ou_sem_versao_vigente_responde_503(tmp_path: Path):
+    app = criar_app(config.carregar({"FRENTES_DB": str(tmp_path / "nao-existe.db")}))
+    assert TestClient(app).get("/frentes/previa/fA").status_code == 503
+    caminho = tmp_path / "vazio.db"
+    con = store.abrir(caminho)
+    _frente(con, "fA", "relato", 1, "x")
+    con.commit()
+    con.close()
+    vazio = TestClient(criar_app(config.carregar({"FRENTES_DB": str(caminho)})))
+    assert vazio.get("/frentes/previa/fA").status_code == 503
