@@ -17,6 +17,7 @@ from frentes.contratos import (
     Celula,
     Dimensao,
     Enderecamento,
+    Estado,
     EstadoPainel,
     Origem,
     Periodo,
@@ -70,6 +71,7 @@ class Marcador:
     x: float
     rotulo: str  # "◆ 30/06"
     ancora: str  # "start", "middle" ou "end": o rótulo não corta na borda do gráfico
+    faixa: float  # a largura da faixa da data em diante, até a borda direita do gráfico
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,6 +126,8 @@ class FrenteNoPainel:
     confianca: str
     trecho: str
     incerta: bool
+    valor: str  # severidade (dor) ou impacto esperado (oportunidade), como no índice
+    via_llm: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,6 +136,8 @@ class PainelNaTela:
     tipo: str
     visao: str
     periodo: str
+    versao: int
+    rotulo_do_valor: str  # "Severidade" na visão da dor, "Impacto" na da oportunidade
     indice: str
     seta: str
     variacao: str
@@ -142,6 +148,10 @@ class PainelNaTela:
     sugestoes: list[Sugestao]
     evolucao: list[Ponto]
     caminho_da_evolucao: str
+    area_da_evolucao: str  # o polígono sob a linha, para o preenchimento
+    pico: str  # "pico 12": o maior ponto da série
+    base: float  # a ordenada da linha de base e da guia do meio
+    meio: float
     composicao: list[Composicao]
     problemas: list[Problema]
     frentes: list[FrenteNoPainel]
@@ -151,6 +161,7 @@ class PainelNaTela:
     enderecamento: BlocoEnderecamento | None = None
     marcador: Marcador | None = None
     selo: str = ""
+    geracao: str = ""  # "gerado por <modelo> · 03/10/2026"; vazio sem texto gerado
     erro: str = ""  # a mensagem de um endereçamento recusado
     rascunho: Rascunho | None = None
 
@@ -170,12 +181,35 @@ def _pontos(serie: list[agregados.PontoMensal]) -> list[Ponto]:
     ]
 
 
+def _area(pontos: list[Ponto]) -> str:
+    """O polígono da série fechado na linha de base, para o preenchimento sob a curva."""
+    if not pontos:
+        return ""
+    base = ALTURA - MARGEM
+    return " ".join(
+        [f"{pontos[0].x},{base}", *(f"{p.x},{p.y}" for p in pontos), f"{pontos[-1].x},{base}"]
+    )
+
+
+def _pico(serie: list[agregados.PontoMensal]) -> str:
+    maior = max((p.indice for p in serie), default=0.0)
+    return f"pico {montagem.formatar_indice(maior)}" if maior > 0 else ""
+
+
+def _geracao(guardado: contratos.PainelCelula | None) -> str:
+    if guardado is None or not guardado.porque or guardado.gerado_em is None:
+        return ""
+    quando = guardado.gerado_em.astimezone(UTC).strftime("%d/%m/%Y")
+    return f"gerado por {guardado.modelo_llm or 'modelo não informado'} · {quando}"
+
+
 def _marcador(marca: Enderecamento, pontos: list[Ponto], serie) -> Marcador | None:
     mes = marca.decidido_em.strftime("%Y-%m")
     for p, s in zip(pontos, serie, strict=True):
         if s.mes == mes:
             ancora = "start" if p.x < BORDA else "end" if p.x > LARGURA - BORDA else "middle"
-            return Marcador(p.x, f"◆ {montagem.selo_do_dia(marca.decidido_em)}", ancora)
+            rotulo = f"◆ {montagem.selo_do_dia(marca.decidido_em)}"
+            return Marcador(p.x, rotulo, ancora, round(LARGURA - p.x, 1))
     return None  # a data está fora dos 12 meses da série
 
 
@@ -257,6 +291,8 @@ def montar(
             confianca=f"{f.confianca:.0%}",
             trecho=trecho(textos[f.frente_id].texto) if f.frente_id in textos else "",
             incerta=f.incerta,
+            valor=montagem.formatar_indice(f.score) if f.score > 0 else "0",
+            via_llm=f.estado == Estado.VIA_LLM.value,
         )
         for f in d.frentes[:FRENTES_NO_PAINEL]
     ]
@@ -291,6 +327,8 @@ def montar(
         tipo=tipo.nome,
         visao=dict(montagem.VISOES)[visao],
         periodo=dict(montagem.PERIODOS)[periodo],
+        versao=versao,
+        rotulo_do_valor="Severidade" if visao is Visao.DOR else "Impacto",
         indice=celula_na_grade.indice or "0",
         seta=celula_na_grade.seta,
         variacao=celula_na_grade.variacao,
@@ -304,6 +342,10 @@ def montar(
         ],
         evolucao=pontos,
         caminho_da_evolucao=" ".join(f"{p.x},{p.y}" for p in pontos),
+        area_da_evolucao=_area(pontos),
+        pico=_pico(serie),
+        base=ALTURA - MARGEM,
+        meio=round(ALTURA / 2, 1),
         composicao=[
             Composicao("Por time", _barras(d.por_time, nomes, Dimensao.AREA)),
             Composicao("Por subtipo", _barras(d.por_subtipo, nomes, Dimensao.TIPO)),
@@ -317,4 +359,5 @@ def montar(
         enderecamento=bloco,
         marcador=_marcador(marca, pontos, serie) if marca is not None else None,
         selo=celula_na_grade.selo,
+        geracao=_geracao(guardado),
     )

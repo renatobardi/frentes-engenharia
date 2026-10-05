@@ -496,7 +496,8 @@ def test_painel_mostra_os_blocos_na_ordem_da_spec(com_painel: Path) -> None:
         "Frentes da célula",
     ]
     painel = html[html.index('<aside class="painel"') :]
-    assert "Plataforma × Incidente" in painel  # o cabeçalho
+    assert 'class="painel-area meta muted">Plataforma</p>' in painel  # o cabeçalho: área e tipo
+    assert "<h2>Incidente</h2>" in painel
     assert PORQUE in painel
     assert "Ferramenta / automação" in painel and "Treinar o plantão" in painel
     assert "Time SRE" in painel and "Queda total" in painel and "Mudança sem teste" in painel
@@ -513,7 +514,9 @@ def test_problema_abre_a_lista_filtrada_e_ver_todas_leva_a_celula(com_painel: Pa
     for trecho in ("periodo=30d", "area=plat", "tipo=incidente", "natureza=reativa"):
         assert trecho in destino
     assert "problema=timeout" in destino
-    todas = re.search(r'<a class="ver-todas" href="([^"]+)">ver todas \((\d+)\)', html)
+    todas = re.search(
+        r'<a class="ver-todas btn btn-outline" href="([^"]+)">Ver todas as (\d+) frentes', html
+    )
     assert todas and todas.group(2) == "5"  # 3 que pintam e 2 incertas de confiança baixa
     assert "problema=" not in todas.group(1) and "area=plat" in todas.group(1)
 
@@ -533,14 +536,14 @@ def test_painel_traz_no_maximo_oito_frentes_com_as_incertas_no_fim(
     lista = html[inicio : html.index("</ol>", inicio)]
     assert lista.count("<li") == 8
     assert "incerta" not in lista  # são 13 que pintam: as incertas ficam para depois do oitavo
-    assert re.search(r"ver todas \(15\)", html)
+    assert "Ver todas as 15 frentes" in html
 
 
 def test_incerta_aparece_marcada_quando_cabe_nas_oito(com_painel: Path) -> None:
     html = _cliente(com_painel).get(f"/?{CELULA}&periodo=30d").text
 
     lista = html[html.index('class="frentes-da-celula"') :]
-    assert lista.count('<li class="incerta">') == 2
+    assert lista.count('<li class="linha-link incerta">') == 2
     assert lista.count("marca-incerta") == 2
     # os textos são dados da frente: escapados
     assert "&lt;b&gt;sexta&lt;/b&gt;" in lista and "<b>" not in lista
@@ -563,7 +566,7 @@ def test_painel_atualizando_mostra_a_marca_e_o_texto_anterior(banco: Path) -> No
 
     html = _cliente(banco).get(f"/?{CELULA}").text
 
-    assert '<span class="atualizando">atualizando</span>' in html
+    assert 'class="atualizando badge badge-gate"' in html and "atualizando</span>" in html
     assert PORQUE in html and "ainda não existe" not in html
 
 
@@ -574,7 +577,7 @@ def test_painel_atualizando_sem_texto_anterior_diz_que_o_texto_ainda_nao_existe(
 
     html = _cliente(banco).get(f"/?{CELULA}").text
 
-    assert '<span class="atualizando">atualizando</span>' in html
+    assert 'class="atualizando badge badge-gate"' in html and "atualizando</span>" in html
     assert "O texto ainda não existe: está sendo gerado" in html
     assert 'id="painel-evolucao"' in html
 
@@ -587,7 +590,7 @@ def test_celula_sem_painel_gerado_mostra_os_blocos_calculados(banco: Path) -> No
     posicoes = _posicoes(html, BLOCOS)
     assert posicoes == sorted(posicoes)
     assert html.count('<circle class="ponto"') == 12
-    assert "ver todas (6)" in html  # 90 dias: a de 40 dias atrás entra
+    assert "Ver todas as 6 frentes" in html  # 90 dias: a de 40 dias atrás entra
 
 
 def test_texto_da_llm_e_escapado_no_painel(banco: Path) -> None:
@@ -675,7 +678,8 @@ def test_celula_invalida_no_endereco(com_painel: Path, consulta: str, status: in
 def test_celula_da_v1_abre_na_v1(banco: Path) -> None:
     resposta = _cliente(banco).get("/?versao=1&area=plat&tipo=tecnologia")
 
-    assert resposta.status_code == 200 and "Plataforma × Tecnologia" in resposta.text
+    assert resposta.status_code == 200
+    assert "<h2>Tecnologia</h2>" in resposta.text
 
 
 def test_celula_vazia_nao_e_link_e_a_cheia_e(http: TestClient) -> None:

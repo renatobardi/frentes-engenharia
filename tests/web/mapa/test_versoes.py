@@ -198,7 +198,7 @@ def test_trocar_a_versao_com_a_celula_nas_duas_mantem_o_painel_aberto(banco: Pat
     resposta = _com_painel_aberto(_cliente(banco), "plat", "incidente", "?versao=1", 2)
 
     assert resposta.status_code == 200
-    assert "Plataforma × Incidente" in resposta.text
+    assert "<h2>Incidente</h2>" in resposta.text
     assert "o painel foi fechado" not in resposta.text and "HX-Push-Url" not in resposta.headers
 
 
