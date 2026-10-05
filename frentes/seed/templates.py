@@ -14,6 +14,7 @@ from frentes.contratos import Origem, para_iso
 from frentes.seed.temas import HISTORIAS, TEMAS_POR_CHAVE, Sintoma
 
 SEVERIDADES = {"baixa": "info", "media": "warning", "alta": "error", "critica": "critical"}
+SERVICO_DA_RAJADA = "balanceador-de-carga"
 EMISSOR_GENERICO = {
     Origem.LOG: "Agregador de Logs",
     Origem.WEBHOOK: "Gateway de Eventos",
@@ -113,7 +114,8 @@ def rajada(rng: random.Random, quantas: int = 20) -> list[dict[str, Any]]:
     sintomas = HISTORIAS["H1"]
     saida = []
     for i in range(quantas):
-        vars_ = variaveis(rng, "orquestrador-de-propostas")
+        # serviço do mesmo time dos webhooks da H1 na seed: a rajada cai na célula da história
+        vars_ = variaveis(rng, SERVICO_DA_RAJADA)
         resumo = sintomas[i % len(sintomas)][0].format(**vars_)
         nivel = rng.choice(("error", "critical"))
         saida.append(

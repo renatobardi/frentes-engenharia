@@ -232,9 +232,9 @@ TEMAS: tuple[Tema, ...] = (
                 "{n} itens de {svc} aguardando conferência manual",
             ),
             (
-                "planilha paralela sustenta {svc} e ninguém confia nela",
-                "importacao da planilha de {svc} rejeitou {n} linhas",
-                "{n} linhas de {svc} existem só na planilha paralela",
+                "{svc} só fecha com conferência feita por fora, à mão, e ninguém confia",
+                "conferencia por fora de {svc} rejeitou {n} linhas",
+                "{n} linhas de {svc} só existem na conferência feita por fora",
             ),
             (
                 "aprovação em {svc} depende de e-mail e atrasa",
@@ -358,25 +358,31 @@ TEMAS: tuple[Tema, ...] = (
 # Os sintomas das histórias que usam template (a H4 só tem relato e mcp). Cada um cita o
 # objeto da história.
 HISTORIAS: dict[str, tuple[Sintoma, ...]] = {
+    # Os quatro dizem a mesma coisa (a esteira cai ou fica lenta) e citam o serviço de infra
+    # também no resumo, que é o texto do webhook: com "propostas travadas" e "falta de
+    # capacidade" metade da história lia como fila, e o webhook sem o serviço ia para a área de
+    # quem usa a esteira (#109).
     "H1": (
         (
-            "esteira de propostas fora do ar no pico de fim de mês",
-            "esteira de propostas sem resposta: {n} propostas na fila, {svc} esgotado em {ms} ms",
+            "esteira de propostas fora do ar no pico de fim de mês: {svc} não responde",
+            "esteira de propostas sem resposta: {n} propostas afetadas, {svc} esgotado em {ms} ms",
             "",
         ),
         (
-            "esteira de propostas lenta; propostas demoram a avançar",
-            "esteira de propostas com tempo de etapa de {ms} ms; {n} propostas atrasadas ({svc})",
+            "esteira de propostas lenta no pico de fim de mês: {svc} degradado",
+            "esteira de propostas com tempo de etapa de {ms} ms; {n} propostas afetadas "
+            "({svc} degradado)",
             "",
         ),
         (
-            "propostas travadas na esteira de propostas depois do aumento de carga",
-            "esteira de propostas: {n} propostas presas, {svc} sem capacidade após a migração",
+            "esteira de propostas caiu depois do aumento de carga: {svc} reiniciou",
+            "esteira de propostas indisponível: {svc} reiniciou {n} vezes desde a migração "
+            "para a nuvem",
             "",
         ),
         (
-            "esteira de propostas rejeitando envios por falta de capacidade",
-            "esteira de propostas recusou {n} envios; {svc} acima de {pct}% da capacidade",
+            "esteira de propostas instável desde a migração para a nuvem: {svc} com erros",
+            "esteira de propostas devolveu {n} erros; {svc} com {pct}% de falhas desde a migração",
             "",
         ),
     ),
@@ -414,20 +420,29 @@ HISTORIAS: dict[str, tuple[Sintoma, ...]] = {
             "{n} boletos reemitidos com o mesmo valor errado",
         ),
     ),
+    # Cada sintoma traz a resposta do assistente e o efeito no atendimento: só "informou taxa
+    # errada" lia como dado errado de um sistema qualquer, e o tema novo não aparecia como
+    # encaixe fraco (#109).
     "H5": (
         (
-            "assistente virtual do app informou taxa errada",
-            "assistente virtual do app respondeu taxa diferente da tabela ({n} vezes) em {svc}",
+            "assistente virtual do app respondeu ao cliente com taxa errada e a equipe de "
+            "atendimento ficou sobrecarregada com as correções",
+            "assistente virtual do app: {n} respostas com taxa errada; fila de correção no "
+            "atendimento ({svc})",
             "",
         ),
         (
-            "assistente virtual do app inventou uma resposta",
-            "assistente virtual do app respondeu sem fonte ({n} respostas) em {svc}",
+            "assistente virtual do app respondeu ao cliente com informação inventada e a equipe "
+            "de atendimento ficou sobrecarregada com as reclamações",
+            "assistente virtual do app: {n} respostas inventadas; fila de reclamações no "
+            "atendimento ({svc})",
             "",
         ),
         (
-            "assistente virtual do app escalou atendimentos demais para humanos",
-            "assistente virtual do app escalou {n} conversas ({pct}%) para humanos em {svc}",
+            "assistente virtual do app deixou de responder e a equipe de atendimento ficou "
+            "sobrecarregada com as conversas repassadas",
+            "assistente virtual do app: {n} conversas ({pct}%) repassadas; fila no atendimento "
+            "({svc})",
             "",
         ),
     ),
