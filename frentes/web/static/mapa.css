@@ -1,33 +1,220 @@
-/* Tela do mapa de calor. Escrito à mão, sem endereço externo. */
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.mapa .barra { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-.filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
-.filtros fieldset { display: flex; gap: 0.6rem; border: 0; padding: 0; margin: 0; }
-.filtros legend { float: left; margin-right: 0.6rem; color: var(--suave); }
-.filtros select { font: inherit; padding: 0.2rem; }
-.contadores { display: flex; gap: 1rem; list-style: none; margin: 0; padding: 0; }
-.contadores a { color: var(--suave); text-decoration: none; border-bottom: 1px dotted var(--suave); }
-.contadores strong { color: var(--texto); }
-.top3 { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; list-style: none; margin: 0 0 1rem; padding: 0; }
-.top3-titulo { font-weight: 700; }
-.posicao { display: inline-block; width: 1.4rem; text-align: center; border-radius: 50%; background: var(--texto); color: #fff; }
-.grade { border-collapse: separate; border-spacing: 3px; width: 100%; }
-.grade th { text-align: left; font-weight: 600; padding: 0.4rem; }
-.grade thead th { text-align: center; }
-.celula { text-align: center; padding: 0.6rem; border-radius: 4px; background: #fff; vertical-align: middle; position: relative; }
-.celula .indice { font-size: 1.2rem; font-weight: 700; }
-.celula .incertas { display: block; font-size: 0.75rem; color: var(--suave); }
-.celula.calor-1 { background: #fde9d4; }
-.celula.calor-2 { background: #fbcb9c; }
-.celula.calor-3 { background: #f6a15f; }
-.celula.calor-4 { background: #ec7233; color: var(--texto); }
-.celula.calor-5 { background: #c9421a; color: #fff; }
-.celula.calor-5 .incertas { color: #fff; }
-.grade .nao-classificadas, .grade td.nao-classificadas { background: #e6e8ec; color: var(--suave); }
+/* Tela do mapa de calor (redesign Kubo, fase 2a do #116). Escrito à mão, sem endereço externo.
+   Usa os tokens e as classes de app.css (.card, .chip, .segmentado, .badge, .bloco-gate…) e só
+   acrescenta o que é do mapa. */
+
+/* ---- Ordem de leitura: cada bloco com 20px de respiro ---- */
+.mapa { display: flex; flex-direction: column; gap: 20px; }
+.mapa > * { min-width: 0; }
+.mapa .filtros { display: flex; flex-direction: column; gap: 20px; }
+.mapa .pagina-cab { margin-bottom: 0; align-items: flex-end; }
+.mapa .pagina-cab-texto { flex: 1 1 280px; }
+
+/* ---- Visão e períodos: segmentado feito com <input type="radio"> escondido ---- */
+.segmentado > label { position: relative; display: inline-flex; }
+.segmentado > label > span {
+  display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 16px;
+  border-radius: var(--raio-pill); color: var(--muted-foreground); font-size: 14px; font-weight: 500;
+  white-space: nowrap; cursor: pointer; transition: background var(--t), color var(--t);
+}
+.segmentado-sm > label > span { height: 24px; padding: 0 10px; font-size: 12px; }
+.segmentado > label:hover > span { color: var(--foreground); }
+.segmentado > label > input:checked + span { background: var(--background); color: var(--foreground); box-shadow: var(--anel); }
+.segmentado > label > input:focus-visible + span, .opcao > input:focus-visible + .chip { box-shadow: var(--foco); }
+
+/* ---- Barra de filtros ---- */
+.barra-filtros {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 10px 12px;
+  border-radius: var(--raio-card); background: color-mix(in oklab, var(--muted) 55%, transparent);
+}
+.filtro { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
+.filtro-rotulo { font-size: 12px; font-weight: 500; color: var(--muted-foreground); }
+.opcao { position: relative; display: inline-flex; }
+.opcao .chip { height: 26px; padding: 0 10px; color: var(--muted-foreground); cursor: pointer; transition: background var(--t), color var(--t); }
+.opcao:hover .chip { background: var(--muted); }
+.opcao > input:checked + .chip { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); }
+
+/* ---- Contadores fora da grade: chips com ponto, à direita ---- */
+.contadores { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.contadores .chip { height: 28px; padding: 0 10px; color: var(--muted-foreground); box-shadow: var(--anel); border-color: transparent; }
+.contadores .chip strong { color: var(--foreground); font-weight: 600; }
+#fora-vivo { margin-left: auto; }
+#faixa, #top3-vivo { display: contents; }
+.bolinha-tracejada { background: transparent; border: 1.5px dashed var(--muted-foreground); }
+
+/* ---- Faixas da versão: 6a (alerta) e 6c (discreta) ---- */
+.faixa-versao { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0; }
+.faixa-versao.anterior { padding: 12px 16px; }
+.faixa-versao.anterior .icone { color: var(--gate); }
+.selo-sinal {
+  display: inline-flex; align-items: center; min-height: 22px; padding: 0 10px; border-radius: var(--raio-pill);
+  background: var(--background); color: var(--gate); font-size: 12px; font-weight: 600;
+}
+.faixa-versao .ver-diff { margin-left: auto; font-weight: 500; }
+.faixa-versao.criada { font-size: 13px; color: var(--muted-foreground); }
+.faixa-versao.criada .resumo { color: var(--muted-foreground); }
+.faixa-versao.criada strong, .faixa-versao.criada .criou { color: var(--foreground); }
+.selo-nova, th .nova, .grade-col .nova {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.02em; padding: 1px 7px; border-radius: 99px;
+  background: var(--primary); color: var(--primary-foreground);
+}
+.aviso-versao { display: flex; align-items: center; gap: 8px; margin: 0; }
+.aviso-versao .icone { color: var(--gate); }
+.erro-enderecar { margin: 0; padding: 10px 14px; border-radius: var(--raio-card); background: color-mix(in oklab, var(--destructive) 10%, transparent); color: var(--destructive); font-weight: 500; }
+.erro-enderecar[hidden] { display: none; }
+
+/* ---- Chegando agora: faixa escura, uma linha por frente (hora | texto | → célula | confiança) ---- */
+.faixa { border-radius: var(--raio-card); background: var(--primary); color: var(--primary-foreground); padding: 14px 18px; animation: entra 260ms ease-out both; }
+.faixa h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+.faixa h2 small { font-weight: 400; font-size: 12px; opacity: 0.6; }
+.ponto-vivo { width: 8px; height: 8px; border-radius: 99px; background: var(--amber); animation: pulsar 1.2s infinite; }
+@keyframes pulsar { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.faixa ul { list-style: none; margin: 0; padding: 0; }
+.faixa li {
+  display: grid; grid-template-columns: 64px minmax(0, 1fr) minmax(0, 290px) 44px; gap: 14px; align-items: center;
+  padding: 6px 0; font-size: 13px; border-top: 1px solid color-mix(in oklab, var(--primary-foreground) 9%, transparent);
+  animation: entra 260ms ease-out both;
+}
+.faixa li > * { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.faixa time { opacity: 0.6; }
+.faixa .onde { opacity: 0.8; }
+.faixa .estado { opacity: 0.75; }
+.faixa .confianca { text-align: right; font-weight: 600; }
+
+/* ---- Top 3: cards com anel; o aberto ganha anel de 2px em foreground ---- */
+.top3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; list-style: none; margin: 0; padding: 0; }
+.destaque { transition: transform var(--t); }
+.destaque:hover { transform: translateY(-1px); }
+.destaque.aberto { box-shadow: 0 0 0 2px var(--foreground); }
+.destaque-link { display: flex; align-items: center; gap: 14px; padding: 14px 16px; color: inherit; text-decoration: none; border-radius: var(--raio-card); }
+.posicao {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 30px; height: 30px;
+  border-radius: 99px; background: var(--muted); color: var(--foreground); font-size: 13px; font-weight: 600;
+}
+.posicao.primeiro { background: var(--primary); color: var(--primary-foreground); }
+.destaque-nomes { display: flex; flex-direction: column; gap: 1px; flex: 1 1 0; min-width: 0; }
+.destaque-nomes > span { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+.destaque-area { font-weight: 600; }
+.selo-top3 { font-weight: 600; }
+.minigrafico { flex-shrink: 0; overflow: visible; }
+.minigrafico polyline { fill: none; stroke: var(--muted-foreground); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.minigrafico circle { fill: var(--foreground); }
+.destaque-valor { display: flex; flex-direction: column; align-items: flex-end; min-width: 52px; }
+.destaque-valor strong { font-size: 26px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.05; }
+.destaque .seta { font-size: 12px; color: var(--muted-foreground); }
+.top3 .vazio { grid-column: 1 / -1; padding: 12px 0; }
+
+/* ---- Grade: cartão com CSS grid (150px + N colunas + 64px de total) ---- */
 .corpo { display: block; }
-.corpo.com-painel { display: grid; grid-template-columns: minmax(0, 1fr) 24rem; gap: 1rem; align-items: start; }
-.celula .abrir { display: block; color: inherit; text-decoration: none; }
-.celula.aberta { outline: 3px solid var(--destaque); }
+.corpo.com-painel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 460px); gap: 16px; align-items: start; }
+.grade-card { padding: 18px 18px 14px; min-width: 0; }
+.grade-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-bottom: 14px; }
+.grade-cab h2 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: -0.01em; }
+.legenda { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.legenda-escala { display: inline-flex; gap: 2px; }
+.calor, .celula {
+  --p: calc(5 + 85 * var(--escala, 0));
+  background: color-mix(in oklab, var(--foreground) calc(var(--p) * 1%), var(--card));
+}
+.legenda .calor { width: 16px; height: 10px; border-radius: 3px; }
+.legenda .calor:first-child { background: color-mix(in oklab, var(--muted) 45%, var(--card)); }
+.grade-rolagem { overflow-x: auto; padding: 8px 8px 4px; margin: -8px -8px -4px; }
+.grade {
+  display: grid; grid-template-columns: 150px repeat(var(--colunas), minmax(84px, 1fr)) 64px;
+  gap: 4px; min-width: 700px;
+}
+.grade-linha { display: contents; }
+.grade-col {
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 4px;
+  padding: 0 4px 8px; font-size: 11px; font-weight: 500; line-height: 1.25; color: var(--muted-foreground);
+  transition: color var(--t);
+}
+.grade-col .nova { order: -1; align-self: flex-start; }
+.grade-total-cab { align-items: flex-end; justify-content: flex-end; }
+.grade-area {
+  display: flex; align-items: center; padding-right: 8px; font-size: 13px; font-weight: 500; line-height: 1.2;
+  color: var(--foreground); transition: color var(--t);
+}
+.grade-area.muted { color: var(--muted-foreground); font-size: 11px; }
+.grade.tem-foco .grade-area:not(.em-foco, .muted) { opacity: 0.7; }
+.grade-col.em-foco, .grade-area.em-foco { color: var(--foreground); }
+.grade-area.em-foco { font-weight: 600; }
+.grade-total { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 0 4px; }
+.grade-total strong { font-size: 13px; font-weight: 600; text-align: right; }
+.grade-totais .grade-total { padding-top: 6px; justify-content: flex-start; }
+.grade-totais .grade-total strong { text-align: left; }
+.grade-total.geral strong { font-weight: 700; text-align: right; }
+.grade-total .barra-fina > span { background: var(--muted-foreground); margin-left: 0; }
+.grade-linha:not(.grade-totais) .grade-total .barra-fina > span { margin-left: auto; }
+
+.celula {
+  position: relative; height: 62px; border-radius: var(--raio); color: var(--foreground);
+  transition: background 200ms, box-shadow var(--t), transform 100ms;
+}
+.celula.vazia, .celula.calor-0 {
+  background: color-mix(in oklab, var(--muted) 45%, var(--card));
+  color: color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground));
+}
+.celula.alta { color: var(--background); }
+.celula.cruz { box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 22%, transparent); }
+.celula.aberta { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--foreground); z-index: 1; }
+.celula:has(.abrir:hover) { box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--foreground) 40%, transparent); }
+.celula.aberta:has(.abrir:hover) { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--foreground); }
+.celula.alta:has(.abrir:hover) { box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--background) 55%, transparent); }
+.celula:has(.abrir:active) { transform: scale(0.97); }
+.celula .abrir, .celula .corpo-celula {
+  display: flex; flex-direction: column; justify-content: space-between; height: 100%; padding: 7px 9px;
+  color: inherit; text-decoration: none; border-radius: var(--raio);
+}
+.celula-topo { display: flex; align-items: baseline; gap: 4px; }
+.celula .indice { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+.celula .seta { font-size: 11px; }
+.celula .sem-indice { font-size: 18px; line-height: 1; }
+.celula-base { display: flex; align-items: center; gap: 4px; min-height: 12px; font-size: 10px; }
+.celula .incertas { white-space: nowrap; }
+.celula .selo { margin-left: auto; font-size: 10px; font-weight: 700; background: none; color: inherit; padding: 0; border-radius: 0; display: inline; }
+.grade-total-cab, .celula.nao-classificadas { color: var(--muted-foreground); }
+.celula.nao-classificadas {
+  display: flex; align-items: center; justify-content: center; background: color-mix(in oklab, var(--muted) 70%, var(--card));
+  font-size: 13px; font-weight: 500;
+}
+.grade-linha.nao-classificadas .celula { height: 40px; }
+.grade-rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--border); min-height: 36px; }
+.grade-rodape strong { color: var(--foreground); font-weight: 600; }
+
+/* ---- Ao vivo: a célula que mudou pisca e mostra o "+N" âmbar; o número conta ---- */
+.celula.piscou { animation: piscar 0.6s ease-in-out 2; }
+@keyframes piscar {
+  0%, 100% { filter: none; }
+  50% { filter: brightness(1.25); }
+}
+.celula .diferenca {
+  position: absolute; top: -7px; right: -5px; z-index: 2; padding: 1px 7px; border-radius: 99px;
+  background: var(--amber); color: var(--primary); font-size: 11px; font-weight: 700;
+  box-shadow: 0 0 0 2px var(--card); pointer-events: none; animation: pop 260ms ease-out both;
+}
+@keyframes pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .celula.piscou, .celula .diferenca, .ponto-vivo, .faixa li { animation: none; }
+}
+
+/* ---- Fluido: abaixo de ~900px o painel desce para baixo da grade ---- */
+@media (max-width: 1100px) {
+  .corpo.com-painel { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .faixa li { grid-template-columns: 56px minmax(0, 1fr) 40px; }
+  .faixa li .onde { display: none; }
+  #fora-vivo { margin-left: 0; }
+  .legenda { margin-left: 0; }
+  .grade-card { padding: 14px 12px 12px; }
+}
+
+/* ---- Painel da célula: ainda com o estilo antigo (mapa.css). A fase 2b (#124) o reescreve em
+   painel.css, que a página carrega depois deste arquivo; este bloco sai com ela. ---- */
 .painel { background: #fff; border: 1px solid var(--linha); border-radius: 6px; padding: 1rem; }
 .painel h2, .painel h3, .painel h4 { margin: 0 0 0.4rem; }
 .painel h3 { font-size: 1rem; }
@@ -50,48 +237,12 @@
 .frentes-da-celula li.incerta { color: var(--suave); }
 .frentes-da-celula small, .problemas small { display: block; color: var(--suave); }
 
-/* Ao vivo (spec 10): a célula cujo índice mudou pisca duas vezes, sobe o "+N" e o número conta */
-.celula.piscou { animation: piscar 0.6s ease-in-out 2; }
-@keyframes piscar {
-  0%, 100% { box-shadow: 0 0 0 0 transparent; }
-  50% { box-shadow: 0 0 0 4px var(--destaque); filter: brightness(1.15); }
-}
-.celula .diferenca {
-  position: absolute; right: 0.4rem; top: 0.2rem; font-size: 0.8rem; font-weight: 700;
-  animation: subir 1.6s ease-out forwards; pointer-events: none;
-}
-@keyframes subir {
-  0% { opacity: 0; transform: translateY(0.6rem); }
-  20% { opacity: 1; }
-  100% { opacity: 0.85; transform: translateY(0); }
-}
-.faixa { background: #1d2430; color: #fff; border-radius: 6px; padding: 0.6rem 1rem; margin-bottom: 1rem; }
-.faixa h2 { font-size: 0.9rem; margin: 0 0 0.4rem; text-transform: uppercase; letter-spacing: 0.04em; }
-.faixa h2 small { font-weight: 400; opacity: 0.7; text-transform: none; }
-.faixa ul { list-style: none; margin: 0; padding: 0; }
-.faixa li { display: flex; flex-wrap: wrap; gap: 0.2rem 0.8rem; padding: 0.15rem 0; font-size: 0.9rem; }
-.faixa time { opacity: 0.7; font-variant-numeric: tabular-nums; }
-.faixa .texto { flex: 1 1 18rem; }
-.faixa .onde { font-weight: 600; }
-.faixa .estado, .faixa .confianca { opacity: 0.85; }
-@media (prefers-reduced-motion: reduce) {
-  .celula.piscou, .celula .diferenca { animation: none; }
-}
 .selo { display: block; margin-top: 0.2rem; font-size: 0.75rem; font-weight: 700; background: #fff; color: var(--texto); border-radius: 3px; padding: 0 0.3rem; }
 .painel-indice .selo { display: inline-block; margin: 0; }
-.selo-top3 { font-size: 0.8rem; color: var(--suave); }
 .enderecar { margin-top: 0.4rem; }
 .botao-enderecar { cursor: pointer; font-size: 0.85rem; color: var(--destaque); }
 .enderecar form { display: grid; gap: 0.4rem; margin-top: 0.4rem; }
 .enderecar textarea, .enderecar input[type=text] { font: inherit; width: 100%; box-sizing: border-box; }
-.erro-enderecar { color: #9b1c1c; font-weight: 600; }
 .ja-enderecada, .decisao-meta, .variacao-desde { font-size: 0.85rem; color: var(--suave); }
 .marcador-enderecamento line { stroke: var(--destaque); }
 .marcador-enderecamento text { font-size: 9px; fill: currentColor; }
-
-.faixa-versao { border: 1px solid #c9d1dc; background: #f3f6fa; border-radius: 6px; padding: 0.5rem 1rem; margin-bottom: 1rem; }
-.faixa-versao p { margin: 0; }
-.faixa-versao .selo-sinal { background: #fff3cd; border: 1px solid #e0c36a; border-radius: 4px; padding: 0 0.4rem; margin: 0 0.5rem; }
-.faixa-versao .criou, .faixa-versao .resumo { margin-left: 0.5rem; }
-.aviso-versao { background: #fff3cd; border: 1px solid #e0c36a; border-radius: 6px; padding: 0.4rem 1rem; margin-bottom: 1rem; }
-th .nova { font-size: 0.7rem; font-weight: 600; background: #1d2430; color: #fff; border-radius: 4px; padding: 0 0.3rem; vertical-align: middle; }

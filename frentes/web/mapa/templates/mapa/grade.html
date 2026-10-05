@@ -1,37 +1,52 @@
+{#- A grade é CSS grid (spec do épico #116): 150px de nome + uma coluna por tipo + (as "Não
+    classificadas", se houver) + 64px de total. O calor é a escala contínua do `--escala`
+    (índice/maior ^ 0,72) que o CSS lê; `.alta` (`c.clara`) vira o texto claro. Linhas e colunas de TOTAL
+    somam a visão. -#}
 <div id="grade-vivo"{% if oob %} hx-swap-oob="true"{% endif %}>
-<table class="grade">
-  <thead>
-    <tr>
-      <th scope="col"><span class="visually-hidden">Área</span></th>
-      {% for t in tipos %}<th scope="col">{{ t.nome }}{% if t.chave in tipos_novos %} <span class="nova">nova</span>{% endif %}</th>{% endfor %}
-      {% if nc_coluna %}<th scope="col" class="nao-classificadas">Não classificadas</th>{% endif %}
-    </tr>
-  </thead>
-  <tbody>
-    {% for a in areas %}
-    <tr>
-      <th scope="row">{{ a.nome }}</th>
-      {% for t in tipos %}
-      {% set c = grade[(a.chave, t.chave)] %}
-      <td class="celula calor-{{ c.calor }}{% if c.vazia %} vazia{% endif %}{% if celula_aberta == (a.chave, t.chave) %} aberta{% endif %}{% if c.piscou %} piscou{% endif %}">
-        {% if c.endereco %}<a class="abrir" href="{{ c.endereco }}" hx-get="{{ c.endereco }}" hx-target="#mapa" hx-swap="outerHTML" hx-push-url="true"{% if celula_aberta == (a.chave, t.chave) %} aria-current="true"{% endif %}>{% endif %}
-        {% if c.indice %}<span class="indice"{% if c.piscou %} data-de="{{ c.de }}" data-para="{{ c.indice }}"{% endif %}>{{ c.indice }}</span>{% if c.seta %} <span class="seta">{{ c.seta }}{{ c.variacao }}</span>{% endif %}{% endif %}
-        {% if c.incertas %}<span class="incertas">+{{ c.incertas }} incertas</span>{% endif %}
+<div class="grade-rolagem">
+<div class="grade" role="table" aria-label="Índice por área e tipo" style="--colunas: {{ tipos|length + (1 if nc_coluna else 0) }}">
+  <div class="grade-linha" role="row">
+    <span class="canto" role="presentation"></span>
+    {% for t in tipos %}<span class="grade-col{% if celula_aberta[1] == t.chave %} em-foco{% endif %}" role="columnheader" data-t="{{ t.chave }}"><span>{{ t.nome }}</span>{% if t.chave in tipos_novos %} <span class="nova">nova</span>{% endif %}</span>{% endfor %}
+    {% if nc_coluna %}<span class="grade-col nao-classificadas" role="columnheader">Não classificadas</span>{% endif %}
+    <span class="grade-col grade-total-cab" role="columnheader">Total</span>
+  </div>
+  {% for a in areas %}
+  {% set tot_a = totais.por_area[a.chave] %}
+  <div class="grade-linha" role="row">
+    <span class="grade-area{% if celula_aberta[0] == a.chave %} em-foco{% endif %}" role="rowheader" data-a="{{ a.chave }}">{{ a.nome }}</span>
+    {% for t in tipos %}
+    {% set c = grade[(a.chave, t.chave)] %}
+    {% set aberta = celula_aberta == (a.chave, t.chave) %}
+    {% set tot_t = totais.por_tipo[t.chave] %}
+    {% set do_tipo = ((c.bruto / tot_t.bruto * 100)|round|int) if tot_t.bruto else 0 %}
+    {% set insp = "índice " ~ (c.indice or "0") ~ ((" · " ~ c.seta ~ c.variacao ~ " vs. período anterior") if c.seta else "") ~ ((" · " ~ c.incertas ~ " incertas") if c.incertas else "") ~ " · " ~ do_tipo ~ "% do tipo" ~ (" · clique para abrir" if c.endereco else "") %}
+    <div class="celula calor-{{ c.calor }}{% if c.clara %} alta{% endif %}{% if c.vazia %} vazia{% endif %}{% if aberta %} aberta{% elif celula_aberta[0] and (celula_aberta[0] == a.chave or celula_aberta[1] == t.chave) %} cruz{% endif %}{% if c.piscou %} piscou{% endif %}" role="cell" data-a="{{ a.chave }}" data-t="{{ t.chave }}"{% if not c.vazia %} data-insp-titulo="{{ a.nome }} × {{ t.nome }}" data-insp-texto="{{ insp }}"{% endif %} style="--escala: {{ '%.3f'|format(c.escala) }}">
+      {% if c.endereco %}<a class="abrir" href="{{ c.endereco }}" hx-get="{{ c.endereco }}" hx-target="#mapa" hx-swap="outerHTML" hx-push-url="true" title="{{ a.nome }} × {{ t.nome }}: {{ insp }}"{% if aberta %} aria-current="true"{% endif %}><span class="so-leitor">{{ a.nome }} × {{ t.nome }}: </span>{% else %}<span class="corpo-celula">{% endif %}
+        <span class="celula-topo">{% if c.indice %}<span class="indice"{% if c.piscou %} data-de="{{ c.de }}" data-para="{{ c.indice }}"{% endif %}>{{ c.indice }}</span>{% if c.seta %} <span class="seta">{{ c.seta }}{{ c.variacao }}</span>{% endif %}{% else %}<span class="sem-indice" aria-hidden="true">–</span>{% endif %}</span>
+        <span class="celula-base">{% if c.incertas %}<span class="incertas">+{{ c.incertas }} incertas</span>{% endif %}{% if c.selo %}<span class="selo" title="Endereçada em {{ c.selo }}">◆ {{ c.selo }}</span>{% endif %}</span>
         {% if c.novas %}<span class="diferenca" aria-label="{{ c.novas }} novas">+{{ c.novas }}</span>{% endif %}
-        {% if c.selo %}<span class="selo" title="Endereçada em {{ c.selo }}">◆ {{ c.selo }}</span>{% endif %}
-        {% if c.endereco %}</a>{% endif %}
-      </td>
-      {% endfor %}
-      {% if nc_coluna %}<td class="celula nao-classificadas">{{ mapa.nao_classificadas_por_area.get(a.chave, "") }}</td>{% endif %}
-    </tr>
+      {% if c.endereco %}</a>{% else %}</span>{% endif %}
+    </div>
     {% endfor %}
-    {% if nc_linha %}
-    <tr class="nao-classificadas">
-      <th scope="row">Não classificadas</th>
-      {% for t in tipos %}<td class="celula nao-classificadas">{{ mapa.nao_classificadas_por_tipo.get(t.chave, "") }}</td>{% endfor %}
-      {% if nc_coluna %}<td class="celula nao-classificadas">{{ mapa.nao_classificadas_sem_ambos or "" }}</td>{% endif %}
-    </tr>
-    {% endif %}
-  </tbody>
-</table>
+    {% if nc_coluna %}<div class="celula nao-classificadas" role="cell">{{ mapa.nao_classificadas_por_area.get(a.chave, "") }}</div>{% endif %}
+    <span class="grade-total" role="cell"><strong>{{ tot_a.valor }}</strong><span class="barra-fina"><span style="width: {{ tot_a.largura }}%"></span></span></span>
+  </div>
+  {% endfor %}
+  {% if nc_linha %}
+  <div class="grade-linha nao-classificadas" role="row">
+    <span class="grade-area" role="rowheader">Não classificadas</span>
+    {% for t in tipos %}<div class="celula nao-classificadas" role="cell">{{ mapa.nao_classificadas_por_tipo.get(t.chave, "") }}</div>{% endfor %}
+    {% if nc_coluna %}<div class="celula nao-classificadas" role="cell">{{ mapa.nao_classificadas_sem_ambos or "" }}</div>{% endif %}
+    <span class="grade-total" role="cell"></span>
+  </div>
+  {% endif %}
+  <div class="grade-linha grade-totais" role="row">
+    <span class="grade-area muted" role="rowheader">Total por tipo</span>
+    {% for t in tipos %}{% set tot_t = totais.por_tipo[t.chave] %}<span class="grade-total" role="cell"><strong>{{ tot_t.valor }}</strong><span class="barra-fina"><span style="width: {{ tot_t.largura }}%"></span></span></span>{% endfor %}
+    {% if nc_coluna %}<span class="grade-total" role="cell"></span>{% endif %}
+    <span class="grade-total geral" role="cell"><strong>{{ totais.geral.valor }}</strong></span>
+  </div>
+</div>
+</div>
 </div>

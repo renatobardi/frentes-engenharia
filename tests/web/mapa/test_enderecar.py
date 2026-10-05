@@ -88,25 +88,34 @@ def _marcar_direto(banco: Path, celula: Celula, dias: int, **extra) -> None:
 
 
 def _td(html: str, area: str) -> list[str]:
-    linha = re.search(rf'<tr>\s*<th scope="row">{area}</th>(.*?)</tr>', html, re.S)
+    linha = re.search(
+        rf'role="rowheader" data-a="[^"]*">{area}</span>(.*?)(?=<div class="grade-linha|\Z)',
+        html,
+        re.S,
+    )
     assert linha, area
-    return re.findall(r'<td class="celula.*?</td>', linha.group(1), re.S)
+    return re.findall(r'<div class="celula.*?</div>', linha.group(1), re.S)
 
 
 def _top3(html: str) -> list[str]:
     bloco = html[html.index('class="top3"') : html.index("</ol>")]
-    return re.findall(r'<li class="destaque">.*?</li>', bloco, re.S)
+    return re.findall(r'<li class="destaque card[^"]*">.*?</li>', bloco, re.S)
 
 
 def _indices(html: str) -> list[str]:
-    grade = html[html.index('<table class="grade">') : html.index("</table>")]
+    grade = html[html.index('<div class="grade" role="table"') : html.index('<p id="inspecao"')]
     return re.findall(r'<span class="indice"[^>]*>([^<]+)</span>', grade)
 
 
 def _normal(trecho: str) -> str:
     """O item do Top 3 sem o selo e sem a quebra de linha: posição, célula e índice."""
-    sem_selo = re.sub(r"<span class=\"selo-top3\".*?</span>", "", trecho, flags=re.S)
+    sem_selo = re.sub(r"<span class=\"selo-top3[^\"]*\".*?</span>", "", trecho, flags=re.S)
     return re.sub(r"\s+", " ", sem_selo).replace(" </li>", "</li>")
+
+
+def _sem_nota(html: str) -> str:
+    """A página sem a nota do rodapé da grade, que explica o ◆ sem haver célula endereçada."""
+    return re.sub(r'<p id="inspecao".*?</p>', "", html, flags=re.S)
 
 
 def _celula_url(celula: dict[str, str] = PLAT, **mais: str) -> str:
@@ -120,7 +129,7 @@ def test_enderecar_cria_a_marca_e_o_selo_aparece_na_celula_e_no_top3(
     banco: Path, http: TestClient
 ) -> None:
     antes = http.get(_celula_url()).text
-    assert "◆" not in antes
+    assert "◆" not in _sem_nota(antes)
 
     resposta = _enderecar(http)
 
@@ -178,8 +187,8 @@ def test_o_selo_aparece_em_30_dias_mesmo_com_a_data_fora_da_janela(
 def test_o_selo_fica_na_visao_da_marca(banco: Path, http: TestClient) -> None:
     _marcar_direto(banco, Celula("plat", "incidente", Visao.DOR), dias=10)
 
-    assert "◆" in http.get("/").text
-    assert "◆" not in http.get("/?visao=oportunidade").text
+    assert "◆" in _sem_nota(http.get("/").text)
+    assert "◆" not in _sem_nota(http.get("/?visao=oportunidade").text)
 
 
 def test_marca_de_tipo_que_a_versao_nao_tem_fica_guardada_e_nao_aparece(
@@ -187,8 +196,8 @@ def test_marca_de_tipo_que_a_versao_nao_tem_fica_guardada_e_nao_aparece(
 ) -> None:
     _marcar_direto(banco, Celula("plat", "tecnologia", Visao.DOR), dias=10)
 
-    assert "◆" not in http.get("/").text  # a v2 não tem o tipo "tecnologia"
-    assert "◆" in http.get("/?versao=1").text
+    assert "◆" not in _sem_nota(http.get("/").text)  # a v2 não tem o tipo "tecnologia"
+    assert "◆" in _sem_nota(http.get("/?versao=1").text)
 
 
 # ---------------------------------------------------------------- recusas e erros
@@ -202,7 +211,7 @@ def test_desfazer_tira_o_selo(banco: Path, http: TestClient) -> None:
     resposta = http.post("/mapa/desfazer", data={**RECORTE, **PLAT, "id": id}, headers=HX)
 
     assert resposta.status_code == 200
-    assert "◆" not in resposta.text
+    assert "◆" not in _sem_nota(resposta.text)
     assert 'id="painel-enderecamento"' not in resposta.text
     assert _ativas(banco) == []
     with closing(store.abrir(banco)) as con:  # o registro fica, inativo
@@ -217,7 +226,7 @@ def test_endereçar_de_novo_e_recusado_com_mensagem(banco: Path, http: TestClien
     assert resposta.status_code == 409
     assert "já tem um endereçamento ativo" in html_lib.unescape(resposta.text)
     assert _ativas(banco) == [("plat", "incidente", "Bardi")]
-    assert "◆" in resposta.text  # o selo do primeiro continua
+    assert "◆" in _sem_nota(resposta.text)  # o selo do primeiro continua
 
 
 def test_depois_de_desfazer_a_celula_aceita_outra(banco: Path, http: TestClient) -> None:
@@ -437,7 +446,7 @@ def test_sem_endereçamento_ou_com_a_data_fora_dos_12_meses_nao_ha_marcador(
 
     assert "marcador-enderecamento" not in sem
     assert "marcador-enderecamento" not in antigo
-    assert "◆" in antigo  # o selo continua: não depende da janela
+    assert "◆" in _sem_nota(antigo)  # o selo continua: não depende da janela
 
 
 def _serie(*indices: float) -> list:

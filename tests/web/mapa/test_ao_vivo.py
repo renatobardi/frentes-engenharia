@@ -88,15 +88,20 @@ def _td(html: str, par: str) -> str:
     area, tipo = (v[0] for v in parse_qs(par).values())
     achados = [
         td
-        for td in re.findall(r'<td class="celula.*?</td>', html, re.S)
+        for td in re.findall(r'<div class="celula.*?</div>', html, re.S)
         if f"area={area}&amp;tipo={tipo}" in td
     ]
     assert len(achados) == 1, f"célula {par} não achada"
     return achados[0]
 
 
+def _texto(trecho: str) -> str:
+    """O texto do trecho de HTML, sem as tags e com os espaços juntos."""
+    return " ".join(re.sub(r"<[^>]+>", " ", trecho).split())
+
+
 def _piscaram(html: str) -> list[str]:
-    return re.findall(r'<td class="celula[^"]*\bpiscou\b', html)
+    return re.findall(r'<div class="celula[^"]*\bpiscou\b', html)
 
 
 def _nova(banco: Path, texto: str, **classificacao: object) -> str:
@@ -153,7 +158,7 @@ def test_celula_que_mudou_traz_a_marca_de_piscar_e_a_diferenca(
     resposta = _poll(http, polling, cabecalhos).text
 
     celula = _td(resposta, INCIDENTE)
-    assert re.match(r'<td class="celula calor-\d piscou"', celula) or " piscou" in celula[:90]
+    assert re.match(r'<div class="celula[^"]*\bpiscou\b', celula)
     assert 'data-de="3,6"' in celula and 'data-para="4,5"' in celula
     assert '<span class="indice" data-de="3,6" data-para="4,5">4,5</span>' in celula
     assert '<span class="diferenca" aria-label="1 novas">+1</span>' in celula
@@ -170,8 +175,10 @@ def test_a_seta_e_o_top3_acompanham_a_celula_que_mudou(banco: Path, http: TestCl
     resposta = _poll(http, polling, cabecalhos).text
 
     bloco = resposta[resposta.index('class="top3"') : resposta.index("</ol>")]
-    destaques = re.findall(r'<li class="destaque">.*?</li>', bloco, re.S)
-    assert "Plataforma × Incidente" in destaques[0] and "<strong>5,4</strong>" in destaques[0]
+    destaques = re.findall(r'<li class="destaque card[^"]*">.*?</li>', bloco, re.S)
+    assert (
+        "Plataforma × Incidente" in _texto(destaques[0]) and "<strong>5,4</strong>" in destaques[0]
+    )
     assert "↑500%" in destaques[0] and "↑500%" in _td(resposta, INCIDENTE)
     assert 'hx-swap-oob="true"' in resposta
 
@@ -187,9 +194,9 @@ def test_o_top3_se_reordena_quando_outra_celula_passa_a_frente(
     resposta = _poll(http, polling, cabecalhos).text
 
     bloco = resposta[resposta.index('class="top3"') : resposta.index("</ol>")]
-    destaques = re.findall(r'<li class="destaque">.*?</li>', bloco, re.S)
-    assert "Operações × Processo" in destaques[0] and "<strong>4</strong>" in destaques[0]
-    assert "Plataforma × Incidente" in destaques[1]
+    destaques = re.findall(r'<li class="destaque card[^"]*">.*?</li>', bloco, re.S)
+    assert "Operações × Processo" in _texto(destaques[0]) and "<strong>4</strong>" in destaques[0]
+    assert "Plataforma × Incidente" in _texto(destaques[1])
 
 
 def test_a_leitura_devolve_a_leitura_nova_no_polling_seguinte(
@@ -258,7 +265,13 @@ def test_so_se_troca_o_que_mudou(banco: Path, http: TestClient) -> None:
     parado = _poll(http, polling, cabecalhos).text
 
     assert 'id="ao-vivo"' in parado  # o gatilho segue
-    for trocado in ('id="grade-vivo"', 'id="top3-vivo"', 'id="faixa"', 'id="fora-vivo"', "<table"):
+    for trocado in (
+        'id="grade-vivo"',
+        'id="top3-vivo"',
+        'id="faixa"',
+        'id="fora-vivo"',
+        'class="grade" role="table"',
+    ):
         assert trocado not in parado
     _escrever(banco, lambda con: _pinta(con, "plat", "incidente", 0.9, 1))
     mudou = _poll(http, polling, cabecalhos).text
@@ -277,7 +290,7 @@ def test_o_mais_n_conta_as_frentes_novas_acumula_e_nao_some_na_leitura_seguinte(
 
     # a leitura seguinte, sem novidade, não troca nada; o "+3" segue na tela
     segunda = _poll(http, _polling(primeira), cabecalhos).text
-    assert "<table" not in segunda
+    assert 'class="grade" role="table"' not in segunda
     # mais duas chegam: o número acumula, não recomeça
     for dias in (1, 2):
         _escrever(banco, lambda con, d=dias: _pinta(con, "plat", "incidente", 0.9, d))
@@ -320,7 +333,7 @@ def test_os_contadores_fora_da_grade_entram_no_polling(banco: Path, http: TestCl
 
     inicio = resposta.index('id="fora-vivo"')
     fora = resposta[inicio : resposta.index("</ul>", inicio)]
-    assert re.search(r"<strong>2</strong> Aguardando classificação", fora)
+    assert re.search(r"Aguardando classificação <strong>2</strong>", fora)
     # a leitura seguinte, igual, não os troca de novo
     assert 'id="fora-vivo"' not in _poll(http, _polling(resposta), cabecalhos).text
 
@@ -480,7 +493,9 @@ def test_painel_aberto_atualizando_vem_de_novo_com_a_marca_e_continua_no_polling
     assert 'id="painel"' in resposta and 'hx-swap-oob="true"' in resposta
     assert '<span class="atualizando">atualizando</span>' in resposta
     assert "atualizando=1" in _polling(resposta)  # segue pedindo até o painel ficar atual
-    assert "<table" not in resposta  # nada mudou na grade: ela não é trocada, o foco fica
+    assert (
+        'class="grade" role="table"' not in resposta
+    )  # nada mudou na grade: ela não é trocada, o foco fica
 
 
 def test_painel_que_terminou_de_atualizar_vem_uma_ultima_vez_e_para(com_painel: Path) -> None:
@@ -640,4 +655,4 @@ def test_rajada_de_20_acumula_o_mais_n_e_a_faixa_mostra_as_ultimas_cinco(servido
     assert "20 frentes" in faixa
     # a leitura seguinte não perde nada nem recomeça
     seguinte = _poll(servidor, _polling(leitura), cabecalhos).text
-    assert "<table" not in seguinte and 'id="faixa"' not in seguinte
+    assert 'class="grade" role="table"' not in seguinte and 'id="faixa"' not in seguinte

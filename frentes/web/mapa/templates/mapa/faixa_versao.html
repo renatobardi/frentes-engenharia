@@ -1,17 +1,20 @@
+{% from "_icones.html" import icone %}
 {# O que a revisão da taxonomia fez com a versão mostrada (spec 10, 6a e 6c). Tudo vem da revisão
    gravada; o código resume o destino das operações. Sem revisão que toque a versão, não há faixa. #}
 {% if da_versao.anterior %}
-<section class="faixa-versao anterior" aria-label="Versão anterior à revisão">
-  <p><strong>Versão {{ da_versao.anterior.versao }}, anterior à revisão de {{ da_versao.anterior.data }}</strong>
-    {% if da_versao.anterior.selo %}<span class="selo-sinal" title="O sinal de encaixe medido na hora da revisão">{{ da_versao.anterior.selo.rotulo }} {{ da_versao.anterior.selo.medido }} · limite {{ da_versao.anterior.selo.limite }} (janela de {{ da_versao.anterior.selo.janela_dias }} dias; disparada por {{ da_versao.anterior.selo.gatilho }})</span>{% endif %}
-    <a href="{{ da_versao.anterior.diff }}">ver o diff da revisão</a></p>
+<section class="faixa-versao anterior bloco-gate" aria-label="Versão anterior à revisão">
+  {{ icone("triangle-alert") }}
+  <strong>Versão {{ da_versao.anterior.versao }}, anterior à revisão de {{ da_versao.anterior.data }}</strong>
+  {% if da_versao.anterior.selo %}<span class="selo-sinal" title="O sinal de encaixe medido na hora da revisão">{{ da_versao.anterior.selo.rotulo }} {{ da_versao.anterior.selo.medido }} · limite {{ da_versao.anterior.selo.limite }} (janela de {{ da_versao.anterior.selo.janela_dias }} dias; disparada por {{ da_versao.anterior.selo.gatilho }})</span>{% endif %}
+  <a class="ver-diff" href="{{ da_versao.anterior.diff }}">ver o diff da revisão</a>
 </section>
 {% endif %}
 {% if da_versao.criada %}
 <section class="faixa-versao criada" aria-label="Versão criada por uma revisão">
-  <p><strong>Versão {{ da_versao.criada.versao }}, criada pela revisão de {{ da_versao.criada.data }}</strong>
-    {% if da_versao.criada.novos %}<span class="criou">Coluna nova: {{ da_versao.criada.novos | join(", ") }}.</span>{% endif %}
-    {% if da_versao.criada.resumo %}<span class="resumo">{{ da_versao.criada.resumo }}</span>{% endif %}
-    <a href="{{ da_versao.criada.diff }}">ver o diff da revisão</a></p>
+  <span class="selo-nova">nova</span>
+  <strong>Versão {{ da_versao.criada.versao }}, criada pela revisão de {{ da_versao.criada.data }}</strong>
+  {% if da_versao.criada.novos %}<span class="criou">Coluna nova: {{ da_versao.criada.novos | join(", ") }}.</span>{% endif %}
+  {% if da_versao.criada.resumo %}<span class="resumo">{{ da_versao.criada.resumo }}</span>{% endif %}
+  <a class="ver-diff" href="{{ da_versao.criada.diff }}">ver o diff da revisão</a>
 </section>
 {% endif %}

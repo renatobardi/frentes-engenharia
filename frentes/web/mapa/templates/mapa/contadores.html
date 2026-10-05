@@ -1,7 +1,7 @@
 <div id="fora-vivo"{% if oob %} hx-swap-oob="true"{% endif %}>
 <ul class="contadores" aria-label="Fora da grade">
   {% for c in contadores %}
-  <li><a href="{{ c.destino }}"><strong>{{ c.total }}</strong> {{ c.nome }}</a></li>
+  <li><a class="chip contador" href="{{ c.destino }}" title="Abrir a lista filtrada"><span class="bolinha {% if c.nome == 'Texto vago' %}bolinha-gate{% elif c.nome == 'Incertas' %}bolinha-tracejada{% else %}bolinha-muted{% endif %}"></span>{{ c.nome }} <strong>{{ c.total }}</strong></a></li>
   {% endfor %}
 </ul>
 </div>
