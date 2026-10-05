@@ -105,7 +105,7 @@ def test_na_v2_a_coluna_criada_leva_a_marca_nova_e_a_faixa_diz_o_que_a_revisao_c
     html = _cliente(banco).get("/?versao=2").text
 
     assert html.count('<span class="nova">nova</span>') == 1
-    assert 'Fornecedor <span class="nova">nova</span>' in html
+    assert 'Fornecedor</span> <span class="nova">nova</span>' in html
     assert "Versão 2, criada pela revisão de 14/09/2026" in html
     assert "Coluna nova: Fornecedor." in html
     # A frase bruta da LLM não decide o resumo, mesmo numa geração antiga sem operações.
@@ -139,7 +139,7 @@ def test_revisao_cuja_versao_nao_foi_ativada_nao_faz_faixa_na_v1(tmp_path: Path)
 def test_a_marca_nova_tambem_vem_na_leitura_ao_vivo(banco: Path) -> None:
     resposta = _cliente(banco).get("/mapa/ao-vivo?versao=2&nc=x&leitura=")
 
-    assert 'Fornecedor <span class="nova">nova</span>' in resposta.text
+    assert 'Fornecedor</span> <span class="nova">nova</span>' in resposta.text
 
 
 def test_trocar_a_versao_nao_muda_a_data_de_referencia(
@@ -269,3 +269,18 @@ def test_o_selo_diz_a_janela_e_o_gatilho_de_verdade(tmp_path: Path) -> None:
         html = _cliente(_banco(pasta, gatilho=gatilho)).get("/?versao=1").text
 
         assert "janela de 30 dias" in html and texto in html
+
+
+def test_a_faixa_da_v1_e_o_bloco_de_atencao_e_a_da_v2_e_a_linha_discreta(banco: Path) -> None:
+    v1 = _cliente(banco).get("/?versao=1").text
+    v2 = _cliente(banco).get("/?versao=2").text
+
+    anterior = v1[v1.index('<section class="faixa-versao anterior') :].split("</section>")[0]
+    assert (
+        "bloco-gate" in anterior
+        and 'class="icone"' in anterior
+        and 'class="selo-sinal"' in anterior
+    )
+    criada = v2[v2.index('<section class="faixa-versao criada') :].split("</section>")[0]
+    assert "bloco-gate" not in criada and '<span class="selo-nova">nova</span>' in criada
+    assert 'class="ver-diff" href="/taxonomia?geracao=1"' in criada

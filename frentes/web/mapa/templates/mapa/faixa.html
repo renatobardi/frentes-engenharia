@@ -4,12 +4,12 @@
 <div id="faixa"{% if oob %} hx-swap-oob="true"{% endif %}>
 {% if chegando %}
   <section class="faixa" aria-label="Chegando agora" aria-live="polite">
-    <h2>Chegando agora{% if chegando_total > chegando|length %} <small>{{ chegando_total }} frentes</small>{% endif %}</h2>
+    <h2><span class="ponto-vivo"></span>Chegando agora{% if chegando_total > chegando|length %} <small>{{ chegando_total }} frentes</small>{% endif %}</h2>
     <ul>
       {% for c in chegando %}
       <li><time>{{ c.hora }}</time> <span class="texto">{{ c.texto }}</span>
-        {% if c.celula %}<span class="onde">{{ c.celula }}</span>{% endif %}
-        <span class="estado">{{ c.estado }}</span>{% if c.confianca %} <span class="confianca">{{ c.confianca }}</span>{% endif %}</li>
+        <span class="onde">{% if c.celula %}→ {{ c.celula }} {% endif %}<span class="estado">{{ c.estado }}</span></span>
+        {% if c.confianca %}<span class="confianca">{{ c.confianca }}</span>{% else %}<span></span>{% endif %}</li>
       {% endfor %}
     </ul>
   </section>

@@ -69,4 +69,63 @@
     if (!raiz || !raiz.querySelectorAll) return;
     raiz.querySelectorAll("[data-de][data-para]").forEach(contar);
   });
+  // Rodapé de inspeção da grade: ao passar o mouse (ou focar) numa célula, ele diz "Área × Tipo ·
+  // índice · seta · incertas · % do tipo"; a linha e a coluna dela ganham o realce. Sem
+  // JavaScript fica o `title` de cada célula e a nota do rodapé.
+  var cruzadas = [];
+
+  function limparInspecao() {
+    cruzadas.forEach(function (e) { e.classList.remove("cruz", "em-foco"); });
+    cruzadas = [];
+    var rodape = document.getElementById("inspecao");
+    if (rodape && rodape.dataset.nota !== undefined) rodape.textContent = rodape.dataset.nota;
+  }
+
+  function inspecionar(celula) {
+    var rodape = document.getElementById("inspecao");
+    if (!rodape) return;
+    limparInspecao();
+    var a = celula.dataset.a, t = celula.dataset.t;
+    var grade = celula.closest(".grade");
+    if (grade) {
+      grade.querySelectorAll("[data-a], [data-t]").forEach(function (e) {
+        var mesmaLinha = e.dataset.a === a, mesmaColuna = e.dataset.t === t;
+        if (!mesmaLinha && !mesmaColuna) return;
+        var marca = e.classList.contains("celula") ? "cruz" : "em-foco";
+        if (e === celula || e.classList.contains("aberta") || e.classList.contains(marca)) return;
+        e.classList.add(marca);
+        cruzadas.push(e);
+      });
+    }
+    var titulo = document.createElement("strong");
+    titulo.textContent = celula.dataset.inspTitulo;
+    var texto = document.createElement("span");
+    texto.textContent = celula.dataset.inspTexto;
+    var ponto = document.createElement("span");
+    ponto.textContent = "·";
+    rodape.replaceChildren(titulo, ponto, texto);
+  }
+
+  function celulaDe(evento) {
+    var alvo = evento.target;
+    return alvo && alvo.closest ? alvo.closest(".celula[data-insp-titulo]") : null;
+  }
+
+  document.addEventListener("mouseover", function (evento) {
+    var celula = celulaDe(evento);
+    if (celula) inspecionar(celula);
+  });
+  document.addEventListener("focusin", function (evento) {
+    var celula = celulaDe(evento);
+    if (celula) inspecionar(celula);
+  });
+  document.addEventListener("mouseout", function (evento) {
+    var celula = celulaDe(evento);
+    if (celula && !celula.contains(evento.relatedTarget)) limparInspecao();
+  });
+  document.addEventListener("focusout", function (evento) {
+    if (celulaDe(evento)) limparInspecao();
+  });
+  // a grade trocada pelo polling leva as marcas de realce embora: o rodapé volta à nota
+  document.addEventListener("htmx:afterSwap", function () { cruzadas = []; });
 })();

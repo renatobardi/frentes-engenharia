@@ -50,6 +50,7 @@ class Lida:
     parametros: dict[str, str | list[str]]
     celula: tuple[montagem.Eixo, montagem.Eixo] | None
     enderecados: dict[tuple[str, str], Enderecamento]  # os ativos da visão, por célula
+    totais: montagem.Totais
 
 
 class CelulaForaDaVersao(HTTPException):
@@ -95,8 +96,10 @@ def _ler(
     }
     selos = {k: montagem.selo_do_dia(m.decidido_em) for k, m in enderecados.items()}
     grade, top3 = montagem.celulas_da_grade(mapa, areas, tipos, parametros, selos)
+    top3 = montagem.com_minigraficos(con, top3, mapa, origens)
     celula = (eixo_area, eixo_tipo) if eixo_area is not None and eixo_tipo is not None else None
-    return Lida(mapa, areas, tipos, grade, top3, parametros, celula, enderecados)
+    totais = montagem.totais(grade, areas, tipos)
+    return Lida(mapa, areas, tipos, grade, top3, parametros, celula, enderecados, totais)
 
 
 class SemVersao(Exception):
@@ -247,6 +250,7 @@ def _tela(
         "tipos": lida.tipos,
         "grade": grade,
         "top3": lida.top3,
+        "totais": lida.totais,
         "contadores": contadores,
         "visoes": montagem.VISOES,
         "periodos": montagem.PERIODOS,
@@ -364,6 +368,7 @@ def mapa_ao_vivo(
         "tipos": lida.tipos,
         "grade": grade,
         "top3": lida.top3,
+        "totais": lida.totais,
         "contadores": contadores,
         "painel": aberto,
         "celula_aberta": (area, tipo),

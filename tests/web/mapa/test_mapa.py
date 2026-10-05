@@ -129,25 +129,42 @@ def _escrever(banco: Path, funcao) -> None:
     con.close()
 
 
+def _grade(html: str) -> str:
+    return html[html.index('<div class="grade" role="table"') : html.index('<p id="inspecao"')]
+
+
 def _cabecalhos(html: str) -> list[str]:
-    tabela = html[html.index('<table class="grade">') : html.index("</table>")]
-    return re.findall(r"<th scope=\"(?:col|row)\"[^>]*>([^<]+)</th>", tabela)
+    """Os tipos (colunas) e depois as áreas (linhas), na ordem da grade."""
+    achados = re.findall(
+        r'role="columnheader" data-t="[^"]*"><span>([^<]+)</span>'
+        r'|role="rowheader" data-a="[^"]*">([^<]+)</span>',
+        _grade(html),
+    )
+    return [coluna or linha for coluna, linha in achados]
 
 
 def _top3(html: str) -> list[str]:
     bloco = html[html.index('class="top3"') : html.index("</ol>")]
-    return re.findall(r'<li class="destaque">.*?</li>', bloco, re.S)
+    return re.findall(r'<li class="destaque card[^"]*">.*?</li>', bloco, re.S)
+
+
+def _texto(trecho: str) -> str:
+    """O texto do trecho de HTML, sem as tags e com os espaços juntos."""
+    return " ".join(re.sub(r"<[^>]+>", " ", trecho).split())
 
 
 def _celula(html: str, area: str, tipo_pos: int) -> str:
-    linha = re.search(rf"<tr>\s*<th scope=\"row\">{area}</th>(.*?)</tr>", html, re.S)
+    linha = re.search(
+        rf'role="rowheader" data-a="[^"]*">{area}</span>(.*?)(?=<div class="grade-linha|\Z)',
+        _grade(html),
+        re.S,
+    )
     assert linha, area
-    return re.findall(r"<td class=\"celula.*?</td>", linha.group(1), re.S)[tipo_pos]
+    return re.findall(r'<div class="celula.*?</div>', linha.group(1), re.S)[tipo_pos]
 
 
 def _setas_na_grade(html: str) -> int:
-    grade = html[html.index('<table class="grade">') : html.index("</table>")]
-    return grade.count('class="seta"')
+    return _grade(html).count('class="seta"')
 
 
 # --------------------------------------------------------------------------- grade e Top 3
@@ -166,9 +183,9 @@ def test_top3_na_ordem_do_indice_e_celula_incerta_mostra_o_mais_n(http: TestClie
 
     top = _top3(html)
     assert len(top) == 3
-    assert "Plataforma × Incidente" in top[0] and "<strong>2,7</strong>" in top[0]
-    assert "Operações × Processo" in top[1] and "<strong>1,6</strong>" in top[1]
-    assert "Plataforma × Processo" in top[2] and "<strong>0,5</strong>" in top[2]
+    assert "Plataforma × Incidente" in _texto(top[0]) and "<strong>2,7</strong>" in top[0]
+    assert "Operações × Processo" in _texto(top[1]) and "<strong>1,6</strong>" in top[1]
+    assert "Plataforma × Processo" in _texto(top[2]) and "<strong>0,5</strong>" in top[2]
     # as duas incertas de confiança baixa; a de texto vago não entra
     assert "+2 incertas" in _celula(html, "Plataforma", 0)
     assert "incertas" not in _celula(html, "Plataforma", 1)
@@ -179,8 +196,10 @@ def test_visao_oportunidade_pinta_so_as_proativas(http: TestClient) -> None:
     html = http.get("/?visao=oportunidade").text
 
     top = _top3(html)
-    assert len(top) == 1 and "Operações × Fornecedor" in top[0]
-    assert "Plataforma × Incidente" not in html[html.index('class="top3"') : html.index("</ol>")]
+    assert len(top) == 1 and "Operações × Fornecedor" in _texto(top[0])
+    assert "Plataforma × Incidente" not in _texto(
+        html[html.index('class="top3"') : html.index("</ol>")]
+    )
 
 
 # --------------------------------------------------------------------------- seletores
@@ -196,14 +215,14 @@ def test_cada_seletor_muda_o_endereco_e_o_conteudo(http: TestClient) -> None:
     assert len({base, por_visao, por_periodo, por_origem, por_versao}) == 5
     # o conteúdo muda: visão e origem trocam o Top 3; o período, a tendência; a versão, a coluna
     assert "Operações × Fornecedor" in por_visao
-    assert [("Plataforma × Processo" in t) for t in _top3(por_origem)] == [True]
+    assert [("Plataforma × Processo" in _texto(t)) for t in _top3(por_origem)] == [True]
     assert "Tecnologia" in por_versao and "Tecnologia" not in base
     # o seletor marca o que o endereço pediu
     assert re.search(r'value="oportunidade" checked', por_visao)
-    assert re.search(r'<option value="180d" selected', por_periodo)
+    assert re.search(r'name="periodo" value="180d" checked', por_periodo)
     assert re.search(r'value="log" checked', por_origem)
     assert not re.search(r'value="relato" checked', por_origem)
-    assert re.search(r'<option value="1" selected', por_versao)
+    assert re.search(r'name="versao" value="1" checked', por_versao)
 
 
 def test_origem_aceita_varias(http: TestClient) -> None:
@@ -211,7 +230,7 @@ def test_origem_aceita_varias(http: TestClient) -> None:
 
     assert 'value="log" checked' in html and 'value="relato" checked' in html
     assert 'value="webhook" checked' not in html
-    assert "Plataforma × Incidente" in _top3(html)[0]
+    assert "Plataforma × Incidente" in _texto(_top3(html)[0])
 
 
 def test_formulario_atualiza_a_grade_por_htmx_e_empurra_o_endereco(http: TestClient) -> None:
@@ -244,9 +263,11 @@ def test_contadores_fora_da_grade_levam_a_lista_filtrada(http: TestClient) -> No
     html = http.get("/?periodo=30d&origem=relato").text
 
     contadores = html[html.index('class="contadores"') : html.index("</ul>")]
-    assert re.search(r"<strong>1</strong> Texto vago", contadores)
-    assert re.search(r"<strong>2</strong> Incertas", contadores)
-    destino = re.search(r'href="([^"]+)"><strong>1</strong> Texto vago', contadores)
+    assert re.search(r"Texto vago <strong>1</strong>", contadores)
+    assert re.search(r"Incertas <strong>2</strong>", contadores)
+    destino = re.search(
+        r'href="([^"]+)"[^>]*>(?:<span[^>]*></span>)?Texto vago <strong>1', contadores
+    )
     assert destino
     assert destino.group(1) == "/frentes?periodo=30d&amp;origem=relato&amp;estado=texto_vago"
 
@@ -257,7 +278,7 @@ def test_aguardando_some_quando_e_zero_e_aparece_quando_ha(banco: Path, http: Te
     _escrever(banco, lambda con: _frente(con, 2))
     html = http.get("/").text
 
-    assert re.search(r"<strong>1</strong> Aguardando classificação", html)
+    assert re.search(r"Aguardando classificação <strong>1</strong>", html)
     assert "estado=aguardando" in html
 
 
@@ -270,16 +291,16 @@ def test_nao_classificadas_some_quando_nao_ha_e_aparece_quando_ha(
     _escrever(banco, lambda con: _pinta(con, "plat", None, 0.9, 3, estado="nao_classificada"))
     so_coluna = http.get("/").text
     assert so_coluna.count("Não classificadas") == 1
-    assert '<tr class="nao-classificadas">' not in so_coluna
+    assert '<div class="grade-linha nao-classificadas"' not in so_coluna
 
     _escrever(banco, lambda con: _pinta(con, None, "processo", 0.9, 3, estado="nao_classificada"))
     html = http.get("/").text
-    assert '<tr class="nao-classificadas">' in html
-    assert '<th scope="col" class="nao-classificadas">Não classificadas</th>' in html
+    assert '<div class="grade-linha nao-classificadas"' in html
+    assert 'role="columnheader">Não classificadas</span>' in html
     # contagem em cinza, sem índice nem calor
-    cinzas = re.findall(r'<td class="celula nao-classificadas">(\d*)</td>', html)
+    cinzas = re.findall(r'<div class="celula nao-classificadas" role="cell">(\d*)</div>', html)
     assert sorted(c for c in cinzas if c) == ["1", "1"]
-    assert "calor-" not in "".join(re.findall(r'<td class="celula nao-classificadas"', html))
+    assert "calor-" not in "".join(re.findall(r'<div class="celula nao-classificadas"[^>]*>', html))
 
 
 # --------------------------------------------------------------------------- tendência
@@ -334,7 +355,7 @@ def test_versao_nao_ativada_nao_esta_no_seletor_e_da_404(banco: Path, http: Test
 
     html = http.get("/").text
 
-    assert '<option value="2" selected>v2 vigente</option>' in html
+    assert re.search(r'name="versao" value="2" checked><span>v2 vigente</span>', html)
     assert 'value="3"' not in html
     assert http.get("/?versao=3").status_code == 404
 
@@ -386,7 +407,7 @@ def test_origens_com_nome_de_exibicao_e_indice_pequeno_com_virgula(
     html = http.get("/").text
 
     for nome in ("Relato", "Webhook", "Log", "Banco", "MCP"):
-        assert f"> {nome}</label>" in html
+        assert f'<span class="chip">{nome}</span></label>' in html
     # Plataforma × Processo: 0,5 em 30 dias; um índice positivo nunca vira "0"
     _escrever(banco, lambda con: _pinta(con, "ops", "fornecedor", 0.02, 3))
     assert 'class="indice">0,1<' in http.get("/?periodo=30d").text
@@ -600,7 +621,11 @@ def test_abrir_o_endereco_com_a_celula_reproduz_o_painel_aberto(com_painel: Path
     http = _cliente(com_painel)
     html = http.get("/?periodo=30d").text
 
-    link = re.search(r'<a class="abrir" href="([^"]+)"[^>]*>\s*<span class="indice">2,7', html)
+    link = re.search(
+        r'<a class="abrir" href="([^"]+)"[^>]*><span class="so-leitor">[^<]*</span>\s*'
+        r'<span class="celula-topo"><span class="indice">2,7',
+        html,
+    )
     assert link
     endereco = link.group(1).replace("&amp;", "&")
     assert endereco == "/?visao=dor&periodo=30d&area=plat&tipo=incidente"
@@ -611,7 +636,10 @@ def test_abrir_o_endereco_com_a_celula_reproduz_o_painel_aberto(com_painel: Path
 
     assert 'aria-label="Painel da célula"' in pagina.text
     assert fragmento.text.strip() in pagina.text and "<html" not in fragmento.text
-    assert '<td class="celula calor-5 aberta">' in pagina.text
+    assert re.search(
+        r'<div class="celula calor-5 alta aberta" role="cell" data-a="plat" data-t="incidente"',
+        pagina.text,
+    )
     assert "30 dias" in pagina.text[pagina.text.index("<aside") :]
 
 
@@ -655,3 +683,129 @@ def test_celula_vazia_nao_e_link_e_a_cheia_e(http: TestClient) -> None:
 
     assert 'class="abrir"' in _celula(html, "Plataforma", 0)
     assert 'class="abrir"' not in _celula(html, "Operações", 2)
+
+
+# --------------------------------------------------------------------------- redesign Kubo (#123)
+
+
+def _totais_da_linha(html: str, area: str) -> str:
+    achado = re.search(
+        rf'data-a="[^"]*">{area}</span>.*?class="grade-total" role="cell"><strong>([^<]+)</strong>',
+        _grade(html),
+        re.S,
+    )
+    assert achado, area
+    return achado.group(1)
+
+
+def test_grade_e_css_grid_com_a_soma_por_area_por_tipo_e_no_geral(http: TestClient) -> None:
+    html = http.get("/?periodo=30d").text
+    grade = _grade(html)
+
+    assert 'role="table"' in grade and 'style="--colunas: 3"' in grade
+    # área: Plataforma 2,7 + 0,5 e Operações 1,6; tipo: Incidente 2,7, Processo 2,1, Fornecedor sem
+    assert _totais_da_linha(html, "Plataforma") == "3,2"
+    assert _totais_da_linha(html, "Operações") == "1,6"
+    totais = grade[grade.index("grade-totais") :]
+    assert re.findall(r"<strong>([^<]+)</strong>", totais) == ["2,7", "2,1", "–", "4,8"]
+    assert re.search(r'class="grade-total geral" role="cell"><strong>4,8</strong>', grade)
+
+
+def test_o_calor_e_a_escala_continua_e_o_texto_clareia_acima_de_0_53(http: TestClient) -> None:
+    html = http.get("/?periodo=30d").text
+
+    maxima = _celula(html, "Plataforma", 0)  # 2,7: o maior índice da grade
+    media = _celula(html, "Operações", 1)  # 1,6: (1,6 / 2,7) ** 0,72 = 0,686
+    baixa = _celula(html, "Plataforma", 1)  # 0,5: (0,5 / 2,7) ** 0,72 = 0,297
+    zero = _celula(html, "Operações", 2)
+    assert 'style="--escala: 1.000"' in maxima and " alta" in maxima
+    assert 'style="--escala: 0.686"' in media and " alta" in media
+    assert 'style="--escala: 0.297"' in baixa and " alta" not in baixa
+    # a célula sem índice não tem calor: fica com "–"
+    assert "vazia" in zero and 'style="--escala: 0.000"' in zero and "–" in zero
+
+
+def test_a_celula_leva_o_texto_da_inspecao_para_o_rodape_e_para_o_title(http: TestClient) -> None:
+    html = http.get("/?periodo=30d").text
+
+    cheia = _celula(html, "Plataforma", 0)
+    assert 'data-insp-titulo="Plataforma × Incidente"' in cheia
+    texto = re.search(r'data-insp-texto="([^"]+)"', cheia)
+    assert texto
+    assert "índice 2,7" in texto.group(1) and "↑200% vs. período anterior" in texto.group(1)
+    assert "2 incertas" in texto.group(1) and "100% do tipo" in texto.group(1)
+    assert texto.group(1) in cheia.split('title="')[1]  # sem JavaScript, o title diz o mesmo
+    assert "76% do tipo" in _celula(html, "Operações", 1)  # 1,6 de 2,1 do tipo Processo
+    assert "data-insp" not in _celula(html, "Operações", 2)  # célula vazia: nada a inspecionar
+    assert 'id="inspecao"' in html and "Passe o mouse para inspecionar" in html
+
+
+def test_cada_card_do_top3_abre_a_celula_e_traz_a_evolucao_de_12_meses(http: TestClient) -> None:
+    html = http.get("/?periodo=30d").text
+
+    primeiro = _top3(html)[0]
+    assert 'href="/?visao=dor&amp;periodo=30d&amp;area=plat&amp;tipo=incidente"' in primeiro
+    assert 'hx-target="#mapa"' in primeiro and 'aria-current="true"' not in primeiro
+    svg = re.search(r'<svg class="minigrafico".*?</svg>', primeiro, re.S)
+    assert svg
+    assert len(re.search(r'points="([^"]+)"', svg.group(0)).group(1).split()) == 12  # type: ignore[union-attr]
+    assert svg.group(0).count("<circle") == 1
+
+
+def test_a_evolucao_do_top3_segue_o_filtro_de_origem(http: TestClient) -> None:
+    html = http.get("/?periodo=30d&origem=log").text
+
+    svg = re.search(r'<svg class="minigrafico".*?</svg>', _top3(html)[0], re.S)
+    assert svg
+    pontos = re.search(r'points="([^"]+)"', svg.group(0)).group(1).split()  # type: ignore[union-attr]
+    ys = [p.split(",")[1] for p in pontos]
+    # um só mês tem índice (a frente de 7 dias atrás): o resto fica na base do gráfico
+    assert ys.count("3.0") == 1 and ys.count("27.0") == 11
+
+
+def test_o_card_e_a_linha_e_a_coluna_da_celula_aberta_ganham_destaque(com_painel: Path) -> None:
+    html = _cliente(com_painel).get(f"/?{CELULA}&periodo=30d").text
+
+    assert 'class="destaque card aberto"' in _top3(html)[0]
+    assert 'aria-current="true"' in _top3(html)[0]
+    assert '<li class="destaque card">' in html[html.index('class="top3"') :]  # os outros, não
+    assert " aberta" in _celula(html, "Plataforma", 0)
+    assert " cruz" in _celula(html, "Plataforma", 1)  # mesma linha
+    assert " cruz" in _celula(html, "Operações", 0)  # mesma coluna
+    assert " cruz" not in _celula(html, "Operações", 1)
+    assert re.search(r'class="grade-area em-foco" role="rowheader" data-a="plat"', html)
+    assert re.search(r'class="grade-col em-foco" role="columnheader" data-t="incidente"', html)
+    # sem célula aberta nada fica em foco nem em cruz
+    sem = http_sem_painel = _cliente(com_painel).get("/?periodo=30d").text
+    assert "em-foco" not in sem and " cruz" not in sem and http_sem_painel
+
+
+def test_a_pagina_carrega_o_css_do_mapa_e_o_do_painel_e_o_fragmento_nao(http: TestClient) -> None:
+    pagina = http.get("/").text
+    fragmento = http.get("/", headers={"HX-Request": "true"}).text
+
+    assert pagina.index('href="/static/mapa.css"') < pagina.index('href="/static/painel.css"')
+    assert 'src="/static/mapa-ao-vivo.js"' in pagina
+    assert "static/" not in fragmento
+
+
+def test_os_contadores_levam_o_ponto_da_cor_de_cada_um(banco: Path, http: TestClient) -> None:
+    _escrever(banco, lambda con: _frente(con, 2))
+    html = http.get("/?periodo=30d").text
+    contadores = html[html.index('class="contadores"') : html.index("</ul>")]
+
+    assert re.search(r'bolinha-gate"></span>Texto vago', contadores)
+    assert re.search(r'bolinha-tracejada"></span>Incertas', contadores)
+    assert re.search(r'bolinha-muted"></span>Aguardando classificação', contadores)
+
+
+def test_o_seletor_de_visao_e_de_periodo_e_segmentado_e_o_de_origem_sao_chips(
+    http: TestClient,
+) -> None:
+    html = http.get("/?origem=log").text
+    form = html[html.index('<form class="filtros"') : html.index("</form>")]
+
+    assert form.count('class="segmentado') == 3  # visão, período e taxonomia
+    assert re.search(r'role="radiogroup" aria-label="Visão"', form)
+    assert re.search(r'name="origem" value="log" checked><span class="chip">Log</span>', form)
+    assert 'name="origem" value="relato" checked' not in form

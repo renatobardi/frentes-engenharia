@@ -10,12 +10,18 @@ from datetime import datetime
 from urllib.parse import urlencode
 
 from frentes.contratos import Dimensao, Origem, Periodo, Visao
-from frentes.mapa.agregados import TOP, Celula, Mapa
+from frentes.mapa.agregados import TOP, Celula, Mapa, serie_mensal
 from frentes.store import Conexao
 from frentes.store import versao as store_versao
 
 DEGRAUS = 5
 LIMITE_DA_SETA = 0.05  # variação menor que isso é "estável"
+EXPOENTE_DO_CALOR = 0.72  # a escala contínua do CSS: (índice / maior) ** 0,72
+# Acima disso o texto da célula vira claro. A spec do épico (#116) diz 0,48, mas ali o texto
+# claro dá só 3,8:1 e o escuro 5,2:1; em 0,53 os dois passam de 4,4:1 (a regra é 4,5:1).
+LIMITE_DO_TEXTO_CLARO = 0.53
+# o minigráfico do Top 3: 12 meses em coordenadas do `viewBox`
+MINI_LARGURA, MINI_ALTURA, MINI_MARGEM = 76, 30, 3
 
 VISOES = ((Visao.DOR, "Onde dói"), (Visao.OPORTUNIDADE, "Onde há oportunidade"))
 PERIODOS = (
@@ -54,6 +60,21 @@ class CelulaNaTela:
     de: str = ""  # o índice da leitura anterior, de onde o número conta ("" se não piscou)
     novas: int = 0  # frentes que pintaram a célula desde que a tela abriu: o "+N"
     selo: str = ""  # "dd/mm" do endereçamento ativo; vazio sem ele, em qualquer período
+    escala: float = 0.0  # (índice / maior) ** 0,72, de 0 a 1: o CSS pinta a célula com ela
+
+    @property
+    def clara(self) -> bool:
+        """O texto da célula é claro: o fundo ficou escuro demais para o texto escuro."""
+        return self.escala > LIMITE_DO_TEXTO_CLARO
+
+
+@dataclass(frozen=True, slots=True)
+class Minigrafico:
+    """Os últimos 12 meses de uma célula, em coordenadas do `viewBox` do SVG do Top 3."""
+
+    pontos: str  # "x,y x,y ...", do mês mais antigo ao mais novo
+    ux: float  # o último ponto, que o SVG desenha cheio
+    uy: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +86,24 @@ class Destaque:
     seta: str
     variacao: str
     selo: str = ""  # "dd/mm" do endereçamento ativo da célula
+    chave: tuple[str, str] = ("", "")  # (área, tipo): é como o card acha a célula na grade
+    evolucao: Minigrafico | None = None  # None até `com_minigraficos`
+
+
+@dataclass(frozen=True, slots=True)
+class Total:
+    valor: str  # o índice somado, no mesmo formato da célula
+    bruto: float
+    largura: int  # de 0 a 100: a barra contra o maior total da mesma fileira
+
+
+@dataclass(frozen=True, slots=True)
+class Totais:
+    """A soma da visão por área (a coluna de TOTAL), por tipo (a linha) e no geral."""
+
+    por_area: dict[str, Total]
+    por_tipo: dict[str, Total]
+    geral: Total
 
 
 @dataclass(frozen=True, slots=True)
@@ -140,6 +179,7 @@ def _celula_na_tela(c: Celula | None, mapa: Mapa, maior: float) -> CelulaNaTela:
         variacao=variacao,
         incertas=c.incertas,
         vazia=not tem_indice and c.incertas == 0,
+        escala=(c.indice / maior) ** EXPOENTE_DO_CALOR if c.indice > 0 and maior > 0 else 0.0,
     )
 
 
@@ -193,9 +233,74 @@ def celulas_da_grade(
                 seta,
                 variacao,
                 selos.get((c.area, c.tipo), ""),
+                (c.area, c.tipo),
             )
         )
     return grade, destaques
+
+
+def _total(soma: float, maior: float) -> Total:
+    return Total(
+        formatar_indice(soma) if soma > 0 else "–", soma, round(soma / maior * 100) if maior else 0
+    )
+
+
+def totais(
+    grade: dict[tuple[str, str], CelulaNaTela], areas: list[Eixo], tipos: list[Eixo]
+) -> Totais:
+    """A soma dos índices da grade por área, por tipo e no geral (só as células da versão)."""
+    por_area = {a.chave: sum(grade[(a.chave, t.chave)].bruto for t in tipos) for a in areas}
+    por_tipo = {t.chave: sum(grade[(a.chave, t.chave)].bruto for a in areas) for t in tipos}
+    maior_area, maior_tipo = (
+        max(por_area.values(), default=0.0),
+        max(por_tipo.values(), default=0.0),
+    )
+    return Totais(
+        {k: _total(v, maior_area) for k, v in por_area.items()},
+        {k: _total(v, maior_tipo) for k, v in por_tipo.items()},
+        _total(sum(por_area.values()), sum(por_area.values())),
+    )
+
+
+def minigrafico(valores: list[float]) -> Minigrafico:
+    """A polilinha dos valores (um por mês), do menor ao maior na altura do `viewBox`."""
+    maior = max(valores, default=0.0)
+    util = MINI_ALTURA - 2 * MINI_MARGEM
+    passo = (MINI_LARGURA - 2 * MINI_MARGEM) / max(len(valores) - 1, 1)
+    pontos = [
+        (
+            round(MINI_MARGEM + i * passo, 1),
+            round(MINI_ALTURA - MINI_MARGEM - (v / maior * util if maior > 0 else 0.0), 1),
+        )
+        for i, v in enumerate(valores)
+    ]
+    ux, uy = pontos[-1] if pontos else (0.0, float(MINI_ALTURA - MINI_MARGEM))
+    return Minigrafico(" ".join(f"{x},{y}" for x, y in pontos), ux, uy)
+
+
+def com_minigraficos(
+    con: Conexao, destaques: list[Destaque], mapa: Mapa, origens: list[Origem]
+) -> list[Destaque]:
+    """O Top 3 com a evolução de 12 meses de cada célula (a mesma série do painel)."""
+    return [
+        replace(
+            d,
+            evolucao=minigrafico(
+                [
+                    p.indice
+                    for p in serie_mensal(
+                        con,
+                        area=d.chave[0],
+                        tipo=d.chave[1],
+                        visao=mapa.visao,
+                        origens=origens,
+                        versao=mapa.versao,
+                    )
+                ]
+            ),
+        )
+        for d in destaques
+    ]
 
 
 def contadores(mapa: Mapa, parametros: dict[str, str | list[str]]) -> list[Contador]:
