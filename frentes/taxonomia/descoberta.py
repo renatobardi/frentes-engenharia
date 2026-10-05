@@ -296,6 +296,22 @@ def _operacoes(
     return saida
 
 
+MAX_MOTIVO_DO_LOTE = 200
+
+
+def _resumo_dos_lotes(descartados: Sequence[str], n_lotes: int) -> str | None:
+    """O que fica gravado na geração quando lotes saíram da consolidação: quantos, quais e por
+    quê. Sem lote descartado não há o que dizer (`None`: a geração fica sem resumo)."""
+    if not descartados:
+        return None
+    teto = MAX_MOTIVO_DO_LOTE
+    motivos = "; ".join(d if len(d) <= teto else d[: teto - 1] + "…" for d in descartados)
+    return (
+        f"{len(descartados)} de {n_lotes} lotes ficaram fora da consolidação "
+        f"(inválidos depois das correções): {motivos}"
+    )
+
+
 async def descobrir(
     con: Conexao,
     llm: ClienteLlm,
@@ -346,6 +362,7 @@ async def descobrir(
             con,
             geracao_id,
             ResultadoGeracao.VERSAO_NOVA,
+            resumo=_resumo_dos_lotes(descartados, len(lotes(frentes, tamanho_do_lote))),
             versao_resultante=versao.numero,
             operacoes=_operacoes(proposta, documento, evidencias),
         )

@@ -177,8 +177,8 @@ def test_lista_com_problema_sai_com_0_e_diz_as_contagens(banco, monkeypatch, cap
     gravacoes: dict = {}
     for grupo in (a, b):
         gravar_lote(gravacoes, grupo, proposta())
-        gravar_candidatos(gravacoes, grupo, candidato("Gravame", 1, 2))
-        gravar_peneira(gravacoes, "Gravame", descricao_padrao, grupo[:2])
+        gravar_candidatos(gravacoes, grupo, candidato("Gravame", 1, 2, 3))
+        gravar_peneira(gravacoes, "Gravame", descricao_padrao, grupo[:3])
     gravar_consolidacao(gravacoes, [proposta()] * 2, proposta())
     gravar_juncao(
         gravacoes,

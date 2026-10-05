@@ -16,6 +16,7 @@ Spec: docs/spec/05-problema-e-recorrencia.md, "Como a lista sai". O módulo só 
 """
 
 import asyncio
+import re
 from collections.abc import Callable, Coroutine, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -31,7 +32,8 @@ from frentes.taxonomia.validador import MAX_PROBLEMAS, Violacao
 MIN_LOTES_V1 = 2
 MIN_EVIDENCIAS_V1 = 3
 MIN_EVIDENCIAS_REVISAO = 5
-MIN_EVIDENCIAS_NA_PENEIRA = 2  # a peneira compara frentes: uma só não prova nada
+MIN_EVIDENCIAS_NA_PENEIRA = prompts.MIN_EVIDENCIAS_NA_PENEIRA
+_CLAUSULA_NO_FIM = re.compile(r"\s*Não vale para[^.]*\.?\s*$")
 CORRECOES = 2  # a resposta e mais duas correções: a terceira inválida encerra
 
 
@@ -139,6 +141,21 @@ def _no_teto(descricao: str) -> str:
     return corte[: corte.rfind(" ")].rstrip(" ,;:") if " " in corte else corte
 
 
+def com_clausula(descricao: str) -> str:
+    """A descrição terminando na cláusula "Não vale para o mesmo sintoma em outro sistema.",
+    dentro do teto: se não cabe, quem encolhe é a lista de falhas, nunca a cláusula. É ela que
+    faz o Jev responder "Nenhum destes" para o mesmo sintoma em outro objeto."""
+    corpo = _CLAUSULA_NO_FIM.sub("", descricao.strip())
+    espaco = proposta_.MAX_DESCRICAO - len(prompts.CLAUSULA) - 2  # o ponto e o espaço
+    if len(corpo) > espaco:
+        corte = corpo[:espaco]
+        corpo = corte[: corte.rfind(" ")] if " " in corte else corte
+    corpo = corpo.rstrip(" ,;:")
+    if not corpo:
+        return prompts.CLAUSULA
+    return f"{corpo if corpo[-1] in '.!?' else corpo + '.'} {prompts.CLAUSULA}"
+
+
 def _do_nome(nome: str, descricao: str, onde: str) -> list[Violacao]:
     """O nome e a descrição de um problema: tetos de tamanho, genérico, "Nenhum destes".
     Nome de sistema é o que se quer aqui, então não há a conferência de nome de produto."""
@@ -216,7 +233,7 @@ async def _peneirar(
 ) -> bool:
     lidas = [textos[i] for i in candidato.evidencias]
     if len(lidas) < MIN_EVIDENCIAS_NA_PENEIRA:
-        return False  # com uma frente só, "todas citam o mesmo objeto" é verdade por construção
+        return False  # poucas frentes não provam um problema (ver o mínimo nos prompts)
     pedido = prompts.peneira(
         candidato.nome, candidato.descricao, [(f.origem, f.texto) for f in lidas]
     )
@@ -277,6 +294,7 @@ def _juntar(
         usados.update(numeros)
         if not membros:
             return
+        descricao = com_clausula(descricao)
         evidencias = tuple(dict.fromkeys(e for m in membros for e in m.evidencias))
         lotes = frozenset(m.lote for m in membros)
         chave = proposta_.normal(nome)

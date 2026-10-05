@@ -19,6 +19,13 @@ from frentes.taxonomia.prompts import (
 from frentes.taxonomia.validador import Violacao
 
 MAX_EVIDENCIAS_NA_PENEIRA = 8
+# Candidato com menos frentes no lote não chega à peneira. Com 2, um serviço do fundo citado
+# duas vezes no mesmo lote por queixas parecidas passava: nos 12 lotes da seed inteira há 573
+# pares item × lote com 2 ou mais frentes do mesmo item do fundo, e 165 com 3 ou mais (#109).
+MIN_EVIDENCIAS_NA_PENEIRA = 3
+# A cláusula que ancora o problema no objeto. A LLM a esquece ou o teto a corta (13 de 14
+# problemas sem ela no primeiro snapshot, #109): quem garante é `problemas.com_clausula`.
+CLAUSULA = "Não vale para o mesmo sintoma em outro sistema."
 MAX_DADO = 500
 ABRE_DADO = "<dado>"
 FECHA_DADO = "</dado>"
@@ -61,10 +68,14 @@ a problema: o objeto concreto da empresa de que VÁRIAS frentes falam.
 Lembre, porque é onde mais se erra:
 - Cada candidato nomeia um objeto (sistema, integração, processo ou fornecedor) que as frentes \
 citam. Espécie de queixa que se repete em times e sistemas diferentes não é candidato.
+- As frentes de um candidato tratam do MESMO ASSUNTO desse objeto: a mesma dor, o mesmo pedido \
+ou faces do mesmo defeito ou da mesma necessidade. Um serviço que aparece em frentes com queixas \
+sem relação (uma de custo, outra de documentação, outra de prazo) não é candidato.
 - "descricao": "Frentes que citam <o objeto e seus apelidos, inclusive rota ou serviço dos \
-alertas>: <as falhas e os pedidos>. Não vale para o mesmo sintoma em outro sistema."
+alertas>: <as falhas e os pedidos>. {CLAUSULA}"
 - "evidencias": os números das frentes da amostra que citam esse objeto (as de maior \
-certeza, até {MAX_EVIDENCIAS_NA_PENEIRA}). Candidato sem evidência não entra.
+certeza, até {MAX_EVIDENCIAS_NA_PENEIRA}). Candidato com menos de {MIN_EVIDENCIAS_NA_PENEIRA} \
+frentes não entra.
 - Se nenhum objeto se repete, devolva a lista vazia.
 
 Responda só JSON:
@@ -74,8 +85,9 @@ Responda só JSON:
 # candidatos passavam só por repetir o nome de um serviço, cada frente com uma queixa sem
 # relação com a outra, e a lista de 40 saía quase toda do fundo. A leitura (`problemas._passou`)
 # usa "objetos", "mesmo_objeto" e "mesmo_assunto" (false reprova; ausente não); "queixa" só
-# serve para a LLM escrever a queixa antes de decidir. PROVISÓRIO: a exigência do mesmo assunto
-# será revista na segunda rodada de calibração.
+# serve para a LLM escrever a queixa antes de decidir. A segunda rodada (#109) manteve a
+# exigência: problema é "o assunto concreto e específico de que várias frentes tratam"
+# (CONTEXT.md), e a spec 05 passou a dizer que a peneira confere o objeto e o assunto.
 FORMATO_PENEIRA = (
     '{"objetos": [{"frente": 1, "objeto": "<o objeto que a frente cita>", '
     '"queixa": "<a dor ou o pedido da frente, em poucas palavras>"}], '
@@ -119,7 +131,8 @@ Regras:
 - Dois candidatos são do mesmo problema só se nomeiam o mesmo objeto. O mesmo sintoma em outro \
 sistema é outro problema.
 - "descricao": "Frentes que citam <o objeto e seus apelidos, inclusive rota ou serviço dos \
-alertas>: <as falhas e os pedidos>. Não vale para o mesmo sintoma em outro sistema."
+alertas>: <as falhas e os pedidos>. Não vale para o mesmo sintoma em outro sistema." Até 400 \
+caracteres: resuma as falhas, não liste todas.
 - "candidatos": os números dos candidatos que o problema junta. Todo candidato entra em um \
 problema só.
 {vigentes}
