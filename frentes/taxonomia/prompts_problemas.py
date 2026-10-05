@@ -72,8 +72,10 @@ Responda só JSON:
 
 # "queixa" e "mesmo_assunto" entraram com a seed inteira (#65): com 12 lotes, 282 de 362
 # candidatos passavam só por repetir o nome de um serviço, cada frente com uma queixa sem
-# relação com a outra, e a lista de 40 saía quase toda do fundo. A leitura só usa "objetos" e
-# "mesmo_objeto".
+# relação com a outra, e a lista de 40 saía quase toda do fundo. A leitura (`problemas._passou`)
+# usa "objetos", "mesmo_objeto" e "mesmo_assunto" (false reprova; ausente não); "queixa" só
+# serve para a LLM escrever a queixa antes de decidir. PROVISÓRIO: a exigência do mesmo assunto
+# será revista na segunda rodada de calibração.
 FORMATO_PENEIRA = (
     '{"objetos": [{"frente": 1, "objeto": "<o objeto que a frente cita>", '
     '"queixa": "<a dor ou o pedido da frente, em poucas palavras>"}], '

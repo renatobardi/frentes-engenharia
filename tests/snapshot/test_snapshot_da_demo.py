@@ -1,6 +1,7 @@
 """O snapshot versionado em `data/snapshot/frentes.sqlite.gz` (#65): o que ele tem de trazer
 para a demo subir dele. Não chama modelo: só carrega o arquivo e lê."""
 
+import json
 from contextlib import closing
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -14,6 +15,7 @@ from frentes.web.app import criar_app
 
 # o arquivo de verdade: nos testes o `arquivo.CAMINHO_PADRAO` aponta para um que não existe
 SNAPSHOT = config.RAIZ / "data" / "snapshot" / "frentes.sqlite.gz"
+RAJADA = config.RAIZ / "seed" / "gerado" / "rajada.jsonl"
 AGORA = datetime(2026, 11, 20, 15, 0, tzinfo=UTC)
 FRENTES = 6000
 LIMITE_MB = 50
@@ -71,7 +73,17 @@ def test_ha_paineis_prontos_nas_duas_versoes_e_o_enderecamento_da_h3(banco: Path
 
 def test_nao_leva_gabarito_nem_rajada(banco: Path) -> None:
     assert _um(banco, "SELECT count(*) FROM gabarito") == 0
-    assert _um(banco, "SELECT count(*) FROM frente WHERE metadados LIKE '%\"rajada\"%'") == 0
+    # a rajada chega pelo webhook com `ref_externa` "rajada-NN-…" e os textos do rajada.jsonl
+    assert _um(banco, "SELECT count(*) FROM frente WHERE ref_externa LIKE 'rajada%'") == 0
+    linhas = RAJADA.read_text(encoding="utf-8").splitlines()
+    textos = [json.loads(linha)["texto"] for linha in linhas if linha.strip()]
+    assert len(textos) >= 20
+    with closing(store.abrir_existente(banco)) as con:
+        marcas = ", ".join("?" * len(textos))
+        achadas = con.execute(
+            f"SELECT count(*) FROM frente WHERE texto IN ({marcas})", textos
+        ).fetchone()[0]
+    assert achadas == 0
 
 
 def test_o_dia_d_vira_ontem_e_nenhuma_frente_fica_no_futuro(banco: Path) -> None:
