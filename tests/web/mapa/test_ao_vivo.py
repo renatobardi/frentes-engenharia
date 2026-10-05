@@ -491,7 +491,7 @@ def test_painel_aberto_atualizando_vem_de_novo_com_a_marca_e_continua_no_polling
     resposta = _poll(http, polling, cabecalhos).text
 
     assert 'id="painel"' in resposta and 'hx-swap-oob="true"' in resposta
-    assert '<span class="atualizando">atualizando</span>' in resposta
+    assert 'class="atualizando badge badge-gate"' in resposta
     assert "atualizando=1" in _polling(resposta)  # segue pedindo até o painel ficar atual
     assert (
         'class="grade" role="table"' not in resposta
