@@ -18,7 +18,9 @@ Vale o processo de [R11], que substitui o de [R9].
 
 1. **Candidatos por lote**: uma chamada por lote, com as frentes de evidência de cada candidato.
 2. **Peneira**: uma chamada **por candidato**, que lê até 8 frentes de evidência, lista o objeto que cada frente cita e responde se é o mesmo. Na dúvida, não passa.
-3. **Consolidação**: uma chamada junta os candidatos do mesmo objeto entre lotes e escreve a descrição ancorada no objeto (redação em [02](02-taxonomia-e-versoes.md)).
+   - **Mesmo objeto e mesmo assunto.** A peneira escreve também a queixa de cada frente e só aprova se as queixas são do mesmo assunto (a mesma dor, o mesmo pedido ou faces do mesmo defeito ou da mesma necessidade do objeto). O nome de um serviço que se repete com queixas sem relação não é problema. [C65] [C109]
+   - **Só lê candidato com 3 ou mais frentes de evidência no lote.** Com menos, o candidato não chega à peneira. [C109]
+3. **Consolidação**: uma chamada junta os candidatos do mesmo objeto entre lotes e escreve a descrição ancorada no objeto (redação em [02](02-taxonomia-e-versoes.md)). O código garante que a descrição termina em "Não vale para o mesmo sintoma em outro sistema." e cabe no teto: se não cabe, encolhe a lista de falhas, nunca a cláusula. [C109]
 4. **Regra em código**: na v1, o problema precisa aparecer em **2 ou mais lotes**, com **3 ou mais** frentes de evidência. Na revisão, os vigentes ficam (mesmo nome, descrição e chave) e o novo precisa de **5 ou mais** frentes de evidência. Teto de 40.
 
 Medido: [R11]
@@ -27,6 +29,12 @@ Medido: [R11]
 - Se a peneira falha, o bloco "Problemas recorrentes" fica dominado pelo fundo (290 de 405 frentes com problema).
 - A lista ainda varia entre rodadas. A v1 é congelada no snapshot, então a construção pode gerar a lista mais de uma vez até a conferência passar.
 - Custo da lista: ~US$0,012 por rodada de 4 lotes; 80 a 140 s por chamada de candidatos.
+
+Medido com a seed inteira (12 lotes): [C65] [C109]
+
+- Só com "mesmo objeto", 282 de 362 candidatos passaram na peneira e a lista saiu com 40 problemas, cerca de 35 do fundo: cada serviço da ficha aparece em média 9 vezes nos meses 1–6 (máximo 25, o teto por item) e se repete dentro do mesmo lote.
+- Com "mesmo assunto" e candidato de 2 frentes, 70 de 362 passaram e a lista saiu com 13 problemas, 9 a 11 do fundo. Nos 12 lotes há 573 pares item × lote com 2 ou mais frentes do mesmo item do fundo, e 165 com 3 ou mais.
+- 13 dos 14 problemas saíram sem a cláusula "Não vale…", com descrições de 125 a 410 caracteres.
 
 ## Atribuição pelo Jev
 
@@ -72,7 +80,10 @@ A descoberta com os ~12 lotes; a seed corrigida gerada de novo; o assistente de 
 - **Como a lista sai.** [R9]: uma chamada de candidatos, uma de peneira para todos, 3 evidências. [R11]: peneira com uma chamada por candidato lendo as evidências, 2+ lotes na v1, 5+ evidências na revisão. Vale [R11].
 - **Alvo de aceite.** [R8]: cobertura ≥ 70% de H1 a H6, falso positivo ≤ 10% (sem medição). Não passou; vale a tabela de [R11], de H1 a H5.
 - **Custo.** [R8] estimou ~1,5 mil tokens a mais com 40 problemas; [R11] mediu ~3,6 mil.
+- **Peneira.** [R11] e o glossário diziam só "mesmo objeto". Com a seed inteira isso não separa problema de serviço do fundo; [C65] acrescentou "mesmo assunto" e [C109] o manteve, com o mínimo de 3 frentes por candidato. A regra em código da lista (2 ou mais lotes, 3 ou mais evidências, teto de 40) não mudou.
 
+[C65]: https://github.com/renatobardi/frentes-engenharia/issues/65 "Gerar o snapshot da demo com a seed inteira"
+[C109]: https://github.com/renatobardi/frentes-engenharia/issues/109 "Segunda rodada de calibração da seed"
 [R2]: https://github.com/renatobardi/frentes-engenharia/issues/2#issuecomment-5963209961 "Métrica de onde investir e eixos do mapa de calor"
 [R3]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963699217 "Taxonomia das frentes"
 [R3a]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963730296 "Taxonomia das frentes: adendo das facetas secundárias"

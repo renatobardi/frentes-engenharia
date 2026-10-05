@@ -28,7 +28,10 @@ Fonte: [R7].
 - **Intensidade** (janela de 90 dias): Top 1 de cada visão entre **6 e 10×** a mediana das células; demais histórias entre **2,5 e 6×**. Medido no roteiro do protótipo: H1 7,4× ↑51%, H4 7,0× ↑32%, H2 4,4× estável, H5 4,3× ↑118%. [R7]
 - Cada história usa 2 ou 3 origens que façam sentido. H1 e H6 reativas levam `episodio_id`. [R7]
 - **H1**: os templates de log e webhook da esteira de propostas citam o objeto (proposta), não só o serviço de infra. [R11]
+- **H1, um sintoma só**: os quatro sintomas dizem que a esteira cai ou fica lenta, e o webhook cita também o serviço de infra, como o log. Com "propostas travadas" e "falta de capacidade" a história se dividia em dois tipos, e o webhook sem o serviço ia para a área de quem usa a esteira. [C109]
 - **H5**: log e webhook são sempre do time App; o template diz "assistente virtual do app". [R13]
+- **H5, resposta e efeito**: cada sintoma traz a resposta errada do assistente e o efeito no atendimento. Só "informou taxa errada" lia como dado errado de um sistema qualquer, e o tema novo não aparecia como encaixe fraco. [C109]
+- **H4, um assunto**: os três pedidos (simulação, status e comissão) dizem o assunto comum no texto: o lojista se atender sozinho no portal do lojista. [C109]
 - **H3** traz o endereçamento plantado (ver [07](07-enderecamento.md)). [R19]
 
 ## Distribuição
@@ -47,6 +50,7 @@ Fonte: [R7].
 - **Templates por tema**: cada tema tem os seus sintomas. Os serviços têm nome de domínio, não o slug do time. [R13]
 - **O fundo só tem espécie de queixa**: nenhum cenário nomeia um objeto único da empresa. "Bureau de crédito fora do SLA" vira "fornecedor fora do SLA" com o fornecedor do time; "relatório ao regulador" e "pedido de titular LGPD" viram queixas de prazo regulatório com o objeto da ficha. [R13]
 - "Banco compartilhado entre times" e "acoplamento entre serviços" também carregam o objeto da ficha do time. [R11]
+- O sintoma de processo manual não repete "planilha paralela": a expressão aparecia em 144 frentes do fundo e virou o maior problema da lista. [C109]
 - **Teto por item**, conferido no roteiro: nenhum objeto, serviço ou fornecedor do fundo passa de **metade da menor história nos meses 1–6** (hoje 23 frentes), por semestre. Estourou: o roteiro sorteia outro time (medido: 4 frentes em 6 mil). [R13]
 - **Alcance** da regra da ficha: o fundo, a segurança transversal e os pedidos espalhados do assistente de IA. As histórias de time fixo não mudam. [R13]
 
@@ -82,7 +86,7 @@ Pastas de [R23]; conteúdo de [R7], [R13], [R19] e [R24].
 | `seed/enderecamentos.json` | o endereçamento plantado da H3 |
 | `seed/gerado/frentes.jsonl` | frentes brutas no formato único |
 | `seed/gerado/gabarito.jsonl` | o gabarito, por `id` |
-| `seed/gerado/rajada.jsonl` | ~20 frentes de webhook sobre a H1, fora do volume da seed |
+| `seed/gerado/rajada.jsonl` | ~20 frentes de webhook sobre a H1, fora do volume da seed. Citam um serviço do time dos webhooks da H1, para caírem na célula dela [C109] |
 
 A seed entrega **só dados brutos e gabarito**. A classificação é saída do pipeline. [R7]
 
@@ -117,6 +121,7 @@ Cortes iniciais, a recalibrar com a seed inteira classificada. Os cortes por his
 - **Recorrência na seed.** [R7]: `episodio_id` para medir; [R8]: `episodio_id` não é usado.
 - **Custo do Jev.** [R7] estimou ~US$0,15 por versão; vale [R11] (ver [02](02-taxonomia-e-versoes.md)).
 
+[C109]: https://github.com/renatobardi/frentes-engenharia/issues/109 "Segunda rodada de calibração da seed"
 [R2]: https://github.com/renatobardi/frentes-engenharia/issues/2#issuecomment-5963209961 "Métrica de onde investir e eixos do mapa de calor"
 [R3]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963699217 "Taxonomia das frentes"
 [R3a]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963730296 "Taxonomia das frentes: adendo das facetas secundárias"

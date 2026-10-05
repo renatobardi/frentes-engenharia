@@ -14,6 +14,7 @@ Como a LLM gera a primeira versão da taxonomia e como a revisa. A lista de prob
 - **Por lote**: proposta da LLM, com as regras repetidas depois da amostra e um exemplo reativo e um proativo por tipo → validação em código → pedido de correção só do que falhou, até 2 vezes. [R9]
 - **Validação em código**: tetos (ver [02](02-taxonomia-e-versoes.md)), nome genérico, nome de área, time ou produto, tipo só de melhoria. [R9]
 - **Consolidação**: uma chamada junta as propostas dos lotes, com a mesma validação. [R9]
+- **Lote que não fica válido** depois das 2 correções sai da consolidação, e os outros seguem. Com menos da metade dos lotes válida, a descoberta encerra sem versão. Quantos e quais lotes saíram, e por quê, fica gravado no `resumo` da geração. [C65] [C109]
 - **Saída**: tipo › subtipo, causas raiz, as duas réguas (4 níveis cada), o critério de urgência e a lista de problemas, cada valor com a descrição que vira `criteria` do Jev. [R9]
 - **A v1 é gerada uma vez e congelada** no snapshot. A descoberta não é determinística nem com temperatura 0. [R9]
 - Medido: com 3 lotes, saiu válida na primeira tentativa (7 tipos, 30 subtipos, 8 causas). **Não testado**: 12 lotes, e a consolidada no Jev (há subtipos que se sobrepõem entre tipos). [R9]
@@ -83,6 +84,8 @@ Depois de classificar a seed inteira. Se falhar, muda a seed ou o prompt, não o
 - **A H5 força a revisão por "Nenhum destes".** Era a premissa de [R7]; [R9] mediu que não: quem a denuncia é o encaixe fraco.
 - **Lista de problemas.** O passo descrito em [R9] (duas chamadas, 3 evidências) foi substituído pelo de [R11].
 
+[C65]: https://github.com/renatobardi/frentes-engenharia/issues/65 "Gerar o snapshot da demo com a seed inteira"
+[C109]: https://github.com/renatobardi/frentes-engenharia/issues/109 "Segunda rodada de calibração da seed"
 [R2]: https://github.com/renatobardi/frentes-engenharia/issues/2#issuecomment-5963209961 "Métrica de onde investir e eixos do mapa de calor"
 [R3]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963699217 "Taxonomia das frentes"
 [R3a]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963730296 "Taxonomia das frentes: adendo das facetas secundárias"
