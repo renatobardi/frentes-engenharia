@@ -234,12 +234,13 @@ def test_os_sintomas_da_h1_dizem_que_a_esteira_cai_ou_fica_lenta() -> None:
             assert "{svc}" in texto and "esteira de propostas" in texto
 
 
-def test_os_sintomas_da_h5_trazem_a_resposta_e_o_efeito_no_atendimento() -> None:
+def test_os_sintomas_da_h5_dizem_que_quem_responde_e_uma_ia() -> None:
     """Medido no primeiro snapshot (#109): "informou taxa errada" lia como dado errado de um
     sistema qualquer (confiança 1,00 no tipo) e o tema novo não aparecia como encaixe fraco."""
     for resumo, log, _ in HISTORIAS["H5"]:
         for texto in (resumo, log):
-            assert "assistente virtual do app" in texto and "atendimento" in texto
+            assert "assistente virtual do app" in texto
+            assert re.search(r"\bIA\b|inteligência artificial", texto), texto
 
 
 def test_nenhum_sintoma_do_fundo_repete_a_planilha_paralela() -> None:

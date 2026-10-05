@@ -420,29 +420,27 @@ HISTORIAS: dict[str, tuple[Sintoma, ...]] = {
             "{n} boletos reemitidos com o mesmo valor errado",
         ),
     ),
-    # Cada sintoma traz a resposta do assistente e o efeito no atendimento: só "informou taxa
-    # errada" lia como dado errado de um sistema qualquer, e o tema novo não aparecia como
-    # encaixe fraco (#109).
+    # Os três dizem que quem responde é uma IA e descrevem o comportamento dela. "Informou taxa
+    # errada" e "inventou uma resposta" liam como dado errado de um sistema qualquer, e o tema
+    # novo não aparecia como encaixe fraco (#109).
     "H5": (
         (
-            "assistente virtual do app respondeu ao cliente com taxa errada e a equipe de "
-            "atendimento ficou sobrecarregada com as correções",
-            "assistente virtual do app: {n} respostas com taxa errada; fila de correção no "
-            "atendimento ({svc})",
+            "assistente virtual do app, que responde por IA, garantiu ao cliente uma taxa que a "
+            "casa não pratica",
+            "assistente virtual do app: resposta de IA garantiu taxa que a casa não pratica em "
+            "{n} conversas ({svc})",
             "",
         ),
         (
-            "assistente virtual do app respondeu ao cliente com informação inventada e a equipe "
-            "de atendimento ficou sobrecarregada com as reclamações",
-            "assistente virtual do app: {n} respostas inventadas; fila de reclamações no "
-            "atendimento ({svc})",
+            "assistente virtual do app, que responde por IA, respondeu ao cliente o que não sabia",
+            "assistente virtual do app: resposta de IA sem fonte em {n} conversas ({svc})",
             "",
         ),
         (
-            "assistente virtual do app deixou de responder e a equipe de atendimento ficou "
-            "sobrecarregada com as conversas repassadas",
-            "assistente virtual do app: {n} conversas ({pct}%) repassadas; fila no atendimento "
-            "({svc})",
+            "cliente reclama da inteligência artificial do assistente virtual do app: não "
+            "resolve e manda falar com atendente",
+            "assistente virtual do app: {n} reclamações sobre a inteligência artificial; {pct}% "
+            "das conversas mandadas a atendentes ({svc})",
             "",
         ),
     ),

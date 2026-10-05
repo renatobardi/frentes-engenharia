@@ -66,10 +66,17 @@ FORMATO = """{"tipos": [{"nome": "", "descricao": "", \
  "regua_impacto": ["critério do nível 0", "nível 1", "nível 2", "nível 3"],
  "criterio_urgencia": ""}"""
 
+# O primeiro caso de "só de melhoria" entrou na segunda rodada (#109): a consolidação propôs
+# "Processo e Automação", a conferência recusou pela palavra do nome, e a correção apagou o tipo
+# inteiro. A v1 saiu sem lugar para processo manual, e a revisão gastou a amostra com isso.
 COMO_CORRIGIR = """Como corrigir:
-- "só de melhoria": apague o tipo e distribua os subtipos dele pelos tipos do seu ASSUNTO \
-(crie um tipo de assunto se faltar), reescrevendo as descrições para valerem para o problema \
-e para a melhoria. Se o problema cita uma palavra do nome ou da descrição, ela tem de sair.
+- "só de melhoria" por causa de UMA PALAVRA do nome ou da primeira frase (a palavra vem citada \
+no problema): o assunto do tipo continua valendo. MANTENHA o tipo e os subtipos dele e troque \
+só o nome ou a frase, dizendo o assunto sem a palavra citada (ex.: "Processo e Automação" vira \
+"Processo Manual e Retrabalho"). Não apague o tipo.
+- "só de melhoria" quando o tipo inteiro é uma lista de pedidos, sem assunto próprio: apague o \
+tipo e distribua os subtipos dele pelos tipos do seu ASSUNTO (crie um tipo de assunto se \
+faltar), reescrevendo as descrições para valerem para o problema e para a melhoria.
 - "nome de área, time ou produto": troque o nome por outro, da espécie do problema, SEM a \
 palavra citada entre parênteses.
 - "genérico": dê um nome que diga a espécie da frente.
