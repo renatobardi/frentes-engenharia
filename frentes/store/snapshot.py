@@ -195,7 +195,9 @@ def deslocar_arquivo(arquivo: Path, ontem: date, carregado_em: str) -> int:
             except BaseException:
                 con.execute("ROLLBACK")
                 raise
-            con.execute("PRAGMA journal_mode = DELETE")
+            # O arquivo compactado é portátil (DELETE); o banco da aplicação usa WAL.
+            # A conexão fecha antes da troca do arquivo, consolidando o WAL temporário.
+            con.execute("PRAGMA journal_mode = WAL")
     except (sqlite3.Error, ValueError) as erro:
         motivo = motivos[0] if motivos else erro
         raise SnapshotInvalido(f"o snapshot não carrega: {motivo}") from erro

@@ -8,6 +8,8 @@ from pathlib import Path
 
 ESQUEMA = Path(__file__).with_name("schema.sql")
 EM_MEMORIA = ":memory:"
+# As operações do store são curtas; escritas concorrentes esperam até cinco segundos.
+ESPERA_BLOQUEIO_MS = 5_000
 
 Conexao = sqlite3.Connection
 ErroDeIntegridade = sqlite3.IntegrityError
@@ -27,11 +29,14 @@ def abrir_existente(caminho: Path | str) -> Conexao:
         con = sqlite3.connect(f"{Path(caminho).resolve().as_uri()}?mode=rw", uri=True)
     except sqlite3.OperationalError:
         raise BancoAusente(f"não há banco em {caminho}") from None
-    con.row_factory = sqlite3.Row
-    con.execute("PRAGMA foreign_keys = ON")
-    if not tabelas(con):
+    try:
+        con.row_factory = sqlite3.Row
+        if not tabelas(con):
+            raise BancoAusente(f"o banco em {caminho} não tem o esquema")
+        _configurar(con)
+    except BaseException:
         con.close()
-        raise BancoAusente(f"o banco em {caminho} não tem o esquema")
+        raise
     return con
 
 
@@ -44,12 +49,22 @@ def abrir(caminho: Path | str = EM_MEMORIA) -> Conexao:
     if str(caminho) != EM_MEMORIA:
         Path(caminho).parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(caminho)
+    try:
+        _configurar(con)
+        if not tabelas(con):
+            criar_esquema(con)
+    except BaseException:
+        con.close()
+        raise
+    return con
+
+
+def _configurar(con: Conexao) -> None:
+    """A mesma política em toda conexão da aplicação, inclusive bancos de snapshot."""
     con.row_factory = sqlite3.Row
+    con.execute(f"PRAGMA busy_timeout = {ESPERA_BLOQUEIO_MS}")
     con.execute("PRAGMA foreign_keys = ON")
     con.execute("PRAGMA journal_mode = WAL")
-    if not tabelas(con):
-        criar_esquema(con)
-    return con
 
 
 def criar_esquema(con: Conexao) -> None:
