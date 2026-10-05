@@ -105,3 +105,41 @@ def test_a_aplicacao_sobe_dele_e_o_healthz_devolve_a_versao_vigente_e_o_dia(
     assert saude["dia_snapshot"] == _um(banco, "SELECT dia_d FROM snapshot_meta")
     mapa = cliente.get("/")
     assert mapa.status_code == 200 and "Top 3" in mapa.text
+
+
+def test_as_datas_do_pipeline_ficam_no_dia_d_ou_antes(banco: Path) -> None:
+    """No primeiro snapshot (#109) a descoberta, a revisão, as classificações e os painéis
+    tinham a data do dia seguinte ao dia D, e a tela mostrava a revisão num horário futuro."""
+    fim = f"{(AGORA - timedelta(days=1)).date().isoformat()}T23:59:59Z"
+    for tabela, coluna in (
+        ("geracao", "disparada_em"),
+        ("versao_taxonomia", "criada_em"),
+        ("versao_taxonomia", "ativada_em"),
+        ("classificacao", "classificada_em"),
+        ("painel_celula", "gerado_em"),
+        ("enderecamento", "decidido_em"),
+    ):
+        depois = _um(banco, f"SELECT count(*) FROM {tabela} WHERE {coluna} > '{fim}'")
+        assert depois == 0, (tabela, coluna)
+
+
+def test_a_v2_tem_um_tipo_novo_criado_pela_revisao(banco: Path) -> None:
+    """O passo 6 do roteiro: a v2 com a coluna nova. No primeiro snapshot (#109) a revisão
+    propôs 3 tipos e o código descartou os 3."""
+    novos = _um(
+        banco,
+        "SELECT count(*) FROM valor WHERE versao = 2 AND dimensao = 'tipo' AND chave_pai IS NULL"
+        " AND chave NOT IN (SELECT chave FROM valor WHERE versao = 1 AND dimensao = 'tipo')",
+    )
+    assert novos >= 1
+    operacoes = json.loads(_um(banco, "SELECT operacoes FROM geracao WHERE tipo = 'revisao'"))
+    assert any(o["tipo"] == "criar_tipo" and o["aplicada"] for o in operacoes)
+
+
+def test_todo_problema_termina_na_clausula_do_objeto(banco: Path) -> None:
+    sem = _um(
+        banco,
+        "SELECT count(*) FROM valor WHERE dimensao = 'problema' AND descricao NOT LIKE"
+        " '%Não vale para o mesmo sintoma em outro sistema.'",
+    )
+    assert sem == 0
