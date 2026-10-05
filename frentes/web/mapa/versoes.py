@@ -12,6 +12,7 @@ from frentes.contratos import Dimensao, Geracao, TipoGeracao
 from frentes.store import geracao as store_geracao
 from frentes.store import historico as store_historico
 from frentes.store import versao as store_versao
+from frentes.taxonomia.resumo import resumir_operacoes
 from frentes.web.taxonomia import montagem as taxonomia
 
 
@@ -97,6 +98,10 @@ def da_versao(con: store.Conexao, versao: int, corte: SinalDeEncaixe) -> DaVersa
             base = _tipos(con, g.versao_base)
             novos = {c: n for c, n in _tipos(con, versao).items() if c not in base}
             criada = Criada(
-                versao, _data(g), g.resumo or "", list(novos.values()), f"/taxonomia?geracao={g.id}"
+                versao,
+                _data(g),
+                resumir_operacoes(g.operacoes),
+                list(novos.values()),
+                f"/taxonomia?geracao={g.id}",
             )
     return DaVersao(anterior, criada, frozenset(novos))

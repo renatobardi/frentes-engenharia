@@ -25,10 +25,16 @@
 
     <p class="meta">{{ d.titulo }} de {{ d.quando }}{% if d.gatilho %}, disparada por {{ d.gatilho }}{% endif %}: <strong>{{ d.situacao }}</strong>.</p>
 
+    {% if d.resumo %}
+    <blockquote class="frase">{{ d.resumo }}</blockquote>
+    {% endif %}
     {% if d.geracao.resumo %}
-    <blockquote class="frase">
+    {% if d.geracao.tipo.value == "revisao" %}<details class="texto-bruto">
+      <summary>Texto bruto da geração (não é o resumo das operações)</summary>{% endif %}
+    <blockquote class="{{ 'frase-bruta' if d.geracao.tipo.value == 'revisao' else 'frase' }}">
       {% if d.geracao.resultado and d.geracao.resultado.value == "recusada" %}<span class="suave">Motivo da recusa:</span> {% endif %}{{ d.geracao.resumo }}
     </blockquote>
+    {% if d.geracao.tipo.value == "revisao" %}</details>{% endif %}
     {% endif %}
 
     {% if d.geracao.resultado and d.geracao.resultado.value == "sem_mudanca" %}

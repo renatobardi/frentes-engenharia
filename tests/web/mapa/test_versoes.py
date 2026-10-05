@@ -108,8 +108,9 @@ def test_na_v2_a_coluna_criada_leva_a_marca_nova_e_a_faixa_diz_o_que_a_revisao_c
     assert 'Fornecedor <span class="nova">nova</span>' in html
     assert "Versão 2, criada pela revisão de 14/09/2026" in html
     assert "Coluna nova: Fornecedor." in html
-    # o resumo é dado da LLM: escapado
-    assert "&lt;b&gt;muitas&lt;/b&gt;" in html and "<b>muitas</b>" not in html
+    # A frase bruta da LLM não decide o resumo, mesmo numa geração antiga sem operações.
+    assert "Nenhuma operação gravada." in html
+    assert "muitas" not in html
     assert "anterior à revisão" not in html
 
 
