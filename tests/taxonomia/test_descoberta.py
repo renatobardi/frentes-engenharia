@@ -295,6 +295,11 @@ def test_lote_que_nao_fica_valido_sai_da_consolidacao_e_os_outros_seguem(con) ->
     assert feito.versao.documento.criterio_urgencia == "Consolidada?"
     (descartado,) = feito.lotes_descartados
     assert "lote 2" in descartado and "tipo_so_de_melhoria" in descartado
+    # quantos e quais lotes saíram fica gravado na geração (#109), não só na saída do comando
+    resumo = feito.geracao.resumo
+    assert resumo is not None and resumo.startswith("1 de 3 lotes ficaram fora da consolidação")
+    assert "lote 2" in resumo and "tipo_so_de_melhoria" in resumo
+    assert con.execute("SELECT resumo FROM geracao").fetchone()[0] == resumo
     consolidacao = next(e for _, e in llm.chamadas if "PROPOSTA DO LOTE" in e)
     assert consolidacao.count("PROPOSTA DO LOTE") == 2
 
@@ -383,15 +388,16 @@ def test_resposta_llm_sem_gravacao_falha_dizendo_o_que_faltou(con) -> None:
 
 
 def _com_a_lista_de_problemas(con, candidatos_de_b=None, juncao=None, **opcoes):
-    """4 frentes em 2 lotes (f0, f2 e f1, f3); o mesmo objeto nos dois, com 4 evidências."""
-    lidas = frentes(4)
-    a, b = lotes(lidas, 2)
+    """6 frentes em 2 lotes (f0, f2, f4 e f1, f3, f5); o mesmo objeto nos dois, com 6
+    evidências (a peneira só lê candidato com 3 ou mais frentes no lote)."""
+    lidas = frentes(6)
+    a, b = lotes(lidas, 3)
     gravacoes: dict = {}
     for grupo in (a, b):
         gravar_lote(gravacoes, grupo, proposta())
     gravar_consolidacao(gravacoes, [proposta()] * 2, proposta())
-    gravar_candidatos(gravacoes, a, candidato("Gravame", 1, 2))
-    gravar_candidatos(gravacoes, b, *(candidatos_de_b or [candidato("Gravame", 1, 2)]))
+    gravar_candidatos(gravacoes, a, candidato("Gravame", 1, 2, 3))
+    gravar_candidatos(gravacoes, b, *(candidatos_de_b or [candidato("Gravame", 1, 2, 3)]))
     descricao = candidato("Gravame")["descricao"]
     gravar_peneira(gravacoes, "Gravame", descricao, a)
     gravar_peneira(gravacoes, "Gravame", descricao, b)
@@ -401,14 +407,19 @@ def _com_a_lista_de_problemas(con, candidatos_de_b=None, juncao=None, **opcoes):
         juncao or {"problemas": [{"nome": "Gravame", "descricao": "d", "candidatos": [1, 2]}]},
     )
     llm = LlmFalsa(gravacoes)
-    return llm, rodar(con, llm, lidas=lidas, tamanho_do_lote=2, **opcoes)
+    return llm, rodar(con, llm, lidas=lidas, tamanho_do_lote=3, **opcoes)
 
 
 def test_a_versao_1_traz_a_lista_de_problemas(con) -> None:
     llm, feito = _com_a_lista_de_problemas(con)
 
     assert feito.versao is not None
-    assert feito.versao.documento.problemas == (ValorDoDocumento("gravame", "Gravame", "d"),)
+    assert feito.versao.documento.problemas == (
+        ValorDoDocumento(
+            "gravame", "Gravame", "d. Não vale para o mesmo sintoma em outro sistema."
+        ),
+    )
+    assert feito.geracao.resumo is None  # nenhum lote saiu da consolidação: nada a dizer
     assert (feito.candidatos, feito.aprovados, feito.problemas) == (2, 2, 1)
     # 2 lotes + consolidação da taxonomia, 2 candidatos, 2 peneiras, 1 junção
     assert len(llm.chamadas) == 3 + 2 + 2 + 1 == feito.chamadas
@@ -419,13 +430,13 @@ def test_a_versao_1_traz_a_lista_de_problemas(con) -> None:
 
 
 def test_problema_de_um_lote_so_nao_entra_na_versao_1(con) -> None:
-    lidas = frentes(4)
-    a, b = lotes(lidas, 2)
+    lidas = frentes(6)
+    a, b = lotes(lidas, 3)
     gravacoes: dict = {}
     for grupo in (a, b):
         gravar_lote(gravacoes, grupo, proposta())
     gravar_consolidacao(gravacoes, [proposta()] * 2, proposta())
-    gravar_candidatos(gravacoes, a, candidato("Gravame", 1, 2))  # 2 evidências, 1 lote
+    gravar_candidatos(gravacoes, a, candidato("Gravame", 1, 2, 3))  # 3 evidências, 1 lote
     descricao = candidato("Gravame")["descricao"]
     gravar_peneira(gravacoes, "Gravame", descricao, a)
     gravar_juncao(
@@ -434,7 +445,7 @@ def test_problema_de_um_lote_so_nao_entra_na_versao_1(con) -> None:
         {"problemas": [{"nome": "Gravame", "descricao": "d", "candidatos": [1]}]},
     )
 
-    feito = rodar(con, LlmFalsa(gravacoes), lidas=lidas, tamanho_do_lote=2)
+    feito = rodar(con, LlmFalsa(gravacoes), lidas=lidas, tamanho_do_lote=3)
 
     assert feito.versao is not None and feito.versao.documento.problemas == ()
 
@@ -467,3 +478,16 @@ def test_llm_fora_do_ar_nos_candidatos_recusa_com_o_motivo(con) -> None:
     feito = rodar(con, LlmFalsa(gravacoes), lidas=lidas)
 
     assert feito.versao is None and feito.motivo.startswith("LLM: ") and "HTTP 503" in feito.motivo
+
+
+def test_a_correcao_de_tipo_so_de_melhoria_por_uma_palavra_manda_trocar_o_nome() -> None:
+    """Medido na segunda rodada (#109): a consolidação propôs "Processo e Automação", a
+    conferência recusou pela palavra do nome e a correção, que mandava apagar o tipo, deixou a
+    v1 sem lugar para processo manual."""
+    _, entrada = prompts.correcao_sem_amostra(
+        {"tipos": []}, [Violacao("tipo_so_de_melhoria", "tipo 'Processo e Automação' ...")]
+    )
+    assert "MANTENHA o tipo e os subtipos dele e troque só o nome" in entrada
+    assert "Não apague o tipo." in entrada
+    # o caso antigo continua: tipo que é só uma lista de pedidos sai
+    assert "apague o tipo e distribua os subtipos" in entrada

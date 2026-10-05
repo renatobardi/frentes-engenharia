@@ -167,10 +167,15 @@ FORA = (
     "um teste do canal, para ignorar",
     "uma dúvida de RH ou administrativa (férias, benefício, folha, crachá)",
 )
+# Os três pedidos têm o mesmo assunto, dito no texto: o lojista se atender sozinho no portal.
+# Sem isso a lista de problemas lia três assuntos sem relação e o portal ficava fora dela (#109).
 PEDIDOS_H4 = (
-    "lojistas querem simular o financiamento direto no portal, sem ligar para ninguém",
-    "lojistas querem ver o status das propostas no portal, sem pedir por telefone",
-    "parceiros querem a comissão calculada e paga automaticamente, sem planilha",
+    "lojistas querem se atender sozinhos no portal do lojista: simular o financiamento ali, "
+    "sem ligar para ninguém",
+    "lojistas querem se atender sozinhos no portal do lojista: ver ali o status das propostas, "
+    "sem pedir por telefone",
+    "lojistas querem se atender sozinhos no portal do lojista: ver ali a comissão calculada e "
+    "paga automaticamente, sem planilha",
 )
 PEDIDOS_H6 = (
     "pede um pipeline de CI/CD automatizado para entregar sem passos manuais",

@@ -100,7 +100,7 @@ Sintoma ou prática que se repete em vários times e sistemas, como "code review
 _Avoid_: problema genérico, tema
 
 **Peneira**:
-O passo da geração da lista de problemas em que a LLM lê as frentes de evidência de um candidato por vez e só deixa passar o que cita o mesmo objeto em todas. É o que separa problema de espécie de queixa.
+O passo da geração da lista de problemas em que a LLM lê as frentes de evidência de um candidato por vez e só deixa passar o que cita o mesmo objeto em todas e trata do mesmo assunto. É o que separa problema de espécie de queixa, e de serviço que só se repete no nome.
 _Avoid_: filtro, validação
 
 **Problema recorrente**:

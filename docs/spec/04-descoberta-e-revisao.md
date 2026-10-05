@@ -13,7 +13,9 @@ Como a LLM gera a primeira versão da taxonomia e como a revisa. A lista de prob
 - **Entrada**: todas as frentes dos meses 1–6 (~2.800), em ~12 lotes de ~240, só `[origem] texto`, sem emissor. Antes de qualquer classificação. [R9]
 - **Por lote**: proposta da LLM, com as regras repetidas depois da amostra e um exemplo reativo e um proativo por tipo → validação em código → pedido de correção só do que falhou, até 2 vezes. [R9]
 - **Validação em código**: tetos (ver [02](02-taxonomia-e-versoes.md)), nome genérico, nome de área, time ou produto, tipo só de melhoria. [R9]
+- **Correção de "tipo só de melhoria"**: quando o motivo é uma palavra do nome ou da primeira frase, o pedido de correção manda trocar o nome e manter o tipo. Mandando apagar, a v1 saiu sem lugar para processo manual. [C109]
 - **Consolidação**: uma chamada junta as propostas dos lotes, com a mesma validação. [R9]
+- **Lote que não fica válido** depois das 2 correções sai da consolidação, e os outros seguem. Com menos da metade dos lotes válida, a descoberta encerra sem versão. Quantos e quais lotes saíram, e por quê, fica gravado no `resumo` da geração. [C65] [C109]
 - **Saída**: tipo › subtipo, causas raiz, as duas réguas (4 níveis cada), o critério de urgência e a lista de problemas, cada valor com a descrição que vira `criteria` do Jev. [R9]
 - **A v1 é gerada uma vez e congelada** no snapshot. A descoberta não é determinística nem com temperatura 0. [R9]
 - Medido: com 3 lotes, saiu válida na primeira tentativa (7 tipos, 30 subtipos, 8 causas). **Não testado**: 12 lotes, e a consolidada no Jev (há subtipos que se sobrepõem entre tipos). [R9]
@@ -36,6 +38,7 @@ Como a LLM gera a primeira versão da taxonomia e como a revisa. A lista de prob
 - "Texto vago" e o "Nenhum destes" da dimensão problema **não contam**. [R9] [R14]
 - Base medida: 9–10% nos meses 1–6; projeção para a seed inteira: 12% no mês 8, 15% no mês 12. [R9]
 - Os valores ficam em configuração e são **recalibrados quando a seed inteira for classificada na v1 definitiva**. [R9]
+- Medido com a seed inteira, em janela móvel de 30 dias, na v1 da segunda rodada: o encaixe fraco fica entre 10,8% e 18,3% nos meses 1–6 (mediana 14,7%) e entre 14,0% e 22,6% nos meses 7–12 (mediana 18,6%). Com 12% o sinal dispara em 145 das 152 janelas dos meses 1–6; com 19%, em nenhuma delas e em 67 das 183 dos meses 7–12. O valor em configuração continua 12%: trocar é decisão a tomar. [C109]
 - Com a ficha do time, o encaixe fraco do fundo na v1 subiu de 11 para 29 em 170 frentes, porque a v1 do protótipo foi descoberta no texto antigo. A descoberta definitiva lê o texto novo. [R13]
 - **Na demo, a revisão automática fica desligada** (`REVISAO_AUTOMATICA=0`): o gatilho existe no código (a varredura confere o sinal e a data da última revisão), mas dispararia uma revisão de verdade e mudaria o mapa ensaiado. A revisão roda por comando. [R23]
 
@@ -83,6 +86,8 @@ Depois de classificar a seed inteira. Se falhar, muda a seed ou o prompt, não o
 - **A H5 força a revisão por "Nenhum destes".** Era a premissa de [R7]; [R9] mediu que não: quem a denuncia é o encaixe fraco.
 - **Lista de problemas.** O passo descrito em [R9] (duas chamadas, 3 evidências) foi substituído pelo de [R11].
 
+[C65]: https://github.com/renatobardi/frentes-engenharia/issues/65 "Gerar o snapshot da demo com a seed inteira"
+[C109]: https://github.com/renatobardi/frentes-engenharia/issues/109 "Segunda rodada de calibração da seed"
 [R2]: https://github.com/renatobardi/frentes-engenharia/issues/2#issuecomment-5963209961 "Métrica de onde investir e eixos do mapa de calor"
 [R3]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963699217 "Taxonomia das frentes"
 [R3a]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963730296 "Taxonomia das frentes: adendo das facetas secundárias"
