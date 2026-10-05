@@ -588,7 +588,7 @@ def test_evolucao_tem_um_ponto_por_mes_e_a_origem_filtra_a_serie(com_painel: Pat
     so_log = http.get(f"/?{CELULA}&origem=log").text
 
     for html in (todas, so_log):
-        svg = html[html.index('<svg class="evolucao"') : html.index("</svg>")]
+        svg = html[html.index('<svg class="evolucao"') :].split("</svg>")[0]
         assert svg.count("<circle") == 12
         assert len(re.search(r'points="([^"]+)"', svg).group(1).split()) == 12  # type: ignore[union-attr]
     # a série segue o filtro: o log não tem frente de Plataforma × Incidente

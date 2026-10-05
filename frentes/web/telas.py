@@ -13,6 +13,7 @@ o menu) e preenchem os blocos `titulo` e `conteudo`.
 
 from pathlib import Path
 from types import ModuleType
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -21,18 +22,21 @@ from jinja2 import ChoiceLoader, Environment, FileSystemLoader, select_autoescap
 
 import frentes.web
 from frentes import descoberta
+from frentes.store import shell
 
 PASTA = Path(__file__).parent
 TEMPLATES = PASTA / "templates"
 ESTATICOS = PASTA / "static"
 
-# O menu do topo (10-telas). O botão "Relatar uma frente" é o destaque e vem à parte.
+# O menu da barra lateral (10-telas). O botão "Relatar uma frente" é o destaque e vem à parte.
 MENU = (
     ("Mapa de calor", "/"),
     ("Frentes", "/frentes"),
     ("Taxonomia", "/taxonomia"),
 )
 RELATAR = ("Relatar uma frente", "/frentes/relatar")
+# O ícone (de `_icones.html`) de cada item do menu, pelo destino.
+ICONES_DO_MENU = {"/": "grid-3x3", "/frentes": "list", "/taxonomia": "layers"}
 
 
 def descobrir() -> list[tuple[ModuleType, APIRouter]]:
@@ -65,8 +69,26 @@ def montar(app: FastAPI) -> None:
 def renderizar(
     request: Request, nome: str, contexto: dict[str, object] | None = None, status: int = 200
 ) -> HTMLResponse:
-    """Renderiza o template `nome` com o menu e o caminho atual já no contexto."""
-    base = {"menu": MENU, "relatar": RELATAR, "caminho": request.url.path}
+    """Renderiza o template `nome` com o menu e o caminho atual já no contexto.
+
+    `resumo()` (o rodapé da barra lateral e a contagem do menu) só consulta o banco se o
+    template chamar: fragmentos do HTMX, que não estendem `base.html`, não pagam por isso.
+    `trilho` é a barra lateral estreita: o padrão no mapa, e `?menu=aberto` / `?menu=trilho`
+    escolhem à mão (a escolha vive no endereço, sem JS).
+    """
+    menu = request.query_params.get("menu")
+    trilho = menu == "trilho" or (menu != "aberto" and request.url.path == "/")
+    outros = [(k, v) for k, v in request.query_params.multi_items() if k != "menu"]
+    alternar = urlencode([*outros, ("menu", "aberto" if trilho else "trilho")])
+    base = {
+        "alternar_menu": f"{request.url.path}?{alternar}",
+        "menu": MENU,
+        "relatar": RELATAR,
+        "icones_do_menu": ICONES_DO_MENU,
+        "caminho": request.url.path,
+        "trilho": trilho,
+        "resumo": lambda: shell.ler(request.app.state.config.banco),
+    }
     return request.app.state.templates.TemplateResponse(
         request, nome, {**base, **(contexto or {})}, status_code=status
     )

@@ -418,7 +418,7 @@ def test_evolucao_tem_o_marcador_no_mes_da_data(banco: Path, http: TestClient) -
 
     html = http.get(_celula_url()).text
 
-    svg = html[html.index('<svg class="evolucao"') : html.index("</svg>")]
+    svg = html[html.index('<svg class="evolucao"') :].split("</svg>")[0]
     assert svg.count('class="marcador-enderecamento"') == 1
     assert f"◆ {quando.strftime('%d/%m')}" in svg
     # o marcador cai sobre o ponto do mês da data: o x da linha é o do círculo daquele mês

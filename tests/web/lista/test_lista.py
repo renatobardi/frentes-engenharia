@@ -353,7 +353,7 @@ def test_htmx_devolve_so_o_miolo_e_a_pagina_traz_o_layout(http: TestClient):
 
 def test_menu_marca_frentes(http: TestClient):
     html = http.get("/frentes").text
-    assert re.search(r'<a href="/frentes" aria-current="page">Frentes</a>', html)
+    assert re.search(r'<a class="nav-item" href="/frentes" aria-current="page">', html)
 
 
 def test_a_rota_nao_captura_relatar(http: TestClient):
