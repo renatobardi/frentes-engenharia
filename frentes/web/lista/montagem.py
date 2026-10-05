@@ -3,7 +3,7 @@
 from datetime import timedelta
 from urllib.parse import urlencode
 
-from frentes.contratos import Natureza, Origem, Periodo
+from frentes.contratos import Classificacao, Frente, Natureza, Origem, Periodo
 from frentes.store import Conexao
 from frentes.store import lista as store_lista
 from frentes.web.mapa import montagem as mapa
@@ -28,6 +28,30 @@ _NOME_ESTADO = dict(ESTADOS)
 _MOTIVO = {
     "confianca_baixa": "confiança baixa",
     "llm_sem_escolha": "a LLM não escolheu",
+}
+# estado → classe do badge (app.css) e do ponto do chip (app.css e lista.css)
+_BADGE = {
+    "classificada": "badge",
+    "via_llm": "badge badge-secundario",
+    "incerta": "badge badge-tracejado",
+    "texto_vago": "badge badge-gate",
+    "nao_classificada": "badge badge-muted",
+    "aguardando": "badge badge-muted",
+}
+_PONTO = {
+    "classificada": "",
+    "via_llm": "bolinha-muted",
+    "incerta": "bolinha-vazada",
+    "texto_vago": "bolinha-gate",
+    "nao_classificada": "bolinha-muted",
+    "aguardando": "bolinha-vazada",
+}
+# por que a frente não pinta o mapa; as demais pintam
+_FORA_DO_MAPA = {
+    "incerta": "confiança baixa, ou a LLM não escolheu",
+    "texto_vago": "o texto é vago demais para classificar",
+    "nao_classificada": "não cabe em nenhum valor da taxonomia",
+    "aguardando": "ainda não tem classificação nesta versão",
 }
 
 
@@ -72,16 +96,31 @@ def consulta(
     return p
 
 
-def estado_na_tela(r: dict[str, object]) -> str:
-    """O estado da linha, em texto: sem classificação na versão ou `aguardando_llm` aguardam."""
+def chave_do_estado(r: dict[str, object]) -> str:
+    """A chave do estado (as de `ESTADOS`): sem classificação ou `aguardando_llm` aguardam."""
     estado, motivo = r["estado"], r["motivo"]
     if estado is None or estado == "aguardando_llm":
-        return _NOME_ESTADO["aguardando"]
-    if estado == "incerta":
-        if motivo == "texto_vago":
-            return _NOME_ESTADO["texto_vago"]
+        return "aguardando"
+    if estado == "incerta" and motivo == "texto_vago":
+        return "texto_vago"
+    return str(estado)
+
+
+def estado_na_tela(r: dict[str, object]) -> str:
+    """O estado da linha, em texto."""
+    chave = chave_do_estado(r)
+    if chave == "incerta":
+        motivo = r["motivo"]
         return f"Incerta: {_MOTIVO.get(str(motivo), motivo)}"
-    return _NOME_ESTADO[str(estado)]
+    return _NOME_ESTADO[chave]
+
+
+def sigla(origem: object) -> str:
+    return str(origem)[:2].upper()
+
+
+def porcento(valor: object) -> int | None:
+    return round(valor * 100) if isinstance(valor, float) else None
 
 
 def linha(r: dict[str, object]) -> dict[str, object]:
@@ -91,17 +130,79 @@ def linha(r: dict[str, object]) -> dict[str, object]:
     score = r["score"]
     confianca = r["confianca"]
     area, tipo = r["area_nome"] or r["area"], r["tipo_nome"] or r["tipo"]
+    chave = chave_do_estado(r)
     return {
         "id": r["id"],
         "data": str(r["data"])[:10],
         "origem": r["origem"],
+        "sigla": sigla(r["origem"]),
         "emissor": r["emissor"],
         "texto": texto,
         "area_tipo": f"{area} › {tipo}" if area and tipo else "",
         "natureza": str(r["natureza"] or ""),
         "score": f"{score:.2f}".replace(".", ",") if isinstance(score, float) else "",
         "confianca": f"{confianca:.0%}" if isinstance(confianca, float) else "",
+        "confianca_pct": porcento(confianca),
         "estado": estado_na_tela(r),
+        "estado_classe": _BADGE[chave],
+    }
+
+
+def estados_com_contagem(
+    contagens: dict[str, int], ativo: str | None, parametros: dict[str, str | list[str]]
+) -> list[dict[str, object]]:
+    """Os chips de estado: rótulo, ponto, contagem e o endereço (o chip ativo desliga o filtro)."""
+    base = {k: v for k, v in parametros.items() if k not in ("estado", "pagina")}
+    return [
+        {
+            "chave": chave,
+            "nome": nome,
+            "ponto": _PONTO[chave],
+            "total": contagens[chave],
+            "ativo": chave == ativo,
+            "endereco": endereco(base if chave == ativo else {**base, "estado": chave}),
+        }
+        for chave, nome in ESTADOS
+    ]
+
+
+def previa(
+    frente: Frente,
+    classificacao: Classificacao | None,
+    area: str | None,
+    tipo: str | None,
+    versao: int,
+) -> dict[str, object]:
+    """O que a prévia lateral mostra: texto, campos e, quando não pinta o mapa, o motivo."""
+    c = classificacao
+    linha = {
+        "estado": c.estado.value if c else None,
+        "motivo": c.motivo.value if c and c.motivo else None,
+    }
+    chave = chave_do_estado(linha)
+    natureza = c.natureza_final if c else None
+    score = None
+    if c and natureza is not None:
+        score = c.severidade if natureza is Natureza.REATIVA else c.impacto
+    confianca = min(c.conf_area, c.conf_tipo) if c else None
+    return {
+        "id": frente.id,
+        "data": frente.data.strftime("%d/%m/%Y"),
+        "origem": frente.origem.value,
+        "sigla": sigla(frente.origem.value),
+        "emissor": frente.emissor,
+        "texto": frente.texto,
+        "complemento": frente.complemento,
+        "area": area or "",
+        "tipo": tipo or "",
+        "natureza": natureza.value if natureza else "",
+        "score": f"{score:.2f}".replace(".", ",") if score is not None else "",
+        "confianca": f"{confianca:.0%}" if confianca is not None else "",
+        "confianca_pct": porcento(confianca),
+        "estado": estado_na_tela(linha),
+        "estado_classe": _BADGE[chave],
+        "fora_do_mapa": _FORA_DO_MAPA.get(chave),
+        "versao": versao,
     }
 
 
