@@ -1,99 +1,159 @@
+{% from "_icones.html" import icone %}
 {% set f = d.frente %}
+{% set classe_marca = {"via LLM": "badge-secundario", "incerta": "badge-tracejado", "texto vago": "badge-gate", "urgente": "badge-gate"} %}
 <article id="detalhe" class="detalhe">
-  <header class="identificacao">
-    <h1>Frente <code>{{ f.id }}</code></h1>
-    <dl class="ficha">
-      <dt>Origem</dt><dd>{{ f.origem.value }}</dd>
-      <dt>Emissor</dt><dd>{{ f.emissor }}</dd>
-      <dt>Ocorreu em</dt><dd>{{ d.quando }}</dd>
-      {% if f.ref_externa %}<dt>Referência externa</dt><dd>{{ f.ref_externa }}</dd>{% endif %}
-    </dl>
-    {% if d.marcas %}
-    <ul class="marcas">
-      {% for marca in d.marcas %}<li class="marca-estado">{{ marca }}</li>{% endfor %}
-    </ul>
+  <header class="pagina-cab">
+    <div class="pagina-cab-texto">
+      {% if d.onde %}
+      <a class="btn btn-ghost btn-sm detalhe-volta" href="{{ d.onde.destino }}">{{ icone("arrow-left") }}{{ d.onde.celula }}</a>
+      {% endif %}
+      <h1>Frente <code>{{ f.id }}</code></h1>
+      {% if d.marcas %}
+      <ul class="marcas">
+        {% for marca in d.marcas %}<li class="badge {{ classe_marca.get(marca, '') }}">{{ marca }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    {% if d.versoes %}
+    <nav class="segmentado pagina-cab-acoes" aria-label="Versão da taxonomia">
+      {% for n in d.versoes %}
+      <a href="/frentes/{{ f.id | urlencode }}?versao={{ n }}"
+         hx-get="/frentes/{{ f.id | urlencode }}?versao={{ n }}" hx-target="#detalhe"
+         hx-swap="outerHTML" hx-push-url="true"
+         {% if n == d.versao %}aria-current="true"{% endif %}>na v{{ n }}{% if n == d.vigente %} (vigente){% endif %}</a>
+      {% endfor %}
+    </nav>
     {% endif %}
   </header>
 
-  <section class="texto" aria-label="Texto original">
-    <blockquote class="original">{{ f.texto }}</blockquote>
-    {% if f.complemento %}
-    <div class="complemento">
-      <h2>Complemento{% if d.complementado %} <small>({{ d.complementado }})</small>{% endif %}</h2>
-      <p>{{ f.complemento }}</p>
-    </div>
-    {% endif %}
-  </section>
+  <div class="detalhe-grade">
+    <div class="detalhe-principal">
+      <section class="card card-pad texto" aria-label="Texto original">
+        <blockquote class="original">{{ f.texto }}</blockquote>
+        {% if f.complemento %}
+        <div class="complemento">
+          <h2 class="meta muted">Complemento{% if d.complementado %} <small>({{ d.complementado }})</small>{% endif %}</h2>
+          <p>{{ f.complemento }}</p>
+        </div>
+        {% endif %}
+      </section>
 
-  {% if d.motivo %}<p class="motivo" role="note">{{ d.motivo }}</p>{% endif %}
+      {% if d.motivo %}<p class="motivo" role="note">{{ icone("circle-alert") }}<span>{{ d.motivo }}</span></p>{% endif %}
 
-  {% if d.onde %}
-  <p class="onde">
-    {% if d.onde.pinta %}Conta em{% else %}Não pinta o mapa; entra no “+N incertas” de{% endif %}
-    <a href="{{ d.onde.destino }}">{{ d.onde.celula }}</a>, visão “{{ d.onde.visao }}”.
-  </p>
-  {% endif %}
+      {% if d.onde %}
+      <p class="onde">
+        {% if d.onde.pinta %}Conta em{% else %}Não pinta o mapa; entra no “+N incertas” de{% endif %}
+        <a href="{{ d.onde.destino }}">{{ d.onde.celula }}</a>, visão “{{ d.onde.visao }}”.
+      </p>
+      {% endif %}
 
-  {% if d.linhas %}
-  <table class="dimensoes">
-    <caption class="visually-hidden">As 8 dimensões da classificação na v{{ d.versao }}</caption>
-    <thead>
-      <tr><th scope="col">Dimensão</th><th scope="col">Resposta</th><th scope="col">Confiança</th></tr>
-    </thead>
-    <tbody>
-      {% for l in d.linhas %}
-      <tr{% if l.apagada %} class="apagada" aria-disabled="true"{% endif %}>
-        <th scope="row">{{ l.rotulo }}</th>
-        <td>
-          <strong>{{ l.resposta }}</strong>
-          {% if l.nivel %}<span class="nivel">{{ l.nivel }}</span>{% endif %}
-          {% if l.apagada %}<span class="nivel">não vale para esta natureza</span>{% endif %}
-          {% for marca in l.marcas %}<span class="marca-dimensao">{{ marca }}</span>{% endfor %}
-          {% if l.desempate %}<p class="desempate">{{ l.desempate }}</p>{% endif %}
-          {% if l.top %}
-          <ol class="top">
-            {% for o in l.top %}
-            <li{% if o.do_jev %} class="do-jev"{% endif %}>{{ o.nome }} <span>{{ o.percentual }}</span></li>
+      {% if d.escolha %}
+      <section class="card card-pad escolha" aria-labelledby="titulo-escolha">
+        <h2 class="card-titulo" id="titulo-escolha">Como a área foi escolhida</h2>
+        <p class="meta muted">A probabilidade que o Jev deu a cada time. A área é a do time escolhido.</p>
+        <ul class="escolha-lista">
+          {% for b in d.escolha.barras %}
+          <li{% if b.escolhida %} class="escolhida"{% endif %}>
+            <span class="escolha-nome">
+              {% if b.escolhida %}<strong>{{ b.nome }}</strong>{% else %}{{ b.nome }}{% endif %}
+              {% if b.area %}<span class="meta muted">{{ b.area }}</span>{% endif %}
+            </span>
+            <div class="barra-fina" role="img" aria-label="probabilidade {{ b.barra }}%"><span style="width: {{ b.barra }}%"></span></div>
+            <span class="num escolha-pct">{{ b.percentual }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% if d.escolha.outros > 0 %}<p class="fino muted">e mais {{ d.escolha.outros }} com probabilidade menor.</p>{% endif %}
+        {% if d.escolha.cruzado %}<p class="cruzado bloco-gate">{{ d.escolha.cruzado }}</p>{% endif %}
+      </section>
+      {% endif %}
+
+      {% if d.linhas %}
+      <section class="card dimensoes-card">
+        <div class="rolagem">
+        <table class="tabela dimensoes">
+          <caption class="so-leitor">As 8 dimensões da classificação na v{{ d.versao }}</caption>
+          <thead>
+            <tr><th scope="col">Dimensão</th><th scope="col">Resposta</th><th scope="col">Confiança</th><th scope="col">Alternativas</th></tr>
+          </thead>
+          <tbody>
+            {% for l in d.linhas %}
+            <tr{% if l.apagada %} class="apagada" aria-disabled="true"{% elif l.desempate %} class="via-llm"{% endif %}>
+              <th scope="row">{{ l.rotulo }}</th>
+              <td>
+                <strong>{{ l.resposta }}</strong>
+                {% if l.nivel %}<span class="nivel">{{ l.nivel }}</span>{% endif %}
+                {% if l.apagada %}<span class="nivel">não vale para esta natureza</span>{% endif %}
+                {% for marca in l.marcas %}<span class="badge badge-gate marca-dimensao">{{ marca }}</span>{% endfor %}
+                {% if l.desempate %}<p class="desempate">{{ l.desempate }}</p>{% endif %}
+              </td>
+              <td>
+                {% if l.barra is not none %}
+                <div class="barra-fina" role="img" aria-label="confiança {{ l.barra }}%"><span style="width: {{ l.barra }}%"></span></div>
+                <small class="num">{{ l.barra }}%</small>
+                {% else %}<small class="muted">sem confiança</small>{% endif %}
+              </td>
+              <td>
+                {% if l.top %}
+                <ol class="top">
+                  {% for o in l.top %}
+                  <li{% if o.do_jev %} class="do-jev"{% endif %}>{{ o.nome }} <span>{{ o.percentual }}</span></li>
+                  {% endfor %}
+                </ol>
+                {% endif %}
+              </td>
+            </tr>
             {% endfor %}
-          </ol>
-          {% endif %}
-        </td>
-        <td>
-          {% if l.barra is not none %}
-          <div class="barra" role="img" aria-label="confiança {{ l.barra }}%"><span style="width: {{ l.barra }}%"></span></div>
-          <small>{{ l.barra }}%</small>
-          {% else %}<small>sem confiança</small>{% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% endif %}
+          </tbody>
+        </table>
+        </div>
+      </section>
+      {% endif %}
 
-  {% if d.rodape %}
-  {% set r = d.rodape %}
-  <footer class="rodape">
-    <p>Pergunta de controle: “{{ r.pergunta }}” <strong>{{ r.controle }}</strong></p>
-    <p>Modelo do Jev: <code>{{ r.modelo }}</code> · {{ r.tokens_entrada }} + {{ r.tokens_saida }} tokens · {{ r.latencia_ms }} ms</p>
-    {% if r.desempate %}<p>Desempate da LLM: <code>{{ r.desempate }}</code></p>{% endif %}
-  </footer>
-  {% endif %}
+      {% if d.metadados %}
+      <details class="card card-pad metadados" open>
+        <summary>metadados</summary>
+        <pre>{{ d.metadados }}</pre>
+      </details>
+      {% endif %}
+    </div>
 
-  {% if d.versoes %}
-  <nav class="versoes" aria-label="Versão da taxonomia">
-    {% for n in d.versoes %}
-    <a href="/frentes/{{ f.id | urlencode }}?versao={{ n }}"
-       hx-get="/frentes/{{ f.id | urlencode }}?versao={{ n }}" hx-target="#detalhe"
-       hx-swap="outerHTML" hx-push-url="true"
-       {% if n == d.versao %}aria-current="true"{% endif %}>na v{{ n }}{% if n == d.vigente %} (vigente){% endif %}</a>
-    {% endfor %}
-  </nav>
-  {% endif %}
+    <aside class="detalhe-lateral">
+      <section class="card card-pad" aria-labelledby="titulo-ident">
+        <h2 class="card-titulo" id="titulo-ident">Identificação</h2>
+        <dl class="ficha">
+          <dt>Origem</dt><dd>{{ f.origem.value }}</dd>
+          <dt>Emissor</dt><dd>{{ f.emissor }}</dd>
+          <dt>Ocorreu em</dt><dd>{{ d.quando }}</dd>
+          {% if f.ref_externa %}<dt>Referência externa</dt><dd>{{ f.ref_externa }}</dd>{% endif %}
+        </dl>
+      </section>
 
-  {% if d.metadados %}
-  <details class="metadados" open>
-    <summary>metadados</summary>
-    <pre>{{ d.metadados }}</pre>
-  </details>
-  {% endif %}
+      {% if d.rodape %}
+      {% set r = d.rodape %}
+      <section class="card card-pad rodape" aria-labelledby="titulo-controle">
+        <h2 class="card-titulo" id="titulo-controle">Pergunta de controle</h2>
+        <p class="meta muted">“{{ r.pergunta }}” <strong>{{ r.controle }}</strong></p>
+        <div class="barra-fina barra-corte{% if r.barra < r.corte_barra %} barra-fina-gate{% endif %}" role="img" aria-label="controle {{ r.barra }}%, corte {{ r.corte_barra }}%">
+          <span style="width: {{ r.barra }}%"></span><i style="left: {{ r.corte_barra }}%"></i>
+        </div>
+        <p class="fino muted">Corte do texto vago: {{ r.corte }}.</p>
+        <p class="fino muted">Modelo do Jev: <code>{{ r.modelo }}</code> · {{ r.tokens_entrada }} + {{ r.tokens_saida }} tokens · {{ r.latencia_ms }} ms</p>
+        {% if r.desempate %}<p class="fino muted">Desempate da LLM: <code>{{ r.desempate }}</code></p>{% endif %}
+      </section>
+      {% endif %}
+
+      <section class="card card-pad" aria-labelledby="titulo-caminho">
+        <h2 class="card-titulo" id="titulo-caminho">Caminho da frente</h2>
+        <ol class="caminho">
+          {% for p in d.caminho %}
+          <li class="passo passo-{{ p.estado }}">
+            <span class="passo-nome">{{ p.titulo }}</span>
+            <span class="meta muted">{{ p.detalhe }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+      </section>
+    </aside>
+  </div>
 </article>

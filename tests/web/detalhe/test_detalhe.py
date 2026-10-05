@@ -183,9 +183,11 @@ def test_classificada_mostra_tudo_na_ordem_da_spec(banco: Path, http: TestClient
 
     html = _pagina(http, "f1")
 
-    ordem = ["Frente <code>f1</code>", "REF-9", "A fila de pagamentos parou", "Conta em",
-             "Plataforma × Incidente", "<table", "Pergunta de controle", "jev-1.13.0",
-             "na v1"]  # fmt: skip
+    # o redesign (#126) põe a identificação, a pergunta de controle e o Jev na lateral, depois
+    # da tabela, e o seletor de versão no cabeçalho
+    ordem = ["Frente <code>f1</code>", "na v1", "A fila de pagamentos parou", "Conta em",
+             "Como a área foi escolhida", "<table", "REF-9", "Pergunta de controle",
+             "jev-1.13.0", "Caminho da frente"]  # fmt: skip
     posicoes = [html.index(trecho) for trecho in ordem]
     assert posicoes == sorted(posicoes)
     assert 'class="motivo"' not in html  # pinta: não há motivo
@@ -617,3 +619,245 @@ def test_versao_pulada_nao_e_oferecida_nem_aberta(tmp_path: Path) -> None:
     assert 'href="/frentes/p1?versao=1"' in html and 'href="/frentes/p1?versao=3"' in html
     assert "versao=2" not in html
     assert http.get("/frentes/p1?versao=2").status_code == 404
+
+
+# --------------------------------------------------------------------------- área escolhida
+
+
+def _emissor(banco: Path, id: str, nome: str, time: str | None) -> None:
+    con = store.abrir(banco)
+    con.execute(
+        "INSERT INTO emissor (id, nome, tipo, time) VALUES (?, ?, 'pessoa', ?)", (id, nome, time)
+    )
+    con.commit()
+    con.close()
+
+
+def _escolha(html: str) -> str:
+    return html.split('id="titulo-escolha"')[1].split("</section>")[0]
+
+
+def test_card_da_area_mostra_as_probabilidades_por_time_com_a_escolhida_em_negrito(
+    banco: Path, http: TestClient
+) -> None:
+    _gravar(banco, _classificacao("a1"), frente="a1")
+
+    card = _escolha(_pagina(http, "a1"))
+
+    assert re.findall(r"<strong>([^<]+)</strong>", card) == ["Infraestrutura"]
+    assert re.findall(r'aria-label="probabilidade (\d+)%"', card) == ["70", "20", "10"]
+    assert re.findall(r'escolha-pct">(\d+%)', card) == ["70%", "20%", "10%"]
+    assert card.index("Infraestrutura") < card.index("Dados") < card.index("Suporte")
+    assert "Relato cruzado" not in card  # o emissor não está na lista: não há time de quem relata
+
+
+def test_relato_cruzado_diz_de_quem_e_o_objeto(banco: Path, http: TestClient) -> None:
+    _emissor(banco, "e-ops", "Ana", "ops-suporte")
+    _gravar(banco, _classificacao("a2"), frente="a2")  # o dono é plat-infra; Ana é de ops
+
+    card = _escolha(_pagina(http, "a2"))
+
+    assert (
+        "Relato cruzado: quem relata é do time Suporte, mas o objeto de que a frente fala é do "
+        "time Infraestrutura. Vale o dono: a área é Plataforma." in card
+    )
+
+
+def test_relato_cruzado_na_mesma_area_nao_troca_de_area(banco: Path, http: TestClient) -> None:
+    _emissor(banco, "e-dados", "Ana", "plat-dados")
+    _gravar(banco, _classificacao("a3"), frente="a3")
+
+    card = _escolha(_pagina(http, "a3"))
+
+    assert "do time Dados e o objeto é do time Infraestrutura, da mesma área (Plataforma)" in card
+    assert "Vale o dono" not in card
+
+
+def test_quem_relata_do_mesmo_time_do_dono_nao_e_cruzado(banco: Path, http: TestClient) -> None:
+    _emissor(banco, "e-infra", "Ana", "plat-infra")
+    _gravar(banco, _classificacao("a4"), frente="a4")
+
+    assert "Relato cruzado" not in _pagina(http, "a4")
+
+
+def test_emissor_com_nome_repetido_em_times_diferentes_nao_decide(
+    banco: Path, http: TestClient
+) -> None:
+    _emissor(banco, "e-1", "Ana", "ops-suporte")
+    _emissor(banco, "e-2", "Ana", "plat-dados")
+    _gravar(banco, _classificacao("a5"), frente="a5")
+
+    assert "Relato cruzado" not in _pagina(http, "a5")
+
+
+def test_card_da_area_na_via_llm_destaca_o_time_da_llm(banco: Path, http: TestClient) -> None:
+    c = _classificacao(
+        "a6", estado=Estado.VIA_LLM, area_final="ops", time_final="ops-suporte",
+        resposta_llm=RespostaLlm("deepseek/x", {"area": "ops"}, Uso(1, 1, 1)),
+    )  # fmt: skip
+    _gravar(banco, c, frente="a6")
+
+    card = _escolha(_pagina(http, "a6"))
+
+    assert re.findall(r"<strong>([^<]+)</strong>", card) == ["Suporte"]
+
+
+def test_card_da_area_destaca_nenhum_destes_quando_a_llm_confirma(
+    banco: Path, http: TestClient
+) -> None:
+    probs = {NENHUM_DESTES: 0.6, "plat-infra": 0.4}
+    jev = _jev(**{Pergunta.AREA: _lista(NENHUM_DESTES, 0.6, probs)})
+    c = _classificacao(
+        "a7", resposta_jev=jev, estado=Estado.NAO_CLASSIFICADA, area_final=None, time_final=None,
+        tipo_final=None, subtipo_final=None,
+    )  # fmt: skip
+    _gravar(banco, c, frente="a7")
+
+    card = _escolha(_pagina(http, "a7"))
+
+    assert re.findall(r"<strong>([^<]+)</strong>", card) == ["Nenhum destes"]
+    assert "Relato cruzado" not in card
+
+
+def test_card_da_area_limita_as_barras_e_conta_o_resto(banco: Path, http: TestClient) -> None:
+    probs = {f"t{i}": 0.1 for i in range(8)} | {"plat-infra": 0.15, "ops-suporte": 0.001}
+    jev = _jev(**{Pergunta.AREA: _lista("plat-infra", 0.9, probs)})
+    _gravar(banco, _classificacao("a8", resposta_jev=jev), frente="a8")
+
+    card = _escolha(_pagina(http, "a8"))
+
+    assert card.count('aria-label="probabilidade') == 6
+    assert "e mais 4 com probabilidade menor." in card  # os 10 times, 6 barras: 4 de fora
+    assert "<strong>Infraestrutura</strong>" in card  # a escolhida entra mesmo fora do corte
+
+
+def test_time_escolhido_com_menos_de_1_porcento_continua_na_lista(
+    banco: Path, http: TestClient
+) -> None:
+    probs = {"ops-suporte": 0.004, "plat-dados": 0.9}
+    jev = _jev(**{Pergunta.AREA: _lista("ops-suporte", 0.9, probs)})
+    c = _classificacao("a9", resposta_jev=jev, area_final="ops", time_final="ops-suporte")
+    _gravar(banco, c, frente="a9")
+
+    card = _escolha(_pagina(http, "a9"))
+
+    assert "<strong>Suporte</strong>" in card
+
+
+def test_sem_resposta_de_area_nao_ha_o_card(banco: Path, http: TestClient) -> None:
+    respostas = dict(_jev().respostas)
+    del respostas[Pergunta.AREA]
+    jev = RespostaJev("jev-1.13.0", respostas, Uso(1, 1, 1))
+    _gravar(banco, _classificacao("b1", resposta_jev=jev), frente="b1")
+
+    html = _pagina(http, "b1")
+
+    assert "Como a área foi escolhida" not in html
+
+
+def test_sem_classificacao_nao_ha_o_card(banco: Path, http: TestClient) -> None:
+    _gravar(banco, frente="b2")
+
+    assert "Como a área foi escolhida" not in _pagina(http, "b2")
+
+
+def test_card_da_area_escapa_nome_de_time_e_chave_desconhecida(
+    banco: Path, http: TestClient
+) -> None:
+    jev = _jev(**{Pergunta.AREA: _lista("<i>x</i>", 0.9, {"<i>x</i>": 0.9, "plat-infra": 0.1})})
+    c = _classificacao("b3", resposta_jev=jev, time_final="<i>x</i>")
+    _gravar(banco, c, frente="b3")
+
+    html = _pagina(http, "b3")
+
+    assert "<i>x" not in html and "&lt;i&gt;x&lt;/i&gt;" in _escolha(html)
+
+
+# --------------------------------------------------------------------------- caminho e controle
+
+
+def _caminho(html: str) -> list[tuple[str, str]]:
+    bloco = html.split('class="caminho"')[1].split("</ol>")[0]
+    padrao = r'class="passo passo-(\w+)">\s*<span class="passo-nome">([^<]+)</span>'
+    return re.findall(padrao, bloco)
+
+
+def test_caminho_da_classificada_vai_ate_o_mapa(banco: Path, http: TestClient) -> None:
+    _gravar(banco, _classificacao("c2"), frente="c2")
+
+    assert _caminho(_pagina(http, "c2")) == [
+        ("feito", "Ocorreu"), ("feito", "Recebida"), ("feito", "Classificação do Jev"),
+        ("pulado", "Desempate da LLM"), ("feito", "Pinta o mapa"),
+    ]  # fmt: skip
+
+
+def test_caminho_da_via_llm_mostra_o_desempate(banco: Path, http: TestClient) -> None:
+    llm = RespostaLlm("deepseek/x", {"area": "ops"}, Uso(1, 1, 1))
+    c = _classificacao(
+        "c3", estado=Estado.VIA_LLM, area_final="ops", time_final="ops-suporte", resposta_llm=llm
+    )
+    _gravar(banco, c, frente="c3")
+
+    assert ("feito", "Desempate da LLM") in _caminho(_pagina(http, "c3"))
+
+
+def test_caminho_da_incerta_nao_pinta_o_mapa(banco: Path, http: TestClient) -> None:
+    c = _classificacao("c4", estado=Estado.INCERTA, motivo=MotivoIncerta.CONFIANCA_BAIXA)
+    _gravar(banco, c, frente="c4")
+
+    assert _caminho(_pagina(http, "c4"))[-1] == ("pulado", "Pinta o mapa")
+
+
+def test_caminho_aguardando_o_desempate(banco: Path, http: TestClient) -> None:
+    c = _classificacao(
+        "c5", estado=Estado.AGUARDANDO_LLM, area_final=None, time_final=None, tipo_final=None,
+        subtipo_final=None, natureza_final=None,
+    )  # fmt: skip
+    _gravar(banco, c, frente="c5")
+
+    html = _pagina(http, "c5")
+
+    assert _caminho(html)[-2:] == [("pendente", "Desempate da LLM"), ("pendente", "Pinta o mapa")]
+    assert "depende do desempate" in html
+
+
+def test_caminho_sem_classificacao_espera_o_jev(banco: Path, http: TestClient) -> None:
+    _gravar(banco, frente="c6")
+
+    assert _caminho(_pagina(http, "c6")) == [
+        ("feito", "Ocorreu"), ("feito", "Recebida"), ("pendente", "Classificação do Jev"),
+        ("pendente", "Pinta o mapa"),
+    ]  # fmt: skip
+
+
+def test_barra_da_pergunta_de_controle_marca_o_corte_e_fica_ambar_abaixo_dele(
+    banco: Path, http: TestClient
+) -> None:
+    acima = _classificacao("d1")  # controle 0,9, corte 0,50
+    abaixo = _classificacao(
+        "d2", controle=0.32, estado=Estado.INCERTA, motivo=MotivoIncerta.TEXTO_VAGO
+    )
+    _gravar(banco, acima, frente="d1")
+    _gravar(banco, abaixo, frente="d2")
+
+    a = _pagina(http, "d1")
+    b = _pagina(http, "d2")
+
+    assert 'aria-label="controle 90%, corte 50%"' in a and "barra-fina-gate" not in a
+    assert 'aria-label="controle 32%, corte 50%"' in b and "barra-fina-gate" in b
+    assert "left: 50%" in a and "Corte do texto vago: 0,50." in a
+
+
+def test_cabecalho_volta_para_a_celula_e_a_via_llm_e_um_selo(banco: Path, http: TestClient) -> None:
+    llm = RespostaLlm("deepseek/x", {"area": "ops"}, Uso(1, 1, 1))
+    c = _classificacao(
+        "d3", estado=Estado.VIA_LLM, area_final="ops", time_final="ops-suporte", resposta_llm=llm
+    )
+    _gravar(banco, c, frente="d3")
+
+    html = _pagina(http, "d3")
+
+    volta = r'class="btn btn-ghost btn-sm detalhe-volta" href="/\?[^"]+">.*?Operações × Incidente'
+    assert re.search(volta, html, re.S)
+    assert '<li class="badge badge-secundario">via LLM</li>' in html
+    assert '<tr class="via-llm">' in html

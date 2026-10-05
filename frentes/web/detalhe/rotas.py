@@ -17,8 +17,9 @@ from fastapi.routing import APIRoute
 from starlette.routing import Match
 from starlette.types import Scope
 
-from frentes import store
+from frentes import contratos, store
 from frentes.store import classificacao as store_classificacao
+from frentes.store import relato as store_relato
 from frentes.store import versao as store_versao
 from frentes.web.detalhe import montagem
 from frentes.web.telas import renderizar
@@ -35,6 +36,13 @@ class _RotaDeFrente(APIRoute):
 
 
 roteador = APIRouter(route_class=_RotaDeFrente)
+
+
+def _time_do_emissor(emissores: list[contratos.Emissor], nome: str) -> str | None:
+    """O time de quem relata, pela lista do formulário (a frente guarda só o nome). Nome que
+    a lista repete com times diferentes, ou sem time, não diz de qual time é: None."""
+    times = {e.time for e in emissores if e.nome == nome}
+    return times.pop() if len(times) == 1 else None
 
 
 @roteador.get(
@@ -66,6 +74,7 @@ def detalhe_da_frente(
         classificacao = (
             store_classificacao.ler(con, frente_id, escolhida) if escolhida is not None else None
         )
+        time_do_relator = _time_do_emissor(store_relato.emissores(con), frente.emissor)
 
     contexto: dict[str, Any] = {
         "d": montagem.montar(
@@ -78,6 +87,7 @@ def detalhe_da_frente(
             config.limiares,
             sem_typesafe=config.typesafe_api_key is None,
             sem_openrouter=config.openrouter_api_key is None,
+            time_do_relator=time_do_relator,
         )
     }
     # voltar no navegador sem cache do HTMX pede a página inteira, não o miolo
