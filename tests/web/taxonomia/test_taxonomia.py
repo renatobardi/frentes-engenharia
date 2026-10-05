@@ -93,8 +93,11 @@ def test_o_diff_mostra_a_frase_o_sinal_as_operacoes_e_cinco_frentes_de_evidencia
     html = resposta_http.text
 
     assert resposta_http.status_code == 200
-    # a frase da LLM em destaque, escapada
-    assert re.search(r'<blockquote class="frase">[^<]*A taxonomia ganhou o tipo Assistente', html)
+    assert '<blockquote class="frase">1 proposta, 1 aplicada, 0 descartadas.' in html
+    # A frase da LLM fica nos dados brutos, escapada, separada do resumo calculado.
+    assert re.search(
+        r'<blockquote class="frase-bruta">[^<]*A taxonomia ganhou o tipo Assistente', html
+    )
     assert "<script>alert('frase')" not in html
     assert "&lt;script&gt;alert(&#39;frase&#39;)" in html
     # o sinal que disparou, com o medido e o limite

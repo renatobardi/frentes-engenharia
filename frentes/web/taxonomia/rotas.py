@@ -24,6 +24,7 @@ from frentes.store import historico as store_historico
 from frentes.store import revisao as store_revisao
 from frentes.store import versao as store_versao
 from frentes.taxonomia import sinal as sinal_
+from frentes.taxonomia.resumo import resumir_operacoes
 from frentes.taxonomia.revisao import SemFrentesNaJanela, SemVersaoVigente, revisar
 from frentes.web.taxonomia import montagem
 from frentes.web.telas import renderizar
@@ -66,6 +67,11 @@ def _diff(con: store.Conexao, g: Geracao, ativadas: list[int], limiares) -> dict
         }
     return {
         "geracao": g,
+        "resumo": (
+            resumir_operacoes(g.operacoes)
+            if g.tipo is TipoGeracao.REVISAO and g.resultado is not None
+            else None
+        ),
         "titulo": montagem.titulo_da_geracao(g),
         "quando": montagem.data(g.disparada_em),
         "gatilho": montagem.GATILHO[g.gatilho] if g.gatilho else None,
