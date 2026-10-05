@@ -34,6 +34,7 @@ from frentes.contratos import (
 NOME_NENHUM_DESTES = "Nenhum destes"
 AUSENTE = "—"
 TOP = 3
+MAX_BARRAS = 6
 _AO_VIVO = (Origem.RELATO, Origem.WEBHOOK)  # as origens ao vivo da spec 01
 _NATUREZAS = {Natureza.REATIVA: "Reativa", Natureza.PROATIVA: "Proativa"}
 _JANELAS = ((Periodo.D30, 30), (Periodo.D90, 90), (Periodo.D180, 180), (Periodo.M12, 365))
@@ -65,6 +66,35 @@ class Linha:
 
 
 @dataclass(frozen=True, slots=True)
+class BarraDeTime:
+    """Um time na probabilidade que o Jev deu à pergunta de área."""
+
+    nome: str
+    area: str  # "" quando a versão não conhece o time
+    percentual: str  # "62%"
+    barra: int  # 0 a 100
+    escolhida: bool  # o time que vale (negrito)
+
+
+@dataclass(frozen=True, slots=True)
+class EscolhaDaArea:
+    """O card "Como a área foi escolhida": lido de `resposta_jev`, já gravada."""
+
+    barras: tuple[BarraDeTime, ...]
+    outros: int  # times que ficaram de fora das barras (corte de 6 ou menos de 1%)
+    cruzado: str | None  # a frase do relato cruzado, quando o time de quem relata ≠ o dono
+
+
+@dataclass(frozen=True, slots=True)
+class Passo:
+    """Um passo do "Caminho da frente"."""
+
+    titulo: str
+    detalhe: str
+    estado: str  # "feito" | "pendente" | "pulado"
+
+
+@dataclass(frozen=True, slots=True)
 class Onde:
     celula: str  # "Plataforma × Incidente"
     visao: str  # "Onde dói"
@@ -76,6 +106,9 @@ class Onde:
 class Rodape:
     pergunta: str
     controle: str
+    barra: int  # a pergunta de controle em 0 a 100
+    corte: str  # o corte do texto vago, "0,50"
+    corte_barra: int  # o mesmo corte em 0 a 100, para a marca na barra
     modelo: str
     tokens_entrada: int
     tokens_saida: int
@@ -93,6 +126,8 @@ class Detalhe:
     onde: Onde | None
     linhas: tuple[Linha, ...] = ()
     rodape: Rodape | None = None
+    escolha: EscolhaDaArea | None = None
+    caminho: tuple[Passo, ...] = ()
     versao: int | None = None
     versoes: tuple[int, ...] = field(default_factory=tuple)
     vigente: int | None = None
@@ -380,12 +415,101 @@ def _marcas(frente: Frente, c: Classificacao | None, limiares: Limiares) -> tupl
     return tuple(marcas)
 
 
-def _rodape(c: Classificacao, documento: DocumentoTaxonomia) -> Rodape:
+def _escolha(c: Classificacao, nomes: _Nomes, time_do_relator: str | None) -> EscolhaDaArea | None:
+    """As probabilidades do Jev por time, a escolha que vale em negrito e, no relato cruzado,
+    a frase que diz de quem é o objeto. None quando o Jev não respondeu a área."""
+    resposta = _lista(c, Pergunta.AREA)
+    if resposta is None:
+        return None
+    pronta = c.estado is not Estado.AGUARDANDO_LLM
+    area = c.area_final if pronta else c.area
+    time = c.time_final if pronta else c.time
+    ordenadas = sorted(resposta.probabilidades.items(), key=lambda par: -par[1])
+    visiveis = [(k, p) for k, p in ordenadas if round(p * 100) >= 1 or _vale(k, time, area)]
+    mostradas = visiveis[:MAX_BARRAS]
+    for par in visiveis[MAX_BARRAS:]:  # o que vale não fica de fora, ainda que seja pequeno
+        if _vale(par[0], time, area):
+            mostradas[-1:] = [par]
+    barras = tuple(
+        BarraDeTime(
+            nome=_Nomes.de(nomes.times, chave),
+            area=""
+            if chave == NENHUM_DESTES or chave not in nomes.pai_do_time
+            else _Nomes.de(nomes.areas, nomes.pai_do_time[chave]),
+            percentual=_percentual(p),
+            barra=round(p * 100),
+            escolhida=_vale(chave, time, area),
+        )
+        for chave, p in mostradas
+    )
+    cruzado = None
+    if time is not None and time_do_relator is not None and time_do_relator != time:
+        cruzado = _frase_do_cruzado(nomes, time_do_relator, time)
+    return EscolhaDaArea(barras, len(ordenadas) - len(barras), cruzado)
+
+
+def _vale(chave: str, time: str | None, area: str | None) -> bool:
+    """A chave é o time que vale; sem time, só o "Nenhum destes" vale quando não há área."""
+    if time is not None:
+        return chave == time
+    return area is None and chave == NENHUM_DESTES
+
+
+def _frase_do_cruzado(nomes: _Nomes, relator: str, dono: str) -> str:
+    time_relator = _Nomes.de(nomes.times, relator)
+    time_dono = _Nomes.de(nomes.times, dono)
+    area_relator = nomes.pai_do_time.get(relator)
+    area_dono = nomes.pai_do_time.get(dono)
+    if area_relator is not None and area_relator == area_dono:
+        return (
+            f"Relato cruzado: quem relata é do time {time_relator} e o objeto é do time "
+            f"{time_dono}, da mesma área ({_Nomes.de(nomes.areas, area_dono)})."
+        )
+    area = _Nomes.de(nomes.areas, area_dono)
+    return (
+        f"Relato cruzado: quem relata é do time {time_relator}, mas o objeto de que a frente "
+        f"fala é do time {time_dono}. Vale o dono: a área é {area}."
+    )
+
+
+def _caminho(
+    frente: Frente, c: Classificacao | None, onde: Onde | None, motivo: str | None
+) -> tuple[Passo, ...]:
+    """A linha do tempo: ocorreu, recebida, Jev, desempate da LLM, pinta o mapa."""
+    passos = [Passo("Ocorreu", data(frente.data), "feito")]
+    passos.append(Passo("Recebida", data(frente.recebido_em), "feito"))
+    if c is None:
+        passos.append(Passo("Classificação do Jev", "ainda não chegou", "pendente"))
+        passos.append(Passo("Pinta o mapa", motivo or "não pinta", "pendente"))
+        return tuple(passos)
+    jev = f"{c.resposta_jev.modelo} · {data(c.classificada_em)}"
+    passos.append(Passo("Classificação do Jev", jev, "feito"))
+    llm = c.resposta_llm
+    if llm is not None:
+        passos.append(Passo("Desempate da LLM", llm.modelo, "feito"))
+    elif c.estado is Estado.AGUARDANDO_LLM:
+        passos.append(Passo("Desempate da LLM", "ainda não voltou", "pendente"))
+    else:
+        passos.append(Passo("Desempate da LLM", "não foi preciso", "pulado"))
+    if onde is not None and onde.pinta:
+        passos.append(Passo("Pinta o mapa", onde.celula, "feito"))
+    else:
+        if c.estado is Estado.AGUARDANDO_LLM:
+            passos.append(Passo("Pinta o mapa", "depende do desempate", "pendente"))
+        else:
+            passos.append(Passo("Pinta o mapa", "não pinta", "pulado"))
+    return tuple(passos)
+
+
+def _rodape(c: Classificacao, documento: DocumentoTaxonomia, limiares: Limiares) -> Rodape:
     uso = c.resposta_jev.uso
     llm = c.resposta_llm
     return Rodape(
         pergunta=documento.pergunta_de_controle,
         controle=numero(c.controle),
+        barra=round(c.controle * 100),
+        corte=numero(limiares.texto_vago),
+        corte_barra=round(limiares.texto_vago * 100),
         modelo=c.resposta_jev.modelo,
         tokens_entrada=uso.tokens_entrada,
         tokens_saida=uso.tokens_saida,
@@ -407,9 +531,12 @@ def montar(
     limiares: Limiares,
     sem_typesafe: bool,
     sem_openrouter: bool,
+    time_do_relator: str | None = None,
 ) -> Detalhe:
     nomes = _Nomes(documento) if documento else None
     pronto = classificacao is not None and documento is not None and nomes is not None
+    motivo = _motivo(classificacao, versao, vigente, limiares, sem_typesafe, sem_openrouter)
+    onde = _onde(classificacao, frente, nomes) if pronto else None
     return Detalhe(
         frente=frente,
         quando=data(frente.data),
@@ -417,10 +544,12 @@ def montar(
         metadados=json.dumps(dict(frente.metadados), ensure_ascii=False, indent=2, default=str)
         if frente.metadados
         else None,
-        motivo=_motivo(classificacao, versao, vigente, limiares, sem_typesafe, sem_openrouter),
-        onde=_onde(classificacao, frente, nomes) if pronto else None,
+        motivo=motivo,
+        onde=onde,
         linhas=_linhas(classificacao, documento, limiares) if pronto else (),
-        rodape=_rodape(classificacao, documento) if pronto else None,
+        rodape=_rodape(classificacao, documento, limiares) if pronto else None,
+        escolha=_escolha(classificacao, nomes, time_do_relator) if pronto else None,
+        caminho=_caminho(frente, classificacao, onde, motivo),
         versao=versao,
         versoes=tuple(versoes),
         vigente=vigente,
