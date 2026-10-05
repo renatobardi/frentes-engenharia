@@ -1,0 +1,165 @@
+<section id="taxonomia" class="taxonomia">
+  <h1>Taxonomia</h1>
+
+  {% if aviso %}<p class="aviso" role="alert">{{ aviso }}</p>{% endif %}
+  {% if rodando %}<p class="aviso" role="status">Uma revisão está rodando. Quando ela terminar, o resultado aparece no histórico: recarregue a página.</p>{% endif %}
+
+  <form class="revisar" action="/taxonomia/revisar" method="post">
+    <button type="submit">Revisar a taxonomia agora</button>
+    <span class="suave">Dispara a revisão em segundo plano, com o gatilho «botão».</span>
+  </form>
+
+  <section class="diff" aria-labelledby="t-diff">
+    <h2 id="t-diff">O diff da revisão</h2>
+    {% if not diff %}
+    <p class="vazio">Nenhuma revisão gravada ainda.</p>
+    {% else %}
+    {% set d = diff %}
+    {% if d.marcadores %}
+    <ol class="marcadores" aria-label="Do mapa na v{{ d.marcadores.base }} ao mapa na v{{ d.marcadores.nova }}">
+      <li><a href="{{ d.marcadores.v1 }}">1 · mapa na v{{ d.marcadores.base }}</a></li>
+      <li aria-current="step"><a href="{{ d.marcadores.diff }}">2 · o diff</a></li>
+      <li>{% if d.marcadores.v2 %}<a href="{{ d.marcadores.v2 }}">3 · mapa na v{{ d.marcadores.nova }}</a>{% else %}<span title="a versão ainda não foi ativada">3 · mapa na v{{ d.marcadores.nova }} (ainda sem ativação)</span>{% endif %}</li>
+    </ol>
+    {% endif %}
+
+    <p class="meta">{{ d.titulo }} de {{ d.quando }}{% if d.gatilho %}, disparada por {{ d.gatilho }}{% endif %}: <strong>{{ d.situacao }}</strong>.</p>
+
+    {% if d.resumo %}
+    <blockquote class="frase">{{ d.resumo }}</blockquote>
+    {% endif %}
+    {% if d.geracao.resumo %}
+    {% if d.geracao.tipo.value == "revisao" %}<details class="texto-bruto">
+      <summary>Texto bruto da geração (não é o resumo das operações)</summary>{% endif %}
+    <blockquote class="{{ 'frase-bruta' if d.geracao.tipo.value == 'revisao' else 'frase' }}">
+      {% if d.geracao.resultado and d.geracao.resultado.value == "recusada" %}<span class="suave">Motivo da recusa:</span> {% endif %}{{ d.geracao.resumo }}
+    </blockquote>
+    {% if d.geracao.tipo.value == "revisao" %}</details>{% endif %}
+    {% endif %}
+
+    {% if d.geracao.resultado and d.geracao.resultado.value == "sem_mudanca" %}
+    <p class="nada" role="status">Nada mudou: nenhuma operação sobreviveu ao filtro e a taxonomia continua a mesma.</p>
+    {% endif %}
+
+    {% if d.sinal %}
+    <h3>O sinal{% if d.frentes_no_sinal %} <span class="suave">({{ d.frentes_no_sinal }} frentes na janela)</span>{% endif %}</h3>
+    <table class="tabela sinal">
+      <thead><tr><th scope="col">Medida</th><th scope="col">Medido</th><th scope="col">Limite</th></tr></thead>
+      <tbody>
+        {% for l in d.sinal %}
+        <tr{% if l.disparou %} class="disparou"{% endif %}>
+          <th scope="row">{{ l.rotulo }}{% if l.disparou %} <span class="selo">disparou</span>{% endif %}</th>
+          <td>{{ l.medido }}</td><td>{{ l.limite }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    <h3>Operações</h3>
+    {% if d.operacoes %}
+    <ul class="operacoes">
+      {% for o in d.operacoes %}
+      <li class="operacao{{ ' aplicada' if o.aplicada else ' descartada' }}">
+        <p class="cabeca"><strong>{{ o.rotulo }}</strong>
+          <span class="selo">{{ "aplicada" if o.aplicada else "descartada" }}</span>
+          <span class="suave">{{ o.frentes_de_evidencia }} {{ "frente" if o.frentes_de_evidencia == 1 else "frentes" }} de evidência</span></p>
+        {% for linha in o.detalhes %}<p class="detalhe">{{ linha }}</p>{% endfor %}
+        {% if o.motivo %}<p class="detalhe">Motivo do descarte: {{ o.motivo }}</p>{% endif %}
+        {% if o.origem_dos_tipos %}<p class="detalhe">As frentes vieram {{ "do tipo" if o.origem_dos_tipos|length == 1 else "dos tipos" }} {{ o.origem_dos_tipos|join(", ") }}{% if d.marcadores %} da v{{ d.marcadores.base }}{% elif d.geracao.versao_base %} da v{{ d.geracao.versao_base }}{% endif %}.</p>{% endif %}
+        {% if o.evidencias %}
+        <ul class="evidencias" aria-label="Frentes de evidência">
+          {% for e in o.evidencias %}
+          <li><a href="/frentes/{{ e.id|urlencode }}">{{ e.texto }}</a> <span class="suave">{{ e.origem }}</span></li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="vazio">Esta geração não gravou operações.</p>
+    {% endif %}
+    {% endif %}
+  </section>
+
+  <section class="vigente" aria-labelledby="t-vigente">
+    <h2 id="t-vigente">A versão {% if lida == vigente %}vigente{% else %}v{{ lida }}{% endif %}, só leitura</h2>
+    {% if not documento %}
+    <p class="vazio">Ainda não há versão vigente da taxonomia.</p>
+    {% else %}
+    <form class="seletor" action="/taxonomia" method="get"
+          hx-get="/taxonomia" hx-trigger="change" hx-target="#taxonomia" hx-swap="outerHTML" hx-push-url="true">
+      <label>Taxonomia
+        <select name="versao">
+          {% for n in versoes %}
+          <option value="{{ n }}"{% if n == lida %} selected{% endif %}>v{{ n }}{% if n == vigente %} vigente{% endif %}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% if diff %}<input type="hidden" name="geracao" value="{{ diff.geracao.id }}">{% endif %}
+      <noscript><button type="submit">Ver</button></noscript>
+    </form>
+
+    <h3>Tipos e subtipos</h3>
+    <ul class="valores">
+      {% for t in documento.tipos %}
+      <li><strong>{{ t.nome }}</strong> <span class="suave">{{ t.descricao }}</span>
+        {% if t.filhos %}<ul>{% for s in t.filhos %}<li>{{ s.nome }} <span class="suave">{{ s.descricao }}</span></li>{% endfor %}</ul>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+
+    <h3>Organograma</h3>
+    <ul class="valores">
+      {% for a in documento.organograma %}
+      <li><strong>{{ a.nome }}</strong>
+        {% if a.times %}<ul>{% for t in a.times %}<li>{{ t.nome }} <span class="suave">{{ t.o_que_faz }}</span></li>{% endfor %}</ul>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+
+    <h3>Causas raiz</h3>
+    <ul class="valores">
+      {% for c in documento.causas_raiz %}<li>{{ c.nome }} <span class="suave">{{ c.descricao }}</span></li>{% endfor %}
+    </ul>
+
+    <h3>Problemas</h3>
+    {% if documento.problemas %}
+    <ul class="valores">
+      {% for p in documento.problemas %}<li>{{ p.nome }} <span class="suave">{{ p.descricao }}</span></li>{% endfor %}
+    </ul>
+    {% else %}<p class="vazio">A lista de problemas está vazia.</p>{% endif %}
+
+    <h3>Réguas</h3>
+    <div class="reguas">
+      <div><h4>Severidade</h4>
+        <ol>{% for n in documento.regua_severidade %}<li>{{ n.nome }} <span class="suave">{{ n.criterio }}</span></li>{% endfor %}</ol></div>
+      <div><h4>Impacto</h4>
+        <ol>{% for n in documento.regua_impacto %}<li>{{ n.nome }} <span class="suave">{{ n.criterio }}</span></li>{% endfor %}</ol></div>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="historico" aria-labelledby="t-historico">
+    <h2 id="t-historico">Histórico</h2>
+    {% if historico %}
+    <table class="tabela">
+      <thead><tr><th scope="col">Quando</th><th scope="col">O quê</th><th scope="col">Gatilho</th><th scope="col">Partiu da</th><th scope="col">Resultado</th></tr></thead>
+      <tbody>
+        {% for h in historico %}
+        <tr{% if h.aberta %} aria-current="true"{% endif %}>
+          <td>{{ h.quando }}</td>
+          <td><a href="/taxonomia?geracao={{ h.id }}{% if lida and lida != vigente %}&amp;versao={{ lida }}{% endif %}">{{ h.titulo }}</a></td>
+          <td>{{ h.gatilho or "" }}</td>
+          <td>{% if h.parte_da %}v{{ h.parte_da }}{% endif %}</td>
+          <td>{{ h.situacao }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="vazio">Nada gravado ainda: nem a descoberta.</p>
+    {% endif %}
+  </section>
+</section>

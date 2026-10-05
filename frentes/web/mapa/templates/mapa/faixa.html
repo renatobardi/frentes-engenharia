@@ -1,0 +1,17 @@
+{# "Chegando agora" (spec 10): as últimas frentes recebidas desde que a tela abriu. O texto vem
+   de quem relatou: escapado, nunca `|safe`. Sem frente nova a faixa não existe; o `#faixa`
+   vazio fica de âncora para a troca fora de banda. #}
+<div id="faixa"{% if oob %} hx-swap-oob="true"{% endif %}>
+{% if chegando %}
+  <section class="faixa" aria-label="Chegando agora" aria-live="polite">
+    <h2>Chegando agora{% if chegando_total > chegando|length %} <small>{{ chegando_total }} frentes</small>{% endif %}</h2>
+    <ul>
+      {% for c in chegando %}
+      <li><time>{{ c.hora }}</time> <span class="texto">{{ c.texto }}</span>
+        {% if c.celula %}<span class="onde">{{ c.celula }}</span>{% endif %}
+        <span class="estado">{{ c.estado }}</span>{% if c.confianca %} <span class="confianca">{{ c.confianca }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endif %}
+</div>

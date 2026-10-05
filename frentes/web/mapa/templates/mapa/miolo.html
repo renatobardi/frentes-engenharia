@@ -1,0 +1,52 @@
+<section id="mapa" class="mapa" hx-headers='{"X-Marca": "{{ marca }}"}'>
+  <div class="barra">
+    <form class="filtros" action="/" method="get"
+          hx-get="/" hx-trigger="change" hx-target="#mapa" hx-swap="outerHTML" hx-push-url="true">
+      <div class="visoes" role="radiogroup" aria-label="Visão">
+        {% for valor, nome in visoes %}
+        <label><input type="radio" name="visao" value="{{ valor.value }}"{% if valor == mapa.visao %} checked{% endif %}> {{ nome }}</label>
+        {% endfor %}
+      </div>
+      <label>Período
+        <select name="periodo">
+          {% for valor, nome in periodos %}
+          <option value="{{ valor.value }}"{% if valor == mapa.periodo %} selected{% endif %}>{{ nome }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <fieldset class="origens">
+        <legend>Origem</legend>
+        {% for valor, nome in origens_possiveis %}
+        <label><input type="checkbox" name="origem" value="{{ valor.value }}"{% if valor in origens %} checked{% endif %}> {{ nome }}</label>
+        {% endfor %}
+      </fieldset>
+      <label>Taxonomia
+        <select name="versao">
+          {% for n in versoes %}
+          <option value="{{ n }}"{% if n == mapa.versao %} selected{% endif %}>v{{ n }}{% if n == vigente %} vigente{% endif %}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% if painel %}<input type="hidden" name="area" value="{{ celula_aberta[0] }}"><input type="hidden" name="tipo" value="{{ celula_aberta[1] }}">{% endif %}
+      {# sem JavaScript o formulário não manda o HX-Current-URL: `de` diz de que versão se veio #}
+      <noscript><input type="hidden" name="de" value="{{ mapa.versao }}"><button type="submit">Aplicar</button></noscript>
+    </form>
+
+    {% include "mapa/contadores.html" %}
+  </div>
+
+  {% if aviso_da_celula %}<p class="aviso-versao" role="status">{{ aviso_da_celula }}</p>{% endif %}
+  {% include "mapa/faixa_versao.html" %}
+
+  <p id="aviso-enderecar" class="erro-enderecar" role="alert" hidden></p>
+
+  <div id="ao-vivo" hidden hx-get="{{ polling }}" hx-trigger="every {{ intervalo }}s [document.visibilityState=='visible']" hx-swap="outerHTML"></div>
+
+  {% include "mapa/faixa.html" %}
+  {% include "mapa/top3.html" %}
+
+  <div class="corpo{% if painel %} com-painel{% endif %}">
+  {% include "mapa/grade.html" %}
+  {% if painel %}{% include "mapa/painel.html" %}{% endif %}
+  </div>
+</section>

@@ -1,0 +1,991 @@
+{
+  "emissores": [
+    {
+      "id": "p001",
+      "nome": "Alice Albuquerque",
+      "tipo": "pessoa",
+      "time": "simulacao",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p002",
+      "nome": "Heitor Mourão",
+      "tipo": "pessoa",
+      "time": "simulacao",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p003",
+      "nome": "Olívia Xisto",
+      "tipo": "pessoa",
+      "time": "simulacao",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p004",
+      "nome": "Vítor Ibiapina",
+      "tipo": "pessoa",
+      "time": "simulacao",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p005",
+      "nome": "Cássio Falcão",
+      "tipo": "pessoa",
+      "time": "simulacao",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p006",
+      "nome": "Jussara Rezende",
+      "tipo": "pessoa",
+      "time": "proposta",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p007",
+      "nome": "Davi Cordeiro",
+      "tipo": "pessoa",
+      "time": "proposta",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p008",
+      "nome": "Karina Neiva",
+      "tipo": "pessoa",
+      "time": "proposta",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p009",
+      "nome": "Rafael Lacerda",
+      "tipo": "pessoa",
+      "time": "proposta",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p010",
+      "nome": "Yasmin Werneck",
+      "tipo": "pessoa",
+      "time": "proposta",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p011",
+      "nome": "Flávia Holanda",
+      "tipo": "pessoa",
+      "time": "cadastro-e-kyc",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p012",
+      "nome": "Natália Esteves",
+      "tipo": "pessoa",
+      "time": "cadastro-e-kyc",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p013",
+      "nome": "Gisele Quadros",
+      "tipo": "pessoa",
+      "time": "cadastro-e-kyc",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p014",
+      "nome": "Nicolau Brandão",
+      "tipo": "pessoa",
+      "time": "cadastro-e-kyc",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p015",
+      "nome": "Úrsula Matoso",
+      "tipo": "pessoa",
+      "time": "cadastro-e-kyc",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p016",
+      "nome": "Bianca Junqueira",
+      "tipo": "pessoa",
+      "time": "motor-de-decisao",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p017",
+      "nome": "Ícaro Valadares",
+      "tipo": "pessoa",
+      "time": "motor-de-decisao",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p018",
+      "nome": "Carla Gouveia",
+      "tipo": "pessoa",
+      "time": "motor-de-decisao",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p019",
+      "nome": "Jonas Dornelas",
+      "tipo": "pessoa",
+      "time": "motor-de-decisao",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p020",
+      "nome": "Quitéria Pimentel",
+      "tipo": "pessoa",
+      "time": "motor-de-decisao",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p021",
+      "nome": "Xavier Arantes",
+      "tipo": "pessoa",
+      "time": "politicas-de-credito",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p022",
+      "nome": "Emanuel Loureiro",
+      "tipo": "pessoa",
+      "time": "politicas-de-credito",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p023",
+      "nome": "Marta Itapoã",
+      "tipo": "pessoa",
+      "time": "politicas-de-credito",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p024",
+      "nome": "Fábio Uchoa",
+      "tipo": "pessoa",
+      "time": "politicas-de-credito",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p025",
+      "nome": "Marina Fontoura",
+      "tipo": "pessoa",
+      "time": "politicas-de-credito",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p026",
+      "nome": "Tiago Camargo",
+      "tipo": "pessoa",
+      "time": "antifraude",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p027",
+      "nome": "Aurélio Orlandi",
+      "tipo": "pessoa",
+      "time": "antifraude",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p028",
+      "nome": "Helena Zambrano",
+      "tipo": "pessoa",
+      "time": "antifraude",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p029",
+      "nome": "Bruno Klein",
+      "tipo": "pessoa",
+      "time": "antifraude",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p030",
+      "nome": "Íris Hollanda",
+      "tipo": "pessoa",
+      "time": "antifraude",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p031",
+      "nome": "Paulo Tavares",
+      "tipo": "pessoa",
+      "time": "contratos",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p032",
+      "nome": "Wanda Evangelista",
+      "tipo": "pessoa",
+      "time": "contratos",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p033",
+      "nome": "Dalila Barbalho",
+      "tipo": "pessoa",
+      "time": "contratos",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p034",
+      "nome": "Leandro Nogueira",
+      "tipo": "pessoa",
+      "time": "contratos",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p035",
+      "nome": "Elisa Yamada",
+      "tipo": "pessoa",
+      "time": "contratos",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p036",
+      "nome": "Lucas Jardim",
+      "tipo": "pessoa",
+      "time": "documentacao-e-assinatura",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p037",
+      "nome": "Sabrina Guimarães",
+      "tipo": "pessoa",
+      "time": "documentacao-e-assinatura",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p038",
+      "nome": "Zeca Siqueira",
+      "tipo": "pessoa",
+      "time": "documentacao-e-assinatura",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p039",
+      "nome": "Gustavo Damasceno",
+      "tipo": "pessoa",
+      "time": "documentacao-e-assinatura",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p040",
+      "nome": "Alice Barbalho",
+      "tipo": "pessoa",
+      "time": "documentacao-e-assinatura",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p041",
+      "nome": "Heitor Nogueira",
+      "tipo": "pessoa",
+      "time": "gravame",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p042",
+      "nome": "Olívia Yamada",
+      "tipo": "pessoa",
+      "time": "gravame",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p043",
+      "nome": "Vítor Jardim",
+      "tipo": "pessoa",
+      "time": "gravame",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p044",
+      "nome": "Cássio Guimarães",
+      "tipo": "pessoa",
+      "time": "gravame",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p045",
+      "nome": "Jussara Siqueira",
+      "tipo": "pessoa",
+      "time": "gravame",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p046",
+      "nome": "Davi Damasceno",
+      "tipo": "pessoa",
+      "time": "portal-do-lojista",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p047",
+      "nome": "Karina Albuquerque",
+      "tipo": "pessoa",
+      "time": "portal-do-lojista",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p048",
+      "nome": "Rafael Mourão",
+      "tipo": "pessoa",
+      "time": "portal-do-lojista",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p049",
+      "nome": "Yasmin Xisto",
+      "tipo": "pessoa",
+      "time": "portal-do-lojista",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p050",
+      "nome": "Flávia Ibiapina",
+      "tipo": "pessoa",
+      "time": "portal-do-lojista",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p051",
+      "nome": "Natália Falcão",
+      "tipo": "pessoa",
+      "time": "correspondentes",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p052",
+      "nome": "Gisele Rezende",
+      "tipo": "pessoa",
+      "time": "correspondentes",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p053",
+      "nome": "Nicolau Cordeiro",
+      "tipo": "pessoa",
+      "time": "correspondentes",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p054",
+      "nome": "Úrsula Neiva",
+      "tipo": "pessoa",
+      "time": "correspondentes",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p055",
+      "nome": "Bianca Lacerda",
+      "tipo": "pessoa",
+      "time": "correspondentes",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p056",
+      "nome": "Ícaro Werneck",
+      "tipo": "pessoa",
+      "time": "comissionamento-de-parceiros",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p057",
+      "nome": "Carla Holanda",
+      "tipo": "pessoa",
+      "time": "comissionamento-de-parceiros",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p058",
+      "nome": "Jonas Esteves",
+      "tipo": "pessoa",
+      "time": "comissionamento-de-parceiros",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p059",
+      "nome": "Quitéria Quadros",
+      "tipo": "pessoa",
+      "time": "comissionamento-de-parceiros",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p060",
+      "nome": "Xavier Brandão",
+      "tipo": "pessoa",
+      "time": "comissionamento-de-parceiros",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p061",
+      "nome": "Emanuel Matoso",
+      "tipo": "pessoa",
+      "time": "app",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p062",
+      "nome": "Marta Junqueira",
+      "tipo": "pessoa",
+      "time": "app",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p063",
+      "nome": "Fábio Valadares",
+      "tipo": "pessoa",
+      "time": "app",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p064",
+      "nome": "Marina Gouveia",
+      "tipo": "pessoa",
+      "time": "app",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p065",
+      "nome": "Tiago Dornelas",
+      "tipo": "pessoa",
+      "time": "app",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p066",
+      "nome": "Aurélio Pimentel",
+      "tipo": "pessoa",
+      "time": "jornada-online",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p067",
+      "nome": "Helena Arantes",
+      "tipo": "pessoa",
+      "time": "jornada-online",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p068",
+      "nome": "Bruno Loureiro",
+      "tipo": "pessoa",
+      "time": "jornada-online",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p069",
+      "nome": "Íris Itapoã",
+      "tipo": "pessoa",
+      "time": "jornada-online",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p070",
+      "nome": "Paulo Uchoa",
+      "tipo": "pessoa",
+      "time": "jornada-online",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p071",
+      "nome": "Wanda Fontoura",
+      "tipo": "pessoa",
+      "time": "marketplace-de-veiculos",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p072",
+      "nome": "Dalila Camargo",
+      "tipo": "pessoa",
+      "time": "marketplace-de-veiculos",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p073",
+      "nome": "Leandro Orlandi",
+      "tipo": "pessoa",
+      "time": "marketplace-de-veiculos",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p074",
+      "nome": "Elisa Zambrano",
+      "tipo": "pessoa",
+      "time": "marketplace-de-veiculos",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p075",
+      "nome": "Lucas Klein",
+      "tipo": "pessoa",
+      "time": "marketplace-de-veiculos",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p076",
+      "nome": "Sabrina Hollanda",
+      "tipo": "pessoa",
+      "time": "boletos-e-carnes",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p077",
+      "nome": "Zeca Tavares",
+      "tipo": "pessoa",
+      "time": "boletos-e-carnes",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p078",
+      "nome": "Gustavo Evangelista",
+      "tipo": "pessoa",
+      "time": "boletos-e-carnes",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p079",
+      "nome": "Alice Camargo",
+      "tipo": "pessoa",
+      "time": "boletos-e-carnes",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p080",
+      "nome": "Heitor Orlandi",
+      "tipo": "pessoa",
+      "time": "boletos-e-carnes",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p081",
+      "nome": "Olívia Zambrano",
+      "tipo": "pessoa",
+      "time": "renegociacao",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p082",
+      "nome": "Vítor Klein",
+      "tipo": "pessoa",
+      "time": "renegociacao",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p083",
+      "nome": "Cássio Hollanda",
+      "tipo": "pessoa",
+      "time": "renegociacao",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p084",
+      "nome": "Jussara Tavares",
+      "tipo": "pessoa",
+      "time": "renegociacao",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p085",
+      "nome": "Davi Evangelista",
+      "tipo": "pessoa",
+      "time": "renegociacao",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p086",
+      "nome": "Karina Barbalho",
+      "tipo": "pessoa",
+      "time": "quitacao-e-baixa",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p087",
+      "nome": "Rafael Nogueira",
+      "tipo": "pessoa",
+      "time": "quitacao-e-baixa",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p088",
+      "nome": "Yasmin Yamada",
+      "tipo": "pessoa",
+      "time": "quitacao-e-baixa",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p089",
+      "nome": "Flávia Jardim",
+      "tipo": "pessoa",
+      "time": "quitacao-e-baixa",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p090",
+      "nome": "Natália Guimarães",
+      "tipo": "pessoa",
+      "time": "quitacao-e-baixa",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p091",
+      "nome": "Gisele Siqueira",
+      "tipo": "pessoa",
+      "time": "infra-e-cloud",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p092",
+      "nome": "Nicolau Damasceno",
+      "tipo": "pessoa",
+      "time": "infra-e-cloud",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p093",
+      "nome": "Úrsula Albuquerque",
+      "tipo": "pessoa",
+      "time": "infra-e-cloud",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p094",
+      "nome": "Bianca Mourão",
+      "tipo": "pessoa",
+      "time": "infra-e-cloud",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p095",
+      "nome": "Ícaro Xisto",
+      "tipo": "pessoa",
+      "time": "infra-e-cloud",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p096",
+      "nome": "Carla Ibiapina",
+      "tipo": "pessoa",
+      "time": "observabilidade",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p097",
+      "nome": "Jonas Falcão",
+      "tipo": "pessoa",
+      "time": "observabilidade",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p098",
+      "nome": "Quitéria Rezende",
+      "tipo": "pessoa",
+      "time": "observabilidade",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p099",
+      "nome": "Xavier Cordeiro",
+      "tipo": "pessoa",
+      "time": "observabilidade",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p100",
+      "nome": "Emanuel Neiva",
+      "tipo": "pessoa",
+      "time": "observabilidade",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p101",
+      "nome": "Marta Lacerda",
+      "tipo": "pessoa",
+      "time": "suporte-n2-n3",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p102",
+      "nome": "Fábio Werneck",
+      "tipo": "pessoa",
+      "time": "suporte-n2-n3",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p103",
+      "nome": "Marina Holanda",
+      "tipo": "pessoa",
+      "time": "suporte-n2-n3",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p104",
+      "nome": "Tiago Esteves",
+      "tipo": "pessoa",
+      "time": "suporte-n2-n3",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p105",
+      "nome": "Aurélio Quadros",
+      "tipo": "pessoa",
+      "time": "suporte-n2-n3",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p106",
+      "nome": "Helena Brandão",
+      "tipo": "pessoa",
+      "time": "engenharia-de-dados",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p107",
+      "nome": "Bruno Matoso",
+      "tipo": "pessoa",
+      "time": "engenharia-de-dados",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p108",
+      "nome": "Íris Junqueira",
+      "tipo": "pessoa",
+      "time": "engenharia-de-dados",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p109",
+      "nome": "Paulo Valadares",
+      "tipo": "pessoa",
+      "time": "engenharia-de-dados",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p110",
+      "nome": "Wanda Gouveia",
+      "tipo": "pessoa",
+      "time": "engenharia-de-dados",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p111",
+      "nome": "Dalila Dornelas",
+      "tipo": "pessoa",
+      "time": "relatorios-regulatorios",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p112",
+      "nome": "Leandro Pimentel",
+      "tipo": "pessoa",
+      "time": "relatorios-regulatorios",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p113",
+      "nome": "Elisa Arantes",
+      "tipo": "pessoa",
+      "time": "relatorios-regulatorios",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p114",
+      "nome": "Lucas Loureiro",
+      "tipo": "pessoa",
+      "time": "relatorios-regulatorios",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p115",
+      "nome": "Sabrina Itapoã",
+      "tipo": "pessoa",
+      "time": "relatorios-regulatorios",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "p116",
+      "nome": "Zeca Uchoa",
+      "tipo": "pessoa",
+      "time": "privacidade-lgpd",
+      "cargo": "Tech Lead"
+    },
+    {
+      "id": "p117",
+      "nome": "Gustavo Fontoura",
+      "tipo": "pessoa",
+      "time": "privacidade-lgpd",
+      "cargo": "Engenheiro(a) de Software Sênior"
+    },
+    {
+      "id": "p118",
+      "nome": "Alice Dornelas",
+      "tipo": "pessoa",
+      "time": "privacidade-lgpd",
+      "cargo": "Engenheiro(a) de Software Pleno"
+    },
+    {
+      "id": "p119",
+      "nome": "Heitor Pimentel",
+      "tipo": "pessoa",
+      "time": "privacidade-lgpd",
+      "cargo": "Analista de Produto"
+    },
+    {
+      "id": "p120",
+      "nome": "Olívia Arantes",
+      "tipo": "pessoa",
+      "time": "privacidade-lgpd",
+      "cargo": "Analista de Qualidade"
+    },
+    {
+      "id": "s01",
+      "nome": "Vigia da Esteira",
+      "tipo": "sistema",
+      "time": "proposta",
+      "cargo": null
+    },
+    {
+      "id": "s02",
+      "nome": "Sentinela de Cadastro",
+      "tipo": "sistema",
+      "time": "cadastro-e-kyc",
+      "cargo": null
+    },
+    {
+      "id": "s03",
+      "nome": "Alarme do Motor",
+      "tipo": "sistema",
+      "time": "motor-de-decisao",
+      "cargo": null
+    },
+    {
+      "id": "s04",
+      "nome": "Radar Antifraude",
+      "tipo": "sistema",
+      "time": "antifraude",
+      "cargo": null
+    },
+    {
+      "id": "s05",
+      "nome": "Monitor de Assinaturas",
+      "tipo": "sistema",
+      "time": "documentacao-e-assinatura",
+      "cargo": null
+    },
+    {
+      "id": "s06",
+      "nome": "Alerta de Inscrições",
+      "tipo": "sistema",
+      "time": "gravame",
+      "cargo": null
+    },
+    {
+      "id": "s07",
+      "nome": "Aviso do Portal",
+      "tipo": "sistema",
+      "time": "portal-do-lojista",
+      "cargo": null
+    },
+    {
+      "id": "s08",
+      "nome": "Apurador de Comissões",
+      "tipo": "sistema",
+      "time": "comissionamento-de-parceiros",
+      "cargo": null
+    },
+    {
+      "id": "s09",
+      "nome": "Vigia do App",
+      "tipo": "sistema",
+      "time": "app",
+      "cargo": null
+    },
+    {
+      "id": "s10",
+      "nome": "Sentinela de Cobrança",
+      "tipo": "sistema",
+      "time": "boletos-e-carnes",
+      "cargo": null
+    },
+    {
+      "id": "s11",
+      "nome": "Alarme da Nuvem",
+      "tipo": "sistema",
+      "time": "infra-e-cloud",
+      "cargo": null
+    },
+    {
+      "id": "s12",
+      "nome": "Monitor de Cargas",
+      "tipo": "sistema",
+      "time": "engenharia-de-dados",
+      "cargo": null
+    },
+    {
+      "id": "s13",
+      "nome": "Banco de Contratos",
+      "tipo": "sistema",
+      "time": "contratos",
+      "cargo": null
+    },
+    {
+      "id": "s14",
+      "nome": "Banco de Cobrança",
+      "tipo": "sistema",
+      "time": "boletos-e-carnes",
+      "cargo": null
+    },
+    {
+      "id": "s15",
+      "nome": "Banco de Propostas",
+      "tipo": "sistema",
+      "time": "proposta",
+      "cargo": null
+    },
+    {
+      "id": "s16",
+      "nome": "Banco do Portal",
+      "tipo": "sistema",
+      "time": "portal-do-lojista",
+      "cargo": null
+    },
+    {
+      "id": "s17",
+      "nome": "Banco de Quitações",
+      "tipo": "sistema",
+      "time": "quitacao-e-baixa",
+      "cargo": null
+    },
+    {
+      "id": "s18",
+      "nome": "Banco de Chamados",
+      "tipo": "sistema",
+      "time": "suporte-n2-n3",
+      "cargo": null
+    },
+    {
+      "id": "s19",
+      "nome": "Agregador de Logs",
+      "tipo": "sistema",
+      "time": null,
+      "cargo": null
+    },
+    {
+      "id": "s20",
+      "nome": "Gateway de Eventos",
+      "tipo": "sistema",
+      "time": null,
+      "cargo": null
+    },
+    {
+      "id": "s21",
+      "nome": "Auditoria de Banco",
+      "tipo": "sistema",
+      "time": null,
+      "cargo": null
+    }
+  ]
+}

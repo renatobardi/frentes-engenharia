@@ -1,0 +1,7 @@
+<div id="fora-vivo"{% if oob %} hx-swap-oob="true"{% endif %}>
+<ul class="contadores" aria-label="Fora da grade">
+  {% for c in contadores %}
+  <li><a href="{{ c.destino }}"><strong>{{ c.total }}</strong> {{ c.nome }}</a></li>
+  {% endfor %}
+</ul>
+</div>

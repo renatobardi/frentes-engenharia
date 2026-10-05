@@ -1,0 +1,22 @@
+/* A gaveta do relato: estreita, centralizada. */
+.gaveta { max-width: 28rem; margin: 0 auto; background: #fff; border: 1px solid var(--linha); border-radius: 8px; padding: 1rem 1.25rem; }
+.gaveta h1 { font-size: 1.2rem; margin: 0 0 0.75rem; }
+.gaveta h2 { font-size: 1rem; margin: 1rem 0 0.5rem; }
+.gaveta label { display: block; font-weight: 600; margin-top: 0.75rem; }
+.gaveta input, .gaveta textarea { width: 100%; font: inherit; padding: 0.4rem; border: 1px solid var(--linha); border-radius: 6px; }
+.gaveta button { margin-top: 0.75rem; border: 0; cursor: pointer; font: inherit; }
+.gaveta .ajuda { color: var(--suave); font-size: 0.875rem; margin: 0.25rem 0 0; }
+.gaveta .erro { color: #9c1c1c; margin: 0 0 0.5rem; }
+.gaveta .quem { color: var(--suave); margin: 0.5rem 0 0.25rem; }
+.gaveta .original { margin: 0; padding: 0.5rem 0.75rem; background: var(--fundo); border-left: 3px solid var(--destaque); white-space: pre-wrap; overflow-wrap: anywhere; }
+.gaveta .complemento { border-left-color: var(--suave); }
+.gaveta .estado { font-weight: 600; margin-top: 1rem; }
+.gaveta .aguardando { color: #8a5a00; }
+.gaveta .linha { display: grid; grid-template-columns: 1fr auto; gap: 0.1rem 0.5rem; margin-bottom: 0.6rem; }
+.gaveta .rotulo { grid-column: 1 / -1; color: var(--suave); font-size: 0.8125rem; }
+.gaveta .resposta { font-weight: 600; overflow-wrap: anywhere; }
+.gaveta .percentual { font-variant-numeric: tabular-nums; }
+.gaveta .barra { grid-column: 1 / -1; height: 0.5rem; background: var(--linha); border-radius: 4px; overflow: hidden; }
+.gaveta .barra span { display: block; height: 100%; background: var(--destaque); }
+.gaveta .nivel { font-weight: 600; }
+.gaveta .vago { margin-top: 1rem; padding: 0.5rem 0.75rem; background: #fff6e0; border: 1px solid #e8c36a; border-radius: 6px; }

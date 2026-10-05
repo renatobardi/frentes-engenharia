@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block titulo %}Mapa de calor · frentes-engenharia{% endblock %}
+{% block conteudo %}
+<link rel="stylesheet" href="/static/mapa.css">
+<script src="/static/mapa-ao-vivo.js" defer></script>
+{% include "mapa/miolo.html" %}
+{% endblock %}

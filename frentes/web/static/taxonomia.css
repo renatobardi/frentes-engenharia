@@ -1,0 +1,24 @@
+/* Tela Taxonomia. Escrito à mão, sem endereço externo. */
+.taxonomia section { margin-bottom: 2rem; }
+.taxonomia h2 { border-bottom: 1px solid var(--linha); padding-bottom: 0.25rem; }
+.taxonomia .suave, .taxonomia .meta { color: var(--suave); }
+.taxonomia .aviso { background: #fff4d6; border: 1px solid #e0c36a; padding: 0.5rem 0.75rem; border-radius: 6px; }
+.taxonomia .revisar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
+.taxonomia .revisar button { font: inherit; background: var(--destaque); color: #fff; border: 0; border-radius: 6px; padding: 0.4rem 0.9rem; cursor: pointer; }
+.marcadores { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; list-style: none; padding: 0; margin: 0 0 1rem; }
+.marcadores a, .marcadores span { color: var(--suave); text-decoration: none; }
+.marcadores [aria-current="step"] a { color: var(--texto); font-weight: 700; border-bottom: 2px solid var(--destaque); }
+.frase { margin: 1rem 0; padding: 0.75rem 1rem; background: #fff; border-left: 4px solid var(--destaque); font-size: 1.1rem; }
+.nada { font-weight: 600; }
+.taxonomia .tabela { width: auto; min-width: 22rem; border-collapse: collapse; background: #fff; }
+.taxonomia .tabela th, .taxonomia .tabela td { text-align: left; padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--linha); }
+.taxonomia .tabela tr.disparou th, .taxonomia .tabela tr.disparou td { background: #fff4d6; }
+.taxonomia .selo { font-size: 0.75rem; background: var(--linha); border-radius: 0.75rem; padding: 0 0.5rem; font-weight: 400; }
+.operacoes { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
+.operacao { background: #fff; border: 1px solid var(--linha); border-radius: 6px; padding: 0.6rem 0.9rem; }
+.operacao.descartada { opacity: 0.8; border-style: dashed; }
+.operacao p { margin: 0.2rem 0; }
+.evidencias { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+.valores ul { margin: 0.2rem 0 0.4rem; }
+.reguas { display: flex; flex-wrap: wrap; gap: 2rem; }
+.vazio { color: var(--suave); }

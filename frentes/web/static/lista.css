@@ -1,0 +1,17 @@
+/* Tela da lista de frentes. Escrito à mão, sem endereço externo. */
+.lista .filtros { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem 1rem; margin-bottom: 1rem; }
+.lista .filtros label { display: flex; flex-direction: column; font-size: 0.85rem; color: var(--suave); }
+.lista .filtros select, .lista .filtros input[type="search"] { font: inherit; padding: 0.2rem; }
+.lista .filtros fieldset { display: flex; gap: 0.6rem; border: 0; padding: 0; margin: 0; }
+.lista .filtros legend { float: left; margin-right: 0.6rem; color: var(--suave); }
+.lista .filtros fieldset label { flex-direction: row; gap: 0.25rem; color: var(--texto); }
+.chips { display: flex; flex-wrap: wrap; gap: 0.5rem; list-style: none; margin: 0 0 1rem; padding: 0; }
+.chip { background: #fff; border: 1px solid var(--linha); border-radius: 1rem; padding: 0.1rem 0.7rem; }
+.chip a { color: var(--suave); text-decoration: none; margin-left: 0.3rem; }
+.total { color: var(--suave); margin: 0 0 0.5rem; }
+.tabela { width: 100%; border-collapse: collapse; background: #fff; }
+.tabela th, .tabela td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--linha); vertical-align: top; }
+.tabela td.texto { max-width: 36rem; }
+.tabela td.texto a { color: var(--texto); text-decoration: none; }
+.paginas { display: flex; gap: 1rem; align-items: center; margin-top: 1rem; }
+.vazio { color: var(--suave); }

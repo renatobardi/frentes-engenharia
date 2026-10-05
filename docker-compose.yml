@@ -1,0 +1,25 @@
+# Um serviço, um volume. O mesmo arquivo sobe no LXC do oute-server e no Mac (reserva sem rede).
+services:
+  app:
+    build:
+      context: .
+      args:
+        FRENTES_COMMIT: ${FRENTES_COMMIT:-desconhecido}
+    # Os três segredos vêm do .env (root, 0600, fora do git). Sem ele a aplicação sobe
+    # sem as chaves: as telas funcionam do snapshot e a frente nova fica aguardando classificação.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      FRENTES_DB: /data/frentes.sqlite
+      FRENTES_HOST: 0.0.0.0
+      FRENTES_PORT: "8000"
+    # Só a própria máquina por padrão. No LXC, FRENTES_PUBLICAR leva o IP e a porta alocados.
+    ports:
+      - "${FRENTES_PUBLICAR:-127.0.0.1:8000}:8000"
+    volumes:
+      - dados:/data
+    restart: unless-stopped
+
+volumes:
+  dados:

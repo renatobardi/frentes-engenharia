@@ -1,0 +1,12 @@
+<div id="top3-vivo"{% if oob %} hx-swap-oob="true"{% endif %}>
+<ol class="top3" aria-label="Top 3 onde investir">
+  <li class="top3-titulo">Top 3 onde investir</li>
+  {% for d in top3 %}
+  <li class="destaque"><span class="posicao">{{ d.posicao }}</span> {{ d.area }} × {{ d.tipo }}
+    <strong>{{ d.indice }}</strong>{% if d.seta %} <span class="seta">{{ d.seta }}{{ d.variacao }}</span>{% endif %}
+    {% if d.selo %}<span class="selo-top3">◆ endereçada em {{ d.selo }}</span>{% endif %}</li>
+  {% else %}
+  <li class="vazio">Nenhuma célula com índice neste recorte.</li>
+  {% endfor %}
+</ol>
+</div>

@@ -1,0 +1,322 @@
+/* CSS base no padrão do Kubo (épico #116), escrito à mão. Fonte do sistema, sem fonte web e sem
+   endereço externo. Os .css de cada tela vêm depois deste e só acrescentam o que é dela.
+
+   CONTRATO DE CLASSES (o que as telas reutilizam; mudar o nome aqui quebra as outras fases)
+   Layout   .app (.app-trilho = barra estreita) > .sidebar + .principal > .topo + main
+            .pagina-cab > .pagina-cab-texto (h1 + p.desc) + .pagina-cab-acoes
+            .rolagem  caixa que rola na horizontal (envolva a .tabela)  .so-leitor  texto só p/ leitor de tela
+   Botão    .btn (primário) | .btn-outline | .btn-ghost | .btn-destrutivo (tingido)
+            tamanhos: padrão 36px, .btn-sm 32px, .btn-xs 24px; .btn-icone (redondo, só ícone: aria-label)
+   Badge    .badge (outline) | .badge-secundario | .badge-tracejado | .badge-gate | .badge-muted
+   Chip     .chip (+ .chip-ativo = primário, .chip-gate, .chip-tracejado); .bolinha dentro dele = ponto de cor
+            (.bolinha-gate, .bolinha-muted); .chip a / button.chip clicáveis
+   Segmentado  .segmentado > a|button (aria-current="true" ou aria-pressed="true" = ativo); .segmentado-sm
+   Card     .card (anel de 1px, sem borda nem sombra; .card-pad = com respiro; .card-titulo 16px/500)
+   Barra    .barra-fina > span (largura inline em %); .barra-fina-gate ; .barra-fina-preta
+   Toast    .toast (fixo no canto, pill escuro; .toast[hidden] some; .toast-entra anima)
+   Tabela   .tabela (cabeçalho sticky dentro de .rolagem, linha clicável .linha-clicavel, .linha-sel)
+   Vazio    .estado-vazio > ícone + p + .btn
+   Tipo     .meta 12px  .fino 11px  .muted  .num (tabular)  .gate (texto âmbar)  .bloco-gate (fundo gate)
+            .entra (fade + 4px em 260 ms)
+   Ícones   macro Jinja: {% from "_icones.html" import icone %}  {{ icone("nome", 16) }}
+   Tokens   cores, raios e movimento em :root (abaixo). Os nomes antigos (--fundo, --texto, --suave,
+            --linha, --destaque) seguem existindo como apelidos dos novos até as fases 2 a 4 trocarem. */
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.147 0.004 49.25);
+  --card: oklch(1 0 0);
+  --primary: oklch(0.216 0.006 56.043);
+  --primary-foreground: oklch(0.985 0.001 106.423);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.97 0.001 106.424);
+  --muted-foreground: oklch(0.553 0.013 58.071);
+  --border: oklch(0.923 0.003 48.717);
+  --input: var(--border);
+  --ring: oklch(0.709 0.01 56.259);
+  --destructive: oklch(0.577 0.245 27.325);
+  --sidebar: oklch(0.985 0.001 106.423);
+  --sidebar-accent: var(--muted);
+  /* Âmbar só para atenção ("gate"). */
+  --amber: oklch(0.769 0.165 70.08);
+  --gate: oklch(0.555 0.163 49);
+  --gate-bg: color-mix(in oklab, var(--amber) 16%, transparent);
+
+  --raio: 8px;
+  --raio-pill: 20.8px;
+  --raio-card: 14.4px;
+  --raio-textarea: 12px;
+  --anel: 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent);
+  --foco: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+  --t: 150ms;
+
+  --fonte: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Apelidos dos nomes antigos, lidos pelos .css das telas ainda não migradas. */
+  --fundo: var(--muted);
+  --texto: var(--foreground);
+  --suave: var(--muted-foreground);
+  --linha: var(--border);
+  --destaque: var(--primary);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font: 14px/1.5 var(--fonte);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.3; }
+h2 { font-size: 16px; font-weight: 500; }
+a { color: inherit; }
+:focus-visible { outline: none; box-shadow: var(--foco); border-radius: var(--raio); }
+
+.so-leitor {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+.icone { flex-shrink: 0; vertical-align: -0.15em; }
+
+/* ---- Layout: barra lateral, cabeçalho e conteúdo ---- */
+.app { display: flex; min-height: 100vh; }
+.principal { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+main { flex: 1; min-width: 0; padding: 24px; animation: entra 260ms ease-out both; }
+
+.sidebar {
+  flex: 0 0 240px;
+  width: 240px;
+  position: sticky; top: 0; align-self: flex-start;
+  height: 100vh;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 14px 12px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+.sidebar-marca {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 4px 16px; text-decoration: none;
+}
+.sidebar-logo {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  background: var(--primary); color: var(--primary-foreground);
+  display: flex; align-items: center; justify-content: center;
+}
+.sidebar-marca-texto { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.sidebar-marca-texto strong { font-size: 14px; font-weight: 600; }
+.sidebar-marca-texto span { font-size: 12px; color: var(--muted-foreground); }
+.sidebar .menu { display: flex; flex-direction: column; gap: 2px; }
+.sidebar-grupo {
+  margin: 8px 10px 4px; font-size: 11px; letter-spacing: 0.02em;
+  color: var(--muted-foreground); font-weight: 500;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px;
+  border-radius: var(--raio); text-decoration: none; font-weight: 500;
+  color: var(--foreground); transition: background var(--t), color var(--t);
+}
+.nav-item:hover { background: var(--sidebar-accent); }
+.nav-item[aria-current="page"] { background: var(--primary); color: var(--primary-foreground); }
+.nav-extra {
+  margin-left: auto; font-size: 11px; color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.nav-item[aria-current="page"] .nav-extra { color: color-mix(in oklab, var(--primary-foreground) 70%, transparent); }
+.sidebar-rodape { margin-top: auto; padding: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.sidebar-rodape-titulo { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.sidebar-rodape-texto { color: var(--muted-foreground); line-height: 1.4; }
+.bolinha {
+  display: inline-block; width: 6px; height: 6px; border-radius: 99px; flex-shrink: 0;
+  background: var(--foreground);
+}
+.bolinha-gate { background: var(--amber); }
+.bolinha-muted { background: var(--muted-foreground); }
+
+/* Barra estreita (60px): o padrão no mapa, para dar espaço à grade com o painel aberto. */
+.app-trilho .sidebar { flex-basis: 60px; width: 60px; padding: 14px 10px; align-items: center; }
+.app-trilho .sidebar-marca { padding: 0 0 16px; }
+.app-trilho .sidebar-marca-texto,
+.app-trilho .nav-nome, .app-trilho .nav-extra,
+.app-trilho .sidebar-grupo, .app-trilho .sidebar-rodape { display: none; }
+.app-trilho .sidebar .menu { align-items: center; }
+.app-trilho .nav-item { width: 40px; justify-content: center; padding: 0; }
+
+.topo {
+  height: 64px; display: flex; align-items: center; gap: 12px; padding: 0 24px;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  background: var(--background); position: sticky; top: 0; z-index: 5;
+}
+.trilha { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 14px; color: var(--muted-foreground); white-space: nowrap; }
+.trilha a { text-decoration: none; }
+.trilha a:hover { color: var(--foreground); }
+.trilha [aria-current="page"] { color: var(--foreground); font-weight: 500; }
+.topo-acoes { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+.pagina-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.pagina-cab-texto { min-width: 0; }
+.pagina-cab .desc { margin: 4px 0 0; color: var(--muted-foreground); font-size: 14px; }
+.pagina-cab-acoes { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ---- Tipo e utilitários ---- */
+.meta { font-size: 12px; }
+.fino { font-size: 11px; }
+.muted { color: var(--muted-foreground); }
+.num { font-variant-numeric: tabular-nums; }
+.gate { color: var(--gate); }
+.bloco-gate { background: var(--gate-bg); border-radius: var(--raio-card); padding: 12px 14px; }
+.entra { animation: entra 260ms ease-out both; }
+@keyframes entra { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ---- Botões: 36px (sm 32, xs 24), pill, 14px/500 ---- */
+.btn, .botao {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 36px; padding: 0 16px; border: 1px solid transparent; border-radius: var(--raio-pill);
+  background: var(--primary); color: var(--primary-foreground);
+  font: inherit; font-size: 14px; font-weight: 500; line-height: 1; white-space: nowrap;
+  text-decoration: none; cursor: pointer;
+  transition: background var(--t), color var(--t), opacity var(--t), transform 100ms;
+}
+.btn:hover, .botao:hover { background: color-mix(in oklab, var(--primary) 80%, transparent); }
+.btn:active, .botao:active { transform: translateY(1px); }
+.btn:focus-visible, .botao:focus-visible { box-shadow: var(--foco); border-radius: var(--raio-pill); }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.5; pointer-events: none; }
+.btn-outline { background: var(--background); color: var(--foreground); border-color: var(--border); }
+.btn-outline:hover { background: var(--muted); }
+.btn-ghost { background: transparent; color: var(--foreground); }
+.btn-ghost:hover { background: var(--muted); }
+.btn-destrutivo { background: color-mix(in oklab, var(--destructive) 10%, transparent); color: var(--destructive); }
+.btn-destrutivo:hover { background: color-mix(in oklab, var(--destructive) 20%, transparent); }
+.btn-sm { height: 32px; padding: 0 12px; }
+.btn-xs { height: 24px; padding: 0 10px; font-size: 12px; gap: 4px; }
+.btn-icone { width: 36px; padding: 0; color: var(--muted-foreground); }
+.btn-icone:hover { color: var(--foreground); }
+.btn-icone.btn-sm { width: 32px; }
+.btn-icone.btn-xs { width: 24px; }
+
+/* ---- Badges e chips ---- */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px;
+  border: 1px solid var(--border); border-radius: var(--raio-pill);
+  background: transparent; color: var(--foreground); font-size: 12px; font-weight: 500; white-space: nowrap;
+}
+.badge-secundario { border-color: transparent; background: var(--secondary); color: var(--secondary-foreground); }
+.badge-tracejado { border-style: dashed; color: var(--muted-foreground); }
+.badge-gate { border-color: transparent; background: var(--gate-bg); color: var(--gate); }
+.badge-muted { border-color: transparent; background: var(--muted); color: var(--muted-foreground); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px;
+  border: 1px solid var(--border); border-radius: var(--raio-pill);
+  background: var(--background); color: var(--foreground);
+  font: inherit; font-size: 12px; font-weight: 500; text-decoration: none; white-space: nowrap;
+}
+a.chip, button.chip { cursor: pointer; transition: background var(--t), color var(--t); }
+a.chip:hover, button.chip:hover { background: var(--muted); }
+.chip a { color: var(--muted-foreground); text-decoration: none; }
+.chip-ativo { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); }
+a.chip-ativo:hover, button.chip-ativo:hover { background: color-mix(in oklab, var(--primary) 80%, transparent); }
+.chip-gate { background: var(--gate-bg); border-color: transparent; color: var(--gate); }
+.chip-tracejado { border-style: dashed; color: var(--muted-foreground); }
+
+/* ---- Segmentado (pill) ---- */
+.segmentado {
+  display: inline-flex; align-items: center; gap: 2px; padding: 3px;
+  border-radius: var(--raio-pill); background: var(--muted);
+}
+.segmentado > a, .segmentado > button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 28px; padding: 0 14px; border: 0; border-radius: var(--raio-pill);
+  background: transparent; color: var(--muted-foreground);
+  font: inherit; font-size: 14px; font-weight: 500; text-decoration: none; white-space: nowrap; cursor: pointer;
+  transition: background var(--t), color var(--t);
+}
+.segmentado > a:hover, .segmentado > button:hover { color: var(--foreground); }
+.segmentado > [aria-current="true"], .segmentado > [aria-current="page"], .segmentado > [aria-pressed="true"] {
+  background: var(--background); color: var(--foreground); box-shadow: var(--anel);
+}
+.segmentado-sm > a, .segmentado-sm > button { height: 24px; padding: 0 10px; font-size: 12px; }
+
+/* ---- Card com anel (sem borda e sem sombra) ---- */
+.card { background: var(--card); color: var(--foreground); border-radius: var(--raio-card); box-shadow: var(--anel); }
+.card-pad { padding: 16px 20px; }
+.card-titulo { margin: 0; font-size: 16px; font-weight: 500; }
+
+/* ---- Barra de progresso fina ---- */
+.barra-fina { height: 4px; border-radius: 99px; background: var(--muted); overflow: hidden; }
+.barra-fina > span { display: block; height: 100%; border-radius: 99px; background: var(--foreground); }
+.barra-fina-gate > span { background: var(--amber); }
+.barra-fina-preta { height: 6px; }
+
+/* ---- Toast (pill escuro no canto; a tela troca `hidden` e põe .toast-entra) ---- */
+.toast {
+  position: fixed; right: 24px; bottom: 24px; z-index: 50;
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px;
+  border-radius: var(--raio-pill); background: var(--primary); color: var(--primary-foreground);
+  font-size: 14px; font-weight: 500; box-shadow: 0 4px 16px color-mix(in oklab, var(--foreground) 25%, transparent);
+}
+.toast[hidden] { display: none; }
+.toast-entra { animation: entra 260ms ease-out both; }
+
+/* ---- Tabela (dentro de .rolagem) ---- */
+.rolagem { overflow-x: auto; max-width: 100%; }
+.tabela { width: 100%; border-collapse: collapse; background: var(--card); font-size: 14px; }
+.tabela th {
+  position: sticky; top: 0; background: var(--card); z-index: 1;
+  text-align: left; font-size: 12px; font-weight: 500; color: var(--muted-foreground);
+  padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.tabela td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.tabela tbody tr:last-child td { border-bottom: 0; }
+.tabela .linha-clicavel { cursor: pointer; transition: background var(--t); }
+.tabela .linha-clicavel:hover { background: color-mix(in oklab, var(--muted) 70%, transparent); }
+.tabela .linha-sel { background: var(--muted); box-shadow: inset 2px 0 0 var(--foreground); }
+
+/* ---- Estado vazio ---- */
+.estado-vazio {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 48px 16px; text-align: center; color: var(--muted-foreground);
+}
+.estado-vazio .icone { width: 32px; height: 32px; }
+.estado-vazio p { margin: 0; max-width: 40ch; }
+
+/* ---- Campos ---- */
+input[type="text"], input[type="search"], select {
+  height: 36px; padding: 0 14px; border: 1px solid var(--input); border-radius: var(--raio-pill);
+  background: var(--background); color: var(--foreground); font: inherit;
+}
+textarea {
+  padding: 10px 14px; border: 1px solid var(--input); border-radius: var(--raio-textarea);
+  background: var(--background); color: var(--foreground); font: inherit;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible { border-color: var(--ring); }
+
+/* ---- Fluido: abaixo de ~900px a barra lateral empilha no topo ---- */
+@media (max-width: 900px) {
+  .app, .app.app-trilho { flex-direction: column; }
+  .sidebar, .app-trilho .sidebar {
+    position: static; width: 100%; height: auto; flex: none; align-self: stretch;
+    flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 12px;
+    padding: 10px 16px; border-right: 0; border-bottom: 1px solid var(--border); overflow: visible;
+  }
+  .sidebar-marca, .app-trilho .sidebar-marca { padding: 0; }
+  .sidebar .menu, .app-trilho .sidebar .menu { flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .app-trilho .sidebar-marca-texto { display: flex; }
+  .app-trilho .nav-nome { display: inline; }
+  .app-trilho .nav-extra { display: inline; }
+  .app-trilho .nav-item { width: auto; padding: 0 10px; justify-content: flex-start; }
+  .sidebar-grupo, .sidebar-rodape, .app-trilho .sidebar-grupo, .app-trilho .sidebar-rodape { display: none; }
+  .topo { padding: 0 16px; flex-wrap: wrap; height: auto; min-height: 56px; position: static; }
+  .topo .btn-icone { display: none; }
+  main { padding: 16px; }
+  .toast { right: 16px; left: 16px; bottom: 16px; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

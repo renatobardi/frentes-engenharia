@@ -1,0 +1,117 @@
+{# O painel da célula (spec 10). O texto do porquê e das sugestões vem da LLM: nunca `|safe`. #}
+<aside class="painel" id="painel" aria-label="Painel da célula"{% if oob %} hx-swap-oob="true"{% endif %}
+       hx-get="{{ painel.fechar }}" hx-trigger="keyup[key=='Escape'] from:body"
+       hx-target="#mapa" hx-swap="outerHTML" hx-push-url="true">
+  <header class="painel-cabecalho">
+    <a class="fechar" href="{{ painel.fechar }}" hx-get="{{ painel.fechar }}" hx-target="#mapa" hx-swap="outerHTML" hx-push-url="true" aria-label="Fechar o painel (Esc)">✕</a>
+    <h2>{{ painel.area }} × {{ painel.tipo }}</h2>
+    <p class="painel-meta">{{ painel.visao }} · {{ painel.periodo }}</p>
+    <p class="painel-indice"><strong>{{ painel.indice }}</strong>{% if painel.seta %} <span class="seta">{{ painel.seta }}{{ painel.variacao }}</span>{% endif %}{% if painel.selo %} <span class="selo">◆ {{ painel.selo }}</span>{% endif %}</p>
+  </header>
+
+  <section class="bloco" id="painel-porque">
+    <h3>Por que está quente{% if painel.atualizando %} <span class="atualizando">atualizando</span>{% endif %}</h3>
+    {% if painel.aviso_de_origem %}<p class="aviso-origem">O texto considera todas as origens; os números abaixo seguem o filtro de origem.</p>{% endif %}
+    {% if painel.porque %}
+    <p class="porque">{{ painel.porque }}</p>
+    {% else %}
+    <p class="sem-texto">O texto ainda não existe{% if painel.atualizando %}: está sendo gerado{% else %}: o painel desta célula não foi gerado{% endif %}. Os blocos abaixo são calculados na hora.</p>
+    {% endif %}
+  </section>
+
+  <section class="bloco" id="painel-sugestoes">
+    <h3>Sugestão de investimento</h3>
+    {% if painel.erro %}<p class="erro-enderecar" role="alert">{{ painel.erro }}</p>{% endif %}
+    {% if painel.sugestoes %}
+    <ul class="sugestoes">
+      {% for s in painel.sugestoes %}
+      {% set r = painel.rascunho if painel.rascunho and painel.rascunho.n == loop.index0 else none %}
+      <li><span class="tipo-solucao">{{ s.tipo }}</span> {{ s.texto }} <em class="rotulo">sugestão</em>
+        {% if not painel.enderecamento %}
+        <details class="enderecar"{% if r %} open{% endif %}>
+          <summary class="botao-enderecar">Endereçar com esta sugestão</summary>
+          <form method="post" action="/mapa/enderecar" hx-post="/mapa/enderecar" hx-target="#mapa" hx-swap="outerHTML">
+            {% for nome, valor in painel.recorte %}<input type="hidden" name="{{ nome }}" value="{{ valor }}">{% endfor %}
+            <input type="hidden" name="n" value="{{ loop.index0 }}">
+            <input type="hidden" name="tipo_solucao" value="{{ r.tipo_solucao if r else s.valor }}">
+            <label>Decisão
+              <textarea name="texto" rows="3" maxlength="1000" required>{{ r.texto if r else s.texto }}</textarea>
+            </label>
+            <label>Quem decidiu (opcional)
+              <input type="text" name="quem_decidiu" maxlength="80" value="{{ r.quem if r else '' }}">
+            </label>
+            <button type="submit">Endereçar</button>
+          </form>
+        </details>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="vazio">Sem sugestões ainda.</p>{% endif %}
+    {% if painel.enderecamento %}<p class="ja-enderecada">Esta célula já está endereçada: desfaça o endereçamento abaixo para endereçar de novo.</p>{% endif %}
+  </section>
+
+  {% if painel.enderecamento %}
+  {% set e = painel.enderecamento %}
+  <section class="bloco" id="painel-enderecamento">
+    <h3>Endereçamento</h3>
+    <p class="decisao">{{ e.texto }}</p>
+    <p class="decisao-meta"><span class="tipo-solucao">{{ e.tipo }}</span> · {{ e.data }}{% if e.quem %} · {{ e.quem }}{% endif %}</p>
+    <p class="variacao-desde">Índice: {{ e.variacao }}</p>
+    <form method="post" action="/mapa/desfazer" hx-post="/mapa/desfazer" hx-target="#mapa" hx-swap="outerHTML">
+      {% for nome, valor in painel.recorte %}<input type="hidden" name="{{ nome }}" value="{{ valor }}">{% endfor %}
+      <input type="hidden" name="id" value="{{ e.id }}">
+      <button type="submit">Desfazer</button>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="bloco" id="painel-evolucao">
+    <h3>Evolução em 12 meses</h3>
+    <svg class="evolucao" viewBox="0 0 360 120" role="img" aria-label="Índice da célula nos últimos 12 meses">
+      {% if painel.marcador %}<g class="marcador-enderecamento"><line x1="{{ painel.marcador.x }}" x2="{{ painel.marcador.x }}" y1="4" y2="106" stroke-dasharray="3 3"/><text x="{{ painel.marcador.x }}" y="10" text-anchor="{{ painel.marcador.ancora }}">{{ painel.marcador.rotulo }}</text></g>{% endif %}
+      <polyline fill="none" stroke="currentColor" stroke-width="2" points="{{ painel.caminho_da_evolucao }}"/>
+      {% for p in painel.evolucao %}
+      <circle class="ponto" cx="{{ p.x }}" cy="{{ p.y }}" r="3"><title>{{ p.mes }}: {{ p.indice }}</title></circle>
+      {% endfor %}
+    </svg>
+    <p class="eixo">{{ painel.evolucao[0].mes }} → {{ painel.evolucao[-1].mes }}</p>
+  </section>
+
+  <section class="bloco" id="painel-composicao">
+    <h3>Composição</h3>
+    {% for c in painel.composicao %}
+    <div class="composicao">
+      <h4>{{ c.titulo }}</h4>
+      {% for b in c.barras %}
+      <div class="barra-linha"><span class="barra-nome">{{ b.nome }}</span>
+        <span class="barra-trilho"><span class="barra-cheia" style="width: {{ b.largura }}%"></span></span>
+        <span class="barra-valor">{{ b.soma }} <small>({{ b.frentes }})</small></span></div>
+      {% else %}<p class="vazio">Nenhum.</p>{% endfor %}
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="bloco" id="painel-problemas">
+    <h3>Problemas recorrentes</h3>
+    {% if painel.problemas %}
+    <ul class="problemas">
+      {% for p in painel.problemas %}
+      <li><a href="{{ p.destino }}">{{ p.nome }}</a>{% if p.recorrente %} <span class="marca-recorrente">recorrente</span>{% endif %}
+        <small>{{ p.frentes }} frentes em {{ p.dias }} dias</small></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="vazio">Nenhum problema nesta célula.</p>{% endif %}
+  </section>
+
+  <section class="bloco" id="painel-frentes">
+    <h3>Frentes da célula</h3>
+    <ol class="frentes-da-celula">
+      {% for f in painel.frentes %}
+      <li{% if f.incerta %} class="incerta"{% endif %}><a href="{{ f.destino }}">{{ f.trecho or f.id }}</a>
+        <small>{{ f.origem }} · {{ f.data }} · {{ f.confianca }}{% if f.incerta %} · <span class="marca-incerta">incerta</span>{% endif %}</small></li>
+      {% else %}<li class="vazio">Nenhuma frente neste recorte.</li>{% endfor %}
+    </ol>
+    <p><a class="ver-todas" href="{{ painel.ver_todas }}">ver todas ({{ painel.total_de_frentes }})</a></p>
+  </section>
+</aside>
