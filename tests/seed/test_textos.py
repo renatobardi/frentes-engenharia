@@ -226,3 +226,11 @@ def test_mcp_pede_abertura_e_pessoa_e_relato_nao(ctx: textos.Contexto) -> None:
     mcp, relato = esqueletos(1, "mcp")[0], esqueletos(1, "relato")[0]
     assert "abertura" in textos.item_do_pedido(mcp, ctx)
     assert "pessoa" not in textos.item_do_pedido(relato, ctx)
+
+
+def test_os_pedidos_da_h4_tem_o_mesmo_assunto_no_texto() -> None:
+    """Medido no primeiro snapshot (#109): simulação, status e comissão liam como três assuntos
+    sem relação, e 114 das 150 frentes da história ficaram sem problema."""
+    assert len(textos.PEDIDOS_H4) == 3  # o sorteio do pedido depende da quantidade
+    for pedido in textos.PEDIDOS_H4:
+        assert pedido.startswith("lojistas querem se atender sozinhos no portal do lojista: ")

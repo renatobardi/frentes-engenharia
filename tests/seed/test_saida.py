@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from frentes.contratos import Gabarito, Natureza, Origem, de_iso
+from frentes.contratos import EspecieDeItem, Gabarito, Natureza, Origem, de_iso
 from frentes.seed import saida, templates, validador
 from frentes.seed.roteiro import ORIGENS_COM_TEMPLATE, Roteiro
 from frentes.seed.saida import (
@@ -203,6 +203,53 @@ def test_templates_da_h1_citam_a_esteira_de_propostas_e_nao_so_o_servico(
         assert textos and all("esteira de propostas" in t for t in textos)
 
 
+def _servicos_de_infra() -> set[str]:
+    areas, _ = _entradas()
+    return {
+        i.nome
+        for a in areas
+        for t in a.times
+        if t.chave == "infra-e-cloud"
+        for i in t.itens
+        if i.especie is EspecieDeItem.SERVICO
+    }
+
+
+def test_o_webhook_da_h1_cita_tambem_o_servico_de_infra(roteiro: Roteiro, pasta: Path) -> None:
+    """Medido no primeiro snapshot (#109): o webhook só dizia "esteira de propostas" e 83 dos 89
+    iam para a área de quem usa a esteira; o log, que cita o serviço, ia inteiro para a do
+    gabarito."""
+    servicos = _servicos_de_infra()
+    textos = textos_de(roteiro, pasta, "H1", Origem.WEBHOOK)
+    assert textos and all(any(s in t for s in servicos) for t in textos)
+
+
+def test_os_sintomas_da_h1_dizem_que_a_esteira_cai_ou_fica_lenta() -> None:
+    """Medido no primeiro snapshot (#109): "propostas travadas" e "falta de capacidade" liam
+    como fila, e a história se dividia em dois tipos (127 e 112 frentes)."""
+    for resumo, log, _ in HISTORIAS["H1"]:
+        for texto in (resumo, log):
+            norma = sem_acento(texto)
+            assert not re.search(r"fila|travad|pres[ao]s|capacidade|recus|rejeit", norma), texto
+            assert "{svc}" in texto and "esteira de propostas" in texto
+
+
+def test_os_sintomas_da_h5_trazem_a_resposta_e_o_efeito_no_atendimento() -> None:
+    """Medido no primeiro snapshot (#109): "informou taxa errada" lia como dado errado de um
+    sistema qualquer (confiança 1,00 no tipo) e o tema novo não aparecia como encaixe fraco."""
+    for resumo, log, _ in HISTORIAS["H5"]:
+        for texto in (resumo, log):
+            assert "assistente virtual do app" in texto and "atendimento" in texto
+
+
+def test_nenhum_sintoma_do_fundo_repete_a_planilha_paralela() -> None:
+    """Medido no primeiro snapshot (#109): o sintoma repetia "planilha paralela" em 144 frentes
+    do fundo e virou o maior problema da lista (456 frentes)."""
+    for tema in TEMAS:
+        for sintoma in tema.sintomas:
+            assert all("planilha" not in sem_acento(texto) for texto in sintoma), tema.chave
+
+
 def test_templates_da_h5_dizem_assistente_virtual_do_app(roteiro: Roteiro, pasta: Path) -> None:
     for origem in (Origem.LOG, Origem.WEBHOOK):
         textos = textos_de(roteiro, pasta, "H5", origem)
@@ -329,6 +376,10 @@ def test_a_rajada_e_de_20_frentes_de_webhook_sobre_a_h1_fora_do_volume(
     assert {r["id"] for r in rajada}.isdisjoint({e.id for e in roteiro.esqueletos})
     assert all("esteira de propostas" in r["texto"] for r in rajada)
     assert all(r["emissor"] == "Vigia da Esteira" for r in rajada)
+    # o serviço é do time dos webhooks da H1 na seed, para a rajada cair na célula da história
+    assert templates.SERVICO_DA_RAJADA in _servicos_de_infra()
+    assert all(templates.SERVICO_DA_RAJADA in r["texto"] for r in rajada)
+    assert all(r["metadados"]["payload"]["servico"] == templates.SERVICO_DA_RAJADA for r in rajada)
     # quem envia põe `ref_externa` e `ocorrido_em` novos a cada envio
     assert all("ref_externa" not in r and "ocorrido_em" not in r for r in rajada)
     assert len({r["texto"] for r in rajada}) == 20
