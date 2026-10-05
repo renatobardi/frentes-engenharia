@@ -1,24 +1,120 @@
-/* Tela Taxonomia. Escrito à mão, sem endereço externo. */
-.taxonomia section { margin-bottom: 2rem; }
-.taxonomia h2 { border-bottom: 1px solid var(--linha); padding-bottom: 0.25rem; }
-.taxonomia .suave, .taxonomia .meta { color: var(--suave); }
-.taxonomia .aviso { background: #fff4d6; border: 1px solid #e0c36a; padding: 0.5rem 0.75rem; border-radius: 6px; }
-.taxonomia .revisar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
-.taxonomia .revisar button { font: inherit; background: var(--destaque); color: #fff; border: 0; border-radius: 6px; padding: 0.4rem 0.9rem; cursor: pointer; }
-.marcadores { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; list-style: none; padding: 0; margin: 0 0 1rem; }
-.marcadores a, .marcadores span { color: var(--suave); text-decoration: none; }
-.marcadores [aria-current="step"] a { color: var(--texto); font-weight: 700; border-bottom: 2px solid var(--destaque); }
-.frase { margin: 1rem 0; padding: 0.75rem 1rem; background: #fff; border-left: 4px solid var(--destaque); font-size: 1.1rem; }
-.nada { font-weight: 600; }
-.taxonomia .tabela { width: auto; min-width: 22rem; border-collapse: collapse; background: #fff; }
-.taxonomia .tabela th, .taxonomia .tabela td { text-align: left; padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--linha); }
-.taxonomia .tabela tr.disparou th, .taxonomia .tabela tr.disparou td { background: #fff4d6; }
-.taxonomia .selo { font-size: 0.75rem; background: var(--linha); border-radius: 0.75rem; padding: 0 0.5rem; font-weight: 400; }
-.operacoes { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
-.operacao { background: #fff; border: 1px solid var(--linha); border-radius: 6px; padding: 0.6rem 0.9rem; }
-.operacao.descartada { opacity: 0.8; border-style: dashed; }
-.operacao p { margin: 0.2rem 0; }
-.evidencias { margin: 0.4rem 0 0; padding-left: 1.2rem; }
-.valores ul { margin: 0.2rem 0 0.4rem; }
-.reguas { display: flex; flex-wrap: wrap; gap: 2rem; }
-.vazio { color: var(--suave); }
+/* Tela Taxonomia (fase 4b do #116). Escrito à mão, sem endereço externo. As classes de app.css
+   (.card, .badge, .chip, .btn, .segmentado, .bloco-gate...) não são redefinidas aqui. */
+.taxonomia { max-width: 1100px; display: grid; gap: 16px; }
+.taxonomia > *, .abas, .painel-aba { min-width: 0; }
+.taxonomia h2 { margin: 0 0 12px; font-size: 16px; font-weight: 500; }
+.taxonomia h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.taxonomia .sec-titulo { margin: 20px 0 8px; }
+.taxonomia ul, .taxonomia ol { margin: 0; padding: 0; list-style: none; }
+.taxonomia .suave { color: var(--muted-foreground); }
+.taxonomia .vazio { color: var(--muted-foreground); margin: 0; }
+.taxonomia .aviso { display: flex; align-items: center; gap: 8px; margin: 0; }
+.taxonomia .revisar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* ---- Abas: três botões de rádio escondidos; o rótulo é a aba ---- */
+.aba-radio { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.abas-lista { margin-bottom: 16px; }
+.abas-lista label {
+  display: inline-flex; align-items: center; height: 28px; padding: 0 14px; border-radius: var(--raio-pill);
+  color: var(--muted-foreground); font-weight: 500; cursor: pointer; white-space: nowrap;
+  transition: background var(--t), color var(--t);
+}
+.abas-lista label:hover { color: var(--foreground); }
+.painel-aba { display: none; }
+#aba-revisao:checked ~ #painel-revisao,
+#aba-vigente:checked ~ #painel-vigente,
+#aba-historico:checked ~ #painel-historico { display: block; animation: entra 260ms ease-out both; }
+#aba-revisao:checked ~ .abas-lista label[for="aba-revisao"],
+#aba-vigente:checked ~ .abas-lista label[for="aba-vigente"],
+#aba-historico:checked ~ .abas-lista label[for="aba-historico"] {
+  background: var(--background); color: var(--foreground); box-shadow: var(--anel);
+}
+.aba-radio:focus-visible + .aba-radio + .aba-radio + .abas-lista, .aba-radio:focus-visible ~ .abas-lista { box-shadow: var(--foco); }
+
+/* ---- Marcadores 1 · 2 · 3 ---- */
+.marcadores { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.marcadores li > a, .marcadores li > span {
+  display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: var(--raio-pill);
+  border: 1px solid var(--border); font-size: 12px; font-weight: 500; color: var(--muted-foreground); text-decoration: none;
+}
+.marcadores li > a:hover { background: var(--muted); }
+.marcadores [aria-current="step"] > a { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); }
+.meta { color: var(--muted-foreground); }
+
+/* ---- A frase da LLM: bloco escuro grande ---- */
+.frase {
+  margin: 12px 0; padding: 20px 24px; border-radius: var(--raio-card);
+  background: var(--primary); color: var(--primary-foreground);
+  font-size: 20px; line-height: 1.4; font-weight: 500; letter-spacing: -0.01em;
+}
+.frase-bruta { margin: 8px 0; padding: 8px 12px; border-left: 2px solid var(--border); color: var(--muted-foreground); }
+.texto-bruto { margin: 8px 0; font-size: 12px; color: var(--muted-foreground); }
+.texto-bruto summary { cursor: pointer; }
+.nada { font-weight: 600; padding: 12px 14px; }
+
+/* ---- Sinal de encaixe: barra com marca no limite ---- */
+.sinal-card { margin: 12px 0; }
+.sinal-tabela { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.sinal-tabela th, .sinal-tabela td { text-align: left; padding: 8px 8px 8px 0; vertical-align: middle; font-weight: 400; }
+.sinal-tabela thead th { font-size: 12px; color: var(--muted-foreground); font-weight: 500; }
+.sinal-tabela tbody th { font-weight: 500; white-space: nowrap; }
+.sinal-barra-cel { width: 55%; min-width: 120px; }
+.sinal-barra { position: relative; height: 8px; border-radius: 99px; background: var(--muted); }
+.sinal-preenchido { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: var(--foreground); }
+.sinal-barra.acima .sinal-preenchido { background: var(--amber); }
+.sinal-marca { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--foreground); border-radius: 1px; }
+
+/* ---- Operações ---- */
+.operacoes { display: grid; gap: 12px; }
+.operacao p { margin: 4px 0; }
+.operacao .cabeca { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.operacao.descartada { border: 1px dashed var(--border); box-shadow: none; }
+.origem { margin: 12px 0 4px; }
+.origem-barra { display: flex; height: 12px; margin: 6px 0; border-radius: 99px; overflow: hidden; background: var(--muted); }
+.origem-barra > span { display: block; min-width: 2px; }
+.origem-legenda { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; }
+.origem-legenda li { display: inline-flex; align-items: center; gap: 6px; }
+.evidencias { margin-top: 8px; display: grid; gap: 4px; }
+.evidencias li { display: flex; gap: 8px; align-items: baseline; }
+.evidencias a { color: var(--foreground); text-decoration-color: var(--border); text-underline-offset: 3px; }
+.evidencias a:hover { text-decoration-color: var(--foreground); }
+
+/* ---- O que mudou no mapa ---- */
+.mudou { margin-top: 20px; }
+.mudou .meta { margin: 4px 0 12px; }
+.mudou-tabela { width: 100%; border-collapse: separate; border-spacing: 4px; font-size: 14px; }
+.mudou-tabela th { text-align: left; font-size: 12px; font-weight: 500; color: var(--muted-foreground); white-space: nowrap; padding: 4px 6px; }
+.mudou-tabela tbody th { color: var(--foreground); font-weight: 600; }
+.mudou-tabela td { text-align: center; min-width: 84px; padding: 14px 6px; border-radius: var(--raio); font-size: 13px; font-weight: 600; }
+.mudou-tabela td.sem-calor { background: color-mix(in oklab, var(--muted) 45%, transparent); color: var(--muted-foreground); font-weight: 400; }
+.mudou-tabela td.claro { color: var(--background); }
+.mudou-tabela td.num { background: none; text-align: right; }
+.mudou-frase { margin: 12px 0 0; font-weight: 500; }
+
+/* ---- Versão vigente ---- */
+.seletor { margin-bottom: 8px; }
+.seletor label { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted-foreground); }
+.tipos-grade, .organograma { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.tipos-grade > li, .organograma > li { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.tipos-grade .descricao { font-size: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.organograma ul { display: grid; gap: 4px; margin-top: 4px; }
+.organograma ul li { font-size: 13px; }
+.reguas { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.reguas h4 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+.reguas ol { display: grid; gap: 6px; list-style: decimal inside; }
+.reguas li { font-size: 13px; }
+
+/* ---- Histórico: linha do tempo vertical ---- */
+.linha-do-tempo { position: relative; display: grid; gap: 12px; padding-left: 24px; }
+.linha-do-tempo::before { content: ""; position: absolute; left: 5px; top: 8px; bottom: 8px; width: 2px; background: var(--border); }
+.linha-do-tempo > li { position: relative; }
+.linha-do-tempo .ponto { position: absolute; left: -24px; top: 16px; width: 12px; height: 12px; border-radius: 99px; background: var(--background); border: 2px solid var(--muted-foreground); }
+.linha-do-tempo [aria-current="true"] .ponto { background: var(--foreground); border-color: var(--foreground); }
+.linha-do-tempo .cabeca { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 2px; }
+.linha-do-tempo p.meta { margin: 0; }
+
+@media (max-width: 900px) {
+  .sinal-barra-cel { width: auto; }
+  .frase { font-size: 17px; padding: 16px; }
+}

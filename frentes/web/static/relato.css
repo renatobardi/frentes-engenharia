@@ -1,22 +1,93 @@
-/* A gaveta do relato: estreita, centralizada. */
-.gaveta { max-width: 28rem; margin: 0 auto; background: #fff; border: 1px solid var(--linha); border-radius: 8px; padding: 1rem 1.25rem; }
-.gaveta h1 { font-size: 1.2rem; margin: 0 0 0.75rem; }
-.gaveta h2 { font-size: 1rem; margin: 1rem 0 0.5rem; }
-.gaveta label { display: block; font-weight: 600; margin-top: 0.75rem; }
-.gaveta input, .gaveta textarea { width: 100%; font: inherit; padding: 0.4rem; border: 1px solid var(--linha); border-radius: 6px; }
-.gaveta button { margin-top: 0.75rem; border: 0; cursor: pointer; font: inherit; }
-.gaveta .ajuda { color: var(--suave); font-size: 0.875rem; margin: 0.25rem 0 0; }
-.gaveta .erro { color: #9c1c1c; margin: 0 0 0.5rem; }
-.gaveta .quem { color: var(--suave); margin: 0.5rem 0 0.25rem; }
-.gaveta .original { margin: 0; padding: 0.5rem 0.75rem; background: var(--fundo); border-left: 3px solid var(--destaque); white-space: pre-wrap; overflow-wrap: anywhere; }
-.gaveta .complemento { border-left-color: var(--suave); }
-.gaveta .estado { font-weight: 600; margin-top: 1rem; }
-.gaveta .aguardando { color: #8a5a00; }
-.gaveta .linha { display: grid; grid-template-columns: 1fr auto; gap: 0.1rem 0.5rem; margin-bottom: 0.6rem; }
-.gaveta .rotulo { grid-column: 1 / -1; color: var(--suave); font-size: 0.8125rem; }
-.gaveta .resposta { font-weight: 600; overflow-wrap: anywhere; }
-.gaveta .percentual { font-variant-numeric: tabular-nums; }
-.gaveta .barra { grid-column: 1 / -1; height: 0.5rem; background: var(--linha); border-radius: 4px; overflow: hidden; }
-.gaveta .barra span { display: block; height: 100%; background: var(--destaque); }
-.gaveta .nivel { font-weight: 600; }
-.gaveta .vago { margin-top: 1rem; padding: 0.5rem 0.75rem; background: #fff6e0; border: 1px solid #e8c36a; border-radius: 6px; }
+/* A gaveta do relato (fase 4a do #116): 460px, desliza da direita sobre a página escurecida. */
+.gaveta-fundo {
+  position: fixed; inset: 0; z-index: 20; cursor: default;
+  background: color-mix(in oklab, var(--foreground) 28%, transparent);
+  animation: gaveta-fundo 220ms ease-out both;
+}
+.gaveta {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 21;
+  width: min(460px, 100vw); display: flex; flex-direction: column;
+  background: var(--card); box-shadow: -8px 0 32px color-mix(in oklab, var(--foreground) 14%, transparent);
+  animation: gaveta-entra 220ms ease-out both;
+}
+.gaveta-cab {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  flex: none; height: 64px; padding: 0 20px 0 24px; border-bottom: 1px solid var(--border);
+}
+.gaveta-corpo { flex: 1; overflow-y: auto; padding: 16px 24px 24px; }
+@keyframes gaveta-entra { from { transform: translateX(32px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes gaveta-fundo { from { opacity: 0; } to { opacity: 1; } }
+
+.gaveta h2 { font-size: 16px; font-weight: 500; margin: 8px 0 12px; }
+.gaveta label { display: block; font-weight: 500; margin: 16px 0 6px; }
+.gaveta input[type="text"], .gaveta textarea { width: 100%; }
+.gaveta textarea { resize: vertical; min-height: 120px; }
+.gaveta .ajuda { color: var(--muted-foreground); font-size: 12px; margin: 6px 0 0; }
+.gaveta .erro { display: flex; gap: 6px; align-items: center; color: var(--destructive); margin: 0 0 8px; padding: 8px 12px;
+  background: color-mix(in oklab, var(--destructive) 10%, transparent); border-radius: var(--raio); }
+.gaveta .quem { margin: 8px 0 4px; }
+.gaveta .original, .gaveta .vago-citacao {
+  margin: 0; padding: 10px 14px; background: var(--muted); border-radius: var(--raio-textarea);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.gaveta .complemento { background: color-mix(in oklab, var(--muted) 60%, transparent); }
+.gaveta .estado { font-weight: 500; margin: 12px 0 0; }
+.gaveta .aguardando { color: var(--gate); }
+.gaveta .gaveta-enviar { margin-top: 16px; width: 100%; }
+.gaveta .gaveta-outra { margin: 20px 0 0; }
+
+.texto-rodape { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.contador { margin-top: 6px; white-space: nowrap; }
+
+/* Medidor de concretude: só dica, calculado no cliente. Sem JS fica escondido. */
+.medidor { margin-top: 16px; padding: 12px 14px; border-radius: var(--raio-card); background: color-mix(in oklab, var(--muted) 55%, transparent); }
+.medidor-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.medidor-segmentos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 8px 0; }
+.medidor-segmentos span { height: 6px; border-radius: 99px; background: var(--border); transition: background var(--t); }
+.medidor[data-nivel="2"] .medidor-segmentos span:nth-child(-n+2),
+.medidor[data-nivel="3"] .medidor-segmentos span:nth-child(-n+3),
+.medidor[data-nivel="4"] .medidor-segmentos span { background: var(--foreground); }
+.medidor[data-nivel="1"] .medidor-segmentos span:nth-child(1) { background: var(--amber); }
+.medidor[data-fraco] .medidor-rotulo { color: var(--gate); }
+.medidor-checks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; color: var(--muted-foreground); }
+.medidor-checks li { display: flex; align-items: center; gap: 6px; }
+.medidor-marca { display: inline-flex; width: 16px; height: 16px; flex: none; align-items: center; justify-content: center;
+  border-radius: 99px; border: 1px solid var(--border); color: transparent; }
+.medidor-checks li[data-ok] { color: var(--foreground); }
+.medidor-checks li[data-ok] .medidor-marca { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground); }
+.medidor-aviso { display: flex; gap: 6px; align-items: flex-start; margin: 8px 0 0; padding: 6px 10px; color: var(--gate);
+  background: var(--gate-bg); border-radius: var(--raio); }
+
+/* Recebida, classificando: esqueleto pulsando. */
+.esqueleto { display: grid; gap: 10px; margin-top: 16px; }
+.esqueleto span { display: block; height: 14px; border-radius: 99px; background: var(--muted); animation: gaveta-pulso 1.2s ease-in-out infinite; }
+.esqueleto span:nth-child(2) { width: 80%; animation-delay: 150ms; }
+.esqueleto span:nth-child(3) { width: 55%; animation-delay: 300ms; }
+@keyframes gaveta-pulso { 50% { opacity: 0.4; } }
+
+/* Resultado: uma linha por dimensão, com a barra de confiança. */
+.gaveta .linha { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; margin-bottom: 12px; }
+.gaveta .rotulo { grid-column: 1 / -1; color: var(--muted-foreground); font-size: 12px; }
+.gaveta .resposta { font-weight: 500; overflow-wrap: anywhere; }
+.gaveta .linha .barra-fina { grid-column: 1 / -1; margin-top: 4px; }
+.gaveta .nivel { font-weight: 500; margin: 4px 0 8px; }
+.gaveta .vago { margin-top: 16px; }
+.gaveta .vago-titulo { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 8px; font-weight: 500; color: var(--gate); }
+.gaveta .vago-citacao { background: color-mix(in oklab, var(--background) 60%, transparent); font-size: 13px; }
+.gaveta .vago .btn { margin-top: 12px; }
+
+@media (max-width: 900px) {
+  .gaveta { width: 100vw; }
+  .gaveta-cab { padding: 0 12px 0 16px; }
+  .gaveta-corpo { padding: 12px 16px 20px; }
+  .medidor-checks { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gaveta, .gaveta-fundo { animation: none; }
+  .esqueleto span { animation: none; }
+}
+
+/* `hidden` perde para `display` das regras acima; e a animação de entrada do <main> prenderia o
+   `position: fixed` da gaveta ao <main>, deixando barra lateral e cabeçalho sem escurecer. */
+.medidor[hidden], .medidor-aviso[hidden], .contador[hidden] { display: none; }
+main:has(> .gaveta) { animation: none; }

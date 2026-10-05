@@ -7,6 +7,7 @@ fila já disse por que não classificou: Jev fora, sem chave).
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from urllib.parse import urlencode
 
 from frentes.contratos import (
     Classificacao,
@@ -18,6 +19,7 @@ from frentes.contratos import (
     Natureza,
     NivelDaRegua,
     Valor,
+    Visao,
 )
 
 # Depois de quanto tempo sem classificação a gaveta diz "aguardando classificação".
@@ -45,6 +47,8 @@ class Gaveta:
     via_llm: bool = False
     vago: bool = False
     pode_completar: bool = False
+    celula: str | None = None  # "Área × Tipo" em que a frente pinta o mapa
+    celula_url: str | None = None
 
 
 def _percentual(confianca: float) -> int:
@@ -127,6 +131,17 @@ def montar(
         nivel += f" ({_decimal(c.severidade)})"
     else:
         nivel = None
+    celula, celula_url = None, None
+    pinta = c.estado in (Estado.CLASSIFICADA, Estado.VIA_LLM)
+    if pinta and c.area_final and c.tipo_final and c.natureza_final:
+        visao = Visao.DOR if c.natureza_final is Natureza.REATIVA else Visao.OPORTUNIDADE
+        celula = (
+            f"{nomes.get((Dimensao.AREA, c.area_final), c.area_final)} × "
+            f"{nomes.get((Dimensao.TIPO, c.tipo_final), c.tipo_final)}"
+        )
+        celula_url = "/?" + urlencode(
+            {"visao": visao.value, "versao": c.versao, "area": c.area_final, "tipo": c.tipo_final}
+        )
     vago = c.estado is Estado.INCERTA and c.motivo is MotivoIncerta.TEXTO_VAGO
     return Gaveta(
         "pronto",
@@ -136,4 +151,6 @@ def montar(
         via_llm=c.estado is Estado.VIA_LLM,
         vago=vago,
         pode_completar=vago and frente.complemento is None,
+        celula=celula,
+        celula_url=celula_url,
     )

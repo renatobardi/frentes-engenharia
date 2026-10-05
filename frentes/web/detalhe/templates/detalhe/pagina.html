@@ -1,6 +1,12 @@
 {% extends "base.html" %}
+{% from "_icones.html" import icone %}
 {% block titulo %}Frente {{ d.frente.id }} · frentes-engenharia{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/detalhe.css">{% endblock %}
+{% block trilha %}
+<span>Análise</span>
+{{ icone("chevron-right", 14) }}<a href="/frentes">Frentes</a>
+{{ icone("chevron-right", 14) }}<span aria-current="page">{{ d.frente.id }}</span>
+{% endblock %}
 {% block conteudo %}
-<link rel="stylesheet" href="/static/detalhe.css">
 {% include "detalhe/miolo.html" %}
 {% endblock %}

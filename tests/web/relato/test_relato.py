@@ -632,3 +632,43 @@ def test_os_formularios_desligam_o_botao_no_envio_e_trocam_so_html(
     assert 'hx-disabled-elt="find button"' in formulario_vago
     assert 'maxlength="20000"' in formulario_novo
     assert 'indexOf("text/html")' in formulario_novo  # só troca o 422 em HTML
+
+
+def test_formulario_traz_o_medidor_de_concretude_escondido_e_o_script(servidor: TestClient) -> None:
+    html = servidor.get("/frentes/relatar").text
+
+    assert "data-medidor" in html and "data-medidor hidden" in html  # sem JS fica escondido
+    for check in ("sistema", "numero", "efeito", "afetado"):
+        assert f'data-check="{check}"' in html
+    assert "ficaria fora do mapa" in html
+    assert 'src="/static/relato.js"' in html
+    assert 'href="/static/relato.css"' in html
+    assert 'class="gaveta-fundo" href="/"' in html  # o fundo escurecido volta ao mapa
+    assert servidor.get("/static/relato.js").status_code == 200
+
+
+def test_resultado_de_frente_clara_liga_a_celula_do_mapa(servidor: TestClient, banco: Path) -> None:
+    natureza = contratos.RespostaDeLista("reativa", 0.8, {"reativa": 0.8, "proativa": 0.2})
+    area = {"plat_a": 0.6, "plat_b": 0.1, "dados_a": 0.3}
+    servidor.ligar(JevFalso({TEXTO: jev(area, natureza=natureza)}))
+    enviar(servidor, "Ana Prado", TEXTO)
+    esperar(lambda: classificacao(banco, _id(banco)) is not None)
+
+    html = servidor.get(f"/frentes/relatar/{_id(banco)}", headers=CABECALHO_HTMX).text
+
+    assert "Conta em" in html
+    assert 'href="/?visao=dor&amp;versao=1&amp;area=plat&amp;tipo=incidente"' in html
+
+
+def test_enquanto_classifica_mostra_o_esqueleto(servidor: TestClient, banco: Path) -> None:
+    servidor.ligar(JevFalso({}))  # nada gravado: o teste grava a frente sem agendar
+    with closing(store.abrir(banco)) as con:
+        from frentes.entrada import recepcao
+
+        gravada = recepcao.receber(
+            con, contratos.FrenteBruta("Ana", TEXTO), contratos.Origem.RELATO
+        )
+
+    html = servidor.get(f"/frentes/relatar/{gravada.id}").text
+
+    assert 'class="esqueleto"' in html
