@@ -4,16 +4,19 @@ falsa) num banco em arquivo. Nada chama rede nem chave; o relógio é o das fren
 import asyncio
 import re
 from contextlib import closing
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
 from frentes import config, store
-from frentes.contratos import Gatilho, Geracao, ResultadoGeracao, TipoGeracao
+from frentes.contratos import Gatilho, Geracao, Natureza, ResultadoGeracao, TipoGeracao
 from frentes.llm import ErroLlmEsgotado
+from frentes.store import classificacao as repo_classificacao
 from frentes.store import geracao as repo
 from frentes.store import historico
+from frentes.store import versao as repo_versao
 from frentes.taxonomia.revisao import revisar
 from frentes.web.app import criar_app
 from frentes.web.taxonomia import rotas
@@ -483,8 +486,7 @@ def test_o_historico_diz_de_que_versao_cada_revisao_partiu(com_versao_nova: Path
     html = _cliente(com_versao_nova).get("/taxonomia").text
     historico_html = html.split('id="t-historico"')[1]
 
-    assert "Partiu da" in historico_html
-    assert re.search(r"<td>v1</td>", historico_html)
+    assert "Partiu da v1" in historico_html
 
 
 def test_o_diff_de_dividir_e_juntar_diz_quais_tipos() -> None:
@@ -513,3 +515,109 @@ def test_o_diff_de_dividir_e_juntar_diz_quais_tipos() -> None:
 
     assert dividida.detalhes[0] == "Incidente → Queda e Lentidão"
     assert juntada.detalhes[0] == "Falha e Pedido → Atendimento"
+
+
+# --------------------------------------------------------------------------- redesign (#128)
+
+
+def _com_mapa_nas_duas_versoes(caminho: Path) -> None:
+    """v1: 18 frentes na Originação; v2: só as 12 de evidência, já no tipo novo."""
+    with closing(store.abrir(caminho)) as con:
+        novo = next(
+            v.chave
+            for v in repo_versao.valores(con, 2)
+            if v.nome == "Assistente Virtual" and not v.chave_pai
+        )
+        for n in (*(f"a{i:02}" for i in range(1, 13)), *(f"b{i:02}" for i in range(1, 7))):
+            c = repo_classificacao.ler(con, n, 1)
+            assert c is not None
+            repo_classificacao.gravar(
+                con, replace(c, area_final="originacao", natureza_final=Natureza.REATIVA)
+            )
+            if n[0] == "a" and int(n[1:]) <= 12:
+                repo_classificacao.gravar(
+                    con,
+                    replace(
+                        c,
+                        versao=2,
+                        area_final="originacao",
+                        natureza_final=Natureza.REATIVA,
+                        tipo_final=novo,
+                    ),
+                )
+
+
+def test_o_que_mudou_no_mapa_poe_a_area_mais_afetada_na_v1_e_na_v2(com_versao_nova: Path) -> None:
+    _com_mapa_nas_duas_versoes(com_versao_nova)
+    html = _cliente(com_versao_nova).get("/taxonomia").text
+    bloco = html.split('id="t-mudou"')[1].split('id="painel-vigente"')[0]
+
+    assert "Área mais afetada: <strong>Originação</strong>" in bloco
+    assert "Onde dói · 90 dias até 03/10/2026" in bloco
+    assert 'badge badge-gate">nova' in bloco and "Assistente Virtual" in bloco
+    assert "não existia" in bloco  # a coluna nova na v1
+    assert "Na área Originação, o índice foi de 9 na v1 para 6 na v2; 6 dele" in bloco
+    assert ">v1</th>" in bloco and ">v2</th>" in bloco
+
+
+def test_o_que_mudou_no_mapa_sem_area_que_mudou_diz_que_nao_ha_o_que_comparar(
+    com_versao_nova: Path,
+) -> None:
+    html = _cliente(com_versao_nova).get("/taxonomia").text
+
+    assert "O que mudou no mapa" in html
+    assert "Nenhuma área mudou de índice entre a v1 e a v2" in html
+    assert "Área mais afetada" not in html
+
+
+def test_o_que_mudou_no_mapa_nao_aparece_na_revisao_sem_mudanca(sem_mudanca: Path) -> None:
+    assert "O que mudou no mapa" not in _cliente(sem_mudanca).get("/taxonomia").text
+
+
+def test_geracao_sem_versao_nova_nao_tem_o_que_mudar(com_versao_nova: Path) -> None:
+    from frentes.web.taxonomia import mudanca
+
+    with closing(store.abrir(com_versao_nova)) as con:
+        g = repo.ler(con, 1)
+        assert g is not None
+        assert mudanca.o_que_mudou(con, replace(g, versao_resultante=None)) is None
+
+
+def test_o_sinal_ganha_barra_com_marca_no_limite_e_ambar_acima_dele(com_versao_nova: Path) -> None:
+    html = _cliente(com_versao_nova).get("/taxonomia").text
+    linhas = [t for t in re.findall(r"<tr.*?</tr>", html, re.S) if "Encaixe fraco" in t]
+
+    assert len(linhas) == 1  # o gatilho foi o botão: a linha não é a que "disparou"
+    assert 'class="sinal-barra acima"' in linhas[0]
+    assert re.search(r'class="sinal-marca" style="left: 12(\.0)?%"', linhas[0])
+    assert 'class="sinal-barra"' in html  # as medidas abaixo do limite ficam sem âmbar
+
+
+def test_a_barra_de_origem_conta_de_que_tipo_da_v1_vieram_as_frentes(com_versao_nova: Path) -> None:
+    html = _cliente(com_versao_nova).get("/taxonomia").text
+
+    assert "De que tipo da v1 vieram as 12 frentes da coluna nova «Assistente Virtual»" in html
+    assert re.search(r"Tipo 1 <span[^>]*>6 · 50%</span>", html)
+    assert re.search(r"Tipo 2 <span[^>]*>6 · 50%</span>", html)
+
+
+def test_a_aba_inicial_e_a_revisao_e_o_endereco_com_versao_abre_a_vigente(
+    com_versao_nova: Path,
+) -> None:
+    cliente = _cliente(com_versao_nova)
+
+    padrao = cliente.get("/taxonomia").text
+    vigente = cliente.get("/taxonomia?versao=1").text
+    com_geracao = cliente.get("/taxonomia?versao=1&geracao=1").text
+
+    assert 'id="aba-revisao" value="revisao" checked' in padrao
+    assert 'id="aba-vigente" value="vigente" checked' in vigente
+    assert 'id="aba-revisao" value="revisao" checked' in com_geracao
+    for rotulo in ("Revisão (diff)", "Versão vigente", "Histórico"):
+        assert rotulo in padrao
+
+
+def test_o_seletor_de_versao_troca_so_o_painel_da_vigente(com_versao_nova: Path) -> None:
+    html = _cliente(com_versao_nova).get("/taxonomia").text
+
+    assert 'hx-target="#painel-vigente"' in html and 'hx-select="#painel-vigente"' in html

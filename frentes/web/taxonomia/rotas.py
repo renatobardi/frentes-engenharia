@@ -19,6 +19,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from frentes import store
 from frentes.contratos import Gatilho, Geracao, TipoGeracao, agora
 from frentes.llm import ClienteOpenRouter
+from frentes.store import classificacao as store_classificacao
 from frentes.store import geracao as store_geracao
 from frentes.store import historico as store_historico
 from frentes.store import revisao as store_revisao
@@ -26,7 +27,7 @@ from frentes.store import versao as store_versao
 from frentes.taxonomia import sinal as sinal_
 from frentes.taxonomia.resumo import resumir_operacoes
 from frentes.taxonomia.revisao import SemFrentesNaJanela, SemVersaoVigente, revisar
-from frentes.web.taxonomia import montagem
+from frentes.web.taxonomia import montagem, mudanca
 from frentes.web.telas import renderizar
 
 roteador = APIRouter()
@@ -48,6 +49,19 @@ def _nomes(con: store.Conexao, versoes: list[int | None]) -> dict[tuple[str, str
             for v in store_versao.valores(con, numero):
                 nomes[(v.dimensao.value, v.chave)] = v.nome
     return nomes
+
+
+def _tipos_das_frentes(con: store.Conexao, g: Geracao) -> dict[str, str | None]:
+    """Em que tipo da versão anterior cada frente de evidência terminou."""
+    if g.versao_base is None:
+        return {}
+    saida: dict[str, str | None] = {}
+    for op in g.operacoes:
+        for i in op.frentes_de_evidencia:
+            if i not in saida:
+                c = store_classificacao.ler(con, i, g.versao_base)
+                saida[i] = c.tipo_final if c else None
+    return saida
 
 
 def _diff(con: store.Conexao, g: Geracao, ativadas: list[int], limiares) -> dict[str, object]:
@@ -78,7 +92,8 @@ def _diff(con: store.Conexao, g: Geracao, ativadas: list[int], limiares) -> dict
         "situacao": montagem.situacao(g),
         "sinal": montagem.sinal(g.sinal, g.gatilho, limiares.sinal_de_encaixe),
         "frentes_no_sinal": g.sinal.frentes if g.sinal else 0,
-        "operacoes": montagem.operacoes(g.operacoes, nomes, textos),
+        "operacoes": montagem.operacoes(g.operacoes, nomes, textos, _tipos_das_frentes(con, g)),
+        "mudou": mudanca.o_que_mudou(con, g) if resultante is not None else None,
         "marcadores": marcadores,
         "ativada": resultante is not None and resultante in ativadas,
     }
@@ -112,6 +127,7 @@ def _contexto(
         "lida": lida,
         "documento": gravada.documento if gravada else None,
         "geracao_pedida": geracao,
+        "aba": "vigente" if versao is not None and geracao is None else "revisao",
         "rodando": bool(getattr(request.app.state, "revisao_em_curso", False)),
     }
 

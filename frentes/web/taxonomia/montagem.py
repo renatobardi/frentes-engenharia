@@ -76,6 +76,13 @@ class LinhaDoSinal:
     medido: str
     limite: str | None
     disparou: bool
+    valor: float  # o medido, de 0 a 1 (a barra)
+    corte: float  # o limite, de 0 a 1 (a marca na barra)
+
+    @property
+    def acima(self) -> bool:
+        """O medido chegou ao limite (o mesmo `>=` do gatilho): a barra fica âmbar."""
+        return self.valor >= self.corte
 
 
 def sinal(sinal_medido: SinalMedido | None, gatilho: Gatilho | None, corte: SinalDeEncaixe):
@@ -94,7 +101,7 @@ def sinal(sinal_medido: SinalMedido | None, gatilho: Gatilho | None, corte: Sina
         ("Maior tipo", sinal_medido.maior_tipo, corte.maior_tipo, Gatilho.MAIOR_TIPO),
     )
     return [
-        LinhaDoSinal(rotulo, pct(medido), pct(limite), qual == gatilho)
+        LinhaDoSinal(rotulo, pct(medido), pct(limite), qual == gatilho, medido, limite)
         for rotulo, medido, limite, qual in linhas
     ]
 
@@ -152,6 +159,13 @@ class EvidenciaNaTela:
 
 
 @dataclass(frozen=True, slots=True)
+class FatiaDeOrigem:
+    nome: str
+    frentes: int
+    pct: int  # da barra empilhada
+
+
+@dataclass(frozen=True, slots=True)
 class OperacaoNaTela:
     rotulo: str
     detalhes: list[str]
@@ -160,6 +174,8 @@ class OperacaoNaTela:
     frentes_de_evidencia: int
     evidencias: list[EvidenciaNaTela]
     origem_dos_tipos: list[str]  # de que tipos da versão anterior vieram as frentes
+    origem_em_barra: list[FatiaDeOrigem]  # as mesmas, com a conta frente a frente (criar tipo)
+    tipo_novo: str | None  # o nome do tipo que a operação criou
 
 
 def ids_de_evidencia(operacoes: Sequence[Operacao]) -> list[str]:
@@ -168,8 +184,25 @@ def ids_de_evidencia(operacoes: Sequence[Operacao]) -> list[str]:
     return sorted(vistos)
 
 
+def _fatias(op: Operacao, nomes: Nomes, tipos_das_frentes: Mapping[str, str | None]):
+    """De que tipo da versão anterior veio cada frente de evidência (sem tipo: «sem tipo»)."""
+    if op.tipo is not TipoOperacao.CRIAR_TIPO:
+        return []
+    contagem: dict[str, int] = {}
+    for i in op.frentes_de_evidencia:
+        chave = tipos_das_frentes.get(i)
+        nome = nome_de(nomes, Dimensao.TIPO, chave) if chave else "sem tipo"
+        contagem[nome] = contagem.get(nome, 0) + 1
+    total = sum(contagem.values())
+    ordem = sorted(contagem.items(), key=lambda par: (-par[1], par[0]))
+    return [FatiaDeOrigem(n, q, round(100 * q / total)) for n, q in ordem]
+
+
 def operacoes(
-    ops: Sequence[Operacao], nomes: Nomes, textos: Mapping[str, TextoDaFrente]
+    ops: Sequence[Operacao],
+    nomes: Nomes,
+    textos: Mapping[str, TextoDaFrente],
+    tipos_das_frentes: Mapping[str, str | None] | None = None,
 ) -> list[OperacaoNaTela]:
     saida = []
     for op in ops:
@@ -187,6 +220,10 @@ def operacoes(
                 frentes_de_evidencia=len(op.frentes_de_evidencia),
                 evidencias=evidencias,
                 origem_dos_tipos=_nomes_dos_tipos(nomes, op.proposta.get("tipos_das_frentes")),
+                origem_em_barra=_fatias(op, nomes, tipos_das_frentes or {}),
+                tipo_novo=_texto(op.proposta.get("nome")) or None
+                if op.tipo is TipoOperacao.CRIAR_TIPO
+                else None,
             )
         )
     return saida
