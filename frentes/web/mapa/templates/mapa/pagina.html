@@ -3,8 +3,14 @@
 {% block head %}
 <link rel="stylesheet" href="/static/mapa.css">
 <link rel="stylesheet" href="/static/painel.css">
+<link rel="stylesheet" href="/static/guia.css">
 <script src="/static/mapa-ao-vivo.js" defer></script>
+<script src="/static/guia.js" defer></script>
+{% endblock %}
+{% block acoes_topo %}
+<button class="btn btn-ghost" type="button" data-guia-abrir>{{ icone("info") }}Como ler o mapa</button>
 {% endblock %}
 {% block conteudo %}
 {% include "mapa/miolo.html" %}
+{% include "mapa/guia.html" %}
 {% endblock %}
