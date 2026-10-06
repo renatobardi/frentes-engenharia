@@ -102,6 +102,7 @@ def renderizar(
         "icones_do_menu": ICONES_DO_MENU,
         "caminho": request.url.path,
         "trilho": trilho,
+        "somente_leitura": getattr(request.state, "somente_leitura", False),
         "resumo": lambda: shell.ler(request.app.state.config.banco),
     }
     return request.app.state.templates.TemplateResponse(

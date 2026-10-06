@@ -39,7 +39,7 @@
         <div class="sugestao-corpo">
           <p class="sugestao-texto">{{ s.texto }}</p>
           <p class="sugestao-meta"><span class="tipo-solucao badge">{{ s.tipo }}</span> <em class="rotulo fino muted">sugestão</em></p>
-          {% if not painel.enderecamento %}
+          {% if not painel.enderecamento and not somente_leitura %}
           <details class="enderecar"{% if r %} open{% endif %}>
             <summary class="botao-enderecar btn btn-outline btn-xs">Endereçar com esta sugestão</summary>
             <form method="post" action="/mapa/enderecar" hx-post="/mapa/enderecar" hx-target="#mapa" hx-swap="outerHTML">
@@ -76,11 +76,13 @@
       <p class="decisao">{{ e.texto }}</p>
       <p class="decisao-meta meta"><span class="tipo-solucao badge">{{ e.tipo }}</span> · {{ e.data }}{% if e.quem %} · {{ e.quem }}{% endif %}</p>
       <p class="variacao-desde meta num">Índice: {{ e.variacao }}</p>
+      {% if not somente_leitura %}
       <form method="post" action="/mapa/desfazer" hx-post="/mapa/desfazer" hx-target="#mapa" hx-swap="outerHTML">
         {% for nome, valor in painel.recorte %}<input type="hidden" name="{{ nome }}" value="{{ valor }}">{% endfor %}
         <input type="hidden" name="id" value="{{ e.id }}">
         <button class="btn btn-destrutivo btn-xs" type="submit">{{ icone("undo", 14) }}Desfazer</button>
       </form>
+      {% endif %}
     </div>
   </section>
   {% endif %}

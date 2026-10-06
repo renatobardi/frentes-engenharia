@@ -5,10 +5,12 @@
       <h1>Taxonomia</h1>
       <p class="desc">O que mudou na taxonomia, a versão em vigor e o histórico das revisões.</p>
     </div>
+    {% if not somente_leitura %}
     <form class="pagina-cab-acoes revisar" action="/taxonomia/revisar" method="post">
       <span class="suave meta">Dispara a revisão em segundo plano, com o gatilho «botão».</span>
       <button class="btn btn-outline" type="submit">{{ icone("refresh") }}Revisar a taxonomia agora</button>
     </form>
+    {% endif %}
   </header>
 
   {% if aviso %}<p class="aviso bloco-gate" role="alert">{{ icone("triangle-alert") }}{{ aviso }}</p>{% endif %}

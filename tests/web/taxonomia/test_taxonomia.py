@@ -625,3 +625,11 @@ def test_o_seletor_de_versao_troca_so_o_painel_da_vigente(com_versao_nova: Path)
     html = _cliente(com_versao_nova).get("/taxonomia").text
 
     assert 'hx-target="#painel-vigente"' in html and 'hx-select="#painel-vigente"' in html
+
+
+def test_na_internet_a_tela_nao_oferece_revisar(com_versao_nova: Path) -> None:
+    http = _cliente(com_versao_nova)
+    assert "/taxonomia/revisar" in http.get("/taxonomia").text
+    publico = http.get("/taxonomia", headers={"X-Frentes-Publico": "1"})
+    assert publico.status_code == 200
+    assert "/taxonomia/revisar" not in publico.text

@@ -117,6 +117,9 @@ def _pagina(
         "ajuda": montagem.AJUDA,
         "aviso_vago": montagem.AVISO_VAGO,
     }
+    if getattr(request.state, "somente_leitura", False):
+        # Fora da tailnet não se relata (o POST é recusado): nem se mostra o formulário.
+        return renderizar(request, "relato/somente_leitura.html", status=403)
     # a requisição do HTMX troca só a gaveta; abrir o endereço direto traz a página inteira
     pagina = "relato/gaveta.html" if _parcial(request) else "relato/pagina.html"
     resposta = renderizar(request, pagina, contexto, status)
