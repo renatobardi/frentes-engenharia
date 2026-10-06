@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from eventos import contratos
-from eventos.contratos import Celula, Enderecamento, Procedencia, TipoSolucao
+from eventos.contratos import Celula, Enderecamento, Procedencia, TipoSolucao, Visao
 from eventos.store import Conexao
 from eventos.store import enderecamento as store
 from eventos.store.enderecamento import CelulaJaEnderecada
@@ -43,9 +43,9 @@ def desfazer(con: Conexao, id: int) -> bool:
     return store.desfazer(con, id)
 
 
-def lidos(con: Conexao, versao: int) -> list[Enderecamento]:
-    """Os ativos que a versão lida enxerga (frente existente nela)."""
-    return store.ativos(con, versao)
+def lidos(con: Conexao, versao: int, visao: Visao | None = None) -> list[Enderecamento]:
+    """Os ativos que a versão lida enxerga (frente existente nela); com `visao`, só os dela."""
+    return store.ativos(con, versao, visao)
 
 
 def variacao(marca: Enderecamento, serie: Sequence[tuple[datetime, float]]) -> float | None:

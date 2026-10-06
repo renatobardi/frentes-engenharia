@@ -80,13 +80,15 @@ def desfazer(con: Conexao, id: int) -> bool:
     return cursor.rowcount == 1
 
 
-def ativos(con: Conexao, versao: int) -> list[Enderecamento]:
-    """Os ativos cuja frente existe na versão. Quem aponta para frente ausente fica de fora."""
+def ativos(con: Conexao, versao: int, visao: Visao | None = None) -> list[Enderecamento]:
+    """Os ativos cuja frente existe na versão. Quem aponta para frente ausente fica de fora.
+
+    Com `visao`, só os dela."""
     linhas = con.execute(
         f"SELECT {', '.join('e.' + c.strip() for c in _COLUNAS.split(','))} FROM enderecamento e"
         " JOIN valor v ON v.versao = ? AND v.dimensao = 'frente' AND v.chave = e.frente"
-        " WHERE e.ativo = 1 ORDER BY e.decidido_em, e.id",
-        (versao,),
+        " WHERE e.ativo = 1 AND (? IS NULL OR e.visao = ?) ORDER BY e.decidido_em, e.id",
+        (versao, visao.value if visao else None, visao.value if visao else None),
     )
     return [_de_linha(linha) for linha in linhas]
 

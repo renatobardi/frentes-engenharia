@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block titulo %}Decisões · frentes-engenharia{% endblock %}
+{% block conteudo %}
+<section class="decisoes">
+  <h1>Decisões</h1>
+  <p>{{ motivo or "O banco ainda não existe." }}</p>
+</section>
+{% endblock %}

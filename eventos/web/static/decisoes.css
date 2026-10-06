@@ -1,0 +1,15 @@
+/* Tela Decisões. Escrito à mão, sem endereço externo. Usa as classes do app.css
+   (.pagina-cab, .tabela, .badge, .card, .rolagem, .estado-vazio); aqui só o que é desta tela. */
+.decisoes .filtros {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-bottom: 16px;
+  padding: 12px 16px; border-radius: var(--raio-card);
+  background: color-mix(in oklab, var(--muted) 55%, transparent);
+}
+.decisoes .filtros label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted-foreground); }
+.decisoes-titulo { margin: 24px 0 8px; font-size: 16px; font-weight: 500; }
+.decisoes .tabela .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.decisoes .decisao-link { color: var(--foreground); text-decoration: none; }
+.decisoes .decisao-link:hover { text-decoration: underline; }
+.decisoes .decisao-texto { max-width: 34rem; min-width: 14rem; }
+.decisoes .decisao-texto .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 4px; }
+.decisoes .card + .meta { margin: 8px 0 0; }
