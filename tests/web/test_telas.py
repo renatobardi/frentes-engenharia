@@ -133,7 +133,9 @@ def test_html_nao_cita_endereco_externo(tmp_path: Path) -> None:
     assert all(url.startswith("/") and not url.startswith("//") for url in externos)
     assert not re.search(r"https?://|//[a-z0-9.-]+\.[a-z]", html)
     css = (telas.ESTATICOS / "app.css").read_text(encoding="utf-8")
-    assert not re.search(r"https?://|@import|url\(", css)
+    assert not re.search(r"https?://|@import", css)
+    # a única fonte web (ADR-0001) vem de /static/; qualquer outro url(...) é recusado
+    assert re.findall(r"url\(([^)]*)\)", css) == ['"/static/InterVariable.woff2"']
 
 
 def test_htmx_e_css_sao_servidos_de_static() -> None:
@@ -146,6 +148,24 @@ def test_htmx_e_css_sao_servidos_de_static() -> None:
     assert "htmx" in htmx.text[:200]
     assert css.status_code == 200
     assert "text/css" in css.headers["content-type"]
+
+
+def test_fonte_inter_e_servida_de_static_com_a_licenca() -> None:
+    http = cliente()
+
+    fonte = http.get("/static/InterVariable.woff2")
+    licenca = http.get("/static/InterVariable-OFL.txt")
+
+    assert fonte.status_code == 200
+    assert fonte.content[:4] == b"wOF2"
+    assert licenca.status_code == 200
+    assert "SIL OPEN FONT LICENSE Version 1.1" in licenca.text
+    css = http.get("/static/app.css").text
+    assert '"Inter Variable"' in css
+    assert "system-ui" in css  # a pilha do sistema segue depois da fonte
+    tipos = {".woff", ".woff2", ".ttf", ".otf"}
+    arquivos = {p.name for p in telas.ESTATICOS.iterdir() if p.suffix in tipos}
+    assert arquivos == {"InterVariable.woff2"}
 
 
 def test_duas_telas_entram_sem_editar_uma_a_outra(tmp_path: Path) -> None:

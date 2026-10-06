@@ -1,5 +1,5 @@
-/* CSS base no padrão do Kubo (épico #116), escrito à mão. Fonte do sistema, sem fonte web e sem
-   endereço externo. Os .css de cada tela vêm depois deste e só acrescentam o que é dela.
+/* CSS base no padrão do Kubo (épico #116), escrito à mão. Uma fonte web só (InterVariable.woff2, de
+   /static/), com a pilha do sistema depois; sem endereço externo. Os .css de cada tela vêm depois deste e só acrescentam o que é dela.
 
    CONTRATO DE CLASSES (o que as telas reutilizam; mudar o nome aqui quebra as outras fases)
    Layout   .app (.app-trilho = barra estreita) > .sidebar + .principal > .topo + main
@@ -21,6 +21,14 @@
    Ícones   macro Jinja: {% from "_icones.html" import icone %}  {{ icone("nome", 16) }}
    Tokens   cores, raios e movimento em :root (abaixo). Os nomes antigos (--fundo, --texto, --suave,
             --linha, --destaque) seguem existindo como apelidos dos novos até as fases 2 a 4 trocarem. */
+
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/static/InterVariable.woff2") format("woff2-variations");
+}
 
 :root {
   --background: oklch(1 0 0);
