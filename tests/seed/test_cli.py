@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from frentes import __main__ as principal
-from frentes.__main__ import declarados, main
-from frentes.seed import cli, saida, validador
+from eventos import __main__ as principal
+from eventos.__main__ import declarados, main
+from eventos.seed import cli, saida, validador
 
 
 def test_seed_gerar_esta_declarado_e_nao_e_mais_planejado() -> None:
@@ -20,7 +20,7 @@ def test_seed_gerar_grava_os_arquivos_e_sai_com_0(
 ) -> None:
     assert main(["seed", "gerar", "--saida", str(tmp_path), "--total", "2400"]) == 0
     saida_padrao = capsys.readouterr().out
-    assert "frentes.jsonl" in saida_padrao and "teto 10 por item" in saida_padrao
+    assert "eventos.jsonl" in saida_padrao and "teto 10 por item" in saida_padrao
     assert len((tmp_path / "gabarito.jsonl").read_text(encoding="utf-8").splitlines()) == 2400
 
 
@@ -44,7 +44,7 @@ def test_a_seed_do_comando_muda_o_resultado(tmp_path: Path) -> None:
 )
 def test_uso_errado_sai_com_2(argumentos: list[str], capsys: pytest.CaptureFixture[str]) -> None:
     assert cli.seed(argumentos) == 2
-    assert "uso: python -m frentes seed gerar" in capsys.readouterr().err
+    assert "uso: python -m eventos seed gerar" in capsys.readouterr().err
 
 
 def test_seed_invalida_nao_gera_nada_e_sai_com_1(
@@ -76,7 +76,7 @@ def test_volume_pequeno_demais_sai_com_1_e_diz_o_motivo(
 def test_controle_de_qualidade_que_falha_sai_com_1(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(saida, "controle_de_qualidade", lambda frentes: ["texto repetido"])
+    monkeypatch.setattr(saida, "controle_de_qualidade", lambda eventos: ["texto repetido"])
     assert cli.seed(["gerar", "--saida", str(tmp_path), "--total", "2400"]) == 1
     assert "controle de qualidade" in capsys.readouterr().err
 

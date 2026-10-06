@@ -1,0 +1,17 @@
+{# "Chegando agora" (spec 10): os últimos eventos recebidos desde que a tela abriu. O texto vem
+   de quem relatou: escapado, nunca `|safe`. Sem evento novo a faixa não existe; o `#faixa`
+   vazio fica de âncora para a troca fora de banda. #}
+<div id="faixa"{% if oob %} hx-swap-oob="true"{% endif %}>
+{% if chegando %}
+  <section class="faixa" aria-label="Chegando agora" aria-live="polite">
+    <h2><span class="ponto-vivo"></span>Chegando agora{% if chegando_total > chegando|length %} <small>{{ chegando_total }} eventos</small>{% endif %}</h2>
+    <ul>
+      {% for c in chegando %}
+      <li><time>{{ c.hora }}</time> <span class="texto">{{ c.texto }}</span>
+        <span class="onde">{% if c.celula %}→ {{ c.celula }} {% endif %}<span class="estado">{{ c.estado }}</span></span>
+        {% if c.confianca %}<span class="confianca">{{ c.confianca }}</span>{% else %}<span></span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endif %}
+</div>

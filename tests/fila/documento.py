@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from frentes.contratos import (
+from eventos.contratos import (
     AreaDoOrganograma,
     DocumentoTaxonomia,
     Natureza,
@@ -27,7 +27,7 @@ def _area(chave: str, *times: str) -> AreaDoOrganograma:
 
 DOCUMENTO = DocumentoTaxonomia(
     organograma=(_area("plat", "plat_a", "plat_b"), _area("dados", "dados_a")),
-    tipos=(
+    frentes=(
         _valor("incidente", _valor("inc_disp"), _valor("inc_perf")),
         _valor("melhoria", _valor("mel_proc")),
     ),
@@ -36,7 +36,7 @@ DOCUMENTO = DocumentoTaxonomia(
     regua_severidade=(NivelDaRegua("baixa", "pouco"), NivelDaRegua("alta", "muito")),
     regua_impacto=(NivelDaRegua("baixo", "pouco"), NivelDaRegua("alto", "muito")),
     criterio_urgencia="quão cedo agir",
-    criterio_natureza={Natureza.REATIVA: "quebrou", Natureza.PROATIVA: "melhorar"},
+    criterio_natureza={Natureza.REATIVO: "quebrou", Natureza.PROATIVO: "melhorar"},
     pergunta_de_controle="O texto cita algo específico?",
     instrucoes={p: f"instrução de {p.value}" for p in Pergunta},
 )

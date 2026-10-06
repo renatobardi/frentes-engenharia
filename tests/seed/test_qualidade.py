@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from frentes.seed import cli, qualidade, validador
+from eventos.seed import cli, qualidade, validador
 from tests.seed.test_textos import bom, esqueletos
 
 
@@ -57,7 +57,7 @@ def test_nome_composto_solto_vale_ate_um_limite(regras: qualidade.Regras) -> Non
     solto = f"{bom(e)} Depende do motor de decisão."
     for k in range(qualidade.NOMES_POR_NOME):
         assert motivos(solto, regras, e, corpus=corpus) == []
-        anterior = f"{bom(esq(id=f'fr-90{k}'))} Depende do motor de decisão."
+        anterior = f"{bom(esq(id=f'ev-90{k}'))} Depende do motor de decisão."
         corpus.aceitar(anterior, "relato", regras.nomes_de_times)
     assert any("já foi citado demais" in m for m in motivos(solto, regras, e, corpus=corpus))
 
@@ -148,7 +148,7 @@ def test_quase_duplicata_reprova(regras: qualidade.Regras) -> None:
     corpus = qualidade.Corpus()
     corpus.aceitar(bom(e), "relato")
     assert any("quase igual" in m for m in motivos(bom(e) + " ok", regras, e, corpus=corpus))
-    outro = esq(id="fr-9999", objeto="rotina de fechamento mensal de propostas")
+    outro = esq(id="ev-9999", objeto="rotina de fechamento mensal de propostas")
     assert motivos(bom(outro), regras, outro, corpus=corpus) == []
 
 

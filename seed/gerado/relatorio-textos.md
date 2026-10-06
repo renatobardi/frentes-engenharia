@@ -1,14 +1,14 @@
 # Relatório das curvas do dataset gravado
 
-`frentes.jsonl`: 6000 frentes (banco 900, log 1200, mcp 600, relato 2400, webhook 900); textos de relato e mcp escritos pela LLM `deepseek/deepseek-v4-flash`, o resto por template.
+`eventos.jsonl`: 6000 eventos (banco 900, log 1200, mcp 600, relato 2400, webhook 900); textos de relato e mcp escritos pela LLM `deepseek/deepseek-v4-flash`, o resto por template.
 
 Custo medido da geração dos textos: 789 chamadas, 1578089 tokens de entrada e 419296 de saída = **US$ 0.5720** (tokens do OpenRouter × preço do modelo em `textos.PRECOS`).
 
 ## Tendência de cada história: roteiro × texto
 
-Últimos 90 dias contra os 90 anteriores. "Texto" conta só as frentes cujo texto cita o objeto ou um termo da história (o que a LLM escreveu de fato).
+Últimos 90 dias contra os 90 anteriores. "Texto" conta só os eventos cujo texto cita o objeto ou um termo da história (o que a LLM escreveu de fato).
 
-| História | Frentes | Citam no texto | Tendência no gabarito | Tendência no texto |
+| História | Eventos | Citam no texto | Tendência no gabarito | Tendência no texto |
 |---|---|---|---|---|
 | H1 | 240 | 240 | +52% | +52% |
 | H2 | 180 | 180 | +2% | +2% |

@@ -9,7 +9,7 @@ O roteiro da demo para o diretor e o que a construção tem de entregar para ele
 
 | Linha | Conteúdo |
 |---|---|
-| O quê | rodar o frentes-engenharia com as frentes reais de **uma** área, por tempo limitado |
+| O quê | rodar o frentes-engenharia com os eventos reais de **uma** área, por tempo limitado |
 | Qual área | o diretor escolhe; o Bardi chega com uma sugestão e o critério |
 | O que o diretor dá | o nome da área, o líder que patrocina e a autorização para usar os textos reais dela |
 | O que ele recebe | o mapa de calor real da área, com o Top 3, lido numa sessão com o líder; e a decisão de continuar ou parar |
@@ -45,9 +45,9 @@ Fonte: [R21].
 |---|---|---|---|
 | 0 | 1 | slide de abertura | "Onde devo investir?" Os dados são fictícios, da Aurora Tech |
 | 1 | 2 | mapa, "Onde dói", 90 dias | lê o Top 3: a H1 em primeiro e subindo, a H2 crônica. Mostra um "+N incertas" |
-| 2 | 3 | painel da célula da H1 | por que está quente, a sugestão, a evolução, "Problemas recorrentes", e abre uma frente para mostrar o texto original |
+| 2 | 3 | painel da célula da H1 | por que está quente, a sugestão, a evolução, "Problemas recorrentes", e abre um evento para mostrar o texto original |
 | 3 | 2 | mapa, "Onde há oportunidade" | Top 1 é a H4. A célula da H6 está quente nas duas visões |
-| 4 | 2 | formulário de relato | o Bardi digita o relato preparado; a frente aparece classificada, com a confiança, e a célula pisca |
+| 4 | 2 | formulário de relato | o Bardi digita o relato preparado; o evento aparece classificada, com a confiança, e a célula pisca |
 | 5 | 2 | mapa + comando da rajada | o número e a seta da célula da H1 sobem |
 | 6 | 3 | três telas da revisão | v1 com o selo do sinal de encaixe → o diff → v2 com a coluna nova |
 | 7 | 2 | mapa em 12 meses, painel da célula da H3 | o marcador na evolução e a queda depois dele |
@@ -60,7 +60,7 @@ Fonte: [R21].
 - **Revisão**: o "antes" e o "depois" são lidos **na mesma data (hoje), mudando só a versão**. A data de referência não é usada. O modo que chama a LLM na hora não entra. [R21]
 - **Relato**: texto **preparado e testado** contra o snapshot, sobre um objeto **listado** na ficha do time e de uma célula que não é a da H1. [R21]
 - **Relato ditado pelo diretor**: gesto opcional, só com folga de tempo; o Bardi pede que ele **diga o nome do sistema que falha**. [R21] [R24]
-- **Rajada**: ~20 frentes sobre a H1, por um comando só. A fala aponta o **número e a seta**, não a cor. [R21]
+- **Rajada**: ~20 eventos sobre a H1, por um comando só. A fala aponta o **número e a seta**, não a cor. [R21]
 - **O Jev na fala**: duas frases dentro dos atos ("um modelo pequeno e barato, que diz o quanto tem certeza"; "o que ele não sabe, ele não pinta") e a ordem de grandeza do custo no pedido. Nenhuma comparação Jev × LLM. [R21]
 
 ## Riscos ao vivo e plano B
@@ -70,7 +70,7 @@ Só os passos 4 e 5 chamam serviço de fora. Todo o resto sobe do snapshot. [R21
 | Risco | Plano B |
 |---|---|
 | Relato cai na área errada | o texto preparado cita objeto listado e é testado no ensaio. Se o do diretor errar: mostrar a confiança, dizer "a área é a do dono do sistema" e seguir |
-| Relato fica como texto vago | é o comportamento decidido: completar na hora e mostrar a frente reclassificada |
+| Relato fica como texto vago | é o comportamento decidido: completar na hora e mostrar o evento reclassificada |
 | API da TypeSafe fora ou lenta | vídeo dos passos 4 e 5, gravado no ensaio com o mesmo snapshot. Conferir a API 30 minutos antes |
 | OpenRouter fora | não afeta o roteiro: o painel mostra o texto anterior com "atualizando" |
 | A rajada não esquenta à vista | a fala aponta o número e a seta. Vídeo de reserva |
@@ -83,12 +83,12 @@ Fonte: [R21].
 
 ## O que a demo não mostra
 
-Comparação Jev × LLM; o filtro de origem; "Não classificadas" e o contador de texto vago (ficam na tela, sem fala); subtipo, causa raiz, urgência e a lista das 8 dimensões (aparecem no detalhe, sem explicação); a descoberta por dentro; a revisão chamando a LLM na hora e o botão "revisar taxonomia agora"; desfazer um endereçamento; a H7; qualquer número em R$ e qualquer dado real. [R21]
+Comparação Jev × LLM; o filtro de origem; "Não classificadas" e o contador de texto vago (ficam na tela, sem fala); subfrente, causa raiz, urgência e a lista das 8 dimensões (aparecem no detalhe, sem explicação); a descoberta por dentro; a revisão chamando a LLM na hora e o botão "revisar taxonomia agora"; desfazer um endereçamento; a H7; qualquer número em R$ e qualquer dado real. [R21]
 
 ## O que a construção entrega para o roteiro
 
 - O script da rajada com `ref_externa` nova e data de agora a cada envio. [R21]
-- A célula mostrando o **número mudando** na rajada, e a confiança à vista na frente recém-classificada. [R21]
+- A célula mostrando o **número mudando** na rajada, e a confiança à vista no evento recém-classificada. [R21]
 - Trocar a versão do mapa sem trocar a data. [R21]
 - Recarregar o snapshot com um comando só e rápido. [R21]
 - Os dois slides de reserva saem da conferência contra o gabarito e do uso (tokens) gravado na classificação da seed inteira. [R21]

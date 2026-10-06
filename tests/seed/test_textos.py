@@ -8,10 +8,10 @@ from typing import Any
 
 import pytest
 
-from frentes.contratos import Uso
-from frentes.llm import ErroLlm, ErroLlmEsgotado
-from frentes.seed import cli, dataset, textos, validador
-from frentes.seed.textos import ErroDeGeracao, Gerador
+from eventos.contratos import Uso
+from eventos.llm import ErroLlm, ErroLlmEsgotado
+from eventos.seed import cli, dataset, textos, validador
+from eventos.seed.textos import ErroDeGeracao, Gerador
 from tests.llm.falso import LlmFalsa, SemGravacao, resposta_llm
 
 MODELO = "deepseek/deepseek-v4-flash"
@@ -30,7 +30,7 @@ def ctx() -> textos.Contexto:
 
 
 def esqueletos(quantos: int, origem: str | None = None) -> list[dict[str, Any]]:
-    """Os primeiros esqueletos de relato e mcp do fundo, sem sabor, de natureza proativa."""
+    """Os primeiros esqueletos de relato e mcp do fundo, sem sabor, de natureza proativo."""
     achados = [
         e
         for e in _ctx_e_esqueletos()[1]
@@ -39,7 +39,7 @@ def esqueletos(quantos: int, origem: str | None = None) -> list[dict[str, Any]]:
         and e["historia_id"] == "fundo"
         and e["ambigua"] is None
         and e["cruzado"] is None
-        and e["natureza"] == "proativa"
+        and e["natureza"] == "proativo"
     ]
     return achados[:quantos]
 
@@ -81,7 +81,7 @@ def test_lote_bom_grava_o_livro_e_o_uso(tmp_path: Path, ctx: textos.Contexto) ->
     assert (tmp_path / "uso-llm.jsonl").read_text(encoding="utf-8").count("\n") == 1
 
 
-def test_o_pedido_nao_leva_o_gabarito_nem_nome_de_tipo(ctx: textos.Contexto) -> None:
+def test_o_pedido_nao_leva_o_gabarito_nem_nome_de_frente(ctx: textos.Contexto) -> None:
     lote = esqueletos(4)
     pedido = entrada(ctx, *lote)
     for proibido in ("historia_id", "areas_aceitas", "tema_fundo", "listado", "gabarito"):
@@ -133,7 +133,7 @@ def test_lote_que_falha_tres_vezes_para_com_erro_claro(
     assert len(llm.chamadas) == 3
     # o que foi aceito fica no livro (a retomada não paga de novo); o arquivo final nunca nasce
     assert list(livro(tmp_path)) == [a["id"]]
-    assert not (tmp_path / "frentes.jsonl").exists()
+    assert not (tmp_path / "eventos.jsonl").exists()
 
 
 def test_llm_esgotada_conta_como_tentativa(tmp_path: Path, ctx: textos.Contexto) -> None:
@@ -230,7 +230,7 @@ def test_mcp_pede_abertura_e_pessoa_e_relato_nao(ctx: textos.Contexto) -> None:
 
 def test_os_pedidos_da_h4_tem_o_mesmo_assunto_no_texto() -> None:
     """Medido no primeiro snapshot (#109): simulação, status e comissão liam como três assuntos
-    sem relação, e 114 das 150 frentes da história ficaram sem problema."""
+    sem relação, e 114 das 150 eventos da história ficaram sem problema."""
     assert len(textos.PEDIDOS_H4) == 3  # o sorteio do pedido depende da quantidade
     for pedido in textos.PEDIDOS_H4:
         assert pedido.startswith("lojistas querem se atender sozinhos no portal do lojista: ")

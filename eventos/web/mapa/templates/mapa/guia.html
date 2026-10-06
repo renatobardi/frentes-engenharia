@@ -1,0 +1,28 @@
+{#- O passeio guiado do mapa (#139): cinco balões, cada um ancorado num elemento da tela. Mora
+    fora do `#mapa`, para sobreviver à troca do HTMX; o `guia.js` posiciona o balão e guarda a
+    dispensa no navegador. Nasce escondido: sem JavaScript, nada aparece.
+    data-auto   "sim" abre sozinho na primeira visita; "nao" espera o botão (o endereço já abre
+                uma célula); "nunca" (`?guia=0`) grava a dispensa sem abrir.
+    Em cada passo: data-alvo é o seletor do elemento apontado; com data-alvo-pelo-link-de, o
+    alvo é o elemento de data-alvo que leva o mesmo `href` do primeiro elemento desse seletor.
+    O losango do passo da célula vai como entidade (&#9670;): no HTML da página, o caractere só
+    aparece quando há célula endereçada, e os testes do endereçamento contam com isso. -#}
+<div id="guia" class="guia card" role="dialog" aria-labelledby="guia-titulo" aria-describedby="guia-texto" hidden
+     data-auto="{% if request.query_params.get('guia') == '0' %}nunca{% elif painel %}nao{% else %}sim{% endif %}">
+  <ol class="guia-passos" hidden>
+    <li data-alvo=".visoes" data-titulo="Duas visões">Duas leituras do mesmo mapa: "Onde dói" soma a severidade dos eventos reativos; "Onde há oportunidade" soma o impacto esperado das proativos.</li>
+    <li data-alvo=".top3" data-titulo="Top 3">As três células com o maior índice neste recorte. Comece por aqui.</li>
+    <li data-alvo=".celula .abrir" data-alvo-pelo-link-de=".top3 .destaque-link" data-titulo="A célula">Cada célula é uma área × uma frente. O número é o índice, a seta é a variação contra o período anterior e &#9670; marca a célula endereçada. Clique para ver por que está quente.</li>
+    <li data-alvo=".contadores" data-titulo="Fora da grade">Eventos que não pintam o mapa: incertas, de texto vago e aguardando classificação. O clique abre a lista filtrada.</li>
+    <li data-alvo=".topo-acoes a[href='{{ relatar[1] }}']" data-titulo="{{ relatar[0] }}">Viu um problema ou uma oportunidade? Relate aqui: o evento é classificado e entra no mapa.</li>
+  </ol>
+  <p class="guia-conta fino muted" data-guia-conta></p>
+  <h2 id="guia-titulo"></h2>
+  <p id="guia-texto" aria-live="polite"></p>
+  <div class="guia-acoes">
+    <button class="btn btn-ghost btn-sm" type="button" data-guia-pular>Pular</button>
+    <button class="btn btn-outline btn-sm" type="button" data-guia-voltar>Voltar</button>
+    <button class="btn btn-sm" type="button" data-guia-proximo>Próximo</button>
+  </div>
+</div>
+<div id="guia-destaque" class="guia-destaque" aria-hidden="true" hidden></div>

@@ -11,19 +11,19 @@ from typing import Any
 
 import pytest
 
-from frentes import config, store
-from frentes.contratos import (
+from eventos import config, store
+from eventos.contratos import (
     Celula,
     EstadoPainel,
     PainelCelula,
     Periodo,
     Visao,
 )
-from frentes.llm import ErroLlm
-from frentes.painel import texto
-from frentes.painel.gerador import Gerador
-from frentes.painel.refazedor import Refazedor
-from frentes.store import painel as armazem
+from eventos.llm import ErroLlm
+from eventos.painel import texto
+from eventos.painel.gerador import Gerador
+from eventos.painel.refazedor import Refazedor
+from eventos.store import painel as armazem
 from tests.painel.apoio import (
     BOM,
     CELULA,
@@ -32,7 +32,7 @@ from tests.painel.apoio import (
     classificacao_de,
     criar_banco,
     deixar_rodar,
-    frente,
+    evento,
     resposta,
 )
 
@@ -83,15 +83,15 @@ def rodar(cenario: Callable[[], Awaitable[None]]) -> None:
 # ------------------------------------------------------------------ a espera e a chamada única
 
 
-def test_vinte_frentes_na_mesma_celula_dentro_da_espera_geram_uma_chamada(banco: Path) -> None:
-    ids = [frente(banco, HOJE) for _ in range(20)]
+def test_vinte_eventos_na_mesma_celula_dentro_da_espera_geram_uma_chamada(banco: Path) -> None:
+    ids = [evento(banco, HOJE) for _ in range(20)]
     llm, relogio = LlmEmOrdem(padrao=resposta()), RelogioFalso()
     refazedor = montar(banco, llm, relogio)
 
     async def cenario() -> None:
         for id_ in ids:
             await refazedor.marcar(1, CELULA, Periodo.D90)
-            assert id_  # uma marca por frente nova
+            assert id_  # uma marca por evento novo
         await deixar_rodar()
         assert llm.chamadas == [] and relogio.esperas == [ESPERA]  # esperando, uma só espera
         assert lido(banco).estado is EstadoPainel.ATUALIZANDO  # type: ignore[union-attr]
@@ -102,39 +102,39 @@ def test_vinte_frentes_na_mesma_celula_dentro_da_espera_geram_uma_chamada(banco:
 
     assert len(llm.chamadas) == 1
     painel = lido(banco)
-    assert painel.estado is EstadoPainel.ATUAL and painel.frentes_na_geracao == 20  # type: ignore[union-attr]
+    assert painel.estado is EstadoPainel.ATUAL and painel.eventos_na_geracao == 20  # type: ignore[union-attr]
     assert painel.porque == BOM["porque"]  # type: ignore[union-attr]
 
 
-def test_a_rajada_pelo_gancho_gera_uma_chamada_por_periodo_em_que_as_frentes_caem(
+def test_a_rajada_pelo_gancho_gera_uma_chamada_por_periodo_em_que_os_eventos_caem(
     banco: Path,
 ) -> None:
-    classificacoes = [classificacao_de(banco, frente(banco, HOJE)) for _ in range(20)]
+    classificacoes = [classificacao_de(banco, evento(banco, HOJE)) for _ in range(20)]
     llm, relogio = LlmEmOrdem(padrao=resposta()), RelogioFalso()
     refazedor = montar(banco, llm, relogio)
 
     async def cenario() -> None:
         for c in classificacoes:
-            await refazedor.frente_nova(c)
+            await refazedor.evento_novo(c)
         await deixar_rodar()
         relogio.avancar()
         await refazedor.esperar()
 
     rodar(cenario)
 
-    # 20 frentes de hoje caem nos 4 períodos: 4 painéis (chaves), cada um com uma chamada
+    # 20 eventos de hoje caem nos 4 períodos: 4 painéis (chaves), cada um com uma chamada
     assert len(llm.chamadas) == 4
     for periodo in Periodo:
-        assert lido(banco, periodo).frentes_na_geracao == 20  # type: ignore[union-attr]
+        assert lido(banco, periodo).eventos_na_geracao == 20  # type: ignore[union-attr]
 
 
-def test_frente_fora_da_janela_do_periodo_nao_marca_o_painel_dele(banco: Path) -> None:
-    c = classificacao_de(banco, frente(banco, ANTIGA))
+def test_evento_fora_da_janela_do_periodo_nao_marca_o_painel_dele(banco: Path) -> None:
+    c = classificacao_de(banco, evento(banco, ANTIGA))
     llm, relogio = LlmEmOrdem(padrao=resposta()), RelogioFalso()
     refazedor = montar(banco, llm, relogio)
 
     async def cenario() -> None:
-        await refazedor.frente_nova(c)
+        await refazedor.evento_novo(c)
         await deixar_rodar()
         relogio.avancar()
         await refazedor.esperar()
@@ -147,8 +147,8 @@ def test_frente_fora_da_janela_do_periodo_nao_marca_o_painel_dele(banco: Path) -
 
 
 def test_celulas_diferentes_tem_cada_uma_a_sua_chamada(banco: Path) -> None:
-    frente(banco, HOJE)
-    frente(banco, HOJE, area="dados", tipo="melhoria", natureza="proativa")
+    evento(banco, HOJE)
+    evento(banco, HOJE, area="dados", frente="melhoria", natureza="proativo")
     llm, relogio = LlmEmOrdem(padrao=resposta()), RelogioFalso()
     refazedor = montar(banco, llm, relogio)
     outra = Celula("dados", "melhoria", Visao.OPORTUNIDADE)
@@ -170,23 +170,23 @@ def test_celulas_diferentes_tem_cada_uma_a_sua_chamada(banco: Path) -> None:
     "campos",
     [
         {"estado": "incerta", "motivo": "confianca_baixa"},
-        {"estado": "nao_classificada", "area": None, "tipo": None},
+        {"estado": "nao_classificada", "area": None, "frente": None},
     ],
 )
-def test_frente_que_nao_pinta_nao_marca_painel_nenhum(banco: Path, campos: dict[str, Any]) -> None:
-    c = classificacao_de(banco, frente(banco, HOJE, **campos))
+def test_evento_que_nao_pinta_nao_marca_painel_nenhum(banco: Path, campos: dict[str, Any]) -> None:
+    c = classificacao_de(banco, evento(banco, HOJE, **campos))
     llm, relogio = LlmEmOrdem(padrao=resposta()), RelogioFalso()
     refazedor = montar(banco, llm, relogio)
 
-    rodar(lambda: refazedor.frente_nova(c))
+    rodar(lambda: refazedor.evento_novo(c))
 
     assert relogio.esperas == [] and llm.chamadas == []
     with closing(store.abrir_existente(banco)) as con:
         assert con.execute("SELECT count(*) FROM painel_celula").fetchone()[0] == 0
 
 
-def test_frente_que_chega_com_a_geracao_em_curso_pede_uma_rodada_a_mais(banco: Path) -> None:
-    frente(banco, HOJE)
+def test_evento_que_chega_com_a_geracao_em_curso_pede_uma_rodada_a_mais(banco: Path) -> None:
+    evento(banco, HOJE)
     llm, relogio = LlmEmOrdem(padrao=resposta()), RelogioFalso()
     llm.portao = asyncio.Event()
     refazedor = montar(banco, llm, relogio)
@@ -196,7 +196,7 @@ def test_frente_que_chega_com_a_geracao_em_curso_pede_uma_rodada_a_mais(banco: P
         await deixar_rodar()
         relogio.avancar()
         await asyncio.wait_for(llm.entrou.wait(), 5)  # gerando
-        frente(banco, HOJE)
+        evento(banco, HOJE)
         await refazedor.marcar(1, CELULA, Periodo.D90)  # chega durante a geração
         llm.portao.set()
         await deixar_rodar()
@@ -208,7 +208,7 @@ def test_frente_que_chega_com_a_geracao_em_curso_pede_uma_rodada_a_mais(banco: P
     rodar(cenario)
 
     assert len(llm.chamadas) == 2
-    assert lido(banco).frentes_na_geracao == 2  # type: ignore[union-attr]
+    assert lido(banco).eventos_na_geracao == 2  # type: ignore[union-attr]
 
 
 # ------------------------------------------------------------------ atualizando e falha
@@ -217,7 +217,7 @@ def test_frente_que_chega_com_a_geracao_em_curso_pede_uma_rodada_a_mais(banco: P
 def test_enquanto_refaz_a_leitura_devolve_o_texto_anterior_com_o_estado_atualizando(
     banco: Path,
 ) -> None:
-    frente(banco, HOJE)
+    evento(banco, HOJE)
     gravar_anterior(banco)
     llm, relogio = LlmEmOrdem(padrao=resposta()), RelogioFalso()
     llm.portao = asyncio.Event()
@@ -240,7 +240,7 @@ def test_enquanto_refaz_a_leitura_devolve_o_texto_anterior_com_o_estado_atualiza
         assert painel is not None
         assert painel.estado is EstadoPainel.ATUALIZANDO
         assert painel.porque == "Texto anterior. Duas frases."
-        assert painel.modelo_llm == "modelo-antigo" and painel.frentes_na_geracao == 5
+        assert painel.modelo_llm == "modelo-antigo" and painel.eventos_na_geracao == 5
     depois = lido(banco)
     assert depois.estado is EstadoPainel.ATUAL and depois.porque == BOM["porque"]  # type: ignore[union-attr]
 
@@ -256,7 +256,7 @@ def test_enquanto_refaz_a_leitura_devolve_o_texto_anterior_com_o_estado_atualiza
 def test_se_a_llm_falha_o_anterior_fica_e_o_estado_volta(
     banco: Path, falha: Exception | None, caplog: pytest.LogCaptureFixture
 ) -> None:
-    frente(banco, HOJE)
+    evento(banco, HOJE)
     gravar_anterior(banco)
     invalida = {**BOM, "sugestoes": [{"texto": "x", "tipo_solucao": "software"}]}
     llm = LlmEmOrdem([falha] if falha else [resposta(invalida)] * texto.TENTATIVAS)
@@ -281,7 +281,7 @@ def test_se_a_llm_falha_o_anterior_fica_e_o_estado_volta(
 def test_falha_na_celula_que_nunca_teve_painel_nao_deixa_atualizando_para_sempre(
     banco: Path,
 ) -> None:
-    frente(banco, HOJE)
+    evento(banco, HOJE)
     llm, relogio = LlmEmOrdem([ErroLlm("fora do ar")]), RelogioFalso()
     refazedor = montar(banco, llm, relogio)
 
@@ -297,8 +297,8 @@ def test_falha_na_celula_que_nunca_teve_painel_nao_deixa_atualizando_para_sempre
     assert lido(banco) is None
 
 
-def test_depois_de_falhar_a_proxima_frente_tenta_de_novo(banco: Path) -> None:
-    frente(banco, HOJE)
+def test_depois_de_falhar_a_proxima_evento_tenta_de_novo(banco: Path) -> None:
+    evento(banco, HOJE)
     llm, relogio = LlmEmOrdem([ErroLlm("fora do ar"), resposta()]), RelogioFalso()
     refazedor = montar(banco, llm, relogio)
 
@@ -317,7 +317,7 @@ def test_depois_de_falhar_a_proxima_frente_tenta_de_novo(banco: Path) -> None:
 def test_erro_inesperado_na_geracao_tambem_devolve_o_estado_e_vai_para_o_log(
     banco: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    frente(banco, HOJE)
+    evento(banco, HOJE)
     gravar_anterior(banco)
 
     class Quebrado(Gerador):
@@ -340,10 +340,10 @@ def test_erro_inesperado_na_geracao_tambem_devolve_o_estado_e_vai_para_o_log(
     assert any("erro ao gerar" in r.getMessage() for r in caplog.records)
 
 
-def test_celula_que_perdeu_as_frentes_na_espera_volta_ao_estado_sem_chamar_a_llm(
+def test_celula_que_perdeu_os_eventos_na_espera_volta_ao_estado_sem_chamar_a_llm(
     banco: Path,
 ) -> None:
-    # a frente marcou o painel, mas na hora de gerar nenhuma pinta a célula na janela
+    # o evento marcou o painel, mas na hora de gerar nenhuma pinta a célula na janela
     gravar_anterior(banco)
     llm, relogio = LlmEmOrdem(), RelogioFalso()
     refazedor = montar(banco, llm, relogio)
@@ -360,7 +360,7 @@ def test_celula_que_perdeu_as_frentes_na_espera_volta_ao_estado_sem_chamar_a_llm
 
 
 def test_parar_cancela_a_espera_sem_chamar_a_llm(banco: Path) -> None:
-    frente(banco, HOJE)
+    evento(banco, HOJE)
     llm, relogio = LlmEmOrdem(padrao=resposta()), RelogioFalso()
     refazedor = montar(banco, llm, relogio)
 
@@ -378,7 +378,7 @@ def test_parar_cancela_a_espera_sem_chamar_a_llm(banco: Path) -> None:
 def test_se_o_banco_falha_ao_voltar_o_estado_registra_tenta_de_novo_e_nao_derruba(
     banco: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    frente(banco, HOJE)
+    evento(banco, HOJE)
     gravar_anterior(banco)
     llm, relogio = LlmEmOrdem([ErroLlm("fora do ar")]), RelogioFalso()
     refazedor = montar(banco, llm, relogio)
@@ -410,7 +410,7 @@ def test_se_o_banco_falha_ao_voltar_o_estado_registra_tenta_de_novo_e_nao_derrub
 def test_se_o_banco_falha_ao_marcar_registra_e_o_painel_ainda_e_refeito(
     banco: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    frente(banco, HOJE)
+    evento(banco, HOJE)
     llm, relogio = LlmEmOrdem(padrao=resposta()), RelogioFalso()
     refazedor = montar(banco, llm, relogio)
 

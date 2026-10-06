@@ -1,4 +1,4 @@
-"""Ajuda dos testes de encaixe: acrescenta arquivos novos a um pacote do `frentes`.
+"""Ajuda dos testes de encaixe: acrescenta arquivos novos a um pacote do `eventos`.
 
 Faz o que uma fatia nova faz (cria um arquivo ou pasta no próprio módulo) sem
 tocar no repo: os arquivos nascem numa pasta temporária que entra no `__path__`

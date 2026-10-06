@@ -2,7 +2,7 @@
 
 Os dados são os do `test_mapa` (datas relativas a hoje, com semanas de folga das janelas):
 Plataforma × Incidente é a mais quente (2,7 em 90 dias) e Operações × Incidente só tem uma
-frente de 200 dias atrás, fria em 30 e 90 dias e viva em 12 meses.
+evento de 200 dias atrás, fria em 30 e 90 dias e viva em 12 meses.
 """
 
 import html as html_lib
@@ -15,10 +15,10 @@ from urllib.parse import urlencode
 import pytest
 from fastapi.testclient import TestClient
 
-from frentes import contratos, store
-from frentes.contratos import Celula, TipoSolucao, Visao
-from frentes.enderecamento import marcas
-from frentes.web.mapa import painel
+from eventos import contratos, store
+from eventos.contratos import Celula, TipoSolucao, Visao
+from eventos.enderecamento import marcas
+from eventos.web.mapa import painel
 from tests.web.mapa.test_ao_vivo import _marca, _poll, _polling
 from tests.web.mapa.test_mapa import (
     PORQUE,
@@ -30,14 +30,14 @@ from tests.web.mapa.test_mapa import (
 
 HX = {"HX-Request": "true"}
 RECORTE = {"visao": "dor", "periodo": "90d"}
-PLAT = {"area": "plat", "tipo": "incidente"}
-OPS = {"area": "ops", "tipo": "incidente"}
+PLAT = {"area": "plat", "frente": "incidente"}
+OPS = {"area": "ops", "frente": "incidente"}
 TEXTO = "Automatizar o failover"
 
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "frentes.db"
+    caminho = tmp_path / "eventos.db"
     with closing(store.abrir(caminho)) as con:
         _montar(con)
         _valores_do_painel(con)
@@ -69,7 +69,7 @@ def _enderecar(http: TestClient, headers: dict[str, str] | None = None, **form):
 def _ativas(banco: Path) -> list[tuple[str, str, str]]:
     with closing(store.abrir(banco)) as con:
         return [
-            (r["area"], r["tipo"], r["quem_decidiu"])
+            (r["area"], r["frente"], r["quem_decidiu"])
             for r in con.execute("SELECT * FROM enderecamento WHERE ativo = 1")
         ]
 
@@ -181,7 +181,7 @@ def test_o_selo_aparece_em_30_dias_mesmo_com_a_data_fora_da_janela(
     dia = (contratos.agora() - timedelta(days=200)).strftime("%d/%m")
     assert f"◆ {dia}" in ops
     # a célula fria com selo abre o painel, de onde se desfaz
-    assert "area=ops&amp;tipo=incidente" in ops
+    assert "area=ops&amp;frente=incidente" in ops
 
 
 def test_o_selo_fica_na_visao_da_marca(banco: Path, http: TestClient) -> None:
@@ -191,12 +191,12 @@ def test_o_selo_fica_na_visao_da_marca(banco: Path, http: TestClient) -> None:
     assert "◆" not in _sem_nota(http.get("/?visao=oportunidade").text)
 
 
-def test_marca_de_tipo_que_a_versao_nao_tem_fica_guardada_e_nao_aparece(
+def test_marca_de_frente_que_a_versao_nao_tem_fica_guardada_e_nao_aparece(
     banco: Path, http: TestClient
 ) -> None:
     _marcar_direto(banco, Celula("plat", "tecnologia", Visao.DOR), dias=10)
 
-    assert "◆" not in _sem_nota(http.get("/").text)  # a v2 não tem o tipo "tecnologia"
+    assert "◆" not in _sem_nota(http.get("/").text)  # a v2 não tem a frente "tecnologia"
     assert "◆" in _sem_nota(http.get("/?versao=1").text)
 
 
@@ -314,9 +314,9 @@ def test_o_desfazer_de_outra_origem_nao_desfaz(banco: Path, http: TestClient) ->
         ({"versao": "0"}, 422),
         ({"versao": "99"}, 404),  # a versão não existe
         ({"area": ""}, 422),
-        ({"tipo": "t" * 65}, 422),
+        ({"frente": "t" * 65}, 422),
         ({"area": "nao-existe"}, 404),
-        ({"tipo": "tecnologia"}, 404),  # só existe na v1
+        ({"frente": "tecnologia"}, 404),  # só existe na v1
     ],
 )
 def test_parametro_invalido_ou_celula_inexistente_da_4xx_e_nada_grava(
@@ -364,10 +364,10 @@ def test_corpo_que_nao_e_formulario_ou_e_grande_demais(http: TestClient) -> None
 
 
 def test_sem_banco_enderecar_da_503(tmp_path: Path) -> None:
-    from frentes import config
-    from frentes.web.app import criar_app
+    from eventos import config
+    from eventos.web.app import criar_app
 
-    http = TestClient(criar_app(config.carregar({"FRENTES_DB": str(tmp_path / "nada.db")})))
+    http = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nada.db")})))
 
     assert _enderecar(http).status_code == 503
 
@@ -450,7 +450,7 @@ def test_sem_endereçamento_ou_com_a_data_fora_dos_12_meses_nao_ha_marcador(
 
 
 def _serie(*indices: float) -> list:
-    from frentes.mapa.agregados import PontoMensal
+    from eventos.mapa.agregados import PontoMensal
 
     return [PontoMensal(f"2026-{m:02d}", v) for m, v in enumerate(indices, start=1)]
 
@@ -510,7 +510,7 @@ def test_o_polling_nao_apaga_o_selo(banco: Path, http: TestClient) -> None:
     _enderecar(http)
     pagina = http.get(_celula_url()).text
     leitura, cabecalhos = _polling(pagina), _marca(pagina)
-    # uma frente nova na célula muda o índice: a grade volta no polling e leva o selo
+    # um evento novo na célula muda o índice: a grade volta no polling e leva o selo
     with closing(store.abrir(banco)) as con:
         from tests.web.mapa.test_mapa import _pinta
 
@@ -565,7 +565,7 @@ def test_desfazer_o_que_outra_aba_ja_desfez_volta_a_tela_com_a_mensagem(http: Te
 
 
 def test_o_miolo_traz_o_aviso_para_as_recusas_sem_tela() -> None:
-    js = (Path(__file__).parents[3] / "frentes/web/static/mapa-ao-vivo.js").read_text()
+    js = (Path(__file__).parents[3] / "eventos/web/static/mapa-ao-vivo.js").read_text()
 
     # recusas que não voltam em HTML (403, 413, 415, 503...) mostram a mensagem no aviso
     assert 'getElementById("aviso-enderecar")' in js

@@ -10,20 +10,20 @@ from itertools import count
 
 import pytest
 
-from frentes import config, store
-from frentes.contratos import Origem, Periodo, Visao
-from frentes.mapa import celula
-from frentes.mapa.agregados import VersaoInexistente
+from eventos import config, store
+from eventos.contratos import Origem, Periodo, Visao
+from eventos.mapa import celula
+from eventos.mapa.agregados import VersaoInexistente
 
 REF = date(2026, 10, 3)
 LIMIARES = config.carregar_limiares()
 _ids = count(1)
 
 
-def _frente(con: store.Conexao, quando: str, origem: str = "relato") -> str:
+def _evento(con: store.Conexao, quando: str, origem: str = "relato") -> str:
     id = f"f{next(_ids)}"
     con.execute(
-        "INSERT INTO frente (id, origem, emissor, texto, ocorrido_em, recebido_em)"
+        "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em)"
         " VALUES (?, ?, 'Ana', 'texto', ?, ?)",
         (id, origem, f"{quando}T10:00:00Z", f"{quando}T10:05:00Z"),
     )
@@ -35,24 +35,24 @@ def _class(
     quando: str,
     *,
     score: float = 0.5,
-    natureza: str = "reativa",
+    natureza: str = "reativo",
     area: str | None = "plat",
-    tipo: str | None = "incidente",
+    frente: str | None = "incidente",
     estado: str = "classificada",
     origem: str = "relato",
     versao: int = 1,
     **campos: object,
 ) -> str:
-    id = _frente(con, quando, origem)
+    id = _evento(con, quando, origem)
     linha = {
-        "frente_id": id,
+        "evento_id": id,
         "versao": versao,
         "resposta_jev": '{"modelo": "jev-1.13.0", "respostas": {}}',
         "conf_area": 0.9,
-        "conf_tipo": 0.8,
+        "conf_frente": 0.8,
         "conf_natureza": 0.9,
-        "severidade": score if natureza == "reativa" else 0.1,
-        "impacto": score if natureza == "proativa" else 0.1,
+        "severidade": score if natureza == "reativo" else 0.1,
+        "impacto": score if natureza == "proativo" else 0.1,
         "urgencia": 0.4,
         "conf_causa": 0.9,
         "conf_problema": 0.9,
@@ -63,7 +63,7 @@ def _class(
         "estado": estado,
         "natureza_final": natureza,
         "area_final": area,
-        "tipo_final": tipo,
+        "frente_final": frente,
         "classificada_em": "2026-10-03T12:00:01Z",
         **campos,
     }
@@ -75,7 +75,7 @@ def _class(
 
 
 def _ler(con: store.Conexao, **extra: object) -> celula.Celula:
-    args = {"area": "plat", "tipo": "incidente", "visao": Visao.DOR, "limiares": LIMIARES}
+    args = {"area": "plat", "frente": "incidente", "visao": Visao.DOR, "limiares": LIMIARES}
     return celula.ler(con, referencia=REF, **{**args, **extra})  # type: ignore[arg-type]
 
 
@@ -111,14 +111,14 @@ def test_problema_em_dois_dias_aparece_sem_a_marca_e_em_tres_com_ela(con):
     assert [p.chave for p in c.problemas] == ["tres_dias", "dois_dias"]  # recorrente primeiro
 
 
-def test_cinco_frentes_no_mesmo_dia_contam_um_dia(con):
+def test_cinco_eventos_no_mesmo_dia_contam_um_dia(con):
     for _ in range(5):
         _class(con, "2026-09-10", problema="rajada", score=0.2)
     _class(con, "2026-09-11", problema="rajada", score=0.2)
 
     p = _problema(_ler(con), "rajada")
 
-    assert (p.frentes, p.dias, p.meses, p.recorrente) == (6, 2, 1, False)
+    assert (p.eventos, p.dias, p.meses, p.recorrente) == (6, 2, 1, False)
     assert p.soma == pytest.approx(1.2)
 
 
@@ -135,7 +135,7 @@ def test_dias_e_meses_distintos_e_corte_vindo_da_configuracao(con):
 
 def test_o_dia_e_o_de_ocorrido_em_nao_o_de_recebido_em(con):
     id = _class(con, "2026-09-01", problema="p")
-    con.execute("UPDATE frente SET recebido_em = '2026-09-20T10:00:00Z' WHERE id = ?", (id,))
+    con.execute("UPDATE evento SET recebido_em = '2026-09-20T10:00:00Z' WHERE id = ?", (id,))
     _class(con, "2026-09-02", problema="p")
     _class(con, "2026-09-02", problema="p")
 
@@ -149,71 +149,73 @@ def test_problema_abaixo_do_limiar_nao_entra_em_problema_mas_conta_na_celula(con
 
     c = _ler(con)
 
-    assert [(p.chave, p.frentes, p.dias) for p in c.problemas] == [("p", 1, 1)]
-    por_id = {f.frente_id: f for f in c.frentes}
+    assert [(p.chave, p.eventos, p.dias) for p in c.problemas] == [("p", 1, 1)]
+    por_id = {f.evento_id: f for f in c.eventos}
     assert por_id[fraca].problema is None
     assert por_id[nenhum].problema is None
     assert {fraca, nenhum} <= set(por_id)  # seguem na célula
-    assert sum(f.score for f in c.frentes) == pytest.approx(0.7 + 0.3 + 0.5)
+    assert sum(f.score for f in c.eventos) == pytest.approx(0.7 + 0.3 + 0.5)
 
 
-def test_outras_celulas_e_frentes_na_outra_visao(con):
+def test_outras_celulas_e_eventos_na_outra_visao(con):
     _class(con, "2026-09-01", problema="gravame")
-    _class(con, "2026-09-02", problema="gravame", area="ops", tipo="processo")
-    _class(con, "2026-09-03", problema="gravame", area="ops", tipo="processo")
-    _class(con, "2026-09-04", problema="gravame", area="dados", tipo="custo")
-    _class(con, "2026-09-05", problema="gravame", natureza="proativa", area="ops", tipo="x")
-    _class(con, "2026-09-06", problema="gravame", natureza="proativa")
-    _class(con, "2026-09-07", problema="outro", area="ops", tipo="processo")  # não é da célula
+    _class(con, "2026-09-02", problema="gravame", area="ops", frente="processo")
+    _class(con, "2026-09-03", problema="gravame", area="ops", frente="processo")
+    _class(con, "2026-09-04", problema="gravame", area="dados", frente="custo")
+    _class(con, "2026-09-05", problema="gravame", natureza="proativo", area="ops", frente="x")
+    _class(con, "2026-09-06", problema="gravame", natureza="proativo")
+    _class(con, "2026-09-07", problema="outro", area="ops", frente="processo")  # não é da célula
 
     p = _problema(_ler(con), "gravame")
 
-    assert (p.frentes, p.soma) == (1, pytest.approx(0.5))
+    assert (p.eventos, p.soma) == (1, pytest.approx(0.5))
     assert p.outras_celulas == (("dados", "custo"), ("ops", "processo"))
-    assert p.frentes_na_outra_visao == 2
+    assert p.eventos_na_outra_visao == 2
     assert [q.chave for q in _ler(con).problemas] == ["gravame"]
 
     oportunidade = _ler(con, visao=Visao.OPORTUNIDADE)
     p = _problema(oportunidade, "gravame")
-    assert (p.frentes, p.outras_celulas, p.frentes_na_outra_visao) == (1, (("ops", "x"),), 4)
+    assert (p.eventos, p.outras_celulas, p.eventos_na_outra_visao) == (1, (("ops", "x"),), 4)
 
 
-def test_so_as_frentes_que_pintam_entram_no_problema(con):
+def test_so_os_eventos_que_pintam_entram_no_problema(con):
     _class(con, "2026-09-01", problema="p", estado="incerta", motivo="confianca_baixa")
     _class(con, "2026-09-02", problema="p", estado="via_llm")
 
-    assert _problema(_ler(con), "p").frentes == 1
+    assert _problema(_ler(con), "p").eventos == 1
 
 
-def test_composicao_por_time_subtipo_e_causa_raiz(con):
-    _class(con, "2026-09-01", score=0.6, time_final="t1", subtipo_final="s1", causa_raiz="c1")
-    _class(con, "2026-09-02", score=0.3, time_final="t1", subtipo_final="s2", causa_raiz="c1")
-    _class(con, "2026-09-03", score=0.5, time_final="t2", subtipo_final="s2", causa_raiz="c2")
-    _class(con, "2026-09-04", score=0.2, time_final="t2", subtipo_final="s2", causa_raiz="c3",
+def test_composicao_por_time_subfrente_e_causa_raiz(con):
+    _class(con, "2026-09-01", score=0.6, time_final="t1", subfrente_final="s1", causa_raiz="c1")
+    _class(con, "2026-09-02", score=0.3, time_final="t1", subfrente_final="s2", causa_raiz="c1")
+    _class(con, "2026-09-03", score=0.5, time_final="t2", subfrente_final="s2", causa_raiz="c2")
+    _class(con, "2026-09-04", score=0.2, time_final="t2", subfrente_final="s2", causa_raiz="c3",
            conf_causa=0.29)  # fmt: skip  # causa incerta: fora da causa raiz, dentro do resto
-    _class(con, "2026-09-05", score=0.1, estado="via_llm", causa_raiz=None)  # sem time nem subtipo
+    _class(
+        con, "2026-09-05", score=0.1, estado="via_llm", causa_raiz=None
+    )  # sem time nem subfrente
     # não entram: incerta, outra célula, outra visão, outra versão, fora da janela
     _class(con, "2026-09-06", estado="incerta", motivo="confianca_baixa", time_final="t9")
     _class(con, "2026-09-07", area="ops", time_final="t9")
-    _class(con, "2026-09-08", natureza="proativa", time_final="t9")
+    _class(con, "2026-09-08", natureza="proativo", time_final="t9")
     _class(con, "2026-09-09", versao=2, time_final="t9")
     _class(con, "2026-01-09", time_final="t9")
 
     c = _ler(con)
 
     # a última linha de cada lista é o resto (chave None): as barras somam o índice
-    assert [(i.chave, i.frentes, round(i.soma, 2)) for i in c.por_time] == [
+    assert [(i.chave, i.eventos, round(i.soma, 2)) for i in c.por_time] == [
         ("t1", 2, 0.9),
         ("t2", 2, 0.7),
         (None, 1, 0.1),
     ]
-    assert [(i.chave, i.frentes, round(i.soma, 2)) for i in c.por_subtipo] == [
+    assert [(i.chave, i.eventos, round(i.soma, 2)) for i in c.por_subfrente] == [
         ("s2", 3, 1.0),
         ("s1", 1, 0.6),
         (None, 1, 0.1),
     ]
-    # a causa incerta (c3, 0,2) fica fora; a frente sem causa ("Nenhum destes") é o resto
-    assert [(i.chave, i.frentes, round(i.soma, 2)) for i in c.por_causa_raiz] == [
+    # a causa incerta (c3, 0,2) fica fora; o evento sem causa ("Nenhum destes") é o resto
+    assert [(i.chave, i.eventos, round(i.soma, 2)) for i in c.por_causa_raiz] == [
         ("c1", 2, 0.9),
         ("c2", 1, 0.5),
         (None, 1, 0.1),
@@ -221,7 +223,7 @@ def test_composicao_por_time_subtipo_e_causa_raiz(con):
     assert sum(i.soma for i in c.por_time) == pytest.approx(1.7)
 
 
-def test_frentes_ordenadas_por_score_com_as_incertas_no_fim(con):
+def test_eventos_ordenados_por_score_com_as_incertas_no_fim(con):
     baixa = _class(con, "2026-09-01", score=0.2)
     alta = _class(con, "2026-09-02", score=0.9, origem="log")
     media = _class(con, "2026-09-03", score=0.5, estado="via_llm")
@@ -235,46 +237,46 @@ def test_frentes_ordenadas_por_score_com_as_incertas_no_fim(con):
 
     c = _ler(con)
 
-    assert [f.frente_id for f in c.frentes] == [alta, media, baixa, incerta_alta, incerta_baixa]
-    assert [f.incerta for f in c.frentes] == [False, False, False, True, True]
-    primeira = c.frentes[0]
+    assert [f.evento_id for f in c.eventos] == [alta, media, baixa, incerta_alta, incerta_baixa]
+    assert [f.incerta for f in c.eventos] == [False, False, False, True, True]
+    primeira = c.eventos[0]
     assert (primeira.origem, primeira.data, primeira.estado) == (
         "log",
         "2026-09-02T10:00:00Z",
         "classificada",
     )
-    assert primeira.confianca == 0.8  # a menor entre área (0,9) e tipo (0,8)
-    assert c.frentes[3].motivo == "llm_sem_escolha"
+    assert primeira.confianca == 0.8  # a menor entre área (0,9) e frente (0,8)
+    assert c.eventos[3].motivo == "llm_sem_escolha"
 
 
 def test_visao_oportunidade_usa_o_impacto(con):
-    _class(con, "2026-09-01", natureza="proativa", score=0.8)
-    _class(con, "2026-09-02", natureza="reativa", score=0.4)
+    _class(con, "2026-09-01", natureza="proativo", score=0.8)
+    _class(con, "2026-09-02", natureza="reativo", score=0.4)
 
     c = _ler(con, visao=Visao.OPORTUNIDADE)
 
-    assert [f.score for f in c.frentes] == [0.8]
+    assert [f.score for f in c.eventos] == [0.8]
 
 
 def test_periodo_origens_e_versao(con):
     _class(con, "2026-09-01", origem="log", problema="p", time_final="t1")
     _class(con, "2026-09-02", origem="mcp", problema="p", time_final="t2")
     _class(con, "2026-04-01", origem="log", problema="p", time_final="t3")  # fora dos 90 dias
-    _class(con, "2026-09-03", versao=2, area="seg", tipo="risco", time_final="t4")
+    _class(con, "2026-09-03", versao=2, area="seg", frente="risco", time_final="t4")
 
-    assert len(_ler(con).frentes) == 2
-    assert len(_ler(con, periodo=Periodo.M12).frentes) == 3
+    assert len(_ler(con).eventos) == 2
+    assert len(_ler(con, periodo=Periodo.M12).eventos) == 3
     so_log = _ler(con, origens=[Origem.LOG])
     assert [i.chave for i in so_log.por_time] == ["t1"]
-    assert _problema(so_log, "p").frentes == 1
-    v2 = _ler(con, versao=2, area="seg", tipo="risco")
+    assert _problema(so_log, "p").eventos == 1
+    v2 = _ler(con, versao=2, area="seg", frente="risco")
     assert (v2.versao, [i.chave for i in v2.por_time]) == (2, ["t4"])
     assert _ler(con).versao == 1
 
 
 def test_celula_vazia_e_versao_inexistente(con):
-    vazia = _ler(con, area="nada", tipo="nada")
-    assert (vazia.problemas, vazia.por_time, vazia.frentes) == ((), (), ())
+    vazia = _ler(con, area="nada", frente="nada")
+    assert (vazia.problemas, vazia.por_time, vazia.eventos) == ((), (), ())
 
     with pytest.raises(VersaoInexistente):
         _ler(con, versao=9)
@@ -284,28 +286,28 @@ def test_celula_vazia_e_versao_inexistente(con):
 
 
 def test_a_consulta_recusa_coluna_de_score_desconhecida(con):
-    from frentes.store import mapa as consultas
+    from eventos.store import mapa as consultas
 
     with pytest.raises(ValueError, match="score desconhecido"):
-        consultas.frentes_da_celula(con, 1, "reativa", "urgencia", "a", "t", "x", "y")
+        consultas.eventos_da_celula(con, 1, "reativo", "urgencia", "a", "t", "x", "y")
 
 
 def test_marca_decidida_pelos_dias_do_problema_no_filtro_inteiro(con):
     # 1 dia na célula + 2 dias em outras células da mesma visão = 3 dias: recorrente
     _class(con, "2026-09-01", problema="espalhado")
-    _class(con, "2026-09-02", problema="espalhado", area="ops", tipo="processo")
-    _class(con, "2026-09-03", problema="espalhado", area="dados", tipo="custo")
-    # 2 dias reativa + 1 dia proativa na mesma célula: recorrente nas duas visões
+    _class(con, "2026-09-02", problema="espalhado", area="ops", frente="processo")
+    _class(con, "2026-09-03", problema="espalhado", area="dados", frente="custo")
+    # 2 dias reativo + 1 dia proativo na mesma célula: recorrente nas duas visões
     _class(con, "2026-09-01", problema="duas_naturezas")
     _class(con, "2026-09-02", problema="duas_naturezas")
-    _class(con, "2026-09-03", problema="duas_naturezas", natureza="proativa")
+    _class(con, "2026-09-03", problema="duas_naturezas", natureza="proativo")
     # 2 dias no total: sem marca
     _class(con, "2026-09-01", problema="curto")
-    _class(con, "2026-09-02", problema="curto", area="ops", tipo="processo")
+    _class(con, "2026-09-02", problema="curto", area="ops", frente="processo")
 
     c = _ler(con)
     p = _problema(c, "espalhado")
-    assert (p.dias, p.frentes, p.recorrente) == (1, 1, True)  # os números são os da célula
+    assert (p.dias, p.eventos, p.recorrente) == (1, 1, True)  # os números são os da célula
     assert (_problema(c, "duas_naturezas").dias, _problema(c, "duas_naturezas").recorrente) == (
         2,
         True,
@@ -319,7 +321,7 @@ def test_o_dia_do_problema_e_utc(con):
     # 23:59:59Z e 00:00:00Z de 01/09 e 02/09 são dois dias UTC, ainda que seja o mesmo no Brasil
     for instante in ["2026-09-01T23:59:59Z", "2026-09-02T00:00:00Z", "2026-09-02T02:30:00Z"]:
         id = _class(con, "2026-09-01", problema="p")
-        con.execute("UPDATE frente SET ocorrido_em = ? WHERE id = ?", (instante, id))
+        con.execute("UPDATE evento SET ocorrido_em = ? WHERE id = ?", (instante, id))
 
     assert _problema(_ler(con), "p").dias == 2
 
@@ -335,29 +337,29 @@ def test_bordas_da_janela_de_90_dias(con):
     ids = {}
     for nome, instante in instantes.items():
         ids[nome] = _class(con, "2026-09-01", problema="p")
-        con.execute("UPDATE frente SET ocorrido_em = ? WHERE id = ?", (instante, ids[nome]))
+        con.execute("UPDATE evento SET ocorrido_em = ? WHERE id = ?", (instante, ids[nome]))
 
     c = _ler(con)
 
-    assert {f.frente_id for f in c.frentes} == {ids["desde"], ids["ultimo"]}
-    assert _problema(c, "p").frentes == 2
+    assert {f.evento_id for f in c.eventos} == {ids["desde"], ids["ultimo"]}
+    assert _problema(c, "p").eventos == 2
 
 
 def test_sem_ocorrido_em_vale_recebido_em(con):
     dentro = _class(con, "2026-09-01", problema="p")
     fora = _class(con, "2026-09-01", problema="p")
     con.execute(
-        "UPDATE frente SET ocorrido_em = NULL, recebido_em = '2026-09-10T10:00:00Z' WHERE id = ?",
+        "UPDATE evento SET ocorrido_em = NULL, recebido_em = '2026-09-10T10:00:00Z' WHERE id = ?",
         (dentro,),
     )
     con.execute(
-        "UPDATE frente SET ocorrido_em = NULL, recebido_em = '2026-01-10T10:00:00Z' WHERE id = ?",
+        "UPDATE evento SET ocorrido_em = NULL, recebido_em = '2026-01-10T10:00:00Z' WHERE id = ?",
         (fora,),
     )
 
     c = _ler(con)
 
-    assert [f.frente_id for f in c.frentes] == [dentro]
+    assert [f.evento_id for f in c.eventos] == [dentro]
     assert _problema(c, "p").dias == 1
 
 

@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from frentes.contratos import DocumentoTaxonomia, EspecieDeItem, Natureza, Pergunta
-from frentes.jev import montar_perguntas
-from frentes.taxonomia import versoes
-from frentes.taxonomia.documento import (
+from eventos.contratos import DocumentoTaxonomia, EspecieDeItem, Natureza, Pergunta
+from eventos.jev import montar_perguntas
+from eventos.taxonomia import versoes
+from eventos.taxonomia.documento import (
     CRITERIO_NATUREZA,
     INSTRUCAO_AREA,
     INSTRUCAO_PROBLEMA,
@@ -14,7 +14,7 @@ from frentes.taxonomia.documento import (
     montar_documento,
     organograma_de_dict,
 )
-from frentes.taxonomia.validador import validar
+from eventos.taxonomia.validador import validar
 
 SEED = Path(__file__).parents[2] / "seed" / "organograma.json"
 
@@ -28,7 +28,7 @@ def organograma():
 def listas(documento):
     base = documento()
     return {
-        "tipos": base.tipos,
+        "frentes": base.frentes,
         "causas_raiz": base.causas_raiz,
         "problemas": base.problemas,
         "regua_severidade": base.regua_severidade,
@@ -84,11 +84,11 @@ def test_instrucao_fixa_nao_e_trocada_pela_geracao(organograma, listas) -> None:
     geradas = {
         Pergunta.AREA: "outra coisa",
         Pergunta.CONTROLE: "outra coisa",
-        Pergunta.TIPO: "instrução do tipo vinda da geração",
+        Pergunta.FRENTE: "instrução da frente vinda da geração",
     }
 
     doc = montar_documento(organograma=organograma, instrucoes_geradas=geradas, **listas)
 
     assert doc.instrucoes[Pergunta.AREA] == INSTRUCAO_AREA
     assert doc.instrucoes[Pergunta.CONTROLE] == PERGUNTA_DE_CONTROLE
-    assert doc.instrucoes[Pergunta.TIPO] == "instrução do tipo vinda da geração"
+    assert doc.instrucoes[Pergunta.FRENTE] == "instrução da frente vinda da geração"

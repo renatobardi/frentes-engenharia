@@ -4,7 +4,7 @@ Gerado pelo roteiro com seed `20260930`: 6000 esqueletos em 12 meses que termina
 
 ## Peso e tendência de cada história
 
-| História | Frentes | Peso | Alvo | Últimos 90 dias × 90 anteriores | Alvo da curva |
+| História | Eventos | Peso | Alvo | Últimos 90 dias × 90 anteriores | Alvo da curva |
 |---|---|---|---|---|---|
 | H1 | 240 | 4.0% | 4.0% | +52% | ↑ ~15%/mês |
 | H2 | 180 | 3.0% | 3.0% | +2% | estável |
@@ -16,7 +16,7 @@ Gerado pelo roteiro com seed `20260930`: 6000 esqueletos em 12 meses que termina
 
 Fundo: 4620 (77.0%). Fora do escopo: 120 (2.0%).
 
-## Frentes por mês
+## Eventos por mês
 
 | Mês | H1 | H2 | H3 | H4 | H5 | H6 | H7 | fundo | fora | total |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -35,7 +35,7 @@ Fundo: 4620 (77.0%). Fora do escopo: 120 (2.0%).
 
 ## Distribuições
 
-| Origem | Frentes | Parte | Alvo |
+| Origem | Eventos | Parte | Alvo |
 |---|---|---|---|
 | relato | 2400 | 40.0% | 40% |
 | log | 1200 | 20.0% | 20% |
@@ -43,16 +43,16 @@ Fundo: 4620 (77.0%). Fora do escopo: 120 (2.0%).
 | banco | 900 | 15.0% | 15% |
 | mcp | 600 | 10.0% | 10% |
 
-- Reativas: 65.0% das frentes com natureza (alvo ~65%).
+- Reativos: 65.0% dos eventos com natureza (alvo ~65%).
 - Ambíguas: 8.0% (alvo ~8%), por sabor: duas_areas 120, mal_escrita 120, multi_faceta 120, vaga 120
 - Relato cruzado: 15.0% dos relatos do fundo (alvo 15%), por sabor: dois_objetos 135, so_o_dono 136
 - Episódios (H1 e H6): 214
 
 ## Teto por item
 
-Teto: 25 frentes por item e por semestre (metade da menor história nos meses 1–6). Sorteios de outro time por estouro: 25.
+Teto: 25 eventos por item e por semestre (metade da menor história nos meses 1–6). Sorteios de outro time por estouro: 25.
 
-| Semestre | Time | Item | Frentes |
+| Semestre | Time | Item | Eventos |
 |---|---|---|---|
 | 1 | renegociacao | motor-de-ofertas-de-acordo | 25 |
 | 1 | renegociacao | registro-de-acordos | 25 |

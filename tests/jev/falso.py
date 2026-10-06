@@ -1,7 +1,7 @@
 """O Jev falso: devolve respostas gravadas, sem rede e sem chave.
 
 Qualquer teste o passa por parâmetro no lugar do `contratos.ClienteJev`. A
-gravação é achada pelo texto da frente. Cada gravação é uma `RespostaJev`, uma
+gravação é achada pelo texto do evento. Cada gravação é uma `RespostaJev`, uma
 exceção (levantada na chamada, para simular timeout) ou uma lista delas, usadas
 uma por chamada, na ordem (a retentativa). Texto sem gravação, ou lista
 esgotada, levanta `SemGravacao` com a mensagem do que faltou.
@@ -9,7 +9,7 @@ esgotada, levanta `SemGravacao` com a mensagem do que faltou.
 
 from collections.abc import Mapping, Sequence
 
-from frentes.contratos import (
+from eventos.contratos import (
     Pergunta,
     Perguntas,
     RespostaDeLista,

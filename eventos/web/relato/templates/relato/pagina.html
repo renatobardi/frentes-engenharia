@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block titulo %}Relatar um evento · frentes-engenharia{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/relato.css">{% endblock %}
+{% block conteudo %}
+{#- A gaveta desliza da direita sobre a página escurecida; o fundo é um link de volta ao mapa. -#}
+<a class="gaveta-fundo" href="/" aria-label="Fechar e voltar ao mapa" tabindex="-1"></a>
+{% include "relato/gaveta.html" %}
+{% endblock %}
+{% block scripts %}
+<script>
+  // o servidor responde 422 com a gaveta em HTML e a mensagem de erro: só então o HTMX troca
+  document.addEventListener("htmx:beforeSwap", function (e) {
+    var frente = e.detail.xhr.getResponseHeader("Content-Type") || "";
+    if (e.detail.xhr.status === 422 && frente.indexOf("text/html") === 0) { e.detail.shouldSwap = true; e.detail.isError = false; }
+  });
+</script>
+<script src="/static/relato.js" defer></script>
+{% endblock %}

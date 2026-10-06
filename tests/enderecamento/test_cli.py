@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from frentes import store
-from frentes.__main__ import main
-from frentes.contratos import Celula, Procedencia, Visao, de_iso
-from frentes.enderecamento import cli, marcas, plantio
+from eventos import store
+from eventos.__main__ import main
+from eventos.contratos import Celula, Procedencia, Visao, de_iso
+from eventos.enderecamento import cli, marcas, plantio
 
 ITEM = {
     "historia": "H3",
@@ -16,32 +16,32 @@ ITEM = {
     "decidido_em": "2026-03-31T18:00:00Z",
     "texto": "Mutirão dos boletos",
     "tipo_solucao": "processo",
-    "frentes_de_referencia": [],
+    "eventos_de_referencia": [],
 }
-REFERENCIAS = [{"historia": "H3", "frentes_de_referencia": ["f1", "f2"]}]
+REFERENCIAS = [{"historia": "H3", "eventos_de_referencia": ["f1", "f2"]}]
 
 
-def _classificada(con: store.Conexao, frente_id: str, tipo: str) -> None:
+def _classificada(con: store.Conexao, evento_id: str, frente: str) -> None:
     con.execute("INSERT OR IGNORE INTO emissor (id, nome, tipo) VALUES ('e', 'e', 'sistema')")
     con.execute(
-        "INSERT INTO frente (id, origem, emissor, texto, recebido_em)"
+        "INSERT INTO evento (id, origem, emissor, texto, recebido_em)"
         " VALUES (?, 'relato', 'e', 'texto', '2026-01-01T00:00:00Z')",
-        (frente_id,),
+        (evento_id,),
     )
     con.execute(
-        "INSERT INTO classificacao (frente_id, versao, resposta_jev, conf_area, conf_tipo,"
+        "INSERT INTO classificacao (evento_id, versao, resposta_jev, conf_area, conf_frente,"
         " conf_natureza, severidade, impacto, urgencia, conf_causa, conf_problema, controle,"
-        " estado, tipo_final, tokens_entrada, tokens_saida, latencia_ms, classificada_em)"
+        " estado, frente_final, tokens_entrada, tokens_saida, latencia_ms, classificada_em)"
         " VALUES (?, 1, '{}', 1, 1, 1, 0, 0, 0, 1, 1, 0, 'classificada', ?, 0, 0, 0,"
         " '2026-01-01T00:00:00Z')",
-        (frente_id, tipo),
+        (evento_id, frente),
     )
 
 
 @pytest.fixture
 def banco(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Um banco com a versão 1 vigente e as duas frentes de referência no tipo `cobranca`."""
-    caminho = tmp_path / "frentes.sqlite"
+    """Um banco com a versão 1 vigente e os dois eventos de referência na frente `cobranca`."""
+    caminho = tmp_path / "eventos.sqlite"
     with closing(store.abrir(caminho)) as con:
         con.execute(
             "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
@@ -49,12 +49,12 @@ def banco(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         )
         con.execute(
             "INSERT INTO valor (versao, dimensao, chave, nome)"
-            " VALUES (1, 'tipo', 'cobranca', 'cobranca')"
+            " VALUES (1, 'frente', 'cobranca', 'cobranca')"
         )
         _classificada(con, "f1", "cobranca")
         _classificada(con, "f2", "cobranca")
         con.commit()
-    monkeypatch.setenv("FRENTES_DB", str(caminho))
+    monkeypatch.setenv("EVENTOS_DB", str(caminho))
     return caminho
 
 
@@ -75,13 +75,13 @@ def test_o_comando_plantar_esta_declarado() -> None:
     assert "plantar" in cli.COMANDOS
 
 
-def test_juntar_referencias_so_preenche_o_item_sem_frentes() -> None:
-    cheio = ITEM | {"frentes_de_referencia": ["x"]}
+def test_juntar_referencias_so_preenche_o_item_sem_eventos() -> None:
+    cheio = ITEM | {"eventos_de_referencia": ["x"]}
     assert plantio.juntar_referencias([ITEM, cheio], REFERENCIAS) == [
-        ITEM | {"frentes_de_referencia": ["f1", "f2"]},
+        ITEM | {"eventos_de_referencia": ["f1", "f2"]},
         cheio,
     ]
-    # história sem referência gerada: continua vazio, e o plantio diz que falta o tipo
+    # história sem referência gerada: continua vazio, e o plantio diz que falta a frente
     assert plantio.juntar_referencias([ITEM], []) == [ITEM]
 
 
@@ -123,14 +123,14 @@ def test_no_banco_que_veio_de_snapshot_a_data_acompanha_o_deslocamento(
     assert _marcas(banco)[0].decidido_em == de_iso("2026-04-03T18:00:00Z")
 
 
-def test_sem_frentes_de_referencia_classificadas_sai_com_1(
+def test_sem_eventos_de_referencia_classificadas_sai_com_1(
     banco: Path, arquivos: list[str], tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     (tmp_path / "referencias.json").write_text('{"enderecamentos": []}', encoding="utf-8")
 
     assert main(["plantar", *arquivos]) == 1
 
-    assert "as frentes de referência não têm tipo" in capsys.readouterr().err
+    assert "os eventos de referência não têm frente" in capsys.readouterr().err
     assert _marcas(banco) == []
 
 
@@ -151,7 +151,7 @@ def test_sem_banco_sai_com_2(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    monkeypatch.setenv("FRENTES_DB", str(tmp_path / "vazio.sqlite"))
+    monkeypatch.setenv("EVENTOS_DB", str(tmp_path / "vazio.sqlite"))
     assert main(["plantar", *arquivos]) == 2
     assert "não há banco" in capsys.readouterr().err
 
@@ -159,4 +159,4 @@ def test_sem_banco_sai_com_2(
 @pytest.mark.parametrize("argumentos", [["--arquivo"], ["--outro", "x"], ["sobrando"]])
 def test_uso_errado_sai_com_2(argumentos: list[str], capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["plantar", *argumentos]) == 2
-    assert "uso: python -m frentes plantar" in capsys.readouterr().err
+    assert "uso: python -m eventos plantar" in capsys.readouterr().err

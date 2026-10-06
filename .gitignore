@@ -4,7 +4,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .env
-# banco local de desenvolvimento (o snapshot versionado é data/snapshot/frentes.sqlite.gz)
+# banco local de desenvolvimento (o snapshot versionado é data/snapshot/eventos.sqlite.gz)
 data/*.sqlite
 data/*.sqlite-wal
 data/*.sqlite-shm

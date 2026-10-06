@@ -3,23 +3,23 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from frentes import config, store
-from frentes.web.app import criar_app
+from eventos import config, store
+from eventos.web.app import criar_app
 
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    return tmp_path / "frentes.sqlite"
+    return tmp_path / "eventos.sqlite"
 
 
 def cliente(banco: Path, **ambiente: str) -> TestClient:
-    return TestClient(criar_app(config.carregar({"FRENTES_DB": str(banco), **ambiente})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(banco), **ambiente})))
 
 
 def test_healthz_sem_banco_responde_200_com_os_tres_campos_e_nao_cria_o_banco(
     tmp_path: Path,
 ) -> None:
-    banco = tmp_path / "volume" / "frentes.sqlite"
+    banco = tmp_path / "volume" / "eventos.sqlite"
 
     resposta = cliente(banco).get("/healthz")
 
@@ -61,7 +61,7 @@ def test_healthz_diz_o_commit_a_versao_vigente_e_o_dia_do_snapshot(banco: Path) 
     )
     con.close()
 
-    resposta = cliente(banco, FRENTES_COMMIT="c2408d7").get("/healthz")
+    resposta = cliente(banco, EVENTOS_COMMIT="c2408d7").get("/healthz")
 
     assert resposta.status_code == 200
     assert resposta.json() == {
@@ -77,7 +77,7 @@ def test_healthz_sobe_sem_as_chaves_e_nao_devolve_segredo(banco: Path) -> None:
         banco,
         TYPESAFE_API_KEY="segredo-ts",
         OPENROUTER_API_KEY="segredo-or",
-        FRENTES_WEBHOOK_TOKEN="segredo-tok",
+        EVENTOS_WEBHOOK_TOKEN="segredo-tok",
     ).get("/healthz")
 
     assert com_chaves.status_code == 200

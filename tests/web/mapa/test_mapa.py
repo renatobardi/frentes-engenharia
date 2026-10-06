@@ -1,7 +1,7 @@
 """A tela do mapa de calor, pelo HTML devolvido, sobre um banco montado no teste.
 
 As datas são relativas a hoje, com semanas de folga dos limites das janelas: a atual de
-30 dias (frentes de 3 a 12 dias atrás) e a anterior (frentes de 40 dias atrás).
+30 dias (eventos de 3 a 12 dias atrás) e a anterior (eventos de 40 dias atrás).
 """
 
 import re
@@ -12,27 +12,27 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from frentes import config, contratos, store
-from frentes.web.app import criar_app
+from eventos import config, contratos, store
+from eventos.web.app import criar_app
 
 _ids = count(1)
 JEV = '{"modelo": "jev-1.13.0", "respostas": {}}'
 AREAS = {"plat": "Plataforma", "ops": "Operações"}
-TIPOS_V2 = {"incidente": "Incidente", "processo": "Processo", "fornecedor": "Fornecedor"}
-TIPOS_V1 = {"incidente": "Incidente", "processo": "Processo", "tecnologia": "Tecnologia"}
+FRENTES_V2 = {"incidente": "Incidente", "processo": "Processo", "fornecedor": "Fornecedor"}
+FRENTES_V1 = {"incidente": "Incidente", "processo": "Processo", "tecnologia": "Tecnologia"}
 
 
 def _data(dias: int) -> str:
     return contratos.para_iso(contratos.agora() - timedelta(days=dias))
 
 
-def _versao(con: store.Conexao, numero: int, tipos: dict[str, str], ativada: bool) -> None:
+def _versao(con: store.Conexao, numero: int, frentes: dict[str, str], ativada: bool) -> None:
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
         " VALUES (?, '{}', 'jev-1.13.0', '2026-01-01T00:00:00Z', ?)",
         (numero, "2026-01-02T00:00:00Z" if ativada else None),
     )
-    for dimensao, valores in (("area", AREAS), ("tipo", tipos)):
+    for dimensao, valores in (("area", AREAS), ("frente", frentes)):
         for ordem, (chave, nome) in enumerate(valores.items()):
             con.execute(
                 "INSERT INTO valor (versao, dimensao, chave, nome, ordem) VALUES (?, ?, ?, ?, ?)",
@@ -40,10 +40,10 @@ def _versao(con: store.Conexao, numero: int, tipos: dict[str, str], ativada: boo
             )
 
 
-def _frente(con: store.Conexao, dias: int, origem: str = "relato") -> str:
+def _evento(con: store.Conexao, dias: int, origem: str = "relato") -> str:
     id = f"f{next(_ids)}"
     con.execute(
-        "INSERT INTO frente (id, origem, emissor, texto, ocorrido_em, recebido_em)"
+        "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em)"
         " VALUES (?, ?, 'Ana', 'texto', ?, ?)",
         (id, origem, _data(dias), _data(dias)),
     )
@@ -52,12 +52,12 @@ def _frente(con: store.Conexao, dias: int, origem: str = "relato") -> str:
 
 def _class(con: store.Conexao, id: str, versao: int, **campos: object) -> None:
     linha = {
-        "frente_id": id, "versao": versao, "resposta_jev": JEV,
-        "conf_area": 0.9, "conf_tipo": 0.9, "conf_natureza": 0.9,
+        "evento_id": id, "versao": versao, "resposta_jev": JEV,
+        "conf_area": 0.9, "conf_frente": 0.9, "conf_natureza": 0.9,
         "severidade": 0.5, "impacto": 0.5, "urgencia": 0.4,
         "conf_causa": 0.2, "conf_problema": 0.1, "controle": 0.9,
         "tokens_entrada": 1, "tokens_saida": 1, "latencia_ms": 1,
-        "estado": "classificada", "natureza_final": "reativa",
+        "estado": "classificada", "natureza_final": "reativo",
         "classificada_em": _data(1),
         **campos,
     }  # fmt: skip
@@ -67,24 +67,24 @@ def _class(con: store.Conexao, id: str, versao: int, **campos: object) -> None:
     )
 
 
-def _pinta(con: store.Conexao, area: str | None, tipo: str | None, score: float, dias: int, **kw):
-    """Uma frente classificada nas duas versões (as chaves existem em ambas)."""
-    natureza = kw.pop("natureza", "reativa")
+def _pinta(con: store.Conexao, area: str | None, frente: str | None, score: float, dias: int, **kw):
+    """Um evento classificado nas duas versões (as chaves existem em ambas)."""
+    natureza = kw.pop("natureza", "reativo")
     origem = kw.pop("origem", "relato")
-    coluna = "severidade" if natureza == "reativa" else "impacto"
-    id = _frente(con, dias, origem)
+    coluna = "severidade" if natureza == "reativo" else "impacto"
+    id = _evento(con, dias, origem)
     for versao in (1, 2):
         _class(
-            con, id, versao, area_final=area, tipo_final=tipo, natureza_final=natureza,
+            con, id, versao, area_final=area, frente_final=frente, natureza_final=natureza,
             **{coluna: score}, **kw,
         )  # fmt: skip
     return id
 
 
 def _montar(con: store.Conexao) -> None:
-    _versao(con, 1, TIPOS_V1, True)
-    _versao(con, 2, TIPOS_V2, True)
-    # Plataforma × Incidente: 3 frentes de 0,9 (2,7), mais a de 40 dias atrás (0,9) para a seta
+    _versao(con, 1, FRENTES_V1, True)
+    _versao(con, 2, FRENTES_V2, True)
+    # Plataforma × Incidente: 3 eventos de 0,9 (2,7), mais a de 40 dias atrás (0,9) para a seta
     for dias in (3, 5, 8):
         _pinta(con, "plat", "incidente", 0.9, dias)
     _pinta(con, "plat", "incidente", 0.9, 40)
@@ -99,13 +99,13 @@ def _montar(con: store.Conexao) -> None:
         _pinta(con, "plat", "incidente", 0.9, dias, estado="incerta", motivo="confianca_baixa")
     # texto vago: fora das células
     _pinta(con, "plat", "incidente", 0.9, 5, estado="incerta", motivo="texto_vago")
-    # proativa: só a visão "Onde há oportunidade"
-    _pinta(con, "ops", "fornecedor", 0.7, 6, natureza="proativa")
+    # proativo: só a visão "Onde há oportunidade"
+    _pinta(con, "ops", "fornecedor", 0.7, 6, natureza="proativo")
 
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "frentes.db"
+    caminho = tmp_path / "eventos.db"
     con = store.abrir(caminho)
     _montar(con)
     con.commit()
@@ -114,7 +114,7 @@ def banco(tmp_path: Path) -> Path:
 
 
 def _cliente(banco: Path) -> TestClient:
-    return TestClient(criar_app(config.carregar({"FRENTES_DB": str(banco)})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(banco)})))
 
 
 @pytest.fixture
@@ -134,7 +134,7 @@ def _grade(html: str) -> str:
 
 
 def _cabecalhos(html: str) -> list[str]:
-    """Os tipos (colunas) e depois as áreas (linhas), na ordem da grade."""
+    """As frentes (colunas) e depois as áreas (linhas), na ordem da grade."""
     achados = re.findall(
         r'role="columnheader" data-t="[^"]*"><span>([^<]+)</span>'
         r'|role="rowheader" data-a="[^"]*">([^<]+)</span>',
@@ -153,14 +153,14 @@ def _texto(trecho: str) -> str:
     return " ".join(re.sub(r"<[^>]+>", " ", trecho).split())
 
 
-def _celula(html: str, area: str, tipo_pos: int) -> str:
+def _celula(html: str, area: str, frente_pos: int) -> str:
     linha = re.search(
         rf'role="rowheader" data-a="[^"]*">{area}</span>(.*?)(?=<div class="grade-linha|\Z)',
         _grade(html),
         re.S,
     )
     assert linha, area
-    return re.findall(r'<div class="celula.*?</div>', linha.group(1), re.S)[tipo_pos]
+    return re.findall(r'<div class="celula.*?</div>', linha.group(1), re.S)[frente_pos]
 
 
 def _setas_na_grade(html: str) -> int:
@@ -170,7 +170,7 @@ def _setas_na_grade(html: str) -> int:
 # --------------------------------------------------------------------------- grade e Top 3
 
 
-def test_grade_traz_as_areas_e_os_tipos_da_versao_pedida(http: TestClient) -> None:
+def test_grade_traz_as_areas_e_as_frentes_da_versao_pedida(http: TestClient) -> None:
     v2 = _cabecalhos(http.get("/").text)
     v1 = _cabecalhos(http.get("/?versao=1").text)
 
@@ -269,13 +269,13 @@ def test_contadores_fora_da_grade_levam_a_lista_filtrada(http: TestClient) -> No
         r'href="([^"]+)"[^>]*>(?:<span[^>]*></span>)?Texto vago <strong>1', contadores
     )
     assert destino
-    assert destino.group(1) == "/frentes?periodo=30d&amp;origem=relato&amp;estado=texto_vago"
+    assert destino.group(1) == "/eventos?periodo=30d&amp;origem=relato&amp;estado=texto_vago"
 
 
 def test_aguardando_some_quando_e_zero_e_aparece_quando_ha(banco: Path, http: TestClient) -> None:
     assert "Aguardando" not in http.get("/").text
 
-    _escrever(banco, lambda con: _frente(con, 2))
+    _escrever(banco, lambda con: _evento(con, 2))
     html = http.get("/").text
 
     assert re.search(r"Aguardando classificação <strong>1</strong>", html)
@@ -287,7 +287,7 @@ def test_nao_classificadas_some_quando_nao_ha_e_aparece_quando_ha(
 ) -> None:
     assert "Não classificadas" not in http.get("/").text
 
-    # área conhecida e tipo "Nenhum destes"; tipo conhecido e área "Nenhum destes"
+    # área conhecida e frente "Nenhum destes"; frente conhecido e área "Nenhum destes"
     _escrever(banco, lambda con: _pinta(con, "plat", None, 0.9, 3, estado="nao_classificada"))
     so_coluna = http.get("/").text
     assert so_coluna.count("Não classificadas") == 1
@@ -351,7 +351,7 @@ def test_parametro_invalido_responde_422(http: TestClient, consulta: str) -> Non
 
 
 def test_versao_nao_ativada_nao_esta_no_seletor_e_da_404(banco: Path, http: TestClient) -> None:
-    _escrever(banco, lambda con: _versao(con, 3, TIPOS_V2, False))
+    _escrever(banco, lambda con: _versao(con, 3, FRENTES_V2, False))
 
     html = http.get("/").text
 
@@ -415,21 +415,21 @@ def test_origens_com_nome_de_exibicao_e_indice_pequeno_com_virgula(
 
 # --------------------------------------------------------------------------- painel da célula
 
-CELULA = "area=plat&tipo=incidente"
+CELULA = "area=plat&frente=incidente"
 BLOCOS = (
     "painel-porque",
     "painel-sugestoes",
     "painel-evolucao",
     "painel-composicao",
     "painel-problemas",
-    "painel-frentes",
+    "painel-eventos",
 )
 
 
 def _valores_do_painel(con: store.Conexao) -> None:
     for dimensao, chave, nome, pai in (
         ("area", "plat-sre", "Time SRE", "plat"),
-        ("tipo", "inc-queda", "Queda total", "incidente"),
+        ("frente", "inc-queda", "Queda total", "incidente"),
         ("causa_raiz", "mudanca", "Mudança sem teste", None),
         ("problema", "timeout", "Timeout do gateway", None),
     ):
@@ -438,12 +438,12 @@ def _valores_do_painel(con: store.Conexao) -> None:
             (dimensao, chave, nome, pai),
         )
     con.execute(
-        "UPDATE classificacao SET time_final = 'plat-sre', subtipo_final = 'inc-queda',"
+        "UPDATE classificacao SET time_final = 'plat-sre', subfrente_final = 'inc-queda',"
         " causa_raiz = 'mudanca', conf_causa = 0.9, problema = 'timeout', conf_problema = 0.9"
-        " WHERE versao = 2 AND area_final = 'plat' AND tipo_final = 'incidente'"
+        " WHERE versao = 2 AND area_final = 'plat' AND frente_final = 'incidente'"
         " AND estado = 'classificada'"
     )
-    con.execute("UPDATE frente SET texto = 'O gateway cai toda <b>sexta</b> à noite'")
+    con.execute("UPDATE evento SET texto = 'O gateway cai toda <b>sexta</b> à noite'")
 
 
 def _gravar_painel(con: store.Conexao, porque: str | None, estado: str = "atual", **extra) -> None:
@@ -453,8 +453,8 @@ def _gravar_painel(con: store.Conexao, porque: str | None, estado: str = "atual"
         ' {"texto": "Treinar o plantão", "tipo_solucao": "treinamento"}]',
     )
     con.execute(
-        "INSERT INTO painel_celula (versao, area, tipo, visao, periodo, porque, sugestoes,"
-        " gerado_em, modelo_llm, estado, frentes_na_geracao)"
+        "INSERT INTO painel_celula (versao, area, frente, visao, periodo, porque, sugestoes,"
+        " gerado_em, modelo_llm, estado, eventos_na_geracao)"
         " VALUES (2, 'plat', 'incidente', 'dor', '90d', ?, ?, ?, ?, ?, ?)",
         (
             porque,
@@ -493,10 +493,10 @@ def test_painel_mostra_os_blocos_na_ordem_da_spec(com_painel: Path) -> None:
         "Evolução em 12 meses",
         "Composição",
         "Problemas recorrentes",
-        "Frentes da célula",
+        "Eventos da célula",
     ]
     painel = html[html.index('<aside class="painel"') :]
-    assert 'class="painel-area meta muted">Plataforma</p>' in painel  # o cabeçalho: área e tipo
+    assert 'class="painel-area meta muted">Plataforma</p>' in painel  # o cabeçalho: área e frente
     assert "<h2>Incidente</h2>" in painel
     assert PORQUE in painel
     assert "Ferramenta / automação" in painel and "Treinar o plantão" in painel
@@ -510,18 +510,18 @@ def test_problema_abre_a_lista_filtrada_e_ver_todas_leva_a_celula(com_painel: Pa
     problema = re.search(r'<a href="([^"]+)">Timeout do gateway</a>', html)
     assert problema
     destino = problema.group(1).replace("&amp;", "&")
-    assert destino.startswith("/frentes?")
-    for trecho in ("periodo=30d", "area=plat", "tipo=incidente", "natureza=reativa"):
+    assert destino.startswith("/eventos?")
+    for trecho in ("periodo=30d", "area=plat", "frente=incidente", "natureza=reativo"):
         assert trecho in destino
     assert "problema=timeout" in destino
     todas = re.search(
-        r'<a class="ver-todas btn btn-outline" href="([^"]+)">Ver todas as (\d+) frentes', html
+        r'<a class="ver-todas btn btn-outline" href="([^"]+)">Ver todos os (\d+) eventos', html
     )
     assert todas and todas.group(2) == "5"  # 3 que pintam e 2 incertas de confiança baixa
     assert "problema=" not in todas.group(1) and "area=plat" in todas.group(1)
 
 
-def test_painel_traz_no_maximo_oito_frentes_com_as_incertas_no_fim(
+def test_painel_traz_no_maximo_oito_eventos_com_as_incertas_no_fim(
     com_painel: Path,
 ) -> None:
     def mais(con: store.Conexao) -> None:
@@ -532,20 +532,20 @@ def test_painel_traz_no_maximo_oito_frentes_com_as_incertas_no_fim(
 
     html = _cliente(com_painel).get(f"/?{CELULA}&periodo=30d").text
 
-    inicio = html.index('class="frentes-da-celula"')
+    inicio = html.index('class="eventos-da-celula"')
     lista = html[inicio : html.index("</ol>", inicio)]
     assert lista.count("<li") == 8
     assert "incerta" not in lista  # são 13 que pintam: as incertas ficam para depois do oitavo
-    assert "Ver todas as 15 frentes" in html
+    assert "Ver todos os 15 eventos" in html
 
 
 def test_incerta_aparece_marcada_quando_cabe_nas_oito(com_painel: Path) -> None:
     html = _cliente(com_painel).get(f"/?{CELULA}&periodo=30d").text
 
-    lista = html[html.index('class="frentes-da-celula"') :]
+    lista = html[html.index('class="eventos-da-celula"') :]
     assert lista.count('<li class="linha-link incerta">') == 2
     assert lista.count("marca-incerta") == 2
-    # os textos são dados da frente: escapados
+    # os textos são dados do evento: escapados
     assert "&lt;b&gt;sexta&lt;/b&gt;" in lista and "<b>" not in lista
 
 
@@ -590,7 +590,7 @@ def test_celula_sem_painel_gerado_mostra_os_blocos_calculados(banco: Path) -> No
     posicoes = _posicoes(html, BLOCOS)
     assert posicoes == sorted(posicoes)
     assert html.count('<circle class="ponto"') == 12
-    assert "Ver todas as 6 frentes" in html  # 90 dias: a de 40 dias atrás entra
+    assert "Ver todos os 6 eventos" in html  # 90 dias: a de 40 dias atrás entra
 
 
 def test_texto_da_llm_e_escapado_no_painel(banco: Path) -> None:
@@ -615,7 +615,7 @@ def test_evolucao_tem_um_ponto_por_mes_e_a_origem_filtra_a_serie(com_painel: Pat
         svg = html[html.index('<svg class="evolucao"') :].split("</svg>")[0]
         assert svg.count("<circle") == 12
         assert len(re.search(r'points="([^"]+)"', svg).group(1).split()) == 12  # type: ignore[union-attr]
-    # a série segue o filtro: o log não tem frente de Plataforma × Incidente
+    # a série segue o filtro: o log não tem evento de Plataforma × Incidente
     assert re.findall(r"<title>[^<]+: (\S+)</title>", so_log) == ["0"] * 12
     assert re.findall(r"<title>[^<]+: (\S+)</title>", todas) != ["0"] * 12
 
@@ -631,7 +631,7 @@ def test_abrir_o_endereco_com_a_celula_reproduz_o_painel_aberto(com_painel: Path
     )
     assert link
     endereco = link.group(1).replace("&amp;", "&")
-    assert endereco == "/?visao=dor&periodo=30d&area=plat&tipo=incidente"
+    assert endereco == "/?visao=dor&periodo=30d&area=plat&frente=incidente"
     assert 'class="painel"' not in html
 
     pagina = http.get(endereco)
@@ -658,7 +658,7 @@ def test_esc_e_o_x_fecham_o_painel_e_o_filtro_mantem_a_celula(com_painel: Path) 
     # trocar um filtro com o painel aberto não o fecha
     form = html[html.index('<form class="filtros"') : html.index("</form>")]
     assert '<input type="hidden" name="area" value="plat">' in form
-    assert '<input type="hidden" name="tipo" value="incidente">' in form
+    assert '<input type="hidden" name="frente" value="incidente">' in form
     assert 'name="area"' not in _cliente(com_painel).get("/").text
 
 
@@ -666,9 +666,9 @@ def test_esc_e_o_x_fecham_o_painel_e_o_filtro_mantem_a_celula(com_painel: Path) 
     ("consulta", "status"),
     [
         ("area=plat", 422),
-        ("tipo=incidente", 422),
-        ("area=nao-existe&tipo=incidente", 404),
-        ("area=plat&tipo=tecnologia", 404),  # o tipo só existe na v1
+        ("frente=incidente", 422),
+        ("area=nao-existe&frente=incidente", 404),
+        ("area=plat&frente=tecnologia", 404),  # a frente só existe na v1
     ],
 )
 def test_celula_invalida_no_endereco(com_painel: Path, consulta: str, status: int) -> None:
@@ -676,7 +676,7 @@ def test_celula_invalida_no_endereco(com_painel: Path, consulta: str, status: in
 
 
 def test_celula_da_v1_abre_na_v1(banco: Path) -> None:
-    resposta = _cliente(banco).get("/?versao=1&area=plat&tipo=tecnologia")
+    resposta = _cliente(banco).get("/?versao=1&area=plat&frente=tecnologia")
 
     assert resposta.status_code == 200
     assert "<h2>Tecnologia</h2>" in resposta.text
@@ -702,12 +702,13 @@ def _totais_da_linha(html: str, area: str) -> str:
     return achado.group(1)
 
 
-def test_grade_e_css_grid_com_a_soma_por_area_por_tipo_e_no_geral(http: TestClient) -> None:
+def test_grade_e_css_grid_com_a_soma_por_area_por_frente_e_no_geral(http: TestClient) -> None:
     html = http.get("/?periodo=30d").text
     grade = _grade(html)
 
     assert 'role="table"' in grade and 'style="--colunas: 3"' in grade
-    # área: Plataforma 2,7 + 0,5 e Operações 1,6; tipo: Incidente 2,7, Processo 2,1, Fornecedor sem
+    # área: Plataforma 2,7 + 0,5 e Operações 1,6; frente: Incidente 2,7, Processo 2,1,
+    # Fornecedor sem
     assert _totais_da_linha(html, "Plataforma") == "3,2"
     assert _totais_da_linha(html, "Operações") == "1,6"
     totais = grade[grade.index("grade-totais") :]
@@ -737,9 +738,9 @@ def test_a_celula_leva_o_texto_da_inspecao_para_o_rodape_e_para_o_title(http: Te
     texto = re.search(r'data-insp-texto="([^"]+)"', cheia)
     assert texto
     assert "índice 2,7" in texto.group(1) and "↑200% vs. período anterior" in texto.group(1)
-    assert "2 incertas" in texto.group(1) and "100% do tipo" in texto.group(1)
+    assert "2 incertas" in texto.group(1) and "100% da frente" in texto.group(1)
     assert texto.group(1) in cheia.split('title="')[1]  # sem JavaScript, o title diz o mesmo
-    assert "76% do tipo" in _celula(html, "Operações", 1)  # 1,6 de 2,1 do tipo Processo
+    assert "76% da frente" in _celula(html, "Operações", 1)  # 1,6 de 2,1 da frente Processo
     assert "data-insp" not in _celula(html, "Operações", 2)  # célula vazia: nada a inspecionar
     assert 'id="inspecao"' in html and "Passe o mouse para inspecionar" in html
 
@@ -748,7 +749,7 @@ def test_cada_card_do_top3_abre_a_celula_e_traz_a_evolucao_de_12_meses(http: Tes
     html = http.get("/?periodo=30d").text
 
     primeiro = _top3(html)[0]
-    assert 'href="/?visao=dor&amp;periodo=30d&amp;area=plat&amp;tipo=incidente"' in primeiro
+    assert 'href="/?visao=dor&amp;periodo=30d&amp;area=plat&amp;frente=incidente"' in primeiro
     assert 'hx-target="#mapa"' in primeiro and 'aria-current="true"' not in primeiro
     svg = re.search(r'<svg class="minigrafico".*?</svg>', primeiro, re.S)
     assert svg
@@ -763,7 +764,7 @@ def test_a_evolucao_do_top3_segue_o_filtro_de_origem(http: TestClient) -> None:
     assert svg
     pontos = re.search(r'points="([^"]+)"', svg.group(0)).group(1).split()  # type: ignore[union-attr]
     ys = [p.split(",")[1] for p in pontos]
-    # um só mês tem índice (a frente de 7 dias atrás): o resto fica na base do gráfico
+    # um só mês tem índice (o evento de 7 dias atrás): o resto fica na base do gráfico
     assert ys.count("3.0") == 1 and ys.count("27.0") == 11
 
 
@@ -794,7 +795,7 @@ def test_a_pagina_carrega_o_css_do_mapa_e_o_do_painel_e_o_fragmento_nao(http: Te
 
 
 def test_os_contadores_levam_o_ponto_da_cor_de_cada_um(banco: Path, http: TestClient) -> None:
-    _escrever(banco, lambda con: _frente(con, 2))
+    _escrever(banco, lambda con: _evento(con, 2))
     html = http.get("/?periodo=30d").text
     contadores = html[html.index('class="contadores"') : html.index("</ul>")]
 

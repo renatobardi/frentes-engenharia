@@ -50,7 +50,7 @@
    "type": "noul",
    "noul": 0.7
   },
-  "tipo": {
+  "frente": {
    "type": "choice",
    "choice": "nenhum_destes",
    "confidence": 0.84,
@@ -62,11 +62,11 @@
   },
   "natureza": {
    "type": "choice",
-   "choice": "reativa",
+   "choice": "reativo",
    "confidence": 1.0,
    "probabilities": {
-    "reativa": 1.0,
-    "proativa": 0.0
+    "reativo": 1.0,
+    "proativo": 0.0
    }
   },
   "impacto": {

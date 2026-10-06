@@ -104,7 +104,7 @@ def test_o_commit_completo_vai_para_o_build_pelo_ambiente_do_compose(
 ) -> None:
     rodar(ambiente, CURTO)
     subida = next(c for c in chamadas(ambiente) if "docker compose up" in c)
-    assert f"--env FRENTES_COMMIT={SHA}" in subida
+    assert f"--env EVENTOS_COMMIT={SHA}" in subida
 
 
 def test_repetir_o_mesmo_sha_tambem_termina_bem(ambiente: dict[str, str]) -> None:

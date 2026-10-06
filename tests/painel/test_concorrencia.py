@@ -9,11 +9,11 @@ from threading import Barrier
 
 import pytest
 
-from frentes import config, store
-from frentes.contratos import Celula, EstadoPainel, Periodo, Visao
-from frentes.painel import insumos
-from frentes.painel.gerador import Gerador
-from frentes.store import painel
+from eventos import config, store
+from eventos.contratos import Celula, EstadoPainel, Periodo, Visao
+from eventos.painel import insumos
+from eventos.painel.gerador import Gerador
+from eventos.store import painel
 from tests.llm.falso import LlmFalsa
 from tests.painel.apoio import resposta
 from tests.snapshot.apoio import AGORA, banco_carregado
@@ -25,9 +25,9 @@ def test_paineis_em_paralelo_no_snapshot_com_leitura_aberta(
     banco = banco_carregado(tmp_path)
     limiares = config.carregar({}).limiares
     pedidos = [
-        (Celula(area, tipo, Visao.DOR), periodo)
+        (Celula(area, frente, Visao.DOR), periodo)
         for area in ("plat", "dados")
-        for tipo in ("incidente", "melhoria")
+        for frente in ("incidente", "melhoria")
         for periodo in (Periodo.D30, Periodo.D90)
     ]
     with closing(store.abrir_existente(banco)) as con:
@@ -59,7 +59,7 @@ def test_paineis_em_paralelo_no_snapshot_com_leitura_aberta(
 
     with closing(sqlite3.connect(banco)) as leitor:
         leitor.execute("BEGIN")
-        leitor.execute("SELECT count(*) FROM frente").fetchone()
+        leitor.execute("SELECT count(*) FROM evento").fetchone()
         resultados = asyncio.run(gerar())
         erros = [repr(r) for r in resultados if r is None or isinstance(r, BaseException)]
         assert not erros, erros
@@ -68,4 +68,4 @@ def test_paineis_em_paralelo_no_snapshot_com_leitura_aberta(
         for celula, periodo in pedidos:
             escrito = painel.ler(con, 1, celula, periodo)
             assert escrito is not None and escrito.estado is EstadoPainel.ATUAL
-            assert escrito.frentes_na_geracao == 1
+            assert escrito.eventos_na_geracao == 1

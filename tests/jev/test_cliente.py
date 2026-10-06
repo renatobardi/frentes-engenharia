@@ -7,10 +7,10 @@ from types import SimpleNamespace
 import httpx
 import pytest
 
-import frentes.jev.cliente as modulo
-from frentes import config
-from frentes.contratos import NENHUM_DESTES, Pergunta, RespostaDeLista, RespostaDeNumero
-from frentes.jev import ClienteTypesafe, ErroJev, SemChave, corpo_do_pedido
+import eventos.jev.cliente as modulo
+from eventos import config
+from eventos.contratos import NENHUM_DESTES, Pergunta, RespostaDeLista, RespostaDeNumero
+from eventos.jev import ClienteTypesafe, ErroJev, SemChave, corpo_do_pedido
 
 OPERACAO = config.carregar({}).operacao
 

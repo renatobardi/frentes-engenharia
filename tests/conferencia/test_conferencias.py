@@ -4,8 +4,8 @@ import json
 
 import pytest
 
-from frentes.conferencia.relatorio import Veredito
-from tests.conferencia.apoio import banco, frente, por_nome, rodar, varias, versao
+from eventos.conferencia.relatorio import Veredito
+from tests.conferencia.apoio import banco, evento, por_nome, rodar, varias, versao
 
 PASSOU, FALHOU = Veredito.PASSOU, Veredito.FALHOU
 REPORTADO, SEM_VALOR = Veredito.REPORTADO, Veredito.SEM_VALOR
@@ -13,11 +13,11 @@ REPORTADO, SEM_VALOR = Veredito.REPORTADO, Veredito.SEM_VALOR
 # ------------------------------------------------------------------------- por história
 
 
-def test_mesmo_tipo_e_area_aceita_contam_so_as_frentes_que_pintam() -> None:
+def test_mesma_frente_e_area_aceita_contam_so_os_eventos_que_pintam() -> None:
     con = banco()
     versao(con)
-    g = varias(con, 8, "H2", tipo_final="incidente")
-    g += varias(con, 2, "H2", tipo_final="melhoria")
+    g = varias(con, 8, "H2", frente_final="incidente")
+    g += varias(con, 2, "H2", frente_final="melhoria")
     g += varias(con, 1, "H2", area="formalizacao", area_final="originacao")  # fora da área
     g += varias(
         con,
@@ -27,12 +27,12 @@ def test_mesmo_tipo_e_area_aceita_contam_so_as_frentes_que_pintam() -> None:
         estado="incerta",
         motivo="confianca_baixa",
         area_final=None,
-        tipo_final=None,
+        frente_final=None,
     )  # não pintam: fora da conta
     c = por_nome(rodar(con, g))
 
-    tipo = c["H2: frentes que pintam num mesmo tipo"]
-    assert (tipo.medido, tipo.veredito) == (9 / 11, PASSOU)  # 9 de 11 no tipo incidente
+    frente = c["H2: eventos que pintam numa mesma frente"]
+    assert (frente.medido, frente.veredito) == (9 / 11, PASSOU)  # 9 de 11 na frente incidente
     area = c["H2: numa área aceita"]
     assert (area.medido, area.veredito) == (10 / 11, PASSOU)
     assert "10 de 11" in area.texto
@@ -51,7 +51,7 @@ def test_o_corte_da_area_aceita_e_inclusivo_e_abaixo_dele_falha() -> None:
     assert c["H6: numa área aceita"].veredito is FALHOU  # 80%
 
 
-def test_historia_sem_frente_fica_sem_valor_e_nao_falha() -> None:
+def test_historia_sem_evento_fica_sem_valor_e_nao_falha() -> None:
     con = banco()
     versao(con)
     c = por_nome(rodar(con, varias(con, 1, "H2")))
@@ -59,29 +59,29 @@ def test_historia_sem_frente_fica_sem_valor_e_nao_falha() -> None:
     assert c["H4: numa área aceita"].medido is None
 
 
-def test_tema_novo_no_tipo_novo_e_encaixe_fraco_de_volta_a_base() -> None:
+def test_tema_novo_na_frente_nova_e_encaixe_fraco_de_volta_a_base() -> None:
     con = banco()
-    versao(con, 1, tipos=("incidente", "melhoria"))
-    versao(con, 2, tipos=("incidente", "melhoria", "ia"))
-    # H5 na versão 2: 8 de 10 no tipo novo; 1 de 10 com encaixe fraco (confiança 0,4 < 0,7)
-    g = varias(con, 8, "H5", versao=2, tipo_final="ia", area_final="canal")
-    g += varias(con, 1, "H5", versao=2, tipo_final="incidente", area_final="canal")
+    versao(con, 1, frentes=("incidente", "melhoria"))
+    versao(con, 2, frentes=("incidente", "melhoria", "ia"))
+    # H5 na versão 2: 8 de 10 na frente nova; 1 de 10 com encaixe fraco (confiança 0,4 < 0,7)
+    g = varias(con, 8, "H5", versao=2, frente_final="ia", area_final="canal")
+    g += varias(con, 1, "H5", versao=2, frente_final="incidente", area_final="canal")
     g += varias(
         con,
         1,
         "H5",
         versao=2,
-        tipo_final="incidente",
+        frente_final="incidente",
         area_final="canal",
-        tipo="incidente",
-        conf_tipo=0.4,
+        frente="incidente",
+        conf_frente=0.4,
     )
-    # o fundo: 1 de 4 com "Nenhum destes" no tipo (tipo None) e 1 de texto vago, que não conta
+    # o fundo: 1 de 4 com "Nenhum destes" na frente (frente None) e 1 de texto vago, que não conta
     g += varias(con, 3, "fundo", versao=2)
-    g += varias(con, 1, "fundo", versao=2, tipo=None, conf_tipo=0.0)
+    g += varias(con, 1, "fundo", versao=2, frente=None, conf_frente=0.0)
     c = por_nome(rodar(con, g, 2))
 
-    novo = c["H5: no tipo novo depois da revisão"]
+    novo = c["H5: na frente nova depois da revisão"]
     assert (novo.medido, novo.veredito) == (0.8, PASSOU)
     assert "ia" in novo.texto
     fraco = c["H5: encaixe fraco de volta à base"]
@@ -89,25 +89,25 @@ def test_tema_novo_no_tipo_novo_e_encaixe_fraco_de_volta_a_base() -> None:
     assert "fundo: 25.0% (1 de 4)" in fraco.texto
 
 
-def test_tema_novo_que_nao_foi_para_o_tipo_novo_e_encaixe_fraco_alto_falham() -> None:
+def test_tema_novo_que_nao_foi_para_a_frente_nova_e_encaixe_fraco_alto_falham() -> None:
     con = banco()
-    versao(con, 1, tipos=("incidente", "melhoria"))
-    versao(con, 2, tipos=("incidente", "melhoria", "ia"))
-    g = varias(con, 5, "H5", versao=2, tipo_final="ia", area_final="canal")
+    versao(con, 1, frentes=("incidente", "melhoria"))
+    versao(con, 2, frentes=("incidente", "melhoria", "ia"))
+    g = varias(con, 5, "H5", versao=2, frente_final="ia", area_final="canal")
     g += varias(
-        con, 5, "H5", versao=2, tipo_final="incidente", area_final="canal", conf_tipo=0.4
-    )  # 5 de 10 no tipo novo e 5 de 10 com encaixe fraco
+        con, 5, "H5", versao=2, frente_final="incidente", area_final="canal", conf_frente=0.4
+    )  # 5 de 10 na frente nova e 5 de 10 com encaixe fraco
     c = por_nome(rodar(con, g, 2))
 
-    assert c["H5: no tipo novo depois da revisão"].veredito is FALHOU
+    assert c["H5: na frente nova depois da revisão"].veredito is FALHOU
     assert c["H5: encaixe fraco de volta à base"].veredito is FALHOU
 
 
-def test_sem_revisao_nao_ha_tipo_novo_e_a_conferencia_fica_sem_valor() -> None:
+def test_sem_revisao_nao_ha_frente_nova_e_a_conferencia_fica_sem_valor() -> None:
     con = banco()
     versao(con, 1)
     c = por_nome(rodar(con, varias(con, 3, "H5")))
-    assert c["H5: no tipo novo depois da revisão"].veredito is SEM_VALOR
+    assert c["H5: na frente nova depois da revisão"].veredito is SEM_VALOR
 
 
 def test_texto_vago_nao_conta_no_encaixe_fraco_da_historia() -> None:
@@ -121,9 +121,9 @@ def test_texto_vago_nao_conta_no_encaixe_fraco_da_historia() -> None:
         estado="incerta",
         motivo="texto_vago",
         area_final=None,
-        tipo_final=None,
-        tipo=None,
-        conf_tipo=0.0,
+        frente_final=None,
+        frente=None,
+        conf_frente=0.0,
     )
     assert por_nome(rodar(con, g))["H5: encaixe fraco de volta à base"].medido == 0.0
 
@@ -134,12 +134,12 @@ def test_texto_vago_nao_conta_no_encaixe_fraco_da_historia() -> None:
 def test_intensidade_e_o_indice_da_celula_da_historia_sobre_a_mediana_das_celulas() -> None:
     con = banco()
     versao(con)
-    # índices da visão dor (severidade 1 por frente): H1 8, H2 3, H6 1, três do fundo com 1
-    g = varias(con, 8, "H1", area_final="originacao", tipo_final="incidente")
-    g += varias(con, 3, "H2", area_final="formalizacao", tipo_final="incidente")
-    g += varias(con, 1, "H6", area_final="credito", tipo_final="incidente")
+    # índices da visão dor (severidade 1 por evento): H1 8, H2 3, H6 1, três do fundo com 1
+    g = varias(con, 8, "H1", area_final="originacao", frente_final="incidente")
+    g += varias(con, 3, "H2", area_final="formalizacao", frente_final="incidente")
+    g += varias(con, 1, "H6", area_final="credito", frente_final="incidente")
     for area in ("canal", "dados", "pos-venda"):
-        g += varias(con, 1, "fundo", area_final=area, tipo_final="melhoria")
+        g += varias(con, 1, "fundo", area_final=area, frente_final="melhoria")
     c = por_nome(rodar(con, g))
 
     # mediana de [8, 3, 1, 1, 1, 1] = 1
@@ -162,7 +162,7 @@ def test_intensidade_fora_da_faixa_de_cima_tambem_falha() -> None:
     assert c["H1: intensidade da célula na visão dor"].veredito is FALHOU
 
 
-def test_a_janela_de_90_dias_deixa_de_fora_a_frente_antiga() -> None:
+def test_a_janela_de_90_dias_deixa_de_fora_o_evento_antigo() -> None:
     con = banco()
     versao(con)
     g = varias(con, 6, "H1", area_final="originacao")
@@ -232,7 +232,7 @@ def test_linha_de_plataforma_contra_o_gabarito(vazadas: int, esperado: Veredito)
     p = "plataforma-e-sustentacao"
     g = varias(con, 4, "fundo", area=p, area_final=p)  # 4 no gabarito, 4 na linha
     g += varias(con, vazadas, "fundo", area="canal", area_final=p)  # outras que caíram na linha
-    c = por_nome(rodar(con, g))["frentes do fundo na linha de Plataforma e Sustentação"]
+    c = por_nome(rodar(con, g))["eventos do fundo na linha de Plataforma e Sustentação"]
     assert c.medido == (4 + vazadas) / 4
     assert c.veredito is esperado
 
@@ -241,7 +241,7 @@ def test_sem_fundo_na_area_da_plataforma_a_razao_fica_sem_valor() -> None:
     con = banco()
     versao(con)
     c = por_nome(rodar(con, varias(con, 2, "fundo")))
-    assert c["frentes do fundo na linha de Plataforma e Sustentação"].veredito is SEM_VALOR
+    assert c["eventos do fundo na linha de Plataforma e Sustentação"].veredito is SEM_VALOR
 
 
 # ------------------------------------------------------------------------- relato cruzado
@@ -359,12 +359,12 @@ def test_problema_de_h1_a_h5_cada_numero() -> None:
     assert (com_lista.medido, com_lista.veredito) == (4, PASSOU)  # H5 não tem
     por_historia = c["problemas por história"]
     assert (por_historia.medido, por_historia.veredito) == (1, PASSOU)
-    assert c["problema cuja maioria das frentes é do fundo"].medido == 0
-    # cobertas: 8 + 5 + 4 + 5 de 30 frentes de H1 a H5
+    assert c["problema cuja maioria dos eventos é do fundo"].medido == 0
+    # cobertas: 8 + 5 + 4 + 5 de 30 eventos de H1 a H5
     cobertura = c["cobertura de H1 a H5"]
     assert (cobertura.medido, cobertura.veredito) == (22 / 30, PASSOU)
     # com problema que vale: 8 + 5 + 4 + 5 + 4 do fundo = 26; 3 de outro time e 1 do mesmo
-    outro = c["falso positivo de outro time, sobre as frentes com problema"]
+    outro = c["falso positivo de outro time, sobre os eventos com problema"]
     assert (outro.medido, outro.veredito) == (3 / 26, FALHOU)
     mesmo = c["falso positivo do mesmo time (objeto vizinho)"]
     assert (mesmo.medido, mesmo.veredito) == (1 / 26, REPORTADO)
@@ -379,7 +379,7 @@ def test_problema_cuja_maioria_e_do_fundo_e_problemas_demais_de_uma_historia_fal
         g += varias(con, 2, "H1", problema=nome)
     c = por_nome(rodar(con, g))
 
-    do_fundo = c["problema cuja maioria das frentes é do fundo"]
+    do_fundo = c["problema cuja maioria dos eventos é do fundo"]
     assert (do_fundo.medido, do_fundo.veredito) == (1, FALHOU)
     assert "queixa" in do_fundo.texto
     demais = c["problemas por história"]
@@ -399,7 +399,7 @@ def test_empate_de_maioria_deixa_o_problema_sem_dono() -> None:
     g = varias(con, 2, "H1", problema="x") + varias(con, 2, "fundo", problema="x")
     c = por_nome(rodar(con, g))
     assert c["histórias de H1 a H5 com problema na lista"].medido == 0
-    assert c["problema cuja maioria das frentes é do fundo"].medido == 0
+    assert c["problema cuja maioria dos eventos é do fundo"].medido == 0
 
 
 # ------------------------------------------------------------------------- natureza e controle
@@ -408,24 +408,24 @@ def test_empate_de_maioria_deixa_o_problema_sem_dono() -> None:
 def test_natureza_contra_o_gabarito_so_e_reportada_e_conta_so_o_que_tem_natureza() -> None:
     con = banco()
     versao(con)
-    g = varias(con, 3, "fundo", natureza="reativa", natureza_final="reativa")
-    g += varias(con, 1, "fundo", natureza="reativa", natureza_final="proativa")
-    g += varias(con, 1, "fundo", natureza="proativa", natureza_final="proativa")
-    g += varias(con, 1, "fundo", natureza="proativa", natureza_final="reativa")
-    g += varias(con, 2, "fundo", natureza="reativa", natureza_final=None)  # sem natureza final
-    g += varias(con, 2, "fora", natureza=None, fora_de_escopo=True, natureza_final="reativa")
+    g = varias(con, 3, "fundo", natureza="reativo", natureza_final="reativo")
+    g += varias(con, 1, "fundo", natureza="reativo", natureza_final="proativo")
+    g += varias(con, 1, "fundo", natureza="proativo", natureza_final="proativo")
+    g += varias(con, 1, "fundo", natureza="proativo", natureza_final="reativo")
+    g += varias(con, 2, "fundo", natureza="reativo", natureza_final=None)  # sem natureza final
+    g += varias(con, 2, "fora", natureza=None, fora_de_escopo=True, natureza_final="reativo")
     c = por_nome(rodar(con, g))
 
     assert c["natureza igual ao gabarito, todas"].medido == 4 / 6
     assert c["natureza igual ao gabarito, todas"].veredito is REPORTADO
-    assert c["natureza igual ao gabarito, reativas"].medido == 3 / 4
-    assert c["natureza igual ao gabarito, proativas"].medido == 1 / 2
+    assert c["natureza igual ao gabarito, reativos"].medido == 3 / 4
+    assert c["natureza igual ao gabarito, proativos"].medido == 1 / 2
 
 
 def test_pergunta_de_controle_contra_as_vagas_plantadas() -> None:
     con = banco()
     versao(con)
-    vago = {"estado": "incerta", "motivo": "texto_vago", "area_final": None, "tipo_final": None}
+    vago = {"estado": "incerta", "motivo": "texto_vago", "area_final": None, "frente_final": None}
     g = varias(con, 3, "fundo", ambigua="vaga", **vago) + varias(con, 1, "fundo", ambigua="vaga")
     g += varias(con, 2, "fundo", ambigua="mal_escrita")
     g += varias(con, 1, "fundo", **vago) + varias(con, 9, "fundo")
@@ -434,7 +434,7 @@ def test_pergunta_de_controle_contra_as_vagas_plantadas() -> None:
 
     assert c["vagas plantadas que viram texto vago"].medido == 3 / 4
     assert c["mal escritas que viram texto vago (o certo é nenhuma)"].medido == 0.0
-    normais = c["frentes normais que viram texto vago (o certo é nenhuma)"]
+    normais = c["eventos normais que viram texto vago (o certo é nenhuma)"]
     assert (normais.medido, normais.veredito) == (1 / 10, REPORTADO)
 
 
@@ -452,22 +452,22 @@ def test_uso_por_versao_tokens_custo_e_tempo() -> None:
             "uso": {"tokens_entrada": 70, "tokens_saida": 30, "latencia_ms": 9},
         }
     )
-    g = frente(con, versao=1, tokens=(500_000, 10, 1000), classificada_em="2026-10-03T12:00:00Z")
-    g2 = frente(
+    g = evento(con, versao=1, tokens=(500_000, 10, 1000), classificada_em="2026-10-03T12:00:00Z")
+    g2 = evento(
         con,
         versao=1,
         tokens=(500_000, 20, 2000),
         classificada_em="2026-10-03T12:05:00Z",
         resposta_llm=llm,
     )
-    g3 = frente(con, versao=2, tokens=(2_000_000, 5, 60_000))
+    g3 = evento(con, versao=2, tokens=(2_000_000, 5, 60_000))
     c = por_nome(rodar(con, [g, g2, g3], 2))
 
     v1, v2 = c["versão 1"], c["versão 2"]
     assert (v1.veredito, v2.veredito) == (REPORTADO, REPORTADO)
     assert v1.medido == pytest.approx(0.042)  # 1 milhão de tokens de entrada
     assert v2.medido == pytest.approx(0.084)
-    assert "2 frentes; Jev 1000000 tokens de entrada e 30 de saída (US$ 0.04)" in v1.texto
+    assert "2 eventos; Jev 1000000 tokens de entrada e 30 de saída (US$ 0.04)" in v1.texto
     assert "LLM 70 e 30" in v1.texto
     assert "soma das latências do Jev 3.0 s" in v1.texto
     assert "de 2026-10-03T12:00:00Z a 2026-10-03T12:05:00Z" in v1.texto
@@ -507,11 +507,11 @@ def test_h2_em_segundo_lugar_dentro_da_faixa_continua_passando() -> None:
 def test_calibracao_do_selo_urgente_por_gravidade_alvo_so_reportada() -> None:
     con = banco()
     versao(con)
-    # o corte do selo está em 0,7 no limiares.toml; a frente do helper usa `urgencia` 0,4
+    # o corte do selo está em 0,7 no limiares.toml; o evento do helper usa `urgencia` 0,4
     g = varias(con, 2, "fundo", gravidade_alvo="alta")
     g += varias(con, 2, "fundo", gravidade_alvo="baixa")
     g += varias(con, 1, "fundo")  # sem gravidade-alvo: fora
-    con.execute("UPDATE classificacao SET urgencia = 0.8 WHERE frente_id = ?", (g[0].frente_id,))
+    con.execute("UPDATE classificacao SET urgencia = 0.8 WHERE evento_id = ?", (g[0].evento_id,))
     c = por_nome(rodar(con, g))
 
     assert c["urgentes entre as de gravidade-alvo alta"].medido == 0.5
@@ -521,22 +521,22 @@ def test_calibracao_do_selo_urgente_por_gravidade_alvo_so_reportada() -> None:
     assert "(1 de 4) com urgência ≥ 0.7" in todas.texto
 
 
-def test_selo_urgente_sem_gravidade_no_gabarito_diz_que_nao_ha_frente() -> None:
+def test_selo_urgente_sem_gravidade_no_gabarito_diz_que_nao_ha_evento() -> None:
     con = banco()
     versao(con)
     c = por_nome(rodar(con, varias(con, 2, "fundo")))
     assert c["urgentes por gravidade-alvo"].veredito is REPORTADO
 
 
-def test_o_resumo_destaca_o_corte_que_ficou_sem_frente_para_medir() -> None:
+def test_o_resumo_destaca_o_corte_que_ficou_sem_evento_para_medir() -> None:
     con = banco()
     versao(con)
     texto = rodar(con, varias(con, 2, "fundo")).texto()
-    assert "ATENÇÃO, corte sem frente para medir" in texto
+    assert "ATENÇÃO, corte sem evento para medir" in texto
     assert "por história / H4: numa área aceita" in texto
 
 
-def test_o_resumo_do_caso_certo_ainda_avisa_dos_cortes_sem_frente() -> None:
+def test_o_resumo_do_caso_certo_ainda_avisa_dos_cortes_sem_evento() -> None:
     from tests.conferencia.apoio import tudo_certo
 
     con = banco()

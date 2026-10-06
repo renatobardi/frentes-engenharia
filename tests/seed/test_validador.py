@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from frentes.contratos import DocumentoTaxonomia, EspecieDeItem
-from frentes.seed import validador
+from eventos.contratos import DocumentoTaxonomia, EspecieDeItem
+from eventos.seed import validador
 
 PASTA = validador.PASTA
 
@@ -50,12 +50,12 @@ def test_a_seed_do_repo_passa() -> None:
     assert validador.validar() == []
 
 
-def test_o_organograma_do_repo_carrega_nos_tipos_do_contrato() -> None:
+def test_o_organograma_do_repo_carrega_nas_frentes_do_contrato() -> None:
     org = json.loads((PASTA / "organograma.json").read_text(encoding="utf-8"))
     areas = DocumentoTaxonomia.de_dict(
         {
             "organograma": org["organograma"],
-            "tipos": [],
+            "frentes": [],
             "causas_raiz": [],
             "problemas": [],
             "regua_severidade": [],
@@ -345,13 +345,13 @@ def test_o_enderecamento_do_repo_e_o_da_h3() -> None:
     assert e["area"] == "pos-venda-e-cobranca"
     assert e["visao"] == "dor"
     assert e["decidido_em"] == "2026-03-31T18:00:00Z"
-    assert "tipo" not in e
+    assert "frente" not in e
 
 
 @pytest.mark.parametrize(
     ("campos", "trecho"),
     [
-        ({"tipo": "incidente"}, "não cita tipo"),
+        ({"frente": "incidente"}, "não cita frente"),
         ({"area": "marte"}, "área 'marte'"),
         ({"visao": "calor"}, "visao é 'calor'"),
         ({"visao": "oportunidade"}, "visao é 'oportunidade'"),
@@ -360,7 +360,7 @@ def test_o_enderecamento_do_repo_e_o_da_h3() -> None:
         ({"decidido_em": None}, "fora do formato ISO"),
         ({"tipo_solucao": "milagre"}, "tipo de solução inválido"),
         ({"texto": " "}, "falta o texto"),
-        ({"frentes_de_referencia": "f1"}, "tem de ser uma lista"),
+        ({"eventos_de_referencia": "f1"}, "tem de ser uma lista"),
         ({"decidido_em": "31/03/2026"}, "fora do formato ISO"),
         ({"decidido_em": "2026-04-30T18:00:00Z"}, "o fim do mês 6 é 2026-03-31"),
     ],

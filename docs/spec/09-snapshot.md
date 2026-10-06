@@ -9,24 +9,24 @@ O estado gravado de que a demo sobe.
 
 ## O que contém
 
-- Frentes, emissores, v1 e v2 com seus valores, as classificações da seed inteira **nas duas versões**, a descoberta e a revisão gravadas (`geracao`), os painéis das duas versões, os endereçamentos da seed e o `snapshot_meta`. [R19] [R20]
+- Eventos, emissores, v1 e v2 com seus valores, as classificações da seed inteira **nas duas versões**, a descoberta e a revisão gravadas (`geracao`), os painéis das duas versões, os endereçamentos da seed e o `snapshot_meta`. [R19] [R20]
 - **Fora**: `rajada.jsonl` (enviada ao vivo) e o **gabarito** (a conferência usa um banco à parte, que não vai para o servidor). [R20] [R23]
 - `snapshot_meta` (linha única): dia D, data da geração, commit, cópia da configuração de limiares usada. [R20] [R23]
 - O antes e depois da revisão é ler o mapa na v1 e na v2. Nada é chamado ao vivo. [R9] [R20]
 
 ## Formato
 
-- **O arquivo SQLite, compactado, versionado no repo**: `data/snapshot/frentes.sqlite.gz`. O deploy é um `git checkout` e o snapshot vem junto. [R23]
+- **O arquivo SQLite, compactado, versionado no repo**: `data/snapshot/eventos.sqlite.gz`. O deploy é um `git checkout` e o snapshot vem junto. [R23]
 - **Tamanho não medido.** Se passar de **50 MB** compactado, muda para anexo de release. O snapshot é regravado poucas vezes e de propósito. [R23]
 - Sem migrações: mudou o esquema, regrava-se o snapshot. [R23]
 
 ## Carga e deslocamento de datas
 
-- O snapshot guarda datas absolutas que terminam no dia D. O carregador restaura e desloca **todas** as colunas de data, e os timestamps em `metadados`, para D virar **ontem**: as da frente, `criada_em` e `ativada_em` das versões, `disparada_em`, `classificada_em`, `gerado_em` e a data do endereçamento. [R7] [R19] [R20]
+- O snapshot guarda datas absolutas que terminam no dia D. O carregador restaura e desloca **todas** as colunas de data, e os timestamps em `metadados`, para D virar **ontem**: as do evento, `criada_em` e `ativada_em` das versões, `disparada_em`, `classificada_em`, `gerado_em` e a data do endereçamento. [R7] [R19] [R20]
 - **O container sobe e, se não há banco no volume, carrega o snapshot sozinho.** Subir do zero já dá a demo pronta. [R23]
-- Comandos: `python -m frentes snapshot gravar` e `python -m frentes snapshot carregar`. [R23]
+- Comandos: `python -m eventos snapshot gravar` e `python -m eventos snapshot carregar`. [R23]
 - Rota `POST /admin/snapshot/carregar`, protegida pelo mesmo token de demo, para recarregar com um `curl`. A troca do arquivo é atômica (carrega num arquivo ao lado e renomeia). [R23]
-- Recarregar desfaz o que foi feito na tela: frentes ao vivo e endereçamentos marcados. [R19] [R21]
+- Recarregar desfaz o que foi feito na tela: eventos ao vivo e endereçamentos marcados. [R19] [R21]
 - Recarregar é um comando só e rápido; é o último passo antes de entrar na sala. [R21]
 
 ## `GET /healthz`
@@ -40,7 +40,7 @@ Duas classificações da seed inteira no Jev (v1 e v2), entre ~US$1,45 e ~US$2,2
 ## Contradições anotadas
 
 - [R20] deixou o formato do arquivo e o lugar da configuração de limiares para [R23], que os fixou (SQLite compactado no repo; `config/limiares.toml`).
-- [R20] avisa que o "antes" mostra na v1 também as frentes dos meses depois da revisão (a seed inteira é classificada nas duas versões). É a regra; a alternativa (v1 só até a data da revisão) não foi adotada.
+- [R20] avisa que o "antes" mostra na v1 também os eventos dos meses depois da revisão (a seed inteira é classificada nas duas versões). É a regra; a alternativa (v1 só até a data da revisão) não foi adotada.
 
 [R2]: https://github.com/renatobardi/frentes-engenharia/issues/2#issuecomment-5963209961 "Métrica de onde investir e eixos do mapa de calor"
 [R3]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963699217 "Taxonomia das frentes"

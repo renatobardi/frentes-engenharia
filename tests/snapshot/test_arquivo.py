@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from frentes import config, contratos, store
-from frentes.snapshot import arquivo
+from eventos import config, contratos, store
+from eventos.snapshot import arquivo
 from tests.snapshot.conftest import AGORA, DIA_D, METADADOS
 
 
@@ -31,15 +31,15 @@ def datas(banco: Path) -> dict[str, list[str | None]]:
 def test_gravar_e_carregar_desloca_o_dia_d_para_ontem_em_cada_coluna_de_data(
     cfg: config.Config, snapshot_gravado: Path, tmp_path: Path
 ) -> None:
-    destino = tmp_path / "volume" / "frentes.sqlite"
+    destino = tmp_path / "volume" / "eventos.sqlite"
 
     carregado = arquivo.carregar(destino, snapshot_gravado, AGORA)
 
     assert carregado == arquivo.Carregado(dia_d=DIA_D, deslocamento_dias=109)
     assert datas(destino) == {
-        "frente.complementado_em": [None, "2026-10-02T11:00:00Z"],
-        "frente.ocorrido_em": [None, "2026-09-27T07:00:00Z"],
-        "frente.recebido_em": ["2026-09-27T08:30:00Z", "2026-10-02T10:00:00Z"],
+        "evento.complementado_em": [None, "2026-10-02T11:00:00Z"],
+        "evento.ocorrido_em": [None, "2026-09-27T07:00:00Z"],
+        "evento.recebido_em": ["2026-09-27T08:30:00Z", "2026-10-02T10:00:00Z"],
         "geracao.disparada_em": ["2026-07-19T01:00:00Z"],
         "versao_taxonomia.criada_em": ["2026-07-19T02:00:00Z"],
         "versao_taxonomia.ativada_em": ["2026-07-20T00:00:00Z"],
@@ -56,11 +56,11 @@ def test_gravar_e_carregar_desloca_o_dia_d_para_ontem_em_cada_coluna_de_data(
 def test_carregar_desloca_os_timestamps_do_metadados_e_deixa_o_resto(
     snapshot_gravado: Path, tmp_path: Path
 ) -> None:
-    destino = tmp_path / "frentes.sqlite"
+    destino = tmp_path / "eventos.sqlite"
 
     arquivo.carregar(destino, snapshot_gravado, AGORA)
 
-    metadados = json.loads(lido(destino, "SELECT metadados FROM frente WHERE id = 'f1'")[0][0])
+    metadados = json.loads(lido(destino, "SELECT metadados FROM evento WHERE id = 'f1'")[0][0])
     assert metadados == {
         "linhas": [
             # fração e fuso ficam como vieram; a frase que cita uma data não é data
@@ -77,15 +77,15 @@ def test_carregar_desloca_os_timestamps_do_metadados_e_deixa_o_resto(
 def test_carregar_devolve_os_mesmos_dados_fora_das_datas(
     banco_populado: Path, snapshot_gravado: Path, tmp_path: Path
 ) -> None:
-    destino = tmp_path / "frentes.sqlite"
+    destino = tmp_path / "eventos.sqlite"
 
     arquivo.carregar(destino, snapshot_gravado, AGORA)
 
     for consulta in (
-        "SELECT id, origem, emissor, texto, complemento FROM frente ORDER BY id",
-        "SELECT frente_id, versao, resposta_jev, estado, tokens_entrada FROM classificacao",
-        "SELECT versao, area, tipo, visao, periodo, porque, sugestoes FROM painel_celula",
-        "SELECT area, tipo, texto, tipo_solucao, procedencia, ativo FROM enderecamento",
+        "SELECT id, origem, emissor, texto, complemento FROM evento ORDER BY id",
+        "SELECT evento_id, versao, resposta_jev, estado, tokens_entrada FROM classificacao",
+        "SELECT versao, area, frente, visao, periodo, porque, sugestoes FROM painel_celula",
+        "SELECT area, frente, texto, tipo_solucao, procedencia, ativo FROM enderecamento",
         "SELECT numero, documento, modelo_jev FROM versao_taxonomia",
     ):
         assert [tuple(x) for x in lido(destino, consulta)] == [
@@ -96,7 +96,7 @@ def test_carregar_devolve_os_mesmos_dados_fora_das_datas(
 def test_o_snapshot_meta_guarda_o_dia_d_a_geracao_o_commit_e_os_limiares(
     cfg: config.Config, snapshot_gravado: Path, tmp_path: Path
 ) -> None:
-    destino = tmp_path / "frentes.sqlite"
+    destino = tmp_path / "eventos.sqlite"
 
     arquivo.carregar(destino, snapshot_gravado, AGORA)
 
@@ -115,25 +115,25 @@ def test_o_snapshot_meta_guarda_o_dia_d_a_geracao_o_commit_e_os_limiares(
 def test_carregar_depois_de_dias_desloca_a_partir_do_dia_d_gravado(
     snapshot_gravado: Path, tmp_path: Path
 ) -> None:
-    destino = tmp_path / "frentes.sqlite"
+    destino = tmp_path / "eventos.sqlite"
 
     carregado = arquivo.carregar(destino, snapshot_gravado, AGORA.replace(day=20))
 
     # ontem é 2026-10-19: o dia D 2026-06-15 está 126 dias antes
     assert carregado.deslocamento_dias == 126
-    assert lido(destino, "SELECT max(recebido_em) FROM frente")[0][0] == "2026-10-19T10:00:00Z"
+    assert lido(destino, "SELECT max(recebido_em) FROM evento")[0][0] == "2026-10-19T10:00:00Z"
 
 
 def test_gravar_nao_altera_o_banco_de_origem_e_e_deterministico(
     cfg: config.Config, banco_populado: Path, tmp_path: Path
 ) -> None:
-    antes = lido(banco_populado, "SELECT * FROM frente ORDER BY id")
+    antes = lido(banco_populado, "SELECT * FROM evento ORDER BY id")
     um, outro = tmp_path / "um.gz", tmp_path / "outro.gz"
 
     arquivo.gravar(cfg, um, AGORA)
     arquivo.gravar(cfg, outro, AGORA)
 
-    assert [tuple(x) for x in lido(banco_populado, "SELECT * FROM frente ORDER BY id")] == [
+    assert [tuple(x) for x in lido(banco_populado, "SELECT * FROM evento ORDER BY id")] == [
         tuple(x) for x in antes
     ]
     assert lido(banco_populado, "SELECT count(*) FROM snapshot_meta")[0][0] == 0
@@ -142,7 +142,7 @@ def test_gravar_nao_altera_o_banco_de_origem_e_e_deterministico(
 
 
 def test_gravar_devolve_o_dia_d_e_o_tamanho(cfg: config.Config, tmp_path: Path) -> None:
-    destino = tmp_path / "novo" / "frentes.sqlite.gz"
+    destino = tmp_path / "novo" / "eventos.sqlite.gz"
 
     gravado = arquivo.gravar(cfg, destino, AGORA)
 
@@ -155,9 +155,9 @@ def test_gravar_com_gabarito_no_banco_e_recusado(
     cfg: config.Config, banco_populado: Path, tmp_path: Path
 ) -> None:
     with closing(store.abrir(banco_populado)) as con:
-        con.execute("INSERT INTO gabarito (frente_id, historia_id) VALUES ('f1', 'H1')")
+        con.execute("INSERT INTO gabarito (evento_id, historia_id) VALUES ('f1', 'H1')")
         con.commit()
-    destino = tmp_path / "saida" / "frentes.sqlite.gz"
+    destino = tmp_path / "saida" / "eventos.sqlite.gz"
 
     with pytest.raises(arquivo.SnapshotRecusado, match="gabarito"):
         arquivo.gravar(cfg, destino, AGORA)
@@ -165,17 +165,17 @@ def test_gravar_com_gabarito_no_banco_e_recusado(
     assert not destino.parent.exists()
 
 
-def test_gravar_com_frente_da_rajada_no_banco_e_recusado(
+def test_gravar_com_evento_da_rajada_no_banco_e_recusado(
     cfg: config.Config, banco_populado: Path, tmp_path: Path
 ) -> None:
     with closing(store.abrir(banco_populado)) as con:
         con.execute(
-            "INSERT INTO frente (id, origem, emissor, texto, recebido_em, metadados)"
+            "INSERT INTO evento (id, origem, emissor, texto, recebido_em, metadados)"
             " VALUES ('r1', 'webhook', 'sistema-x', 'rajada', '2026-10-03T12:00:00Z',"
             " '{\"rajada\": true}')"
         )
         con.commit()
-    destino = tmp_path / "frentes.sqlite.gz"
+    destino = tmp_path / "eventos.sqlite.gz"
 
     with pytest.raises(arquivo.SnapshotRecusado, match="rajada"):
         arquivo.gravar(cfg, destino, AGORA)
@@ -183,28 +183,28 @@ def test_gravar_com_frente_da_rajada_no_banco_e_recusado(
     assert not destino.exists()
 
 
-def test_gravar_sem_frente_e_recusado_e_sem_banco_diz_que_nao_ha(tmp_path: Path) -> None:
+def test_gravar_sem_evento_e_recusado_e_sem_banco_diz_que_nao_ha(tmp_path: Path) -> None:
     vazio = tmp_path / "vazio.sqlite"
     store.abrir(vazio).close()
 
-    with pytest.raises(arquivo.SnapshotRecusado, match="não tem frente"):
+    with pytest.raises(arquivo.SnapshotRecusado, match="não tem evento"):
         arquivo.gravar(
-            config.carregar({"FRENTES_DB": str(vazio)}), tmp_path / "frentes.sqlite.gz", AGORA
+            config.carregar({"EVENTOS_DB": str(vazio)}), tmp_path / "eventos.sqlite.gz", AGORA
         )
     with pytest.raises(store.BancoAusente):
         arquivo.gravar(
-            config.carregar({"FRENTES_DB": str(tmp_path / "nao-existe.sqlite")}),
-            tmp_path / "frentes.sqlite.gz",
+            config.carregar({"EVENTOS_DB": str(tmp_path / "nao-existe.sqlite")}),
+            tmp_path / "eventos.sqlite.gz",
             AGORA,
         )
 
 
 def banco_anterior(caminho: Path) -> None:
-    """Um banco em uso: no modo WAL, com uma frente que o snapshot não tem."""
+    """Um banco em uso: no modo WAL, com um evento que o snapshot não tem."""
     con = store.abrir(caminho)
     con.execute(
-        "INSERT INTO frente (id, origem, emissor, texto, recebido_em)"
-        " VALUES ('antiga', 'relato', 'bia', 'frente ao vivo', '2026-10-02T09:00:00Z')"
+        "INSERT INTO evento (id, origem, emissor, texto, recebido_em)"
+        " VALUES ('antiga', 'relato', 'bia', 'evento ao vivo', '2026-10-02T09:00:00Z')"
     )
     con.commit()
     con.close()
@@ -217,10 +217,10 @@ def test_carga_que_falha_no_meio_deixa_o_banco_anterior_intacto(
     with closing(store.abrir(banco_populado)) as con:
         con.execute("UPDATE enderecamento SET decidido_em = 'ontem à noite'")
         con.commit()
-    ruim = tmp_path / "repo" / "frentes.sqlite.gz"
+    ruim = tmp_path / "repo" / "eventos.sqlite.gz"
     arquivo.gravar(cfg, ruim, AGORA)
     volume = tmp_path / "volume"
-    destino = volume / "frentes.sqlite"
+    destino = volume / "eventos.sqlite"
     banco_anterior(destino)
     antes = destino.read_bytes()
 
@@ -228,8 +228,8 @@ def test_carga_que_falha_no_meio_deixa_o_banco_anterior_intacto(
         arquivo.carregar(destino, ruim, AGORA)
 
     assert destino.read_bytes() == antes
-    assert [tuple(x) for x in lido(destino, "SELECT id FROM frente")] == [("antiga",)]
-    assert sorted(p.name for p in volume.iterdir()) == ["frentes.sqlite"]  # sem arquivo ao lado
+    assert [tuple(x) for x in lido(destino, "SELECT id FROM evento")] == [("antiga",)]
+    assert sorted(p.name for p in volume.iterdir()) == ["eventos.sqlite"]  # sem arquivo ao lado
 
 
 @pytest.mark.parametrize(
@@ -243,9 +243,9 @@ def test_carga_que_falha_no_meio_deixa_o_banco_anterior_intacto(
 def test_arquivo_estragado_e_recusado_e_deixa_o_banco_anterior_intacto(
     conteudo: bytes, tmp_path: Path
 ) -> None:
-    estragado = tmp_path / "frentes.sqlite.gz"
+    estragado = tmp_path / "eventos.sqlite.gz"
     estragado.write_bytes(conteudo)
-    destino = tmp_path / "volume" / "frentes.sqlite"
+    destino = tmp_path / "volume" / "eventos.sqlite"
     banco_anterior(destino)
     antes = destino.read_bytes()
 
@@ -253,7 +253,7 @@ def test_arquivo_estragado_e_recusado_e_deixa_o_banco_anterior_intacto(
         arquivo.carregar(destino, estragado, AGORA)
 
     assert destino.read_bytes() == antes
-    assert sorted(p.name for p in destino.parent.iterdir()) == ["frentes.sqlite"]
+    assert sorted(p.name for p in destino.parent.iterdir()) == ["eventos.sqlite"]
 
 
 def test_snapshot_sem_a_linha_do_snapshot_meta_e_recusado(
@@ -263,7 +263,7 @@ def test_snapshot_sem_a_linha_do_snapshot_meta_e_recusado(
     bruto.write_bytes(gzip.compress(banco_populado.read_bytes()))
     # o banco de origem está em WAL: copiar só o arquivo principal pode perder linhas, mas
     # o que importa aqui é que não tem snapshot_meta
-    destino = tmp_path / "frentes.sqlite"
+    destino = tmp_path / "eventos.sqlite"
 
     with pytest.raises(arquivo.SnapshotInvalido, match="snapshot_meta"):
         arquivo.carregar(destino, bruto, AGORA)
@@ -272,7 +272,7 @@ def test_snapshot_sem_a_linha_do_snapshot_meta_e_recusado(
 
 
 def test_carregar_sem_o_arquivo_do_snapshot_diz_que_nao_ha(tmp_path: Path) -> None:
-    destino = tmp_path / "volume" / "frentes.sqlite"
+    destino = tmp_path / "volume" / "eventos.sqlite"
 
     with pytest.raises(arquivo.SnapshotAusente):
         arquivo.carregar(destino, tmp_path / "nao-existe.gz", AGORA)
@@ -283,10 +283,10 @@ def test_carregar_sem_o_arquivo_do_snapshot_diz_que_nao_ha(tmp_path: Path) -> No
 def test_carregar_sobre_banco_em_uso_troca_o_conteudo_e_nao_deixa_wal_para_tras(
     snapshot_gravado: Path, tmp_path: Path
 ) -> None:
-    destino = tmp_path / "frentes.sqlite"
+    destino = tmp_path / "eventos.sqlite"
     em_uso = store.abrir(destino)  # fica aberta, em WAL, com escrita ainda no WAL
     em_uso.execute(
-        "INSERT INTO frente (id, origem, emissor, texto, recebido_em)"
+        "INSERT INTO evento (id, origem, emissor, texto, recebido_em)"
         " VALUES ('antiga', 'relato', 'bia', 'ao vivo', '2026-10-02T09:00:00Z')"
     )
     em_uso.commit()
@@ -294,18 +294,18 @@ def test_carregar_sobre_banco_em_uso_troca_o_conteudo_e_nao_deixa_wal_para_tras(
     arquivo.carregar(destino, snapshot_gravado, AGORA)
     em_uso.close()
 
-    assert [tuple(x) for x in lido(destino, "SELECT id FROM frente ORDER BY id")] == [
+    assert [tuple(x) for x in lido(destino, "SELECT id FROM evento ORDER BY id")] == [
         ("f1",),
         ("f2",),
     ]
     assert lido(destino, "PRAGMA integrity_check")[0][0] == "ok"
-    assert sorted(p.name for p in tmp_path.iterdir() if p.name.startswith("frentes.sqlite")) == [
-        "frentes.sqlite"
+    assert sorted(p.name for p in tmp_path.iterdir() if p.name.startswith("eventos.sqlite")) == [
+        "eventos.sqlite"
     ]
 
 
 def test_precisa_carregar_so_quando_nao_ha_banco_com_o_esquema(tmp_path: Path) -> None:
-    ausente = tmp_path / "volume" / "frentes.sqlite"
+    ausente = tmp_path / "volume" / "eventos.sqlite"
     sem_esquema = tmp_path / "sem-esquema.sqlite"
     sem_esquema.touch()
     com_esquema = tmp_path / "com-esquema.sqlite"
@@ -320,7 +320,7 @@ def test_precisa_carregar_so_quando_nao_ha_banco_com_o_esquema(tmp_path: Path) -
 def test_carregar_sobre_arquivo_que_nao_e_sqlite_recusa_e_nao_o_apaga(
     snapshot_gravado: Path, tmp_path: Path
 ) -> None:
-    destino = tmp_path / "volume" / "frentes.sqlite"
+    destino = tmp_path / "volume" / "eventos.sqlite"
     destino.parent.mkdir()
     destino.write_text("isto não é um banco, é o arquivo de alguém " * 20)
     antes = destino.read_bytes()
@@ -329,11 +329,11 @@ def test_carregar_sobre_arquivo_que_nao_e_sqlite_recusa_e_nao_o_apaga(
         arquivo.carregar(destino, snapshot_gravado, AGORA)
 
     assert destino.read_bytes() == antes
-    assert sorted(p.name for p in destino.parent.iterdir()) == ["frentes.sqlite"]
+    assert sorted(p.name for p in destino.parent.iterdir()) == ["eventos.sqlite"]
 
 
 def test_precisa_carregar_com_arquivo_que_nao_e_sqlite_e_erro_claro(tmp_path: Path) -> None:
-    estranho = tmp_path / "frentes.sqlite"
+    estranho = tmp_path / "eventos.sqlite"
     estranho.write_text("isto não é um banco, é o arquivo de alguém " * 20)
 
     with pytest.raises(arquivo.BancoNaoTrocavel, match="não é um banco SQLite"):
@@ -343,13 +343,13 @@ def test_precisa_carregar_com_arquivo_que_nao_e_sqlite_e_erro_claro(tmp_path: Pa
 def test_carregar_com_banco_ocupado_recusa_e_deixa_o_banco_e_o_wal_como_estavam(
     snapshot_gravado: Path, tmp_path: Path
 ) -> None:
-    destino = tmp_path / "frentes.sqlite"
+    destino = tmp_path / "eventos.sqlite"
     banco_anterior(destino)
     leitor = store.abrir(destino)
     leitor.execute("BEGIN")
-    leitor.execute("SELECT count(*) FROM frente").fetchone()
+    leitor.execute("SELECT count(*) FROM evento").fetchone()
     escritor = store.abrir(destino)
-    escritor.execute("UPDATE frente SET texto = 'mudou depois'")
+    escritor.execute("UPDATE evento SET texto = 'mudou depois'")
     escritor.commit()
     escritor.close()
 
@@ -357,7 +357,7 @@ def test_carregar_com_banco_ocupado_recusa_e_deixa_o_banco_e_o_wal_como_estavam(
         arquivo.carregar(destino, snapshot_gravado, AGORA)
     leitor.close()
 
-    assert lido(destino, "SELECT id, texto FROM frente")[0][1] == "mudou depois"
+    assert lido(destino, "SELECT id, texto FROM evento")[0][1] == "mudou depois"
     assert sorted(p.name for p in tmp_path.iterdir() if p.name.startswith(".snapshot")) == []
 
 
@@ -365,7 +365,7 @@ def test_carregar_arquivo_que_se_expande_alem_do_teto_e_recusado(
     snapshot_gravado: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(arquivo, "LIMITE_DESCOMPACTADO_BYTES", 1024)
-    destino = tmp_path / "volume" / "frentes.sqlite"
+    destino = tmp_path / "volume" / "eventos.sqlite"
 
     with pytest.raises(arquivo.SnapshotInvalido, match="descompactado"):
         arquivo.carregar(destino, snapshot_gravado, AGORA)

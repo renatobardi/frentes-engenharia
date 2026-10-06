@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from frentes.__main__ import main
-from frentes.snapshot import arquivo, cli
+from eventos.__main__ import main
+from eventos.snapshot import arquivo, cli
 
 
 @pytest.fixture
@@ -11,9 +11,9 @@ def ambiente(
     banco_populado: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> tuple[Path, Path]:
     """(banco de origem, arquivo do snapshot) com o ambiente apontando para o banco."""
-    monkeypatch.setenv("FRENTES_DB", str(banco_populado))
-    monkeypatch.setenv("FRENTES_COMMIT", "abc1234")
-    return banco_populado, tmp_path / "repo" / "frentes.sqlite.gz"
+    monkeypatch.setenv("EVENTOS_DB", str(banco_populado))
+    monkeypatch.setenv("EVENTOS_COMMIT", "abc1234")
+    return banco_populado, tmp_path / "repo" / "eventos.sqlite.gz"
 
 
 def test_o_comando_snapshot_esta_declarado_e_sai_de_planejados() -> None:
@@ -33,7 +33,7 @@ def test_o_comando_snapshot_esta_declarado_e_sai_de_planejados() -> None:
 )
 def test_uso_errado_sai_com_2(argumentos: list[str], capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["snapshot", *argumentos]) == 2
-    assert "uso: python -m frentes snapshot" in capsys.readouterr().err
+    assert "uso: python -m eventos snapshot" in capsys.readouterr().err
 
 
 def test_gravar_e_carregar_pela_linha_de_comando(
@@ -48,8 +48,8 @@ def test_gravar_e_carregar_pela_linha_de_comando(
     assert "dia D 2026-06-15" in capsys.readouterr().out
     assert saida.is_file()
 
-    novo = tmp_path / "volume" / "frentes.sqlite"
-    monkeypatch.setenv("FRENTES_DB", str(novo))
+    novo = tmp_path / "volume" / "eventos.sqlite"
+    monkeypatch.setenv("EVENTOS_DB", str(novo))
     assert main(["snapshot", "carregar", "--de", str(saida)]) == 0
     assert "dia D 2026-06-15 deslocado" in capsys.readouterr().out
     assert novo.is_file()
@@ -58,7 +58,7 @@ def test_gravar_e_carregar_pela_linha_de_comando(
 def test_gravar_sem_banco_sai_com_1(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setenv("FRENTES_DB", str(tmp_path / "nao-existe.sqlite"))
+    monkeypatch.setenv("EVENTOS_DB", str(tmp_path / "nao-existe.sqlite"))
 
     assert main(["snapshot", "gravar", "--saida", str(tmp_path / "s.gz")]) == 1
     assert "não há banco" in capsys.readouterr().err
@@ -69,11 +69,11 @@ def test_gravar_recusado_sai_com_1_e_nao_cria_o_arquivo(
 ) -> None:
     from contextlib import closing
 
-    from frentes import store
+    from eventos import store
 
     banco, saida = ambiente
     with closing(store.abrir(banco)) as con:
-        con.execute("INSERT INTO gabarito (frente_id, historia_id) VALUES ('f1', 'H1')")
+        con.execute("INSERT INTO gabarito (evento_id, historia_id) VALUES ('f1', 'H1')")
         con.commit()
 
     assert main(["snapshot", "gravar", "--saida", str(saida)]) == 1
@@ -135,10 +135,10 @@ def test_gravar_sem_commit_definido_avisa(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     _, saida = ambiente
-    monkeypatch.delenv("FRENTES_COMMIT")
+    monkeypatch.delenv("EVENTOS_COMMIT")
 
     assert main(["snapshot", "gravar", "--saida", str(saida)]) == 0
-    assert "FRENTES_COMMIT não está definido" in capsys.readouterr().err
+    assert "EVENTOS_COMMIT não está definido" in capsys.readouterr().err
 
 
 def test_carregar_sobre_arquivo_que_nao_e_sqlite_sai_com_1(
@@ -151,7 +151,7 @@ def test_carregar_sobre_arquivo_que_nao_e_sqlite_sai_com_1(
     assert main(["snapshot", "gravar", "--saida", str(saida)]) == 0
     estranho = tmp_path / "estranho.sqlite"
     estranho.write_text("não é banco " * 50)
-    monkeypatch.setenv("FRENTES_DB", str(estranho))
+    monkeypatch.setenv("EVENTOS_DB", str(estranho))
 
     assert main(["snapshot", "carregar", "--de", str(saida)]) == 1
     assert "não é um banco SQLite" in capsys.readouterr().err

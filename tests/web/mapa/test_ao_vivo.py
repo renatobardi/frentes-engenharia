@@ -17,10 +17,10 @@ from urllib.parse import parse_qs, urlsplit
 import pytest
 from fastapi.testclient import TestClient
 
-from frentes import config, contratos, fila, store
-from frentes.store import versao as armazem_versao
-from frentes.taxonomia import valores
-from frentes.web.app import criar_app
+from eventos import config, contratos, fila, store
+from eventos.store import versao as armazem_versao
+from eventos.taxonomia import valores
+from eventos.web.app import criar_app
 from tests.fila.documento import DOCUMENTO, QUANDO
 from tests.fila.test_fila import jev
 from tests.jev.falso import JevFalso
@@ -36,13 +36,13 @@ from tests.web.mapa.test_mapa import (
     _valores_do_painel,
 )
 
-INCIDENTE = "area=plat&tipo=incidente"
-PROCESSO_OPS = "area=ops&tipo=processo"
+INCIDENTE = "area=plat&frente=incidente"
+PROCESSO_OPS = "area=ops&frente=processo"
 
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "frentes.db"
+    caminho = tmp_path / "eventos.db"
     with closing(store.abrir(caminho)) as con:
         _montar(con)
         con.commit()
@@ -85,11 +85,11 @@ def _poll(http: TestClient, endereco: str, cabecalhos: dict[str, str], **mais: s
 
 def _td(html: str, par: str) -> str:
     """O `<td>` da célula (a que tem o endereço dela)."""
-    area, tipo = (v[0] for v in parse_qs(par).values())
+    area, frente = (v[0] for v in parse_qs(par).values())
     achados = [
         td
         for td in re.findall(r'<div class="celula.*?</div>', html, re.S)
-        if f"area={area}&amp;tipo={tipo}" in td
+        if f"area={area}&amp;frente={frente}" in td
     ]
     assert len(achados) == 1, f"célula {par} não achada"
     return achados[0]
@@ -105,11 +105,11 @@ def _piscaram(html: str) -> list[str]:
 
 
 def _nova(banco: Path, texto: str, **classificacao: object) -> str:
-    """Uma frente que acabou de chegar. Sem `classificacao`, ela está aguardando."""
+    """Um evento que acabou de chegar. Sem `classificacao`, ela está aguardando."""
     with closing(store.abrir(banco)) as con:
         id = f"n-{texto}".replace(" ", "-")
         con.execute(
-            "INSERT INTO frente (id, origem, emissor, texto, ocorrido_em, recebido_em)"
+            "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em)"
             " VALUES (?, 'webhook', 'api', ?, ?, ?)",
             (id, texto, _data(0), _data(0)),
         )
@@ -120,9 +120,9 @@ def _nova(banco: Path, texto: str, **classificacao: object) -> str:
     return id
 
 
-def _pintando(area: str, tipo: str, score: float, **mais: object) -> dict[str, object]:
+def _pintando(area: str, frente: str, score: float, **mais: object) -> dict[str, object]:
     return {
-        "area_final": area, "tipo_final": tipo, "natureza_final": "reativa",
+        "area_final": area, "frente_final": frente, "natureza_final": "reativo",
         "severidade": score, **mais,
     }  # fmt: skip
 
@@ -183,7 +183,7 @@ def test_a_seta_e_o_top3_acompanham_a_celula_que_mudou(banco: Path, http: TestCl
     assert 'hx-swap-oob="true"' in resposta
 
 
-def test_o_top3_se_reordena_quando_outra_celula_passa_a_frente(
+def test_o_top3_se_reordena_quando_outra_celula_passa_o_evento(
     banco: Path, http: TestClient
 ) -> None:
     _, polling, cabecalhos = _ler(http)
@@ -220,7 +220,7 @@ def test_celula_que_baixou_mostra_o_menos(http: TestClient) -> None:
 
     celula = _td(resposta, INCIDENTE)
     assert 'data-de="5"' in celula and 'data-para="3,6"' in celula
-    assert 'class="diferenca"' not in celula  # nenhuma frente nova: só o número mudou
+    assert 'class="diferenca"' not in celula  # nenhum evento novo: só o número mudou
 
 
 def test_celula_que_nao_estava_na_leitura_conta_de_zero(http: TestClient) -> None:
@@ -279,7 +279,7 @@ def test_so_se_troca_o_que_mudou(banco: Path, http: TestClient) -> None:
     assert 'id="fora-vivo"' not in mudou  # os contadores não mudaram
 
 
-def test_o_mais_n_conta_as_frentes_novas_acumula_e_nao_some_na_leitura_seguinte(
+def test_o_mais_n_conta_os_eventos_novos_acumula_e_nao_some_na_leitura_seguinte(
     banco: Path, http: TestClient
 ) -> None:
     _, polling, cabecalhos = _ler(http)
@@ -307,7 +307,7 @@ def test_o_mais_n_so_conta_as_que_pintam_a_visao_e_respeita_a_origem(
 ) -> None:
     _, _, cabecalhos = _ler(http)
     _escrever(banco, lambda con: _pinta(con, "plat", "incidente", 0.9, 1, origem="log"))
-    _escrever(banco, lambda con: _pinta(con, "plat", "incidente", 0.9, 1, natureza="proativa"))
+    _escrever(banco, lambda con: _pinta(con, "plat", "incidente", 0.9, 1, natureza="proativo"))
     _escrever(
         banco,
         lambda con: _pinta(
@@ -320,7 +320,7 @@ def test_o_mais_n_so_conta_as_que_pintam_a_visao_e_respeita_a_origem(
         "/", params={"origem": "relato"}, headers={**cabecalhos, "HX-Request": "true"}
     ).text
 
-    assert 'aria-label="1 novas">+1<' in _td(todas, INCIDENTE)  # a proativa e a incerta não contam
+    assert 'aria-label="1 novas">+1<' in _td(todas, INCIDENTE)  # a proativo e a incerta não contam
     assert 'class="diferenca"' not in _td(so_relato, INCIDENTE)  # a que pinta veio pelo log
 
 
@@ -372,14 +372,14 @@ def test_com_o_mapa_numa_versao_antiga_a_faixa_usa_a_classificacao_da_vigente(
 # ------------------------------------------------------------ a faixa "Chegando agora"
 
 
-def test_sem_frente_nova_a_faixa_nao_aparece(http: TestClient) -> None:
+def test_sem_evento_novo_a_faixa_nao_aparece(http: TestClient) -> None:
     pagina, polling, cabecalhos = _ler(http)
 
     assert "Chegando agora" not in pagina
     assert "Chegando agora" not in _poll(http, polling, cabecalhos).text
 
 
-def test_com_sete_frentes_novas_a_faixa_mostra_as_cinco_ultimas(
+def test_com_sete_eventos_novos_a_faixa_mostra_as_cinco_ultimas(
     banco: Path, http: TestClient
 ) -> None:
     _, polling, cabecalhos = _ler(http)
@@ -391,7 +391,7 @@ def test_com_sete_frentes_novas_a_faixa_mostra_as_cinco_ultimas(
 
     textos = re.findall(r'<span class="texto">([^<]+)</span>', faixa)
     assert textos == ["chegou-7", "chegou-6", "chegou-5", "chegou-4", "chegou-3"]
-    assert "Chegando agora" in faixa and "7 frentes" in faixa
+    assert "Chegando agora" in faixa and "7 eventos" in faixa
     # hora, célula e confiança de cada uma
     assert re.search(r"<time>\d\d:\d\d:\d\d</time>", faixa)
     assert "Plataforma × Incidente" in faixa and "90%" in faixa
@@ -409,7 +409,7 @@ def test_a_faixa_vem_na_tela_inteira_quando_o_navegador_ja_tem_a_marca(
     assert "chegou-a-tempo" in miolo.text
 
 
-def test_frente_nova_incerta_ou_vaga_nao_pisca_celula_e_aparece_com_o_estado(
+def test_evento_novo_incerta_ou_vaga_nao_pisca_celula_e_aparece_com_o_estado(
     banco: Path, http: TestClient
 ) -> None:
     _, polling, cabecalhos = _ler(http)
@@ -440,7 +440,7 @@ def test_frente_nova_incerta_ou_vaga_nao_pisca_celula_e_aparece_com_o_estado(
     assert "+3 incertas" in _td(resposta, INCIDENTE)
 
 
-def test_o_texto_da_frente_que_chega_e_escapado(banco: Path, http: TestClient) -> None:
+def test_o_texto_do_evento_que_chega_e_escapado(banco: Path, http: TestClient) -> None:
     _, polling, cabecalhos = _ler(http)
     _nova(banco, "<script>alert(1)</script>", **_pintando("plat", "incidente", 0.1))
 
@@ -561,7 +561,7 @@ def test_polling_sem_versao_vigente_responde_204(tmp_path: Path) -> None:
 def test_polling_com_versao_ou_celula_invalida_responde_404_ou_422(http: TestClient) -> None:
     assert http.get("/mapa/ao-vivo", params={"versao": 99}).status_code == 404
     assert http.get("/mapa/ao-vivo", params={"area": "plat"}).status_code == 422
-    assert http.get("/mapa/ao-vivo", params={"area": "x", "tipo": "y"}).status_code == 404
+    assert http.get("/mapa/ao-vivo", params={"area": "x", "frente": "y"}).status_code == 404
 
 
 def test_a_leitura_parcial_nao_e_guardada_em_cache(http: TestClient) -> None:
@@ -578,13 +578,13 @@ CABECALHO_WEBHOOK = {"x-webhook-token": "t"}
 @pytest.fixture
 def servidor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
     """A app com a fila ligada a um Jev falso; o banco tem só a taxonomia da fila."""
-    caminho = tmp_path / "frentes.sqlite"
+    caminho = tmp_path / "eventos.sqlite"
     with closing(store.abrir(caminho)) as con:
         versao = contratos.VersaoTaxonomia(1, DOCUMENTO, "jev-latest", QUANDO)
         armazem_versao.inserir(con, versao, valores.derivar(1, DOCUMENTO))
         assert armazem_versao.ativar(con, 1, contratos.para_iso(QUANDO))
     monkeypatch.setattr(fila, "ao_partir", lambda app: None)
-    app = criar_app(config.carregar({"FRENTES_DB": str(caminho), "FRENTES_WEBHOOK_TOKEN": "t"}))
+    app = criar_app(config.carregar({"EVENTOS_DB": str(caminho), "EVENTOS_WEBHOOK_TOKEN": "t"}))
     with TestClient(app) as cliente:
         cliente.banco = caminho  # type: ignore[attr-defined]
         cliente.app_ = app  # type: ignore[attr-defined]
@@ -598,7 +598,7 @@ def _esperar(condicao: Any, segundos: float = 10.0) -> None:
         time.sleep(0.01)
 
 
-def test_post_frentes_classifica_e_a_leitura_seguinte_traz_a_celula_mudada(servidor: Any) -> None:
+def test_post_eventos_classifica_e_a_leitura_seguinte_traz_a_celula_mudada(servidor: Any) -> None:
     falso = JevFalso({"o simulador caiu": jev()})
     servidor.app_.state.fila = fila.Fila(
         servidor.app_, servidor.banco, CFG.limiares, OPERACAO, lambda m: falso, LlmFalsa({})
@@ -607,7 +607,7 @@ def test_post_frentes_classifica_e_a_leitura_seguinte_traz_a_celula_mudada(servi
     assert _piscaram(_poll(servidor, polling, cabecalhos).text) == []
 
     resposta = servidor.post(
-        "/frentes", json={"texto": "o simulador caiu"}, headers=CABECALHO_WEBHOOK
+        "/eventos", json={"texto": "o simulador caiu"}, headers=CABECALHO_WEBHOOK
     )
     assert resposta.status_code == 202
 
@@ -637,7 +637,7 @@ def test_rajada_de_20_acumula_o_mais_n_e_a_faixa_mostra_as_ultimas_cinco(servido
 
     for t in textos:
         assert (
-            servidor.post("/frentes", json={"texto": t}, headers=CABECALHO_WEBHOOK).status_code
+            servidor.post("/eventos", json={"texto": t}, headers=CABECALHO_WEBHOOK).status_code
             == 202
         )
 
@@ -652,7 +652,7 @@ def test_rajada_de_20_acumula_o_mais_n_e_a_faixa_mostra_as_ultimas_cinco(servido
     assert 'aria-label="20 novas">+20<' in celula and 'data-para="12"' in celula
     faixa = leitura[leitura.index('id="faixa"') : leitura.index("</section>")]
     assert re.findall(r'texto">(rajada \d\d)<', faixa) == [f"rajada {n}" for n in range(19, 14, -1)]
-    assert "20 frentes" in faixa
+    assert "20 eventos" in faixa
     # a leitura seguinte não perde nada nem recomeça
     seguinte = _poll(servidor, _polling(leitura), cabecalhos).text
     assert 'class="grade" role="table"' not in seguinte and 'id="faixa"' not in seguinte

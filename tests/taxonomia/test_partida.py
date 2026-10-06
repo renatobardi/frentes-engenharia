@@ -7,10 +7,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from frentes import config, fila, store
-from frentes.contratos import ResultadoGeracao
-from frentes.llm import ErroLlmEsgotado
-from frentes.taxonomia import partida
+from eventos import config, fila, store
+from eventos.contratos import ResultadoGeracao
+from eventos.llm import ErroLlmEsgotado
+from eventos.taxonomia import partida
 from tests.jev.falso import JevFalso
 from tests.llm.falso import LlmFalsa
 from tests.taxonomia.conftest import montar
@@ -18,7 +18,7 @@ from tests.taxonomia.revisoes import (
     AGORA,
     LlmDaRevisao,
     banco_vigente,
-    criar_tipo,
+    criar_frente,
     firmes,
     fracas,
     numeros,
@@ -30,31 +30,31 @@ from tests.taxonomia.revisoes import (
 def ganchos_limpos(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     antes = list(fila._a_cada_varredura)
     fila._a_cada_varredura.clear()
-    monkeypatch.setattr(partida, "agora", lambda: AGORA)  # o relógio das frentes dos testes
+    monkeypatch.setattr(partida, "agora", lambda: AGORA)  # o relógio dos eventos dos testes
     yield
     fila._a_cada_varredura[:] = antes
 
 
 @pytest.fixture(scope="module")
 def modelo(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """Um banco com a versão 1 vigente e o sinal de encaixe alto (12 de 100 frentes), montado
+    """Um banco com a versão 1 vigente e o sinal de encaixe alto (12 de 100 eventos), montado
     uma vez e copiado para cada teste."""
-    caminho = tmp_path_factory.mktemp("modelo") / "frentes.sqlite"
+    caminho = tmp_path_factory.mktemp("modelo") / "eventos.sqlite"
     with closing(banco_vigente(montar(), ativada_ha_dias=10, caminho=caminho)) as con:
         firmes(con, "a", 88)
-        fracas(con, "b", ["tipo1", "tipo2", "tipo3", "tipo4"] * 3)
+        fracas(con, "b", ["frente1", "frente2", "frente3", "frente4"] * 3)
     return caminho
 
 
 @pytest.fixture
 def banco(tmp_path: Path, modelo: Path) -> Path:
-    copia = tmp_path / "frentes.sqlite"
+    copia = tmp_path / "eventos.sqlite"
     shutil.copy(modelo, copia)
     return copia
 
 
 def app_com(banco: Path, revisao_automatica: str, llm=None, chave: str | None = "chave-de-teste"):
-    ambiente = {"FRENTES_DB": str(banco), "REVISAO_AUTOMATICA": revisao_automatica}
+    ambiente = {"EVENTOS_DB": str(banco), "REVISAO_AUTOMATICA": revisao_automatica}
     if chave:
         ambiente["OPENROUTER_API_KEY"] = chave
     cfg = config.carregar(ambiente)
@@ -93,7 +93,7 @@ def test_com_revisao_automatica_desligada_a_varredura_nao_dispara_revisao(banco:
 
 def test_sem_a_variavel_a_revisao_automatica_fica_desligada(banco: Path) -> None:
     llm = LlmDaRevisao(resposta())
-    ambiente = {"FRENTES_DB": str(banco)}
+    ambiente = {"EVENTOS_DB": str(banco)}
     cfg = config.carregar(ambiente)
     app = SimpleNamespace(state=SimpleNamespace(config=cfg, revisao_llm=llm))
     partida.ao_partir(app)
@@ -104,7 +104,7 @@ def test_sem_a_variavel_a_revisao_automatica_fica_desligada(banco: Path) -> None
 
 
 def test_com_revisao_automatica_ligada_a_varredura_dispara_pelo_sinal(banco: Path) -> None:
-    llm = LlmDaRevisao(resposta(criar_tipo("Assistente Virtual", numeros(12))))
+    llm = LlmDaRevisao(resposta(criar_frente("Assistente Virtual", numeros(12))))
     app, cfg = app_com(banco, "1", llm)
     partida.ao_partir(app)
 
@@ -139,7 +139,7 @@ def test_ligada_sem_sinal_nem_mes_vencido_nao_dispara(tmp_path: Path) -> None:
     assert llm.chamadas == [] and geracoes(caminho) == []
 
 
-def test_mes_vencido_sem_frente_na_janela_nao_quebra_a_varredura(tmp_path: Path) -> None:
+def test_mes_vencido_sem_evento_na_janela_nao_quebra_a_varredura(tmp_path: Path) -> None:
     caminho = tmp_path / "parado.sqlite"
     banco_vigente(montar(), ativada_ha_dias=40, caminho=caminho).close()
     llm = LlmDaRevisao(resposta())
@@ -151,7 +151,7 @@ def test_mes_vencido_sem_frente_na_janela_nao_quebra_a_varredura(tmp_path: Path)
     assert llm.chamadas == [] and geracoes(caminho) == []
 
 
-def test_mes_vencido_dispara_com_frentes_na_janela(tmp_path: Path) -> None:
+def test_mes_vencido_dispara_com_eventos_na_janela(tmp_path: Path) -> None:
     caminho = tmp_path / "mensal.sqlite"
     with closing(banco_vigente(montar(), ativada_ha_dias=40, caminho=caminho)) as con:
         firmes(con, "a", 20)

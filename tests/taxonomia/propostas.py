@@ -4,14 +4,14 @@ gravação da `LlmFalsa` para cada pedido que a descoberta faz."""
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from frentes.contratos import RespostaLlm
-from frentes.store.geracao import TextoDaFrente
-from frentes.taxonomia import prompts, prompts_problemas
-from frentes.taxonomia import proposta as p
-from frentes.taxonomia.documento import organograma_de_dict
+from eventos.contratos import RespostaLlm
+from eventos.store.geracao import TextoDoEvento
+from eventos.taxonomia import prompts, prompts_problemas
+from eventos.taxonomia import proposta as p
+from eventos.taxonomia.documento import organograma_de_dict
 from tests.llm.falso import resposta_llm
 
-TIPOS = ("Falha de Integração", "Lentidão de Fluxo", "Falta de Visibilidade", "Dívida Técnica")
+FRENTES = ("Falha de Integração", "Lentidão de Fluxo", "Falta de Visibilidade", "Dívida Técnica")
 
 ORGANOGRAMA = organograma_de_dict(
     [
@@ -32,14 +32,14 @@ ORGANOGRAMA = organograma_de_dict(
 MARCAS = p.marcas_do_organograma(ORGANOGRAMA)
 
 
-def frentes(n: int) -> list[TextoDaFrente]:
-    return [TextoDaFrente(f"f{i}", "relato", f"frente número {i}") for i in range(n)]
+def eventos(n: int) -> list[TextoDoEvento]:
+    return [TextoDoEvento(f"f{i}", "relato", f"evento número {i}") for i in range(n)]
 
 
-def tipo(
+def frente(
     nome: str,
     descricao: str | None = None,
-    subtipos: int = 2,
+    subfrentes: int = 2,
     evidencias: Sequence[int] = (1,),
 ) -> dict[str, Any]:
     return {
@@ -49,20 +49,20 @@ def tipo(
         else f"Falhas e pedidos sobre {nome.lower()}.",
         "exemplo_reativo": "algo quebrou",
         "exemplo_proativo": "quero melhorar",
-        "subtipos": [
+        "subfrentes": [
             {
                 "nome": f"{nome} {i}",
                 "descricao": f"Critério {nome} {i}.",
                 "evidencias": list(evidencias),
             }
-            for i in range(1, subtipos + 1)
+            for i in range(1, subfrentes + 1)
         ],
     }
 
 
 def proposta(**trocas: Any) -> dict[str, Any]:
     base: dict[str, Any] = {
-        "tipos": [tipo(nome) for nome in TIPOS],
+        "frentes": [frente(nome) for nome in FRENTES],
         "causas_raiz": [
             {"nome": f"Causa {letra}", "descricao": f"Porque {letra}."} for letra in "ABCD"
         ],
@@ -74,8 +74,8 @@ def proposta(**trocas: Any) -> dict[str, Any]:
 
 
 def melhoria() -> dict[str, Any]:
-    """Uma proposta com um tipo só de melhoria."""
-    return proposta(tipos=[tipo("Melhorias de Processo"), *proposta()["tipos"][1:]])
+    """Uma proposta com uma frente só de melhoria."""
+    return proposta(frentes=[frente("Melhorias de Processo"), *proposta()["frentes"][1:]])
 
 
 def resposta(conteudo: Mapping[str, Any] | None = None) -> RespostaLlm:
@@ -90,7 +90,7 @@ def _gravar_fluxo(
     primeira: str,
     conteudos: Sequence[Mapping[str, Any] | Exception],
     pedir_correcao,
-    n_frentes: int | None,
+    n_eventos: int | None,
 ) -> None:
     """Grava, na chave de cada pedido, a resposta que a descoberta vai receber: a primeira
     proposta e, a cada inválida, o pedido de correção que o código monta a partir dela."""
@@ -102,14 +102,14 @@ def _gravar_fluxo(
         gravacoes.setdefault(entrada, []).append(resposta_llm(conteudo))
         lida, violacoes = p.ler(conteudo)
         if lida is not None:
-            violacoes = p.validar(lida, MARCAS, n_frentes)
+            violacoes = p.validar(lida, MARCAS, n_eventos)
         if not violacoes:
             return
         entrada = pedir_correcao(lida.para_dict() if lida else conteudo, violacoes)
 
 
 def gravar_lote(
-    gravacoes: Gravacoes, grupo: Sequence[TextoDaFrente], *conteudos: Mapping[str, Any] | Exception
+    gravacoes: Gravacoes, grupo: Sequence[TextoDoEvento], *conteudos: Mapping[str, Any] | Exception
 ) -> None:
     """Respostas de um lote, na ordem: a proposta e as correções."""
     amostra = [(f.origem, f.texto) for f in grupo]
@@ -142,7 +142,7 @@ def gravar_consolidacao(
 
 def gravar_candidatos(
     gravacoes: Gravacoes,
-    grupo: Sequence[TextoDaFrente],
+    grupo: Sequence[TextoDoEvento],
     *candidatos: Mapping[str, Any] | Exception,
 ) -> None:
     """A resposta dos candidatos a problema de um lote: cada `candidato` é o dict
@@ -158,7 +158,7 @@ def gravar_candidatos(
 def candidato(nome: str, *evidencias: int, descricao: str | None = None) -> dict[str, Any]:
     return {
         "nome": nome,
-        "descricao": descricao or f"Frentes que citam {nome}: falhas. Não vale para outro sistema.",
+        "descricao": descricao or f"Eventos que citam {nome}: falhas. Não vale para outro sistema.",
         "evidencias": list(evidencias),
     }
 
@@ -167,7 +167,7 @@ def gravar_peneira(
     gravacoes: Gravacoes,
     nome: str,
     descricao: str,
-    lidas: Sequence[TextoDaFrente],
+    lidas: Sequence[TextoDoEvento],
     resposta: Mapping[str, Any] | Exception | None = None,
 ) -> None:
     """A resposta da peneira de um candidato com `lidas` como evidência (sem `resposta`,
@@ -175,7 +175,7 @@ def gravar_peneira(
     pedido = prompts_problemas.peneira(nome, descricao, [(f.origem, f.texto) for f in lidas])[1]
     if resposta is None:
         resposta = {
-            "objetos": [{"frente": n, "objeto": nome} for n in range(1, len(lidas) + 1)],
+            "objetos": [{"evento": n, "objeto": nome} for n in range(1, len(lidas) + 1)],
             "mesmo_objeto": True,
         }
     gravacoes[pedido] = [resposta if isinstance(resposta, Exception) else resposta_llm(resposta)]

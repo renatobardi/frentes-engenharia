@@ -1,0 +1,132 @@
+/* Painel da célula (fase 2b, #124). Vem depois do mapa.css, que ainda guarda o estilo antigo do
+   painel (bloco "Painel da célula" no fim dele): cada regra daqui leva `.painel` no evento para
+   vencer aquelas. Só usa as classes e os tokens do app.css. */
+
+.painel {
+  position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto;
+  min-width: 0; padding: 0; border: 0; border-radius: var(--raio-card);
+  background: var(--card); box-shadow: var(--anel);
+  animation: entra 260ms ease-out both;
+}
+.painel p { margin: 0; }
+.painel h2, .painel h3, .painel h4 { margin: 0; }
+
+/* cabeçalho que fica no alto da rolagem interna */
+.painel .painel-cabecalho {
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+  padding: 16px 16px 12px 20px; background: var(--card); border-bottom: 1px solid var(--border);
+  border-radius: var(--raio-card) var(--raio-card) 0 0;
+}
+.painel .painel-titulo { display: grid; gap: 2px; min-width: 0; }
+.painel .painel-titulo h2 { font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.painel .painel-indice { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin-top: 6px; }
+.painel .painel-indice strong { font-size: 30px; font-weight: 600; line-height: 1; letter-spacing: -0.025em; }
+.painel .painel-indice .selo { display: inline-flex; margin: 0; background: var(--gate-bg); color: var(--gate); font-size: 12px; }
+.painel .painel-acoes { display: flex; gap: 2px; flex-shrink: 0; }
+.painel .fechar { position: static; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.painel .btn-icone { width: 32px; }
+
+/* blocos separados por borda, na ordem da spec 10 */
+.painel .bloco { margin: 0; padding: 16px 20px; border-top: 0; border-bottom: 1px solid var(--border); background: none; border-radius: 0; }
+.painel .bloco:last-of-type { border-bottom: 0; }
+.painel .bloco h3 { margin-bottom: 8px; font-size: 14px; font-weight: 600; }
+.painel .bloco-cab { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.painel .bloco-cab h3 { margin: 0; }
+.painel .bloco h4 { margin: 12px 0 6px; font-size: 12px; font-weight: 500; color: var(--muted-foreground); }
+.painel .bloco-icone { display: inline-flex; color: var(--gate); }
+
+/* 1. por que está quente */
+.painel .atualizando { margin-left: auto; font-size: 11px; background: var(--gate-bg); padding: 0 8px; border-radius: var(--raio-pill); }
+.painel .atualizando .bolinha { animation: pulsar 1.4s ease-in-out infinite; }
+.painel .geracao { margin-bottom: 8px; }
+.painel .aviso-origem { margin-bottom: 8px; padding: 8px 12px; border-radius: var(--raio); color: var(--gate); }
+.painel .porque { line-height: 1.55; overflow-wrap: anywhere; }
+
+/* 2. sugestões numeradas */
+.painel .erro-enderecar { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 8px; padding: 8px 12px; font-size: 12px; }
+.painel .sugestoes { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.painel .sugestao {
+  display: flex; gap: 10px; padding: 12px; border-radius: var(--raio-card);
+  background: color-mix(in oklab, var(--muted) 60%, transparent); transition: box-shadow var(--t);
+}
+.painel .sugestao-aberta, .painel .sugestao:has(details[open]) { box-shadow: 0 0 0 2px var(--foreground); }
+.painel .sugestao-n {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 20px; height: 20px; border-radius: 50%; background: var(--primary); color: var(--primary-foreground);
+  font-size: 11px; font-weight: 600;
+}
+.painel .sugestao-corpo { min-width: 0; flex: 1; display: grid; gap: 6px; }
+.painel .sugestao-texto { overflow-wrap: anywhere; }
+.painel .sugestao-meta { display: flex; align-items: center; gap: 6px; }
+.painel .tipo-solucao { background: transparent; border-radius: var(--raio-pill); padding: 0 8px; font-size: 12px; }
+.painel .rotulo { font-style: normal; }
+.painel .enderecar > summary { display: inline-flex; list-style: none; cursor: pointer; }
+.painel .enderecar > summary::-webkit-details-marker { display: none; }
+.painel .enderecar[open] > summary { display: none; }
+.painel .enderecar form { display: grid; gap: 8px; margin-top: 0; }
+.painel .campo { display: grid; gap: 4px; }
+.painel .campo textarea, .painel .campo input[type="text"] { width: 100%; box-sizing: border-box; }
+.painel .campo textarea { resize: vertical; min-height: 72px; }
+.painel .acoes-form { display: flex; gap: 8px; }
+.painel .ja-enderecada { margin-top: 8px; }
+
+/* 3. endereçamento */
+.painel .enderecamento { display: grid; gap: 6px; }
+.painel .enderecamento h3 { margin-bottom: 0; }
+.painel .enderecamento form { margin-top: 4px; }
+.painel .decisao { overflow-wrap: anywhere; }
+.painel .decisao-meta, .painel .variacao-desde { color: var(--muted-foreground); }
+
+/* 4. evolução */
+.painel .evolucao { display: block; width: 100%; height: auto; color: var(--foreground); }
+.painel .evolucao .base { stroke: var(--border); stroke-width: 1; }
+.painel .evolucao .guia { stroke: var(--border); stroke-width: 1; }
+.painel .evolucao .area { fill: color-mix(in oklab, var(--foreground) 7%, transparent); stroke: none; }
+.painel .evolucao .faixa-enderecamento { fill: var(--gate-bg); }
+.painel .marcador-enderecamento line { stroke: var(--gate); }
+.painel .marcador-enderecamento text { font-size: 9px; font-weight: 600; fill: var(--gate); }
+.painel .evolucao .ponto { fill: transparent; stroke: none; }
+.painel .evolucao .ponto[data-final] { fill: var(--foreground); }
+.painel .eixo { display: flex; justify-content: space-between; margin-top: 4px; }
+.painel .pico { font-weight: 600; color: var(--foreground); }
+
+/* 5. composição: barras de 6px pretas */
+.painel .barra-linha { display: grid; grid-template-columns: minmax(80px, 7rem) minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-bottom: 4px; }
+.painel .barra-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.painel .barra-trilho { height: 6px; border-radius: 99px; background: var(--muted); overflow: hidden; }
+.painel .barra-cheia { display: block; height: 100%; border-radius: 99px; background: var(--foreground); }
+.painel .barra-valor { text-align: right; white-space: nowrap; }
+
+/* 6 e 7. linhas clicáveis: o link da linha se estende sobre ela toda */
+.painel .problemas, .painel .eventos-da-celula { margin: 0; padding: 0; list-style: none; }
+.painel .linha-link {
+  position: relative; display: flex; align-items: flex-start; gap: 10px; padding: 8px 6px; margin: 0 -6px;
+  border-radius: var(--raio); transition: background var(--t);
+}
+.painel .linha-link:hover { background: color-mix(in oklab, var(--muted) 70%, transparent); }
+.painel .linha-link a { color: var(--foreground); text-decoration: none; overflow-wrap: anywhere; }
+.painel .linha-link a::after { content: ""; position: absolute; inset: 0; border-radius: var(--raio); }
+.painel .linha-link a:focus-visible { outline: none; }
+.painel .linha-link a:focus-visible::after { box-shadow: var(--foco); }
+.painel .linha-texto { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.painel .problemas .linha-link { align-items: center; }
+.painel .marca-recorrente { font-size: 11px; }
+.painel .chevron { display: inline-flex; flex: none; }
+.painel .evento-valor { flex: none; min-width: 28px; font-size: 14px; font-weight: 600; text-align: right; }
+.painel .evento-texto {
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.painel .eventos-da-celula .incerta .evento-valor, .painel .eventos-da-celula .incerta .evento-texto { color: var(--muted-foreground); }
+.painel .marca-incerta { border-bottom: 1px dashed currentColor; }
+.painel .ver-todas { display: flex; width: 100%; margin-top: 12px; text-decoration: none; }
+.painel .vazio { font-size: 12px; }
+
+/* abaixo de ~1100px o painel desce para baixo da grade (mapa.css): deixa de ser sticky */
+@media (max-width: 1100px) {
+  .painel { position: static; max-height: none; overflow: visible; }
+  .painel .painel-cabecalho { position: static; }
+}
+@media (max-width: 480px) {
+  .painel .bloco { padding: 14px 16px; }
+  .painel .barra-linha { grid-template-columns: minmax(64px, 6rem) minmax(0, 1fr) auto; }
+}

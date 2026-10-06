@@ -5,12 +5,12 @@ A seed fictícia: volume, histórias plantadas, fundo, método de geração, arq
 ## Empresa, volume e período
 
 - **Empresa**: Aurora Tech · Vertical Financiamentos, com as 8 áreas e os 24 times de [02](02-taxonomia-e-versoes.md). ~120 pessoas fictícias como emissores, mais os sistemas emissores. Só dados fictícios. [R7]
-- **Volume**: ~6 mil frentes em **12 meses** (~500/mês), crescendo ~2% ao mês, com menos frentes em fins de semana. [R7]
+- **Volume**: ~6 mil eventos em **12 meses** (~500/mês), crescendo ~2% ao mês, com menos eventos em fins de semana. [R7]
 - **Âncora no tempo**: datas absolutas que terminam num dia D fixo; o carregador desloca todas para D virar "ontem" (ver [09](09-snapshot.md)). As histórias são definidas em "mês 1…12" contados a partir de D. Sem feriados móveis. [R7]
 
 ## Histórias plantadas
 
-O gabarito é história + área › time, **sem nome de tipo**. [R3] [R7]
+O gabarito é história + área › time, **sem nome de frente**. [R3] [R7]
 
 | # | História | Área › Time | Visão | Forma | Peso |
 |---|---|---|---|---|---|
@@ -26,9 +26,9 @@ Fonte: [R7].
 
 - **Histórias ≈ 21%; fundo ≈ 77%; fora do escopo 2%.** [R7]
 - **Intensidade** (janela de 90 dias): Top 1 de cada visão entre **6 e 10×** a mediana das células; demais histórias entre **2,5 e 6×**. Medido no roteiro do protótipo: H1 7,4× ↑51%, H4 7,0× ↑32%, H2 4,4× estável, H5 4,3× ↑118%. [R7]
-- Cada história usa 2 ou 3 origens que façam sentido. H1 e H6 reativas levam `episodio_id`. [R7]
+- Cada história usa 2 ou 3 origens que façam sentido. H1 e H6 reativos levam `episodio_id`. [R7]
 - **H1**: os templates de log e webhook da esteira de propostas citam o objeto (proposta), não só o serviço de infra. [R11]
-- **H1, um sintoma só**: os quatro sintomas dizem que a esteira cai ou fica lenta, e o webhook cita também o serviço de infra, como o log. Com "propostas travadas" e "falta de capacidade" a história se dividia em dois tipos, e o webhook sem o serviço ia para a área de quem usa a esteira. [C109]
+- **H1, um sintoma só**: os quatro sintomas dizem que a esteira cai ou fica lenta, e o webhook cita também o serviço de infra, como o log. Com "propostas travadas" e "falta de capacidade" a história se dividia em duas frentes, e o webhook sem o serviço ia para a área de quem usa a esteira. [C109]
 - **H5**: log e webhook são sempre do time App; o template diz "assistente virtual do app". [R13]
 - **H5, resposta e efeito**: cada sintoma traz a resposta errada do assistente e o efeito no atendimento. Só "informou taxa errada" lia como dado errado de um sistema qualquer, e o tema novo não aparecia como encaixe fraco. [C109]
 - **H4, um assunto**: os três pedidos (simulação, status e comissão) dizem o assunto comum no texto: o lojista se atender sozinho no portal do lojista. [C109]
@@ -37,7 +37,7 @@ Fonte: [R7].
 ## Distribuição
 
 - **Origem**: relato 40% · log 20% · webhook 15% · banco 15% · mcp 10%. [R7]
-- **Natureza**: ~65% reativa, ~35% proativa. Log e banco são sempre reativas. [R7]
+- **Natureza**: ~65% reativo, ~35% proativo. Log e banco são sempre reativos. [R7]
 - **Ruído**: ~8% ambíguas de propósito, em 4 sabores (multi-faceta, duas áreas, vaga, mal escrita), só em relato e mcp; ~2% fora do escopo ("teste", dúvida de RH). [R7]
 - Incluir propostas que citam uma dor como motivo (o caso que sai reativo por engano). [R6]
 - **Sem duplicata exata** (`ref_externa` repetida). [R7]
@@ -50,8 +50,8 @@ Fonte: [R7].
 - **Templates por tema**: cada tema tem os seus sintomas. Os serviços têm nome de domínio, não o slug do time. [R13]
 - **O fundo só tem espécie de queixa**: nenhum cenário nomeia um objeto único da empresa. "Bureau de crédito fora do SLA" vira "fornecedor fora do SLA" com o fornecedor do time; "relatório ao regulador" e "pedido de titular LGPD" viram queixas de prazo regulatório com o objeto da ficha. [R13]
 - "Banco compartilhado entre times" e "acoplamento entre serviços" também carregam o objeto da ficha do time. [R11]
-- O sintoma de processo manual não repete "planilha paralela": a expressão aparecia em 144 frentes do fundo e virou o maior problema da lista. [C109]
-- **Teto por item**, conferido no roteiro: nenhum objeto, serviço ou fornecedor do fundo passa de **metade da menor história nos meses 1–6** (hoje 23 frentes), por semestre. Estourou: o roteiro sorteia outro time (medido: 4 frentes em 6 mil). [R13]
+- O sintoma de processo manual não repete "planilha paralela": a expressão aparecia em 144 eventos do fundo e virou o maior problema da lista. [C109]
+- **Teto por item**, conferido no roteiro: nenhum objeto, serviço ou fornecedor do fundo passa de **metade da menor história nos meses 1–6** (hoje 23 eventos), por semestre. Estourou: o roteiro sorteia outro time (medido: 4 eventos em 6 mil). [R13]
 - **Alcance** da regra da ficha: o fundo, a segurança transversal e os pedidos espalhados do assistente de IA. As histórias de time fixo não mudam. [R13]
 
 ### Relato cruzado
@@ -63,15 +63,15 @@ Fonte: [R7].
 
 ## Método de geração
 
-1. **Roteiro em Python com seed fixa**: sorteia o esqueleto de cada frente (data, origem, emissor, área › time, história ou tema do fundo, natureza, gravidade-alvo, estilo, sabor de ambiguidade, episódio, item da ficha). **O gabarito sai do roteiro, nunca do texto.** [R7] [R13]
-2. **Texto**: relato e mcp (~50%, ~3 mil) pela LLM `deepseek/deepseek-v4-flash`, em lotes de 10 esqueletos, resposta em JSON, **sem nomes de tipo no prompt**. Log, webhook e banco por **templates** em código, com as linhas cruas em `metadados`. [R7]
+1. **Roteiro em Python com seed fixa**: sorteia o esqueleto de cada evento (data, origem, emissor, área › time, história ou tema do fundo, natureza, gravidade-alvo, estilo, sabor de ambiguidade, episódio, item da ficha). **O gabarito sai do roteiro, nunca do texto.** [R7] [R13]
+2. **Texto**: relato e mcp (~50%, ~3 mil) pela LLM `deepseek/deepseek-v4-flash`, em lotes de 10 esqueletos, resposta em JSON, **sem nomes de frente no prompt**. Log, webhook e banco por **templates** em código, com as linhas cruas em `metadados`. [R7]
 3. **Fonte da verdade**: o dataset gerado e versionado, não a regeração. [R7]
 4. **Requisitos**: [R7]
    - coerência no roteiro: o cenário segue a natureza, o emissor do webhook segue o template, o mcp é sempre em terceira pessoa;
    - controle de qualidade em código: quase duplicatas, tamanho, nome de área ou time citado literalmente com frequência demais, aberturas repetidas no mcp;
    - conferir a tendência de cada história depois de gerar e gerar de novo se sair do alvo;
    - o sabor "vaga" precisa de exemplo no prompt.
-- Comando: `python -m frentes seed gerar`. A `TYPESAFE_API_KEY` não é necessária para gerar a seed. [R7] [R23]
+- Comando: `python -m eventos seed gerar`. A `TYPESAFE_API_KEY` não é necessária para gerar a seed. [R7] [R23]
 - Custo: menos de US$0,30 para gerar tudo, com as regerações. [R7] [R13]
 
 ## Arquivos
@@ -84,9 +84,9 @@ Pastas de [R23]; conteúdo de [R7], [R13], [R19] e [R24].
 | `seed/emissores.json` | pessoas fictícias (time, cargo) e sistemas emissores |
 | `seed/historias.md` | descrição de H1–H7 e das curvas |
 | `seed/enderecamentos.json` | o endereçamento plantado da H3 |
-| `seed/gerado/frentes.jsonl` | frentes brutas no formato único |
+| `seed/gerado/eventos.jsonl` | eventos brutos no formato único |
 | `seed/gerado/gabarito.jsonl` | o gabarito, por `id` |
-| `seed/gerado/rajada.jsonl` | ~20 frentes de webhook sobre a H1, fora do volume da seed. Citam um serviço do time dos webhooks da H1, para caírem na célula dela [C109] |
+| `seed/gerado/rajada.jsonl` | ~20 eventos de webhook sobre a H1, fora do volume da seed. Citam um serviço do time dos webhooks da H1, para caírem na célula dela [C109] |
 
 A seed entrega **só dados brutos e gabarito**. A classificação é saída do pipeline. [R7]
 
@@ -103,7 +103,7 @@ Cortes iniciais, a recalibrar com a seed inteira classificada. Os cortes por his
 |---|---|---|---|
 | área certa do fundo, item listado | ≥ 85% | 103 de 111 | [R13] |
 | área certa do fundo, item de fora | sem corte, só reportado | 14 de 20 (texto livre) | [R13] |
-| frentes do fundo na linha de Plataforma e Sustentação | ≤ 1,5× o gabarito | ~1,3× | [R13] |
+| eventos do fundo na linha de Plataforma e Sustentação | ≤ 1,5× o gabarito | ~1,3× | [R13] |
 | relato cruzado, objeto listado: área certa | ≥ 90% | 136 de 140 | [R24] |
 | relato cruzado, objeto de fora | sem corte, só reportado | 48 de 92 | [R24] |
 | cruzadas que pintam a célula da área de quem relata | ≤ 10% | 15 de 232 | [R24] |
@@ -117,7 +117,7 @@ Cortes iniciais, a recalibrar com a seed inteira classificada. Os cortes por his
 - **Pastas.** [R7] gravava em `seed/v1/`; [R23] fixou `seed/` (o que nós escrevemos) e `seed/gerado/`. Vale [R23].
 - **`svc-<time>`.** O roteiro de [R7] citava um serviço por time nos templates; [R13] trocou por serviços com nome de domínio e templates por tema.
 - **Área do fundo.** Em [R7] o time do fundo era sorteado e o texto nem sempre o carregava (108 de 156); [R13] exige que o texto carregue o time, pela ficha.
-- **H5 e "Nenhum destes".** [R7] previa que a H5 cairia em "Nenhum destes" e forçaria a revisão; [R9] mediu que não (ver [04](04-descoberta-e-revisao.md)). A descoberta lê **todas** as frentes dos meses 1–6.
+- **H5 e "Nenhum destes".** [R7] previa que a H5 cairia em "Nenhum destes" e forçaria a revisão; [R9] mediu que não (ver [04](04-descoberta-e-revisao.md)). A descoberta lê **todas** os eventos dos meses 1–6.
 - **Recorrência na seed.** [R7]: `episodio_id` para medir; [R8]: `episodio_id` não é usado.
 - **Custo do Jev.** [R7] estimou ~US$0,15 por versão; vale [R11] (ver [02](02-taxonomia-e-versoes.md)).
 

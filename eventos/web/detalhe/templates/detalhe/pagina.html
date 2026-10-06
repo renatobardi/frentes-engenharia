@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Evento {{ d.evento.id }} · frentes-engenharia{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/detalhe.css">{% endblock %}
+{% block trilha %}
+<span>Análise</span>
+{{ icone("chevron-right", 14) }}<a href="/eventos">Eventos</a>
+{{ icone("chevron-right", 14) }}<span aria-current="page">{{ d.evento.id }}</span>
+{% endblock %}
+{% block conteudo %}
+{% include "detalhe/miolo.html" %}
+{% endblock %}

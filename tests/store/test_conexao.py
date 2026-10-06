@@ -8,12 +8,12 @@ from threading import Event
 
 import pytest
 
-from frentes import store
+from eventos import store
 
 
 @pytest.mark.parametrize("abrir", [store.abrir, store.abrir_existente])
 def test_abertura_converte_delete_em_wal_e_configura_espera_e_chaves(tmp_path: Path, abrir) -> None:
-    banco = tmp_path / "frentes.sqlite"
+    banco = tmp_path / "eventos.sqlite"
     store.abrir(banco).close()
     with closing(sqlite3.connect(banco)) as con:
         con.execute("PRAGMA journal_mode = DELETE")
@@ -31,7 +31,7 @@ def test_banco_em_memoria_preserva_modo_memory_e_configura_espera() -> None:
 
 @pytest.mark.parametrize("abrir", [store.abrir, store.abrir_existente])
 def test_escrita_espera_a_transacao_concorrente_terminar(tmp_path: Path, abrir) -> None:
-    banco = tmp_path / "frentes.sqlite"
+    banco = tmp_path / "eventos.sqlite"
     tentou = Event()
 
     def escrever():
@@ -55,7 +55,7 @@ def test_escrita_espera_a_transacao_concorrente_terminar(tmp_path: Path, abrir) 
 def test_bloqueio_que_persiste_levanta_erro_apos_a_espera(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, abrir
 ) -> None:
-    banco = tmp_path / "frentes.sqlite"
+    banco = tmp_path / "eventos.sqlite"
     monkeypatch.setattr(store, "ESPERA_BLOQUEIO_MS", 20, raising=False)
     with closing(store.abrir(banco)) as ocupante, closing(abrir(banco)) as escritor:
         assert escritor.execute("PRAGMA busy_timeout").fetchone()[0] == 20

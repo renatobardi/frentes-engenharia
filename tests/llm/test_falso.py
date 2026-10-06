@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from frentes.contratos import ClienteLlm
+from eventos.contratos import ClienteLlm
 from tests.llm.falso import LlmFalsa, SemGravacao, resposta_llm
 
 RESPOSTA = resposta_llm({"escolha": "ti-plataforma"})

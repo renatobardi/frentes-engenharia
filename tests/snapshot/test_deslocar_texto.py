@@ -1,6 +1,6 @@
 import pytest
 
-from frentes.store.snapshot import deslocar_texto
+from eventos.store.snapshot import deslocar_texto
 
 
 @pytest.mark.parametrize(

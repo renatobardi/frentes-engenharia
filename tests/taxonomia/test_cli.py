@@ -4,12 +4,12 @@ from contextlib import closing
 
 import pytest
 
-from frentes import __main__ as principal
-from frentes import store
-from frentes.llm import ErroLlmEsgotado
-from frentes.store.geracao import TextoDaFrente
-from frentes.taxonomia import cli, revisao
-from frentes.taxonomia.descoberta import lotes
+from eventos import __main__ as principal
+from eventos import store
+from eventos.llm import ErroLlmEsgotado
+from eventos.store.geracao import TextoDoEvento
+from eventos.taxonomia import cli, revisao
+from eventos.taxonomia.descoberta import lotes
 from tests.llm.falso import LlmFalsa
 from tests.taxonomia.conftest import montar
 from tests.taxonomia.propostas import (
@@ -26,7 +26,7 @@ from tests.taxonomia.revisoes import (
     AGORA,
     LlmDaRevisao,
     banco_vigente,
-    criar_tipo,
+    criar_frente,
     firmes,
     fracas,
     numeros,
@@ -36,9 +36,9 @@ from tests.taxonomia.revisoes import (
 descricao_padrao = candidato("Gravame")["descricao"]
 
 
-def frente(con, id: str, data: str, texto: str) -> None:
+def evento(con, id: str, data: str, texto: str) -> None:
     con.execute(
-        "INSERT INTO frente (id, origem, emissor, texto, recebido_em) "
+        "INSERT INTO evento (id, origem, emissor, texto, recebido_em) "
         "VALUES (?, 'relato', 'Zelda Quimera', ?, ?)",
         (id, texto, data),
     )
@@ -46,9 +46,9 @@ def frente(con, id: str, data: str, texto: str) -> None:
 
 @pytest.fixture
 def banco(tmp_path, monkeypatch):
-    caminho = tmp_path / "frentes.sqlite"
+    caminho = tmp_path / "eventos.sqlite"
     con = store.abrir(caminho)
-    monkeypatch.setenv("FRENTES_DB", str(caminho))
+    monkeypatch.setenv("EVENTOS_DB", str(caminho))
     monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
     return con
 
@@ -68,8 +68,8 @@ def falsa(monkeypatch, lidas, *conteudos) -> LlmFalsa:
     return llm
 
 
-UMA = [TextoDaFrente("a", "relato", "o deploy quebrou")]
-DUAS = [*UMA, TextoDaFrente("b", "relato", "pedido de feature flag")]
+UMA = [TextoDoEvento("a", "relato", "o deploy quebrou")]
+DUAS = [*UMA, TextoDoEvento("b", "relato", "pedido de feature flag")]
 
 
 @pytest.fixture
@@ -88,18 +88,18 @@ def test_o_comando_esta_declarado_no_modulo_da_taxonomia() -> None:
 
 def test_grava_a_versao_1_sem_ativacao_e_diz_o_custo(banco, monkeypatch, capsys) -> None:
     llm = falsa(monkeypatch, DUAS, proposta())
-    frente(banco, "a", "2026-01-01T00:00:00Z", "o deploy quebrou")
-    frente(banco, "b", "2026-03-01T00:00:00Z", "pedido de feature flag")
-    # fora dos seis meses (180 dias) da frente mais antiga
-    frente(banco, "c", "2026-08-01T00:00:00Z", "tema do mês dez")
+    evento(banco, "a", "2026-01-01T00:00:00Z", "o deploy quebrou")
+    evento(banco, "b", "2026-03-01T00:00:00Z", "pedido de feature flag")
+    # fora dos seis meses (180 dias) do evento mais antigo
+    evento(banco, "c", "2026-08-01T00:00:00Z", "tema do mês dez")
     banco.commit()
 
-    assert cli.descobrir([]) == 3  # lista de problemas vazia: uma frente só não faz 2 lotes
+    assert cli.descobrir([]) == 3  # lista de problemas vazia: um evento só não faz 2 lotes
 
     capturado = capsys.readouterr()
     saida = capturado.out
     assert "a lista de problemas saiu vazia" in capturado.err
-    assert "2 frentes, 2 chamadas" in saida and "20 tokens de entrada e 10 de saída" in saida
+    assert "2 eventos, 2 chamadas" in saida and "20 tokens de entrada e 10 de saída" in saida
     assert "versão 1 gravada, sem ativação" in saida
     assert "problemas: 0 candidatos, 0 aprovados na peneira, 0 na lista da versão 1" in saida
     assert llm.opcoes == {"tempo_limite_s": 180.0}  # chamada de lote: tempo limite próprio
@@ -111,10 +111,10 @@ def test_grava_a_versao_1_sem_ativacao_e_diz_o_custo(banco, monkeypatch, capsys)
 
 
 def test_o_organograma_e_o_da_seed(banco, llm) -> None:
-    frente(banco, "a", "2026-01-01T00:00:00Z", "o deploy quebrou")
+    evento(banco, "a", "2026-01-01T00:00:00Z", "o deploy quebrou")
     banco.commit()
 
-    assert cli.descobrir([]) == 3  # lista de problemas vazia: uma frente só não faz 2 lotes
+    assert cli.descobrir([]) == 3  # lista de problemas vazia: um evento só não faz 2 lotes
 
     caminho = banco.execute("PRAGMA database_list").fetchone()["file"]
     documento = json.loads(
@@ -125,7 +125,7 @@ def test_o_organograma_e_o_da_seed(banco, llm) -> None:
 
 def test_proposta_que_nao_fica_valida_sai_com_1_e_sem_versao(banco, monkeypatch, capsys) -> None:
     falsa(monkeypatch, UMA, melhoria(), melhoria(), melhoria())
-    frente(banco, "a", "2026-01-01T00:00:00Z", "o deploy quebrou")
+    evento(banco, "a", "2026-01-01T00:00:00Z", "o deploy quebrou")
     banco.commit()
 
     assert cli.descobrir([]) == 1
@@ -145,16 +145,16 @@ def test_sem_chave_sai_com_2_sem_tocar_no_banco(banco, monkeypatch, capsys) -> N
     assert conta(caminho, "geracao") == 0
 
 
-def test_sem_frentes_sai_com_2(banco, llm, capsys) -> None:
+def test_sem_eventos_sai_com_2(banco, llm, capsys) -> None:
     assert cli.descobrir([]) == 2
-    assert "não há frente" in capsys.readouterr().err
+    assert "não há evento" in capsys.readouterr().err
     assert llm.chamadas == []
 
 
 def test_segunda_rodada_sai_com_2_e_nao_chama_a_llm(banco, llm, capsys) -> None:
-    frente(banco, "a", "2026-01-01T00:00:00Z", "o deploy quebrou")
+    evento(banco, "a", "2026-01-01T00:00:00Z", "o deploy quebrou")
     banco.commit()
-    assert cli.descobrir([]) == 3  # lista de problemas vazia: uma frente só não faz 2 lotes
+    assert cli.descobrir([]) == 3  # lista de problemas vazia: um evento só não faz 2 lotes
     chamadas = len(llm.chamadas)
 
     assert cli.descobrir([]) == 2
@@ -169,9 +169,9 @@ def test_argumento_inesperado_sai_com_2(capsys) -> None:
 
 
 def test_lista_com_problema_sai_com_0_e_diz_as_contagens(banco, monkeypatch, capsys) -> None:
-    lidas = [TextoDaFrente(f"f{i:03}", "relato", f"gravame caiu {i}") for i in range(250)]
+    lidas = [TextoDoEvento(f"f{i:03}", "relato", f"gravame caiu {i}") for i in range(250)]
     for f in lidas:
-        frente(banco, f.id, "2026-01-01T00:00:00Z", f.texto)
+        evento(banco, f.id, "2026-01-01T00:00:00Z", f.texto)
     banco.commit()
     a, b = lotes(lidas)
     gravacoes: dict = {}
@@ -198,16 +198,16 @@ def test_lista_com_problema_sai_com_0_e_diz_as_contagens(banco, monkeypatch, cap
 # --------------------------------------------------------------------------- revisar
 
 
-def banco_da_revisao(monkeypatch, tmp_path, *respostas, com_frentes: bool = True):
-    """O banco da versão 1 vigente, com 12 frentes de encaixe fraco, e a LLM falsa no cliente."""
+def banco_da_revisao(monkeypatch, tmp_path, *respostas, com_eventos: bool = True):
+    """O banco da versão 1 vigente, com 12 eventos de encaixe fraco, e a LLM falsa no cliente."""
     caminho = tmp_path / "revisao.sqlite"
     with closing(banco_vigente(montar(), caminho=caminho)) as con:
-        if com_frentes:
-            fracas(con, "a", ["tipo1", "tipo2"] * 6)
+        if com_eventos:
+            fracas(con, "a", ["frente1", "frente2"] * 6)
             firmes(con, "b", 6)
-    monkeypatch.setenv("FRENTES_DB", str(caminho))
+    monkeypatch.setenv("EVENTOS_DB", str(caminho))
     monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
-    monkeypatch.setattr(revisao, "agora", lambda: AGORA)  # o relógio das frentes do teste
+    monkeypatch.setattr(revisao, "agora", lambda: AGORA)  # o relógio dos eventos do teste
     llm = LlmDaRevisao(*respostas)
     llm.opcoes = {}
 
@@ -232,8 +232,8 @@ def test_revisar_com_versao_nova_diz_o_sinal_as_operacoes_e_o_proximo_passo(
         monkeypatch,
         tmp_path,
         resposta(
-            criar_tipo("Assistente Virtual", numeros(12)),
-            criar_tipo("Hack Raso", numeros(3)),
+            criar_frente("Assistente Virtual", numeros(12)),
+            criar_frente("Hack Raso", numeros(3)),
             resumo="Surgiu o tema assistentes virtuais.",
         ),
     )
@@ -241,12 +241,12 @@ def test_revisar_com_versao_nova_diz_o_sinal_as_operacoes_e_o_proximo_passo(
     assert cli.revisar([]) == 0
 
     saida = capsys.readouterr().out
-    assert "sinal em 18 frentes: encaixe fraco 67%" in saida
-    assert "criar_tipo: aplicada" in saida
-    assert "criar_tipo: descartada (evidência insuficiente: 3 frentes" in saida
+    assert "sinal em 18 eventos: encaixe fraco 67%" in saida
+    assert "criar_frente: aplicada" in saida
+    assert "criar_frente: descartada (evidência insuficiente: 3 eventos" in saida
     assert "resumo: Surgiu o tema assistentes virtuais." in saida
     assert "versão 2 gravada, sem ativação" in saida
-    assert "python -m frentes classificar --versao 2" in saida
+    assert "python -m eventos classificar --versao 2" in saida
     assert llm.opcoes == {"tempo_limite_s": 180.0}  # chamada de lote: tempo limite próprio
     assert conta(caminho, "versao_taxonomia") == 2 and conta(caminho, "geracao") == 1
 
@@ -281,24 +281,24 @@ def test_revisar_sem_chave_argumento_sobrando_banco_ou_vigente_sai_com_2(
     assert "OPENROUTER_API_KEY" in capsys.readouterr().err
     monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
 
-    monkeypatch.setenv("FRENTES_DB", str(tmp_path / "nao-existe.sqlite"))
+    monkeypatch.setenv("EVENTOS_DB", str(tmp_path / "nao-existe.sqlite"))
     assert cli.revisar([]) == 2
     assert "não há banco" in capsys.readouterr().err
 
     vazio = tmp_path / "vazio.sqlite"
     store.abrir(vazio).close()
-    monkeypatch.setenv("FRENTES_DB", str(vazio))
+    monkeypatch.setenv("EVENTOS_DB", str(vazio))
     assert cli.revisar([]) == 2
     assert "não há versão vigente" in capsys.readouterr().err
     assert llm.chamadas == [] and conta(caminho, "geracao") == 0
 
 
-def test_revisar_sem_frente_na_janela_sai_com_2_sem_gravar_geracao(
+def test_revisar_sem_evento_na_janela_sai_com_2_sem_gravar_geracao(
     monkeypatch, tmp_path, capsys
 ) -> None:
-    caminho, llm = banco_da_revisao(monkeypatch, tmp_path, resposta(), com_frentes=False)
+    caminho, llm = banco_da_revisao(monkeypatch, tmp_path, resposta(), com_eventos=False)
 
     assert cli.revisar([]) == 2
 
-    assert "nenhuma frente classificada" in capsys.readouterr().err
+    assert "nenhum evento classificado" in capsys.readouterr().err
     assert llm.chamadas == [] and conta(caminho, "geracao") == 0

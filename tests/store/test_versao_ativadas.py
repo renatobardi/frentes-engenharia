@@ -1,5 +1,5 @@
-from frentes import store
-from frentes.store import versao as repo
+from eventos import store
+from eventos.store import versao as repo
 
 
 def test_ativadas_nao_inclui_a_versao_pulada() -> None:

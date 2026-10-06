@@ -4,18 +4,18 @@ from pathlib import Path
 
 import pytest
 
-from frentes.contratos import EspecieDeItem, Gabarito, Natureza, Origem, de_iso
-from frentes.seed import saida, templates, validador
-from frentes.seed.roteiro import ORIGENS_COM_TEMPLATE, Roteiro
-from frentes.seed.saida import (
+from eventos.contratos import EspecieDeItem, Gabarito, Natureza, Origem, de_iso
+from eventos.seed import saida, templates, validador
+from eventos.seed.roteiro import ORIGENS_COM_TEMPLATE, Roteiro
+from eventos.seed.saida import (
     controle_de_qualidade,
-    frente_de_template,
+    evento_de_template,
     gabarito_de,
     gabarito_em_json,
     gravar,
     referencias_da_h3,
 )
-from frentes.seed.temas import HISTORIAS, TEMAS
+from eventos.seed.temas import HISTORIAS, TEMAS
 from tests.seed.test_roteiro import _entradas, gerar
 
 DECISAO = "2026-03-31T18:00:00Z"
@@ -59,7 +59,7 @@ def test_gravar_escreve_os_arquivos_com_as_contagens(roteiro: Roteiro, tmp_path:
     contagens = gravar(roteiro, tmp_path / "novo", DECISAO)
     assert contagens == {
         "esqueletos.jsonl": 6000,
-        "frentes.jsonl": 3000,
+        "eventos.jsonl": 3000,
         "gabarito.jsonl": 6000,
         "rajada.jsonl": 20,
     }
@@ -75,23 +75,23 @@ def test_os_arquivos_gerados_sao_identicos_em_duas_geracoes(
         assert (tmp_path / arquivo.name).read_bytes() == arquivo.read_bytes(), arquivo.name
 
 
-def test_frentes_no_formato_unico_so_com_log_webhook_e_banco(pasta: Path) -> None:
-    frentes = ler(pasta, "frentes.jsonl")
-    assert {f["origem"] for f in frentes} == {"log", "webhook", "banco"}
-    for f in frentes:
+def test_eventos_no_formato_unico_so_com_log_webhook_e_banco(pasta: Path) -> None:
+    eventos = ler(pasta, "eventos.jsonl")
+    assert {f["origem"] for f in eventos} == {"log", "webhook", "banco"}
+    for f in eventos:
         assert set(f) == {
             "id", "origem", "emissor", "texto", "ocorrido_em", "recebido_em", "ref_externa",
             "metadados",
         }  # fmt: skip
         assert f["texto"] and f["metadados"]
         assert de_iso(f["recebido_em"]) >= de_iso(f["ocorrido_em"])
-    ids = [f["id"] for f in frentes]
+    ids = [f["id"] for f in eventos]
     assert len(ids) == len(set(ids))
 
 
 def test_as_linhas_cruas_vao_em_metadados(pasta: Path) -> None:
     por_origem = {}
-    for f in ler(pasta, "frentes.jsonl"):
+    for f in ler(pasta, "eventos.jsonl"):
         por_origem.setdefault(f["origem"], f)
     assert por_origem["log"]["metadados"]["linhas"]
     assert all(
@@ -104,7 +104,7 @@ def test_as_linhas_cruas_vao_em_metadados(pasta: Path) -> None:
 
 
 def test_o_texto_nao_repete_nem_ref_externa(pasta: Path) -> None:
-    assert controle_de_qualidade(ler(pasta, "frentes.jsonl")) == []
+    assert controle_de_qualidade(ler(pasta, "eventos.jsonl")) == []
 
 
 def test_controle_de_qualidade_acha_repeticao_e_tamanho() -> None:
@@ -124,16 +124,16 @@ def test_controle_de_qualidade_acha_repeticao_e_tamanho() -> None:
 def test_gravar_recusa_quando_o_controle_de_qualidade_acha_problema(
     roteiro: Roteiro, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(saida, "controle_de_qualidade", lambda frentes: ["texto repetido"])
+    monkeypatch.setattr(saida, "controle_de_qualidade", lambda eventos: ["texto repetido"])
     with pytest.raises(ValueError, match="controle de qualidade: texto repetido"):
         gravar(roteiro, tmp_path)
-    assert not (tmp_path / "frentes.jsonl").exists()
+    assert not (tmp_path / "eventos.jsonl").exists()
 
 
 def test_nenhum_nome_real_nos_textos_gerados(pasta: Path) -> None:
-    texto = "\n".join(f["texto"] for f in ler(pasta, "frentes.jsonl"))
+    texto = "\n".join(f["texto"] for f in ler(pasta, "eventos.jsonl"))
     texto += "\n".join(f["texto"] for f in ler(pasta, "rajada.jsonl"))
-    assert validador.validar_nomes_reais({"frentes": texto}) == []
+    assert validador.validar_nomes_reais({"eventos": texto}) == []
 
 
 # ------------------------------------------------------------------ fundo sem objeto único
@@ -142,7 +142,7 @@ def test_nenhum_nome_real_nos_textos_gerados(pasta: Path) -> None:
 def test_nenhum_template_do_fundo_cita_servico_com_o_slug_do_time(
     roteiro: Roteiro, pasta: Path
 ) -> None:
-    textos = {f["id"]: f for f in ler(pasta, "frentes.jsonl")}
+    textos = {f["id"]: f for f in ler(pasta, "eventos.jsonl")}
     fundo = [
         e
         for e in roteiro.esqueletos
@@ -176,7 +176,7 @@ def test_o_texto_do_fundo_gerado_tambem_nao_cita_termo_de_historia(
 ) -> None:
     ids = {e.id for e in roteiro.esqueletos if e.historia_id == "fundo"}
     termos = termos_das_historias()
-    for f in ler(pasta, "frentes.jsonl"):
+    for f in ler(pasta, "eventos.jsonl"):
         if f["id"] in ids:
             assert not any(cita(t, f["texto"]) for t in termos), f["texto"]
 
@@ -192,7 +192,7 @@ def test_os_temas_do_fundo_sao_15_com_sintomas_para_os_tres_textos() -> None:
 
 def textos_de(roteiro: Roteiro, pasta: Path, historia: str, origem: Origem) -> list[str]:
     ids = {e.id for e in roteiro.esqueletos if e.historia_id == historia and e.origem is origem}
-    return [f["texto"] for f in ler(pasta, "frentes.jsonl") if f["id"] in ids]
+    return [f["texto"] for f in ler(pasta, "eventos.jsonl") if f["id"] in ids]
 
 
 def test_templates_da_h1_citam_a_esteira_de_propostas_e_nao_so_o_servico(
@@ -226,7 +226,7 @@ def test_o_webhook_da_h1_cita_tambem_o_servico_de_infra(roteiro: Roteiro, pasta:
 
 def test_os_sintomas_da_h1_dizem_que_a_esteira_cai_ou_fica_lenta() -> None:
     """Medido no primeiro snapshot (#109): "propostas travadas" e "falta de capacidade" liam
-    como fila, e a história se dividia em dois tipos (127 e 112 frentes)."""
+    como fila, e a história se dividia em duas frentes (127 e 112 eventos)."""
     for resumo, log, _ in HISTORIAS["H1"]:
         for texto in (resumo, log):
             norma = sem_acento(texto)
@@ -236,7 +236,7 @@ def test_os_sintomas_da_h1_dizem_que_a_esteira_cai_ou_fica_lenta() -> None:
 
 def test_os_sintomas_da_h5_dizem_que_quem_responde_e_uma_ia() -> None:
     """Medido no primeiro snapshot (#109): "informou taxa errada" lia como dado errado de um
-    sistema qualquer (confiança 1,00 no tipo) e o tema novo não aparecia como encaixe fraco."""
+    sistema qualquer (confiança 1,00 na frente) e o tema novo não aparecia como encaixe fraco."""
     for resumo, log, _ in HISTORIAS["H5"]:
         for texto in (resumo, log):
             assert "assistente virtual do app" in texto
@@ -244,8 +244,8 @@ def test_os_sintomas_da_h5_dizem_que_quem_responde_e_uma_ia() -> None:
 
 
 def test_nenhum_sintoma_do_fundo_repete_a_planilha_paralela() -> None:
-    """Medido no primeiro snapshot (#109): o sintoma repetia "planilha paralela" em 144 frentes
-    do fundo e virou o maior problema da lista (456 frentes)."""
+    """Medido no primeiro snapshot (#109): o sintoma repetia "planilha paralela" em 144 eventos
+    do fundo e virou o maior problema da lista (456 eventos)."""
     for tema in TEMAS:
         for sintoma in tema.sintomas:
             assert all("planilha" not in sem_acento(texto) for texto in sintoma), tema.chave
@@ -279,7 +279,7 @@ def test_log_e_banco_do_h2_usam_servicos_do_time_gravame(roteiro: Roteiro) -> No
 def test_template_sem_texto_para_a_origem_ou_a_historia_e_erro() -> None:
     import random
 
-    from frentes.seed.templates import SemTemplate, renderizar, sintomas_de
+    from eventos.seed.templates import SemTemplate, renderizar, sintomas_de
 
     with pytest.raises(SemTemplate, match="H4"):
         sintomas_de("H4", None)
@@ -294,10 +294,10 @@ def test_template_sem_texto_para_a_origem_ou_a_historia_e_erro() -> None:
     assert templates.EMISSOR_GENERICO[Origem.LOG]
 
 
-def test_a_frente_de_template_so_vale_para_log_webhook_e_banco(roteiro: Roteiro) -> None:
+def test_o_evento_de_template_so_vale_para_log_webhook_e_banco(roteiro: Roteiro) -> None:
     relato = next(e for e in roteiro.esqueletos if e.origem is Origem.RELATO)
     with pytest.raises(AssertionError):
-        frente_de_template(relato, 1)
+        evento_de_template(relato, 1)
 
 
 # ------------------------------------------------------------------ gabarito
@@ -309,26 +309,26 @@ def test_o_gabarito_tem_todos_os_campos_da_spec_e_vira_o_contrato(
     linhas = ler(pasta, "gabarito.jsonl")
     assert len(linhas) == 6000
     campos = {
-        "frente_id", "historia_id", "tema_fundo", "area", "time", "areas_aceitas", "natureza",
+        "evento_id", "historia_id", "tema_fundo", "area", "time", "areas_aceitas", "natureza",
         "gravidade_alvo", "episodio_id", "ambigua", "fora_de_escopo", "objeto", "servico",
         "listado", "time_relator", "cruzado",
     }  # fmt: skip
     assert all(set(linha) == campos for linha in linhas)
     ids = {e.id for e in roteiro.esqueletos}
-    assert {linha["frente_id"] for linha in linhas} == ids
+    assert {linha["evento_id"] for linha in linhas} == ids
     for linha in linhas[:200]:
         natureza = None if linha["natureza"] is None else Natureza(linha["natureza"])
         g = Gabarito(**{**linha, "natureza": natureza})
-        assert g.frente_id == linha["frente_id"]
+        assert g.evento_id == linha["evento_id"]
     assert gabarito_em_json(gabarito_de(roteiro.esqueletos[0])) == linhas[0]
 
 
-def test_o_gabarito_nao_cita_nome_de_tipo(roteiro: Roteiro, pasta: Path) -> None:
+def test_o_gabarito_nao_cita_nome_de_frente(roteiro: Roteiro, pasta: Path) -> None:
     """Todo valor de texto do gabarito vem de um vocabulário fechado, escrito por nós:
-    nenhum campo livre por onde um nome de tipo da taxonomia (gerada pela LLM) entre."""
+    nenhum campo livre por onde um nome de frente da taxonomia (gerada pela LLM) entre."""
     areas, _ = _entradas()
     fichas = {i.nome for a in areas for t in a.times for i in t.itens}
-    from frentes.seed import curvas
+    from eventos.seed import curvas
 
     vocabulario = {
         "historia_id": {*curvas.HISTORIAS, "fundo", "fora"},
@@ -338,7 +338,7 @@ def test_o_gabarito_nao_cita_nome_de_tipo(roteiro: Roteiro, pasta: Path) -> None
         "gravidade_alvo": {"baixa", "media", "alta", "critica", None},
         "ambigua": set(curvas.SABORES_AMBIGUOS) | {None},
         "cruzado": {"so_o_dono", "dois_objetos", None},
-        "natureza": {"reativa", "proativa", None},
+        "natureza": {"reativo", "proativo", None},
         "time_relator": {t.chave for a in areas for t in a.times} | {None},
         "objeto": fichas | {h.objeto for h in curvas.HISTORIAS.values()} | {None},
         "servico": fichas | {None},
@@ -369,7 +369,7 @@ def test_o_objeto_de_fora_aparece_so_nos_objetos(roteiro: Roteiro) -> None:
 # ------------------------------------------------------------------ rajada, referências, relatório
 
 
-def test_a_rajada_e_de_20_frentes_de_webhook_sobre_a_h1_fora_do_volume(
+def test_a_rajada_e_de_20_eventos_de_webhook_sobre_a_h1_fora_do_volume(
     pasta: Path, roteiro: Roteiro
 ) -> None:
     rajada = ler(pasta, "rajada.jsonl")
@@ -387,14 +387,14 @@ def test_a_rajada_e_de_20_frentes_de_webhook_sobre_a_h1_fora_do_volume(
     assert all("payload" in r["metadados"] for r in rajada)
 
 
-def test_referencias_da_h3_sao_5_frentes_da_h3_antes_da_decisao(
+def test_referencias_da_h3_sao_5_eventos_da_h3_antes_da_decisao(
     pasta: Path, roteiro: Roteiro
 ) -> None:
     dados = json.loads((pasta / "referencias.json").read_text(encoding="utf-8"))
     [item] = dados["enderecamentos"]
     assert item["historia"] == "H3"
     por_id = {e.id: e for e in roteiro.esqueletos}
-    ids = item["frentes_de_referencia"]
+    ids = item["eventos_de_referencia"]
     assert len(ids) == 5 and len(set(ids)) == 5
     for i in ids:
         assert por_id[i].historia_id == "H3"
@@ -406,13 +406,13 @@ def test_referencias_da_h3_sao_5_frentes_da_h3_antes_da_decisao(
 def test_o_relatorio_traz_peso_tendencia_e_teto(pasta: Path) -> None:
     relatorio = (pasta / "relatorio.md").read_text(encoding="utf-8")
     for trecho in ("Peso e tendência", "Teto por item", "Teto: 25", "| H1 |", "| H7 |",
-                   "Relato cruzado", "Frentes por mês"):  # fmt: skip
+                   "Relato cruzado", "Eventos por mês"):  # fmt: skip
         assert trecho in relatorio
     tabela = [linha for linha in relatorio.splitlines() if re.match(r"\| H\d \|", linha)]
     assert len(tabela) == 7 + 0 or len(tabela) >= 7
 
 
-def test_tendencia_sem_frentes_antes_e_marcada(roteiro: Roteiro) -> None:
+def test_tendencia_sem_eventos_antes_e_marcada(roteiro: Roteiro) -> None:
     assert saida.tendencia_90_dias(roteiro, "H5") is not None
     assert saida.tendencia_90_dias(roteiro, "nao-existe") is None
 
@@ -422,14 +422,14 @@ def test_o_que_esta_em_seed_gerado_e_o_que_o_comando_gera(pasta: Path) -> None:
     versionado = validador.PASTA / "gerado"
     nomes = {p.name for p in pasta.iterdir()}
     assert nomes <= {p.name for p in versionado.iterdir()}
-    for nome in nomes - {"frentes.jsonl"}:
+    for nome in nomes - {"eventos.jsonl"}:
         assert (versionado / nome).read_bytes() == (pasta / nome).read_bytes(), nome
-    # `frentes.jsonl` versionado é o do roteiro mais os textos da LLM (`dataset.compor`): as
-    # frentes de template têm de ser as mesmas, linha a linha
-    gerado = (pasta / "frentes.jsonl").read_text(encoding="utf-8").splitlines()
+    # `eventos.jsonl` versionado é o do roteiro mais os textos da LLM (`dataset.compor`): as
+    # eventos de template têm de ser os mesmos, linha a linha
+    gerado = (pasta / "eventos.jsonl").read_text(encoding="utf-8").splitlines()
     de_template = {
         json.loads(ln)["id"]: ln
-        for ln in (versionado / "frentes.jsonl").read_text(encoding="utf-8").splitlines()
+        for ln in (versionado / "eventos.jsonl").read_text(encoding="utf-8").splitlines()
         if json.loads(ln)["origem"] in ("log", "webhook", "banco")
     }
     assert [ln for ln in gerado] == [de_template[json.loads(ln)["id"]] for ln in gerado]

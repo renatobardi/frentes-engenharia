@@ -2,30 +2,31 @@ from datetime import timedelta
 
 import pytest
 
-from frentes import store
-from frentes.contratos import Estado, Gatilho, Geracao, MotivoIncerta, TipoGeracao
-from frentes.store import geracao as repo
-from frentes.store.revisao import LinhaDaJanela
-from frentes.taxonomia import sinal
-from frentes.taxonomia.versoes import gravar
-from tests.taxonomia.revisoes import AGORA, LIMIARES, banco_vigente, firmes, fracas, frente
+from eventos import store
+from eventos.contratos import Estado, Gatilho, Geracao, MotivoIncerta, TipoGeracao
+from eventos.store import geracao as repo
+from eventos.store.revisao import LinhaDaJanela
+from eventos.taxonomia import sinal
+from eventos.taxonomia.versoes import gravar
+from tests.taxonomia.revisoes import AGORA, LIMIARES, banco_vigente, evento, firmes, fracas
 
-TIPOS = ("tipo1", "tipo2", "tipo3", "tipo4")
+FRENTES = ("frente1", "frente2", "frente3", "frente4")
 
 
-def firme(n: int, tipo: str | None = None) -> list[LinhaDaJanela]:
-    """Frentes sem dúvida; sem `tipo`, espalhadas pelos quatro tipos."""
+def firme(n: int, frente: str | None = None) -> list[LinhaDaJanela]:
+    """Eventos sem dúvida; sem `frente`, espalhados pelas quatro frentes."""
     saida = []
     for i in range(n):
-        t = tipo or TIPOS[i % 4]
+        t = frente or FRENTES[i % 4]
         saida.append(LinhaDaJanela(f"firme-{t}-{i}", "classificada", None, t, 0.9, t))
     return saida
 
 
 def fraca(n: int, prefixo: str = "fraca") -> list[LinhaDaJanela]:
-    """O Jev não achou tipo; o desempate da LLM encaixou a frente num dos tipos."""
+    """O Jev não achou frente; o desempate da LLM encaixou o evento numa das frentes."""
     return [
-        LinhaDaJanela(f"{prefixo}-{i}", "via_llm", None, None, 0.3, TIPOS[i % 4]) for i in range(n)
+        LinhaDaJanela(f"{prefixo}-{i}", "via_llm", None, None, 0.3, FRENTES[i % 4])
+        for i in range(n)
     ]
 
 
@@ -40,12 +41,12 @@ def gatilho_de(linhas: list[LinhaDaJanela]) -> Gatilho | None:
     return sinal.gatilho(sinal.medir(linhas, LIMIARES).sinal, LIMIARES)
 
 
-def test_frente_de_texto_vago_nao_conta() -> None:
+def test_evento_de_texto_vago_nao_conta() -> None:
     linhas = [*firme(88), *fraca(12), *vaga(30)]
 
     medicao = sinal.medir(linhas, LIMIARES)
 
-    assert medicao.sinal.frentes == 100  # as 30 vagas ficam fora do total
+    assert medicao.sinal.eventos == 100  # as 30 vagas ficam fora do total
     assert medicao.sinal.encaixe_fraco == 0.12  # e do numerador
     assert medicao.sinal.incertas == 0.0
     assert sinal.gatilho(medicao.sinal, LIMIARES) is Gatilho.ENCAIXE_FRACO
@@ -54,13 +55,13 @@ def test_frente_de_texto_vago_nao_conta() -> None:
 def test_a_vaga_nao_completa_a_janela_minima() -> None:
     linhas = [*firme(70), *fraca(20), *vaga(50)]  # 90 que contam, 140 no total
 
-    assert sinal.medir(linhas, LIMIARES).sinal.frentes == 90
-    assert gatilho_de(linhas) is None  # 22% de encaixe fraco, mas só 90 frentes
+    assert sinal.medir(linhas, LIMIARES).sinal.eventos == 90
+    assert gatilho_de(linhas) is None  # 22% de encaixe fraco, mas só 90 eventos
 
 
-def test_janela_com_menos_de_100_frentes_nao_dispara() -> None:
-    assert gatilho_de([*firme(49), *fraca(50)]) is None  # 99 frentes, 50% de encaixe fraco
-    assert gatilho_de([*firme(50), *fraca(50)]) is Gatilho.ENCAIXE_FRACO  # 100 frentes
+def test_janela_com_menos_de_100_eventos_nao_dispara() -> None:
+    assert gatilho_de([*firme(49), *fraca(50)]) is None  # 99 eventos, 50% de encaixe fraco
+    assert gatilho_de([*firme(50), *fraca(50)]) is Gatilho.ENCAIXE_FRACO  # 100 eventos
 
 
 def test_12_por_cento_dispara_e_11_nao() -> None:
@@ -68,12 +69,12 @@ def test_12_por_cento_dispara_e_11_nao() -> None:
     assert gatilho_de([*firme(89), *fraca(11)]) is None
 
 
-def test_o_corte_da_confianca_do_tipo_conta_so_abaixo_dele() -> None:
+def test_o_corte_da_confianca_da_frente_conta_so_abaixo_dele() -> None:
     abaixo = [
-        LinhaDaJanela(f"a{i}", "classificada", None, "tipo1", 0.69, "tipo1") for i in range(12)
+        LinhaDaJanela(f"a{i}", "classificada", None, "frente1", 0.69, "frente1") for i in range(12)
     ]
     no_corte = [
-        LinhaDaJanela(f"b{i}", "classificada", None, "tipo1", 0.7, "tipo1") for i in range(12)
+        LinhaDaJanela(f"b{i}", "classificada", None, "frente1", 0.7, "frente1") for i in range(12)
     ]
 
     assert sinal.medir([*firme(88), *abaixo], LIMIARES).sinal.encaixe_fraco == 0.12
@@ -82,48 +83,50 @@ def test_o_corte_da_confianca_do_tipo_conta_so_abaixo_dele() -> None:
 
 def test_gatilhos_secundarios() -> None:
     nao_classificadas = [
-        LinhaDaJanela(f"n{i}", Estado.NAO_CLASSIFICADA.value, None, "tipo1", 0.9, None)
+        LinhaDaJanela(f"n{i}", Estado.NAO_CLASSIFICADA.value, None, "frente1", 0.9, None)
         for i in range(5)
     ]
     incertas = [
         LinhaDaJanela(
-            f"i{i}", Estado.INCERTA.value, MotivoIncerta.CONFIANCA_BAIXA.value, "tipo1", 0.9, None
+            f"i{i}", Estado.INCERTA.value, MotivoIncerta.CONFIANCA_BAIXA.value, "frente1", 0.9, None
         )
         for i in range(15)
     ]
-    distribuidas = [*firme(18, "tipo2"), *firme(18, "tipo3"), *firme(18, "tipo4")]
+    distribuidas = [*firme(18, "frente2"), *firme(18, "frente3"), *firme(18, "frente4")]
 
     assert gatilho_de([*firme(95), *nao_classificadas]) is Gatilho.NAO_CLASSIFICADAS
     assert gatilho_de([*firme(85), *incertas]) is Gatilho.INCERTAS
-    assert gatilho_de([*firme(46, "tipo1"), *distribuidas]) is Gatilho.MAIOR_TIPO  # 46 de 100
-    assert gatilho_de([*firme(44, "tipo1"), *distribuidas, *firme(2, "tipo2")]) is None  # 44 de 100
+    assert gatilho_de([*firme(46, "frente1"), *distribuidas]) is Gatilho.MAIOR_FRENTE  # 46 de 100
+    assert (
+        gatilho_de([*firme(44, "frente1"), *distribuidas, *firme(2, "frente2")]) is None
+    )  # 44 de 100
     # o principal vem antes dos secundários
     assert (
-        gatilho_de([*firme(46, "tipo1"), *fraca(12), *distribuidas[:42]]) is Gatilho.ENCAIXE_FRACO
+        gatilho_de([*firme(46, "frente1"), *fraca(12), *distribuidas[:42]]) is Gatilho.ENCAIXE_FRACO
     )
 
 
-def test_maior_tipo_so_olha_as_frentes_que_pintam() -> None:
+def test_maior_frente_so_olha_os_eventos_que_pintam() -> None:
     linhas = [
-        *firme(30, "tipo1"),
-        *firme(20, "tipo2"),
+        *firme(30, "frente1"),
+        *firme(20, "frente2"),
         *vaga(50),
         *[
-            LinhaDaJanela(f"n{i}", "incerta", "confianca_baixa", "tipo1", 0.9, None)
+            LinhaDaJanela(f"n{i}", "incerta", "confianca_baixa", "frente1", 0.9, None)
             for i in range(50)
         ],
     ]
 
     medicao = sinal.medir(linhas, LIMIARES)
 
-    assert medicao.maior_tipo == "tipo1"
-    assert medicao.sinal.maior_tipo == 0.6  # 30 de 50 que pintam
+    assert medicao.maior_frente == "frente1"
+    assert medicao.sinal.maior_frente == 0.6  # 30 de 50 que pintam
 
 
-def test_janela_sem_frentes_mede_zero() -> None:
+def test_janela_sem_eventos_mede_zero() -> None:
     medicao = sinal.medir([], LIMIARES)
 
-    assert medicao.sinal.frentes == 0 and medicao.maior_tipo is None
+    assert medicao.sinal.eventos == 0 and medicao.maior_frente is None
     assert sinal.gatilho(medicao.sinal, LIMIARES) is None
 
 
@@ -146,16 +149,16 @@ def revisao_ha(con, dias: int) -> None:
 def test_o_sinal_dispara_pelo_banco(documento) -> None:
     con = banco_vigente(documento())
     firmes(con, "a", 88)
-    fracas(con, "b", ["tipo1"] * 12)
+    fracas(con, "b", ["frente1"] * 12)
 
     assert sinal.disparo(con, LIMIARES, AGORA) is Gatilho.ENCAIXE_FRACO
 
 
-def test_frente_fora_da_janela_nao_entra_no_sinal(documento) -> None:
+def test_evento_fora_da_janela_nao_entra_no_sinal(documento) -> None:
     con = banco_vigente(documento(), ativada_ha_dias=5)
     firmes(con, "a", 100)
     for n in range(40):  # de 40 dias atrás: fora dos 30
-        frente(con, f"velha{n}", tipo=None, conf=0.1, final="tipo1", dias=40)
+        evento(con, f"velha{n}", frente=None, conf=0.1, final="frente1", dias=40)
 
     assert sinal.disparo(con, LIMIARES, AGORA) is None
 
@@ -180,7 +183,7 @@ def test_mensal_conta_da_ultima_revisao_mesmo_sem_mudanca(documento) -> None:
 def test_sinal_alto_respeita_a_pausa_depois_de_uma_revisao(documento) -> None:
     con = banco_vigente(documento())
     firmes(con, "a", 88)
-    fracas(con, "b", ["tipo1"] * 12)
+    fracas(con, "b", ["frente1"] * 12)
     revisao_ha(con, 0)  # disparou há instantes e terminou sem mudança
 
     assert sinal.disparo(con, LIMIARES, AGORA - timedelta(hours=-1)) is None  # 1 hora depois
@@ -198,14 +201,14 @@ def test_sem_vigente_ou_com_versao_nova_pendente_nao_dispara(documento) -> None:
 @pytest.mark.parametrize("limite", [0.12])
 def test_o_limite_vem_da_configuracao(limite: float) -> None:
     assert LIMIARES.sinal_de_encaixe.encaixe_fraco == limite
-    assert LIMIARES.sinal_de_encaixe.minimo_frentes == 100
+    assert LIMIARES.sinal_de_encaixe.minimo_eventos == 100
     assert LIMIARES.sinal_de_encaixe.janela_dias == 30
 
 
-def test_o_sinal_conta_a_frente_aguardando_llm_antes_do_desempate(documento) -> None:
+def test_o_sinal_conta_o_evento_aguardando_llm_antes_do_desempate(documento) -> None:
     con = banco_vigente(documento())
     firmes(con, "a", 88)
-    for n in range(12):  # o Jev não achou tipo e o desempate da LLM ainda não voltou
-        frente(con, f"w{n}", tipo=None, conf=0.3, final=None, estado=Estado.AGUARDANDO_LLM)
+    for n in range(12):  # o Jev não achou frente e o desempate da LLM ainda não voltou
+        evento(con, f"w{n}", frente=None, conf=0.3, final=None, estado=Estado.AGUARDANDO_LLM)
 
     assert sinal.disparo(con, LIMIARES, AGORA) is Gatilho.ENCAIXE_FRACO

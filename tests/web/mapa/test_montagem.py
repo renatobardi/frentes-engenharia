@@ -2,13 +2,13 @@
 
 from datetime import UTC, datetime
 
-from frentes.contratos import Periodo, Visao
-from frentes.mapa.agregados import Celula, Mapa
-from frentes.web.mapa import montagem
-from frentes.web.mapa.montagem import CelulaNaTela, Eixo
+from eventos.contratos import Periodo, Visao
+from eventos.mapa.agregados import Celula, Mapa
+from eventos.web.mapa import montagem
+from eventos.web.mapa.montagem import CelulaNaTela, Eixo
 
 AREAS = [Eixo("plat", "Plataforma"), Eixo("ops", "Operações")]
-TIPOS = [Eixo("incidente", "Incidente"), Eixo("processo", "Processo")]
+FRENTES = [Eixo("incidente", "Incidente"), Eixo("processo", "Processo")]
 
 
 def _celula(bruto: float) -> CelulaNaTela:
@@ -17,7 +17,7 @@ def _celula(bruto: float) -> CelulaNaTela:
     )
 
 
-def test_totais_somam_a_visao_por_area_por_tipo_e_no_geral() -> None:
+def test_totais_somam_a_visao_por_area_por_frente_e_no_geral() -> None:
     grade = {
         ("plat", "incidente"): _celula(4.0),
         ("plat", "processo"): _celula(1.0),
@@ -25,20 +25,20 @@ def test_totais_somam_a_visao_por_area_por_tipo_e_no_geral() -> None:
         ("ops", "processo"): _celula(2.0),
     }
 
-    totais = montagem.totais(grade, AREAS, TIPOS)
+    totais = montagem.totais(grade, AREAS, FRENTES)
 
     assert {k: v.valor for k, v in totais.por_area.items()} == {"plat": "5", "ops": "2"}
-    assert {k: v.valor for k, v in totais.por_tipo.items()} == {"incidente": "4", "processo": "3"}
+    assert {k: v.valor for k, v in totais.por_frente.items()} == {"incidente": "4", "processo": "3"}
     assert totais.geral.valor == "7"
     # a barra é contra o maior total da mesma fileira
     assert totais.por_area["plat"].largura == 100 and totais.por_area["ops"].largura == 40
-    assert totais.por_tipo["processo"].largura == 75
+    assert totais.por_frente["processo"].largura == 75
 
 
 def test_total_zero_mostra_travessao_e_barra_vazia() -> None:
-    grade = {(a.chave, t.chave): _celula(0.0) for a in AREAS for t in TIPOS}
+    grade = {(a.chave, t.chave): _celula(0.0) for a in AREAS for t in FRENTES}
 
-    totais = montagem.totais(grade, AREAS, TIPOS)
+    totais = montagem.totais(grade, AREAS, FRENTES)
 
     assert totais.geral.valor == "–" and totais.geral.largura == 0
     assert all(t.valor == "–" and t.largura == 0 for t in totais.por_area.values())

@@ -1,4 +1,4 @@
-"""A tela de detalhe da frente, pelo HTML devolvido, sobre um banco montado no teste.
+"""A tela de detalhe do evento, pelo HTML devolvido, sobre um banco montado no teste.
 
 Sem rede e sem chave: o app lê as chaves do ambiente, que o conftest apaga, então "sem chave
 da TypeSafe" é o estado normal do teste. Datas relativas a hoje, com semanas de folga.
@@ -13,9 +13,9 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-import frentes.web
-from frentes import config, contratos, store
-from frentes.contratos import (
+import eventos.web
+from eventos import config, contratos, store
+from eventos.contratos import (
     NENHUM_DESTES,
     Classificacao,
     Estado,
@@ -28,8 +28,8 @@ from frentes.contratos import (
     RespostaLlm,
     Uso,
 )
-from frentes.store import classificacao as store_classificacao
-from frentes.web.app import criar_app
+from eventos.store import classificacao as store_classificacao
+from eventos.web.app import criar_app
 from tests.encaixe import encaixado
 
 ESCOLHA = {"nome": "Ana", "tipo": "pessoa"}
@@ -56,7 +56,7 @@ def _documento(sufixo: str = "") -> contratos.DocumentoTaxonomia:
             )
             for a, nome in areas.items()
         ),
-        tipos=(
+        frentes=(
             _valor(
                 "incidente", "Incidente", (_valor("queda", "Queda"), _valor("lentidao", "Lentidão"))
             ),
@@ -69,7 +69,7 @@ def _documento(sufixo: str = "") -> contratos.DocumentoTaxonomia:
             contratos.NivelDaRegua(n, "c") for n in ("Pequeno", "Médio", "Grande", "Enorme")
         ),
         criterio_urgencia="quanto antes",
-        criterio_natureza={Natureza.REATIVA: "quebrou", Natureza.PROATIVA: "melhoria"},
+        criterio_natureza={Natureza.REATIVO: "quebrou", Natureza.PROATIVO: "melhoria"},
         pergunta_de_controle="O texto cita algum sistema, processo, número ou situação específica?",
         instrucoes={},
     )
@@ -84,8 +84,8 @@ def _jev(**mudancas) -> RespostaJev:
         Pergunta.AREA: _lista(
             "plat-infra", 0.9, {"plat-infra": 0.7, "plat-dados": 0.2, "ops-suporte": 0.1}
         ),
-        Pergunta.TIPO: _lista("queda", 0.8, {"queda": 0.6, "lentidao": 0.2, "fluxo": 0.2}),
-        Pergunta.NATUREZA: _lista("reativa", 0.95, {"reativa": 0.95, "proativa": 0.05}),
+        Pergunta.FRENTE: _lista("queda", 0.8, {"queda": 0.6, "lentidao": 0.2, "fluxo": 0.2}),
+        Pergunta.NATUREZA: _lista("reativo", 0.95, {"reativo": 0.95, "proativo": 0.05}),
         Pergunta.SEVERIDADE: RespostaDeNumero(2 / 3, 0.7, {"0": 0.0, "1": 0.1, "2": 0.7, "3": 0.2}),
         Pergunta.IMPACTO: RespostaDeNumero(1 / 3, 0.6, {"0": 0.2, "1": 0.6, "2": 0.2, "3": 0.0}),
         Pergunta.CAUSA_RAIZ: _lista("capacidade", 0.6, {"capacidade": 0.6, "config": 0.4}),
@@ -97,18 +97,18 @@ def _jev(**mudancas) -> RespostaJev:
     return RespostaJev("jev-1.13.0", respostas, Uso(120, 45, 310))
 
 
-def _classificacao(frente_id: str, versao: int = 2, **campos) -> Classificacao:
+def _classificacao(evento_id: str, versao: int = 2, **campos) -> Classificacao:
     base = {
-        "frente_id": frente_id, "versao": versao, "resposta_jev": _jev(),
+        "evento_id": evento_id, "versao": versao, "resposta_jev": _jev(),
         "classificada_em": contratos.agora(),
         "time": "plat-infra", "area": "plat", "conf_area": 0.9,
-        "subtipo": "queda", "tipo": "incidente", "conf_tipo": 0.8,
-        "natureza": Natureza.REATIVA, "conf_natureza": 0.95,
+        "subfrente": "queda", "frente": "incidente", "conf_frente": 0.8,
+        "natureza": Natureza.REATIVO, "conf_natureza": 0.95,
         "severidade": 2 / 3, "impacto": 1 / 3, "urgencia": 0.3,
         "causa_raiz": "capacidade", "conf_causa": 0.6,
         "problema": "p-fila", "conf_problema": 0.8, "controle": 0.9,
         "estado": Estado.CLASSIFICADA, "area_final": "plat", "time_final": "plat-infra",
-        "tipo_final": "incidente", "subtipo_final": "queda", "natureza_final": Natureza.REATIVA,
+        "frente_final": "incidente", "subfrente_final": "queda", "natureza_final": Natureza.REATIVO,
     }  # fmt: skip
     return Classificacao(**{**base, **campos})
 
@@ -121,7 +121,7 @@ def _versao(con: store.Conexao, numero: int, documento, ativada: bool = True) ->
     )
 
 
-def _frente(
+def _evento(
     con: store.Conexao, id: str, texto: str = "A fila de pagamentos parou", **colunas
 ) -> str:
     quando = contratos.para_iso(contratos.agora() - timedelta(days=5))
@@ -130,7 +130,7 @@ def _frente(
         "ocorrido_em": quando, "recebido_em": quando, **colunas,
     }  # fmt: skip
     con.execute(
-        f"INSERT INTO frente ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
+        f"INSERT INTO evento ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
         list(linha.values()),
     )
     return id
@@ -138,7 +138,7 @@ def _frente(
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "frentes.db"
+    caminho = tmp_path / "eventos.db"
     con = store.abrir(caminho)
     _versao(con, 1, _documento(" v1"))
     _versao(con, 2, _documento())
@@ -149,11 +149,11 @@ def banco(tmp_path: Path) -> Path:
 
 
 def _gravar(
-    banco: Path, *classificacoes: Classificacao, frente: str | None = None, **colunas
+    banco: Path, *classificacoes: Classificacao, evento: str | None = None, **colunas
 ) -> None:
     con = store.abrir(banco)
-    if frente:
-        _frente(con, frente, **colunas)
+    if evento:
+        _evento(con, evento, **colunas)
         con.commit()
     for c in classificacoes:
         store_classificacao.gravar(con, c)
@@ -162,11 +162,11 @@ def _gravar(
 
 @pytest.fixture
 def http(banco: Path) -> TestClient:
-    return TestClient(criar_app(config.carregar({"FRENTES_DB": str(banco)})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(banco)})))
 
 
 def _pagina(http: TestClient, id: str, query: str = "") -> str:
-    resposta = http.get(f"/frentes/{id}{query}")
+    resposta = http.get(f"/eventos/{id}{query}")
     assert resposta.status_code == 200, resposta.text
     return resposta.text
 
@@ -179,26 +179,26 @@ def _linha(html: str, rotulo: str) -> str:
 
 
 def test_classificada_mostra_tudo_na_ordem_da_spec(banco: Path, http: TestClient) -> None:
-    _gravar(banco, _classificacao("f1"), frente="f1", ref_externa="REF-9")
+    _gravar(banco, _classificacao("f1"), evento="f1", ref_externa="REF-9")
 
     html = _pagina(http, "f1")
 
     # o redesign (#126) põe a identificação, a pergunta de controle e o Jev na lateral, depois
     # da tabela, e o seletor de versão no cabeçalho
-    ordem = ["Frente <code>f1</code>", "na v1", "A fila de pagamentos parou", "Conta em",
+    ordem = ["Evento <code>f1</code>", "na v1", "A fila de pagamentos parou", "Conta em",
              "Como a área foi escolhida", "<table", "REF-9", "Pergunta de controle",
-             "jev-1.13.0", "Caminho da frente"]  # fmt: skip
+             "jev-1.13.0", "Caminho do evento"]  # fmt: skip
     posicoes = [html.index(trecho) for trecho in ordem]
     assert posicoes == sorted(posicoes)
     assert 'class="motivo"' not in html  # pinta: não há motivo
     assert "visão “Onde dói”" in html
     assert "120 + 45 tokens · 310 ms" in html
     assert re.findall(r'<th scope="row">([^<]+)</th>', html) == [
-        "Área", "Tipo", "Natureza", "Severidade", "Impacto esperado",
+        "Área", "Frente", "Natureza", "Severidade", "Impacto esperado",
         "Causa raiz", "Urgência", "Problema",
     ]  # fmt: skip
     assert "Plataforma › Infraestrutura" in _linha(html, "Área")
-    assert "Incidente › Queda" in _linha(html, "Tipo")
+    assert "Incidente › Queda" in _linha(html, "Frente")
     assert 'aria-label="confiança 90%"' in _linha(html, "Área")
     # top 3 em área: a soma dos times de cada área; a escolhida do Jev em destaque
     top = _linha(html, "Área")
@@ -220,7 +220,7 @@ def test_via_llm_mostra_o_que_o_jev_disse_e_a_escolha_da_llm(banco: Path, http: 
         "f2", resposta_jev=jev, conf_area=0.45, estado=Estado.VIA_LLM,
         area_final="ops", time_final="ops-suporte", resposta_llm=llm,
     )  # fmt: skip
-    _gravar(banco, c, frente="f2")
+    _gravar(banco, c, evento="f2")
 
     html = _pagina(http, "f2")
 
@@ -234,17 +234,17 @@ def test_via_llm_mostra_o_que_o_jev_disse_e_a_escolha_da_llm(banco: Path, http: 
 
 def test_incerta_por_confianca_diz_em_qual_dimensao(banco: Path, http: TestClient) -> None:
     c = _classificacao(
-        "f3", estado=Estado.INCERTA, motivo=MotivoIncerta.CONFIANCA_BAIXA, conf_tipo=0.31,
+        "f3", estado=Estado.INCERTA, motivo=MotivoIncerta.CONFIANCA_BAIXA, conf_frente=0.31,
     )  # fmt: skip
-    _gravar(banco, c, frente="f3")
+    _gravar(banco, c, evento="f3")
 
     html = _pagina(http, "f3")
 
     assert ">incerta<" in html and ">texto vago<" not in html
-    assert "confiança baixa em tipo (0,31, mínimo 0,50)" in html
+    assert "confiança baixa em frente (0,31, mínimo 0,50)" in html
     assert "área (" not in html.split('class="motivo"')[1].split("</p>")[0]
     assert "Não pinta o mapa; entra no “+N incertas” de" in html
-    assert "encaixe fraco" in _linha(html, "Tipo")  # 0,31 < 0,70
+    assert "encaixe fraco" in _linha(html, "Frente")  # 0,31 < 0,70
 
 
 def test_incerta_sem_escolha_da_llm(banco: Path, http: TestClient) -> None:
@@ -252,7 +252,7 @@ def test_incerta_sem_escolha_da_llm(banco: Path, http: TestClient) -> None:
     c = _classificacao(
         "f4", estado=Estado.INCERTA, motivo=MotivoIncerta.LLM_SEM_ESCOLHA, resposta_llm=llm
     )
-    _gravar(banco, c, frente="f4")
+    _gravar(banco, c, evento="f4")
 
     html = _pagina(http, "f4")
 
@@ -264,7 +264,7 @@ def test_texto_vago_mostra_o_valor_e_o_corte(banco: Path, http: TestClient) -> N
     c = _classificacao(
         "f5", estado=Estado.INCERTA, motivo=MotivoIncerta.TEXTO_VAGO, controle=0.32, urgencia=0.9
     )
-    _gravar(banco, c, frente="f5", texto="está tudo lento, sei lá")
+    _gravar(banco, c, evento="f5", texto="está tudo lento, sei lá")
 
     html = _pagina(http, "f5")
 
@@ -278,9 +278,9 @@ def test_texto_vago_mostra_o_valor_e_o_corte(banco: Path, http: TestClient) -> N
 def test_nao_classificada(banco: Path, http: TestClient) -> None:
     c = _classificacao(
         "f6", estado=Estado.NAO_CLASSIFICADA, area_final=None, time_final=None,
-        tipo_final=None, subtipo_final=None,
+        frente_final=None, subfrente_final=None,
     )  # fmt: skip
-    _gravar(banco, c, frente="f6")
+    _gravar(banco, c, evento="f6")
 
     html = _pagina(http, "f6")
 
@@ -290,7 +290,7 @@ def test_nao_classificada(banco: Path, http: TestClient) -> None:
 
 
 def test_aguardando_sem_classificacao_com_o_motivo_da_chave(banco: Path, http: TestClient) -> None:
-    _gravar(banco, frente="f7")
+    _gravar(banco, evento="f7")
 
     html = _pagina(http, "f7")
 
@@ -302,9 +302,9 @@ def test_aguardando_sem_classificacao_com_o_motivo_da_chave(banco: Path, http: T
 
 def test_aguardando_o_desempate_da_llm(banco: Path, http: TestClient) -> None:
     c = _classificacao("f8", estado=Estado.AGUARDANDO_LLM, area_final=None, time_final=None,
-                       tipo_final=None, subtipo_final=None, natureza_final=None,
+                       frente_final=None, subfrente_final=None, natureza_final=None,
                        conf_area=0.3)  # fmt: skip
-    _gravar(banco, c, frente="f8")
+    _gravar(banco, c, evento="f8")
 
     html = _pagina(http, "f8")
 
@@ -315,8 +315,8 @@ def test_aguardando_o_desempate_da_llm(banco: Path, http: TestClient) -> None:
 
 
 def test_com_a_chave_a_frase_da_chave_some(banco: Path) -> None:
-    _gravar(banco, frente="f9")
-    ambiente = {"FRENTES_DB": str(banco), "TYPESAFE_API_KEY": "x"}
+    _gravar(banco, evento="f9")
+    ambiente = {"EVENTOS_DB": str(banco), "TYPESAFE_API_KEY": "x"}
     cliente = TestClient(criar_app(config.carregar(ambiente)))
 
     html = _pagina(cliente, "f9")
@@ -328,10 +328,10 @@ def test_com_a_chave_a_frase_da_chave_some(banco: Path) -> None:
 
 
 def test_dimensao_que_nao_vale_para_a_natureza_fica_apagada(banco: Path, http: TestClient) -> None:
-    reativa = _classificacao("r1")
-    proativa = _classificacao("p1", natureza=Natureza.PROATIVA, natureza_final=Natureza.PROATIVA)
-    _gravar(banco, reativa, frente="r1")
-    _gravar(banco, proativa, frente="p1")
+    reativo = _classificacao("r1")
+    proativo = _classificacao("p1", natureza=Natureza.PROATIVO, natureza_final=Natureza.PROATIVO)
+    _gravar(banco, reativo, evento="r1")
+    _gravar(banco, proativo, evento="p1")
 
     r = _pagina(http, "r1")
     p = _pagina(http, "p1")
@@ -347,7 +347,7 @@ def test_dimensao_que_nao_vale_para_a_natureza_fica_apagada(banco: Path, http: T
 
 def test_marcas_urgente_causa_incerta_e_sem_problema(banco: Path, http: TestClient) -> None:
     c = _classificacao("m1", urgencia=0.8, conf_causa=0.1, conf_problema=0.3)
-    _gravar(banco, c, frente="m1")
+    _gravar(banco, c, evento="m1")
 
     html = _pagina(http, "m1")
 
@@ -363,25 +363,25 @@ def test_marcas_urgente_causa_incerta_e_sem_problema(banco: Path, http: TestClie
 def test_seletor_de_versao_troca_a_classificacao_mostrada(banco: Path, http: TestClient) -> None:
     v1 = _classificacao("v1", versao=1, area_final="ops", time_final="ops-suporte")
     v2 = _classificacao("v1", versao=2)
-    _gravar(banco, v1, v2, frente="v1")
+    _gravar(banco, v1, v2, evento="v1")
 
     padrao = _pagina(http, "v1")
     antiga = _pagina(http, "v1", "?versao=1")
 
     assert "Plataforma › Infraestrutura" in _linha(padrao, "Área")
     assert "Operações v1 › Suporte" in _linha(antiga, "Área")  # o nome vem da versão pedida
-    assert 'href="/frentes/v1?versao=1"' in padrao and 'href="/frentes/v1?versao=2"' in padrao
+    assert 'href="/eventos/v1?versao=1"' in padrao and 'href="/eventos/v1?versao=2"' in padrao
     assert "na v2 (vigente)" in padrao
     assert re.search(r'aria-current="true">na v1', antiga)
     assert "versao=3" not in padrao  # a versão sem ativação não é oferecida
     assert "/?visao=dor" in antiga and "versao=1" in antiga.split("Conta em")[1]
     link = re.search(r'Conta em\s*<a href="([^"]+)"', padrao).group(1)
-    assert link.startswith("/?") and "area=" not in link and "tipo=" not in link
+    assert link.startswith("/?") and "area=" not in link and "frente=" not in link
     assert "versao=2" in link
 
 
-def test_frente_sem_classificacao_numa_versao_antiga(banco: Path, http: TestClient) -> None:
-    _gravar(banco, _classificacao("v2", versao=2), frente="v2")
+def test_evento_sem_classificacao_numa_versao_antiga(banco: Path, http: TestClient) -> None:
+    _gravar(banco, _classificacao("v2", versao=2), evento="v2")
 
     html = _pagina(http, "v2", "?versao=1")
 
@@ -394,10 +394,10 @@ def test_frente_sem_classificacao_numa_versao_antiga(banco: Path, http: TestClie
 
 def test_metadados_aparecem_e_endereçamento_nao(banco: Path, http: TestClient) -> None:
     meta = '{"host": "srv-01", "linhas": ["a", "b"]}'
-    _gravar(banco, _classificacao("e1"), frente="e1", metadados=meta)
+    _gravar(banco, _classificacao("e1"), evento="e1", metadados=meta)
     con = store.abrir(banco)
     con.execute(
-        "INSERT INTO enderecamento (area, tipo, visao, decidido_em, texto, tipo_solucao,"
+        "INSERT INTO enderecamento (area, frente, visao, decidido_em, texto, tipo_solucao,"
         " procedencia, ativo) VALUES ('plat', 'incidente', 'dor', '2026-09-01T00:00:00Z',"
         " 'comprar capacidade', 'pessoas', 'tela', 1)"
     )
@@ -413,14 +413,14 @@ def test_metadados_aparecem_e_endereçamento_nao(banco: Path, http: TestClient) 
 
 
 def test_sem_metadados_nao_ha_o_bloco(banco: Path, http: TestClient) -> None:
-    _gravar(banco, _classificacao("e2"), frente="e2")
+    _gravar(banco, _classificacao("e2"), evento="e2")
 
     assert "metadados" not in _pagina(http, "e2")
 
 
 def test_complemento_vem_separado_do_original(banco: Path, http: TestClient) -> None:
     con = store.abrir(banco)
-    _frente(
+    _evento(
         con, "c1", complemento="É o serviço de cobrança", complementado_em="2026-10-01T10:00:00Z"
     )
     con.commit()
@@ -439,7 +439,7 @@ def test_complemento_vem_separado_do_original(banco: Path, http: TestClient) -> 
 def test_tudo_o_que_vem_do_banco_e_escapado(banco: Path, http: TestClient) -> None:
     ruim = "<script>alert(1)</script>"
     _gravar(
-        banco, _classificacao("x1", causa_raiz="<img src=x>"), frente="x1",
+        banco, _classificacao("x1", causa_raiz="<img src=x>"), evento="x1",
         texto=ruim, emissor=ruim, ref_externa=ruim, metadados='{"k": "<b>negrito</b>"}',
     )  # fmt: skip
 
@@ -451,35 +451,35 @@ def test_tudo_o_que_vem_do_banco_e_escapado(banco: Path, http: TestClient) -> No
 
 def test_id_com_caracteres_especiais_nao_quebra_o_link(banco: Path, http: TestClient) -> None:
     con = store.abrir(banco)
-    _frente(con, 'a"b c')
+    _evento(con, 'a"b c')
     con.commit()
     con.close()
 
-    html = http.get("/frentes/a%22b%20c").text
+    html = http.get("/eventos/a%22b%20c").text
 
-    assert 'href="/frentes/a%22b%20c?versao=1"' in html
+    assert 'href="/eventos/a%22b%20c?versao=1"' in html
 
 
-def test_frente_inexistente_e_404(http: TestClient) -> None:
-    assert http.get("/frentes/nao-existe").status_code == 404
+def test_evento_inexistente_e_404(http: TestClient) -> None:
+    assert http.get("/eventos/nao-existe").status_code == 404
 
 
 @pytest.mark.parametrize(
     "query", ["?versao=3", "?versao=9", "?versao=0", "?versao=abc", "?versao=-1"]
 )
 def test_versao_invalida_ou_nao_ativada_e_4xx(banco: Path, http: TestClient, query: str) -> None:
-    _gravar(banco, frente="q1")
+    _gravar(banco, evento="q1")
 
-    assert 400 <= http.get(f"/frentes/q1{query}").status_code < 500
+    assert 400 <= http.get(f"/eventos/q1{query}").status_code < 500
 
 
-def test_sem_versao_ativada_a_frente_aparece_sem_classificacao(tmp_path: Path) -> None:
+def test_sem_versao_ativada_o_evento_aparece_sem_classificacao(tmp_path: Path) -> None:
     caminho = tmp_path / "vazio.db"
     con = store.abrir(caminho)
-    _frente(con, "z1")
+    _evento(con, "z1")
     con.commit()
     con.close()
-    cliente = TestClient(criar_app(config.carregar({"FRENTES_DB": str(caminho)})))
+    cliente = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)})))
 
     html = _pagina(cliente, "z1")
 
@@ -487,20 +487,20 @@ def test_sem_versao_ativada_a_frente_aparece_sem_classificacao(tmp_path: Path) -
 
 
 def test_sem_banco_responde_503(tmp_path: Path) -> None:
-    cliente = TestClient(criar_app(config.carregar({"FRENTES_DB": str(tmp_path / "nada.db")})))
+    cliente = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nada.db")})))
 
-    resposta = cliente.get("/frentes/f1")
+    resposta = cliente.get("/eventos/f1")
 
     assert resposta.status_code == 503 and "Ainda não há banco" in resposta.text
 
 
 def test_htmx_recebe_so_o_miolo_e_o_endereco_direto_a_pagina(banco: Path, http: TestClient) -> None:
-    _gravar(banco, _classificacao("h1"), frente="h1")
+    _gravar(banco, _classificacao("h1"), evento="h1")
 
-    parcial = http.get("/frentes/h1", headers={"HX-Request": "true"})
-    inteira = http.get("/frentes/h1")
+    parcial = http.get("/eventos/h1", headers={"HX-Request": "true"})
+    inteira = http.get("/eventos/h1")
     cabecalhos = {"HX-Request": "true", "HX-History-Restore-Request": "true"}
-    voltar = http.get("/frentes/h1", headers=cabecalhos)
+    voltar = http.get("/eventos/h1", headers=cabecalhos)
 
     assert parcial.text.lstrip().startswith('<article id="detalhe"')
     assert "<html" not in parcial.text
@@ -509,31 +509,31 @@ def test_htmx_recebe_so_o_miolo_e_o_endereco_direto_a_pagina(banco: Path, http: 
     assert parcial.headers["Vary"] == "HX-Request"
 
 
-def test_relatar_nao_e_capturada_pela_rota_da_frente(banco: Path, tmp_path: Path) -> None:
+def test_relatar_nao_e_capturada_pela_rota_do_evento(banco: Path, tmp_path: Path) -> None:
     """A tela de relatar mora noutra pasta, que vem depois de `detalhe` na ordem alfabética."""
     rotas = (
         "from fastapi import APIRouter\n"
         "roteador = APIRouter()\n"
-        '@roteador.get("/frentes/relatar")\n'
+        '@roteador.get("/eventos/relatar")\n'
         'def relatar() -> dict:\n    return {"tela": "relatar"}\n'
     )
-    with encaixado(frentes.web, tmp_path, {"relatar/__init__.py": "", "relatar/rotas.py": rotas}):
-        cliente = TestClient(criar_app(config.carregar({"FRENTES_DB": str(banco)})))
-        resposta = cliente.get("/frentes/relatar")
+    with encaixado(eventos.web, tmp_path, {"relatar/__init__.py": "", "relatar/rotas.py": rotas}):
+        cliente = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(banco)})))
+        resposta = cliente.get("/eventos/relatar")
 
     assert resposta.json() == {"tela": "relatar"}
 
 
 def test_chave_que_a_versao_nao_conhece_aparece_como_veio(banco: Path, http: TestClient) -> None:
-    _gravar(banco, _classificacao("k1", causa_raiz="causa-antiga"), frente="k1")
+    _gravar(banco, _classificacao("k1", causa_raiz="causa-antiga"), evento="k1")
 
     assert "causa-antiga" in _linha(_pagina(http, "k1"), "Causa raiz")
 
 
-def test_o_link_da_celula_usa_o_menor_periodo_da_frente(banco: Path, http: TestClient) -> None:
+def test_o_link_da_celula_usa_o_menor_periodo_do_evento(banco: Path, http: TestClient) -> None:
     antiga = contratos.para_iso(contratos.agora() - timedelta(days=200))
-    _gravar(banco, _classificacao("l1"), frente="l1", ocorrido_em=antiga, recebido_em=antiga)
-    _gravar(banco, _classificacao("l2"), frente="l2")  # há 5 dias
+    _gravar(banco, _classificacao("l1"), evento="l1", ocorrido_em=antiga, recebido_em=antiga)
+    _gravar(banco, _classificacao("l2"), evento="l2")  # há 5 dias
 
     assert "periodo=12m" in _pagina(http, "l1")
     assert "periodo=30d" in _pagina(http, "l2")
@@ -541,7 +541,7 @@ def test_o_link_da_celula_usa_o_menor_periodo_da_frente(banco: Path, http: TestC
 
 def test_natureza_nula_aparece_como_ausente(banco: Path, http: TestClient) -> None:
     c = _classificacao("n1", natureza=None, natureza_final=None)
-    _gravar(banco, c, frente="n1")
+    _gravar(banco, c, evento="n1")
 
     html = _pagina(http, "n1")
 
@@ -563,7 +563,7 @@ def test_nomes_da_taxonomia_com_html_sao_escapados(banco: Path, http: TestClient
     _versao(con, 4, documento, ativada=True)
     con.commit()
     con.close()
-    _gravar(banco, _classificacao("t1", versao=4), frente="t1")
+    _gravar(banco, _classificacao("t1", versao=4), evento="t1")
 
     html = _pagina(http, "t1")
 
@@ -571,9 +571,9 @@ def test_nomes_da_taxonomia_com_html_sao_escapados(banco: Path, http: TestClient
 
 
 def test_gabarito_gravado_nao_aparece(banco: Path, http: TestClient) -> None:
-    _gravar(banco, _classificacao("g1"), frente="g1")
+    _gravar(banco, _classificacao("g1"), evento="g1")
     con = store.abrir(banco)
-    con.execute("INSERT INTO gabarito (frente_id, historia_id) VALUES ('g1', 'historia-secreta')")
+    con.execute("INSERT INTO gabarito (evento_id, historia_id) VALUES ('g1', 'historia-secreta')")
     con.commit()
     con.close()
 
@@ -581,10 +581,10 @@ def test_gabarito_gravado_nao_aparece(banco: Path, http: TestClient) -> None:
 
 
 def test_conteudo_da_llm_que_nao_e_objeto_nao_derruba_a_tela(banco: Path, http: TestClient) -> None:
-    _gravar(banco, _classificacao("o1"), frente="o1")
+    _gravar(banco, _classificacao("o1"), evento="o1")
     con = store.abrir(banco)  # o store só grava objeto: o JSON torto entra direto
     con.execute(
-        "UPDATE classificacao SET resposta_llm = ? WHERE frente_id = 'o1'",
+        "UPDATE classificacao SET resposta_llm = ? WHERE evento_id = 'o1'",
         (
             '{"modelo": "deepseek/x", "conteudo": ["area"], "uso": '
             '{"tokens_entrada": 1, "tokens_saida": 1, "latencia_ms": 1}}',
@@ -599,26 +599,26 @@ def test_conteudo_da_llm_que_nao_e_objeto_nao_derruba_a_tela(banco: Path, http: 
 
 
 def test_id_longo_demais_e_422(http: TestClient) -> None:
-    assert http.get("/frentes/" + "a" * 201).status_code == 422
+    assert http.get("/eventos/" + "a" * 201).status_code == 422
 
 
 def test_versao_pulada_nao_e_oferecida_nem_aberta(tmp_path: Path) -> None:
     # a v2 ficou sem ativação entre a v1 e a v3, ambas ativadas: o seletor não a mostra
-    caminho = tmp_path / "frentes.db"
+    caminho = tmp_path / "eventos.db"
     con = store.abrir(caminho)
     _versao(con, 1, _documento(" v1"))
     _versao(con, 2, _documento(), ativada=False)
     _versao(con, 3, _documento(" v3"))
-    _frente(con, "p1")
+    _evento(con, "p1")
     con.commit()
     con.close()
-    http = TestClient(criar_app(config.carregar({"FRENTES_DB": str(caminho)})))
+    http = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)})))
 
     html = _pagina(http, "p1")
 
-    assert 'href="/frentes/p1?versao=1"' in html and 'href="/frentes/p1?versao=3"' in html
+    assert 'href="/eventos/p1?versao=1"' in html and 'href="/eventos/p1?versao=3"' in html
     assert "versao=2" not in html
-    assert http.get("/frentes/p1?versao=2").status_code == 404
+    assert http.get("/eventos/p1?versao=2").status_code == 404
 
 
 # --------------------------------------------------------------------------- área escolhida
@@ -640,7 +640,7 @@ def _escolha(html: str) -> str:
 def test_card_da_area_mostra_as_probabilidades_por_time_com_a_escolhida_em_negrito(
     banco: Path, http: TestClient
 ) -> None:
-    _gravar(banco, _classificacao("a1"), frente="a1")
+    _gravar(banco, _classificacao("a1"), evento="a1")
 
     card = _escolha(_pagina(http, "a1"))
 
@@ -653,19 +653,19 @@ def test_card_da_area_mostra_as_probabilidades_por_time_com_a_escolhida_em_negri
 
 def test_relato_cruzado_diz_de_quem_e_o_objeto(banco: Path, http: TestClient) -> None:
     _emissor(banco, "e-ops", "Ana", "ops-suporte")
-    _gravar(banco, _classificacao("a2"), frente="a2")  # o dono é plat-infra; Ana é de ops
+    _gravar(banco, _classificacao("a2"), evento="a2")  # o dono é plat-infra; Ana é de ops
 
     card = _escolha(_pagina(http, "a2"))
 
     assert (
-        "Relato cruzado: quem relata é do time Suporte, mas o objeto de que a frente fala é do "
+        "Relato cruzado: quem relata é do time Suporte, mas o objeto de que o evento fala é do "
         "time Infraestrutura. Vale o dono: a área é Plataforma." in card
     )
 
 
 def test_relato_cruzado_na_mesma_area_nao_troca_de_area(banco: Path, http: TestClient) -> None:
     _emissor(banco, "e-dados", "Ana", "plat-dados")
-    _gravar(banco, _classificacao("a3"), frente="a3")
+    _gravar(banco, _classificacao("a3"), evento="a3")
 
     card = _escolha(_pagina(http, "a3"))
 
@@ -675,7 +675,7 @@ def test_relato_cruzado_na_mesma_area_nao_troca_de_area(banco: Path, http: TestC
 
 def test_quem_relata_do_mesmo_time_do_dono_nao_e_cruzado(banco: Path, http: TestClient) -> None:
     _emissor(banco, "e-infra", "Ana", "plat-infra")
-    _gravar(banco, _classificacao("a4"), frente="a4")
+    _gravar(banco, _classificacao("a4"), evento="a4")
 
     assert "Relato cruzado" not in _pagina(http, "a4")
 
@@ -685,7 +685,7 @@ def test_emissor_com_nome_repetido_em_times_diferentes_nao_decide(
 ) -> None:
     _emissor(banco, "e-1", "Ana", "ops-suporte")
     _emissor(banco, "e-2", "Ana", "plat-dados")
-    _gravar(banco, _classificacao("a5"), frente="a5")
+    _gravar(banco, _classificacao("a5"), evento="a5")
 
     assert "Relato cruzado" not in _pagina(http, "a5")
 
@@ -695,7 +695,7 @@ def test_card_da_area_na_via_llm_destaca_o_time_da_llm(banco: Path, http: TestCl
         "a6", estado=Estado.VIA_LLM, area_final="ops", time_final="ops-suporte",
         resposta_llm=RespostaLlm("deepseek/x", {"area": "ops"}, Uso(1, 1, 1)),
     )  # fmt: skip
-    _gravar(banco, c, frente="a6")
+    _gravar(banco, c, evento="a6")
 
     card = _escolha(_pagina(http, "a6"))
 
@@ -709,9 +709,9 @@ def test_card_da_area_destaca_nenhum_destes_quando_a_llm_confirma(
     jev = _jev(**{Pergunta.AREA: _lista(NENHUM_DESTES, 0.6, probs)})
     c = _classificacao(
         "a7", resposta_jev=jev, estado=Estado.NAO_CLASSIFICADA, area_final=None, time_final=None,
-        tipo_final=None, subtipo_final=None,
+        frente_final=None, subfrente_final=None,
     )  # fmt: skip
-    _gravar(banco, c, frente="a7")
+    _gravar(banco, c, evento="a7")
 
     card = _escolha(_pagina(http, "a7"))
 
@@ -722,7 +722,7 @@ def test_card_da_area_destaca_nenhum_destes_quando_a_llm_confirma(
 def test_card_da_area_limita_as_barras_e_conta_o_resto(banco: Path, http: TestClient) -> None:
     probs = {f"t{i}": 0.1 for i in range(8)} | {"plat-infra": 0.15, "ops-suporte": 0.001}
     jev = _jev(**{Pergunta.AREA: _lista("plat-infra", 0.9, probs)})
-    _gravar(banco, _classificacao("a8", resposta_jev=jev), frente="a8")
+    _gravar(banco, _classificacao("a8", resposta_jev=jev), evento="a8")
 
     card = _escolha(_pagina(http, "a8"))
 
@@ -737,7 +737,7 @@ def test_time_escolhido_com_menos_de_1_porcento_continua_na_lista(
     probs = {"ops-suporte": 0.004, "plat-dados": 0.9}
     jev = _jev(**{Pergunta.AREA: _lista("ops-suporte", 0.9, probs)})
     c = _classificacao("a9", resposta_jev=jev, area_final="ops", time_final="ops-suporte")
-    _gravar(banco, c, frente="a9")
+    _gravar(banco, c, evento="a9")
 
     card = _escolha(_pagina(http, "a9"))
 
@@ -748,7 +748,7 @@ def test_sem_resposta_de_area_nao_ha_o_card(banco: Path, http: TestClient) -> No
     respostas = dict(_jev().respostas)
     del respostas[Pergunta.AREA]
     jev = RespostaJev("jev-1.13.0", respostas, Uso(1, 1, 1))
-    _gravar(banco, _classificacao("b1", resposta_jev=jev), frente="b1")
+    _gravar(banco, _classificacao("b1", resposta_jev=jev), evento="b1")
 
     html = _pagina(http, "b1")
 
@@ -756,7 +756,7 @@ def test_sem_resposta_de_area_nao_ha_o_card(banco: Path, http: TestClient) -> No
 
 
 def test_sem_classificacao_nao_ha_o_card(banco: Path, http: TestClient) -> None:
-    _gravar(banco, frente="b2")
+    _gravar(banco, evento="b2")
 
     assert "Como a área foi escolhida" not in _pagina(http, "b2")
 
@@ -766,7 +766,7 @@ def test_card_da_area_escapa_nome_de_time_e_chave_desconhecida(
 ) -> None:
     jev = _jev(**{Pergunta.AREA: _lista("<i>x</i>", 0.9, {"<i>x</i>": 0.9, "plat-infra": 0.1})})
     c = _classificacao("b3", resposta_jev=jev, time_final="<i>x</i>")
-    _gravar(banco, c, frente="b3")
+    _gravar(banco, c, evento="b3")
 
     html = _pagina(http, "b3")
 
@@ -783,7 +783,7 @@ def _caminho(html: str) -> list[tuple[str, str]]:
 
 
 def test_caminho_da_classificada_vai_ate_o_mapa(banco: Path, http: TestClient) -> None:
-    _gravar(banco, _classificacao("c2"), frente="c2")
+    _gravar(banco, _classificacao("c2"), evento="c2")
 
     assert _caminho(_pagina(http, "c2")) == [
         ("feito", "Ocorreu"), ("feito", "Recebida"), ("feito", "Classificação do Jev"),
@@ -796,24 +796,24 @@ def test_caminho_da_via_llm_mostra_o_desempate(banco: Path, http: TestClient) ->
     c = _classificacao(
         "c3", estado=Estado.VIA_LLM, area_final="ops", time_final="ops-suporte", resposta_llm=llm
     )
-    _gravar(banco, c, frente="c3")
+    _gravar(banco, c, evento="c3")
 
     assert ("feito", "Desempate da LLM") in _caminho(_pagina(http, "c3"))
 
 
 def test_caminho_da_incerta_nao_pinta_o_mapa(banco: Path, http: TestClient) -> None:
     c = _classificacao("c4", estado=Estado.INCERTA, motivo=MotivoIncerta.CONFIANCA_BAIXA)
-    _gravar(banco, c, frente="c4")
+    _gravar(banco, c, evento="c4")
 
     assert _caminho(_pagina(http, "c4"))[-1] == ("pulado", "Pinta o mapa")
 
 
 def test_caminho_aguardando_o_desempate(banco: Path, http: TestClient) -> None:
     c = _classificacao(
-        "c5", estado=Estado.AGUARDANDO_LLM, area_final=None, time_final=None, tipo_final=None,
-        subtipo_final=None, natureza_final=None,
+        "c5", estado=Estado.AGUARDANDO_LLM, area_final=None, time_final=None, frente_final=None,
+        subfrente_final=None, natureza_final=None,
     )  # fmt: skip
-    _gravar(banco, c, frente="c5")
+    _gravar(banco, c, evento="c5")
 
     html = _pagina(http, "c5")
 
@@ -822,7 +822,7 @@ def test_caminho_aguardando_o_desempate(banco: Path, http: TestClient) -> None:
 
 
 def test_caminho_sem_classificacao_espera_o_jev(banco: Path, http: TestClient) -> None:
-    _gravar(banco, frente="c6")
+    _gravar(banco, evento="c6")
 
     assert _caminho(_pagina(http, "c6")) == [
         ("feito", "Ocorreu"), ("feito", "Recebida"), ("pendente", "Classificação do Jev"),
@@ -837,8 +837,8 @@ def test_barra_da_pergunta_de_controle_marca_o_corte_e_fica_ambar_abaixo_dele(
     abaixo = _classificacao(
         "d2", controle=0.32, estado=Estado.INCERTA, motivo=MotivoIncerta.TEXTO_VAGO
     )
-    _gravar(banco, acima, frente="d1")
-    _gravar(banco, abaixo, frente="d2")
+    _gravar(banco, acima, evento="d1")
+    _gravar(banco, abaixo, evento="d2")
 
     a = _pagina(http, "d1")
     b = _pagina(http, "d2")
@@ -853,7 +853,7 @@ def test_cabecalho_volta_para_a_celula_e_a_via_llm_e_um_selo(banco: Path, http: 
     c = _classificacao(
         "d3", estado=Estado.VIA_LLM, area_final="ops", time_final="ops-suporte", resposta_llm=llm
     )
-    _gravar(banco, c, frente="d3")
+    _gravar(banco, c, evento="d3")
 
     html = _pagina(http, "d3")
 
@@ -871,62 +871,62 @@ def _selos(html: str) -> list[str]:
     return re.findall(r"<li class=\"badge[^\"]*\">([^<]+)</li>", topo)
 
 
-def _frentes_do_problema(banco: Path, dias: list[int], **campos) -> None:
+def _eventos_do_problema(banco: Path, dias: list[int], **campos) -> None:
     for i, atras in enumerate(dias):
         quando = contratos.para_iso(contratos.agora() - timedelta(days=atras))
         _gravar(
             banco,
             _classificacao(f"r{i}", **campos),
-            frente=f"r{i}",
+            evento=f"r{i}",
             ocorrido_em=quando,
             recebido_em=quando,
         )
 
 
 def test_selo_de_natureza_vem_da_classificacao(banco: Path, http: TestClient) -> None:
-    _gravar(banco, _classificacao("s1"), frente="s1")
+    _gravar(banco, _classificacao("s1"), evento="s1")
     _gravar(
         banco,
-        _classificacao("s2", natureza=Natureza.PROATIVA, natureza_final=Natureza.PROATIVA),
-        frente="s2",
+        _classificacao("s2", natureza=Natureza.PROATIVO, natureza_final=Natureza.PROATIVO),
+        evento="s2",
     )
 
-    assert _selos(_pagina(http, "s1")) == ["Reativa", "ao vivo"]
-    assert _selos(_pagina(http, "s2")) == ["Proativa", "ao vivo"]
+    assert _selos(_pagina(http, "s1")) == ["Reativo", "ao vivo"]
+    assert _selos(_pagina(http, "s2")) == ["Proativo", "ao vivo"]
 
 
 def test_natureza_nula_nao_leva_selo_de_natureza(banco: Path, http: TestClient) -> None:
-    _gravar(banco, _classificacao("s3", natureza=None, natureza_final=None), frente="s3")
+    _gravar(banco, _classificacao("s3", natureza=None, natureza_final=None), evento="s3")
 
     selos = _selos(_pagina(http, "s3"))
 
-    assert "Reativa" not in selos and "Proativa" not in selos
+    assert "Reativo" not in selos and "Proativo" not in selos
 
 
 def test_selo_de_problema_recorrente_com_tres_dias_distintos(banco: Path, http: TestClient) -> None:
-    _frentes_do_problema(banco, [4, 8, 12])
+    _eventos_do_problema(banco, [4, 8, 12])
 
     assert "problema recorrente" in _selos(_pagina(http, "r0"))
 
 
 def test_dois_dias_distintos_nao_e_recorrente(banco: Path, http: TestClient) -> None:
-    _frentes_do_problema(banco, [4, 8])
+    _eventos_do_problema(banco, [4, 8])
 
     assert "problema recorrente" not in _selos(_pagina(http, "r0"))
 
 
 def test_problema_sem_confianca_nao_leva_selo_de_recorrente(banco: Path, http: TestClient) -> None:
-    _frentes_do_problema(banco, [4, 8, 12], conf_problema=0.1)
+    _eventos_do_problema(banco, [4, 8, 12], conf_problema=0.1)
 
     assert "problema recorrente" not in _selos(_pagina(http, "r0"))
 
 
 def test_incerta_nao_leva_selo_de_recorrente(banco: Path, http: TestClient) -> None:
-    _frentes_do_problema(banco, [4, 8, 12])
+    _eventos_do_problema(banco, [4, 8, 12])
     _gravar(
         banco,
         _classificacao("ri", estado=Estado.INCERTA, motivo=MotivoIncerta.LLM_SEM_ESCOLHA),
-        frente="ri",
+        evento="ri",
     )
 
     assert "problema recorrente" not in _selos(_pagina(http, "ri"))

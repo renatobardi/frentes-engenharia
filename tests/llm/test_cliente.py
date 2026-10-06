@@ -7,9 +7,9 @@ from collections.abc import Callable
 import httpx
 import pytest
 
-from frentes import config
-from frentes.contratos import ClienteLlm, RespostaLlm
-from frentes.llm import ClienteOpenRouter, ErroLlm, ErroLlmEsgotado, ErroSemChave
+from eventos import config
+from eventos.contratos import ClienteLlm, RespostaLlm
+from eventos.llm import ClienteOpenRouter, ErroLlm, ErroLlmEsgotado, ErroSemChave
 
 CHAVE = "chave-falsa-de-teste"
 OPERACAO = config.carregar({}).operacao
@@ -56,7 +56,7 @@ def montar(
 
 
 def completar(cliente: ClienteOpenRouter) -> RespostaLlm:
-    return asyncio.run(cliente.completar("responda em JSON", "texto da frente"))
+    return asyncio.run(cliente.completar("responda em JSON", "texto do evento"))
 
 
 def test_sucesso_devolve_json_modelo_e_uso() -> None:
@@ -119,7 +119,7 @@ def test_pedido_leva_modelo_sem_raciocinio_tempo_limite_e_chave() -> None:
     assert corpo["reasoning"] == {"enabled": False}
     assert corpo["messages"] == [
         {"role": "system", "content": "responda em JSON"},
-        {"role": "user", "content": "texto da frente"},
+        {"role": "user", "content": "texto do evento"},
     ]
     assert pedido.headers["Authorization"] == f"Bearer {CHAVE}"
     assert pedido.extensions["timeout"]["read"] == 30.0

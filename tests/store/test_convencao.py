@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from frentes import store
+from eventos import store
 
 
 def test_init_do_store_nao_cita_os_arquivos_das_entidades() -> None:
