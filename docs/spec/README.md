@@ -23,7 +23,7 @@ A spec consolidada das 17 resoluções do [mapa](https://github.com/renatobardi/
 | [07-enderecamento.md](07-enderecamento.md) | a marca na célula, o plantado da H3 | `eventos/enderecamento/` |
 | [08-seed-e-gabarito.md](08-seed-e-gabarito.md) | histórias, fundo, relato cruzado, geração, gabarito, conferência da área | `eventos/seed/`, `seed/`, `eventos/conferencia/` |
 | [09-snapshot.md](09-snapshot.md) | conteúdo, formato, carga e deslocamento de datas | `eventos/snapshot/`, `data/snapshot/` |
-| [10-telas.md](10-telas.md) | as cinco telas, o menu, o efeito ao vivo | `eventos/web/` |
+| [10-telas.md](10-telas.md) | as sete telas, o menu, a busca, o tema escuro, o efeito ao vivo | `eventos/web/` |
 | [11-demo-e-roteiro.md](11-demo-e-roteiro.md) | o pedido, o roteiro, os riscos e o plano B | — (ensaio) |
 | [12-operacao-e-deploy.md](12-operacao-e-deploy.md) | stack, pastas, segundo plano, comandos, segredos, gates, host, deploy | `eventos/fila.py`, `eventos/config.py`, `scripts/` |
 

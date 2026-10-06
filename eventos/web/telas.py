@@ -29,14 +29,24 @@ TEMPLATES = PASTA / "templates"
 ESTATICOS = PASTA / "static"
 
 # O menu da barra lateral (10-telas). O botão "Relatar um evento" é o destaque e vem à parte.
+# Só aparece o item cuja rota a app serve: Decisões (#117) e Saúde (#118) entram no menu
+# quando a tela delas existir, sem editar este arquivo.
 MENU = (
     ("Mapa de calor", "/"),
     ("Eventos", "/eventos"),
     ("Taxonomia", "/taxonomia"),
+    ("Decisões", "/decisoes"),
+    ("Saúde", "/saude"),
 )
 RELATAR = ("Relatar um evento", "/eventos/relatar")
 # O ícone (de `_icones.html`) de cada item do menu, pelo destino.
-ICONES_DO_MENU = {"/": "grid-3x3", "/eventos": "list", "/taxonomia": "layers"}
+ICONES_DO_MENU = {
+    "/": "grid-3x3",
+    "/eventos": "list",
+    "/taxonomia": "layers",
+    "/decisoes": "circle-check",
+    "/saude": "activity",
+}
 
 
 def descobrir() -> list[tuple[ModuleType, APIRouter]]:
@@ -62,6 +72,10 @@ def montar(app: FastAPI) -> None:
         autoescape=select_autoescape(["html"]),
     )
     app.state.templates = Jinja2Templates(env=ambiente)
+    # Os caminhos que as telas servem: é o que decide que item de `MENU` aparece.
+    app.state.caminhos = frozenset(
+        getattr(rota, "path", None) for _, roteador in telas for rota in roteador.routes
+    )
     for _, roteador in telas:
         app.include_router(roteador)
 
@@ -75,6 +89,7 @@ def renderizar(
     template chamar: fragmentos do HTMX, que não estendem `base.html`, não pagam por isso.
     `trilho` é a barra lateral estreita: o padrão no mapa, e `?menu=aberto` / `?menu=trilho`
     escolhem à mão (a escolha vive no endereço, sem JS).
+    O menu leva só os itens de `MENU` cuja rota a app serve.
     """
     menu = request.query_params.get("menu")
     trilho = menu == "trilho" or (menu != "aberto" and request.url.path == "/")
@@ -82,7 +97,7 @@ def renderizar(
     alternar = urlencode([*outros, ("menu", "aberto" if trilho else "trilho")])
     base = {
         "alternar_menu": f"{request.url.path}?{alternar}",
-        "menu": MENU,
+        "menu": tuple(item for item in MENU if item[1] in request.app.state.caminhos),
         "relatar": RELATAR,
         "icones_do_menu": ICONES_DO_MENU,
         "caminho": request.url.path,

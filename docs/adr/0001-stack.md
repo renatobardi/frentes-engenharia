@@ -16,7 +16,7 @@ Uma linguagem, um processo, um arquivo de banco, um container.
 |---|---|---|
 | 1 | Linguagem | Python 3.12, com `uv` |
 | 2 | Backend | FastAPI + uvicorn, **um processo e um worker**. Dependências de execução: `fastapi`, `uvicorn`, `jinja2`, `httpx`, `python-multipart`. Sem ORM e sem SDK de LLM |
-| 3 | Front | HTML renderizado no servidor (Jinja2) + HTMX, sem build. Um CSS à mão. Tudo de `static/`, sem CDN e sem fonte web. Efeito ao vivo por polling de 2 s |
+| 3 | Front | HTML renderizado no servidor (Jinja2) + HTMX, sem build. Um CSS à mão. Tudo de `static/`, sem CDN. Uma fonte web só: a `InterVariable.woff2`, servida de `eventos/web/static/`. Efeito ao vivo por polling de 2 s |
 | 4 | Banco | SQLite, um arquivo, `sqlite3` da biblioteca padrão, modo WAL. Todo o SQL em `eventos/store/`; o esquema é o `schema.sql`. Datas em texto ISO 8601 UTC, JSON em coluna de texto. Sem migrações |
 | 5 | Processamento | Tarefas `asyncio` no processo da API. A fila é o próprio banco: evento sem classificação na versão vigente está aguardando classificação. Revisão automática desligada por configuração (`REVISAO_AUTOMATICA=0`) |
 | 6 | Linha de comando | `python -m eventos <comando>`: o mesmo pacote serve a API e os comandos |
@@ -39,3 +39,7 @@ O Jev vai pela API direta da TypeSafe (`api.typesafe.ai`) e a LLM comum pelo Ope
 - SQLite e fila em memória servem a ~6 mil eventos e um operador. Não servem ao piloto com dado real e mais de um usuário sem trocar o banco e separar o worker; o `store/` isolado é o que deixa essa troca barata.
 - Um ambiente só e deploy por aprovação: cada deploy pede a aprovação do Bardi no host.
 - As regras de dependência (só `store/` tem SQL; só `jev/` e `llm/` falam com a rede; só `config.py` lê o ambiente; só `conferencia/` lê o gabarito) estão no [`AGENTS.md`](../../AGENTS.md); as três primeiras são conferidas pelo lint.
+
+## Alterações
+
+- **2026-10-06, linha 3 (Front).** Antes: "sem CDN e sem fonte web". Agora: sem CDN, e uma fonte web só, a `InterVariable.woff2`, servida de `eventos/web/static/`. Nenhum outro arquivo de fonte e nenhuma fonte de fora. Origem: [issue #121](https://github.com/renatobardi/frentes-engenharia/issues/121), autorizada pelo Bardi como registra a [issue #145](https://github.com/renatobardi/frentes-engenharia/issues/145). Até a #121 entrar, o CSS usa a pilha de fontes do sistema.

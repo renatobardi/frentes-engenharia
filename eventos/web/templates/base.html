@@ -4,7 +4,12 @@
     trilha       a trilha (breadcrumb) do cabeçalho; o padrão é "Análise › <item do menu>"
     acoes_topo   botões à direita do cabeçalho, antes de "Relatar um evento"
     conteudo     o miolo de <main>
-    scripts      <script> extras no fim do <body> -#}
+    scripts      <script> extras no fim do <body>
+    Encaixes (10-telas, "Encaixes no layout"): o layout inclui estes fragmentos quando a pasta
+    dona existe, e segue igual sem eles:
+    tema/head.html    no <head>, depois do app.css (tema escuro, #120)
+    busca/topo.html   no cabeçalho, antes de "Relatar um evento" (busca, #119)
+    tema/topo.html    idem (o botão do tema, #120) -#}
 {% from "_icones.html" import icone %}
 {%- set r = resumo() -%}
 <!doctype html>
@@ -15,6 +20,7 @@
   <title>{% block titulo %}frentes-engenharia{% endblock %}</title>
   <link rel="stylesheet" href="/static/app.css">
   <script src="/static/htmx.min.js" defer></script>
+  {% include "tema/head.html" ignore missing %}
   {% block head %}{% endblock %}
 </head>
 <body>
@@ -58,6 +64,8 @@
         </nav>
         <div class="topo-acoes">
           {% block acoes_topo %}{% endblock %}
+          {% include "busca/topo.html" ignore missing %}
+          {% include "tema/topo.html" ignore missing %}
           <a class="btn" href="{{ relatar[1] }}">{{ icone("plus") }}{{ relatar[0] }}</a>
         </div>
       </header>
