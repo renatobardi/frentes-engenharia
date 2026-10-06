@@ -1,0 +1,41 @@
+/* A paleta da busca ⌘K (#119). Só tokens do app.css, então o tema escuro vale sem mudança. */
+.busca-botao { gap: 8px; color: var(--muted-foreground); }
+.busca-botao[hidden] { display: none; }
+.busca-atalho {
+  font: inherit; font-size: 11px; padding: 1px 6px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--muted); color: var(--muted-foreground);
+}
+.busca {
+  width: min(640px, calc(100vw - 24px)); max-height: min(70vh, 560px); margin: 12vh auto 0;
+  padding: 0; border: 0; border-radius: var(--raio-card); overflow: hidden;
+  background: var(--card); color: var(--foreground); box-shadow: var(--anel), 0 16px 48px color-mix(in oklab, var(--foreground) 22%, transparent);
+}
+.busca[open] { display: flex; flex-direction: column; }
+.busca::backdrop { background: color-mix(in oklab, var(--foreground) 28%, transparent); }
+.busca-form { flex: none; border-bottom: 1px solid var(--border); }
+.busca-campo {
+  width: 100%; height: 52px; padding: 0 20px; border: 0; background: transparent;
+  color: inherit; font: inherit; font-size: 15px;
+}
+.busca-campo:focus-visible { outline: none; box-shadow: inset 0 -2px 0 var(--ring); }
+.busca-resultados { flex: 1; overflow-y: auto; padding: 8px; min-height: 0; }
+.busca-grupo-nome {
+  margin: 8px 12px 4px; font-size: 11px; font-weight: 600; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--muted-foreground);
+}
+.busca-lista { list-style: none; margin: 0; padding: 0; }
+.busca-item {
+  display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: var(--raio);
+  color: inherit; text-decoration: none;
+}
+.busca-item:hover, .busca-item:focus-visible { background: var(--muted); outline: none; }
+.busca-item:focus-visible { box-shadow: var(--foco); }
+.busca-item-titulo { overflow-wrap: anywhere; }
+.busca-item-detalhe { font-size: 12px; color: var(--muted-foreground); }
+.busca-mais, .busca-aviso { margin: 4px 12px 8px; font-size: 12px; color: var(--muted-foreground); }
+.busca-mais a { color: inherit; text-decoration: underline; }
+.busca-rodape {
+  flex: none; margin: 0; padding: 8px 20px; font-size: 12px; color: var(--muted-foreground);
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 720px) { .busca-botao-texto, .busca-atalho { display: none; } }

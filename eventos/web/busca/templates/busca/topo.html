@@ -1,0 +1,22 @@
+{#- O botão da busca no cabeçalho, antes de "Relatar um evento" (encaixe do #119), e a paleta (um
+    <dialog>, que o navegador põe acima de tudo). Sem JavaScript o botão fica escondido (o busca.js
+    tira o `hidden`): a paleta é ⌘K ou Ctrl+K. Os resultados vêm de GET /busca, pelo HTMX. -#}
+<link rel="stylesheet" href="/static/busca.css">
+<button type="button" class="btn btn-outline busca-botao" data-busca-abrir hidden
+        title="Buscar (⌘K)" aria-label="Buscar" aria-haspopup="dialog">
+  <svg class="icone" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+  <span class="busca-botao-texto">Buscar</span>
+  <kbd class="busca-atalho" data-busca-atalho>⌘K</kbd>
+</button>
+<dialog class="busca" id="busca" aria-label="Busca">
+  <div class="busca-form" role="search">
+    <input type="search" name="q" class="busca-campo" id="busca-campo" autocomplete="off"
+           placeholder="Buscar células, eventos, problemas e ações" aria-label="Buscar"
+           aria-controls="busca-resultados" maxlength="100"
+           hx-get="/busca" hx-trigger="input changed delay:150ms, busca-abriu"
+           hx-target="#busca-resultados" hx-swap="innerHTML" hx-sync="this:replace">
+  </div>
+  <div class="busca-resultados" id="busca-resultados" aria-live="polite"></div>
+  <p class="busca-rodape">↑ ↓ para escolher · Enter abre · Esc fecha</p>
+</dialog>
+<script src="/static/busca.js" defer></script>
