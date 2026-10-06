@@ -94,10 +94,10 @@ fi
 echo "[3/5] checkout do commit"
 passo git checkout --detach "$COMPLETO"
 
-echo "[4/5] subindo o compose (FRENTES_COMMIT=$COMPLETO vai para a imagem e para o /healthz)"
+echo "[4/5] subindo o compose (EVENTOS_COMMIT=$COMPLETO vai para a imagem e para o /healthz)"
 echo "    + docker compose up -d --build"
 if [ "$DRY_RUN" -eq 0 ]; then
-  lxc exec "$LXC_NOME" --cwd "$APP_DIR" --env "FRENTES_COMMIT=$COMPLETO" -- docker compose up -d --build </dev/null
+  lxc exec "$LXC_NOME" --cwd "$APP_DIR" --env "EVENTOS_COMMIT=$COMPLETO" -- docker compose up -d --build </dev/null
 fi
 
 echo "[5/5] esperando o /healthz devolver o commit $COMPLETO (até $TENTATIVAS tentativas, $ESPERA s entre elas)"

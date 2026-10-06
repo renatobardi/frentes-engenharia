@@ -9,21 +9,21 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
-from frentes import config, fila, store
-from frentes.contratos import (
+from eventos import config, fila, store
+from eventos.contratos import (
     EstadoPainel,
-    FrenteBruta,
+    EventoBruto,
     Origem,
     Periodo,
     agora,
     para_iso,
 )
-from frentes.painel import partida
-from frentes.painel.gerador import Gerador
-from frentes.painel.refazedor import Refazedor
-from frentes.store import frente as armazem_frente
-from frentes.store import painel as armazem
-from frentes.web.app import criar_app
+from eventos.painel import partida
+from eventos.painel.gerador import Gerador
+from eventos.painel.refazedor import Refazedor
+from eventos.store import evento as armazem_evento
+from eventos.store import painel as armazem
+from eventos.web.app import criar_app
 from tests.fila.test_fila import jev
 from tests.jev.falso import JevFalso
 from tests.llm.falso import LlmFalsa
@@ -34,7 +34,7 @@ from tests.painel.apoio import (
     RelogioFalso,
     criar_banco,
     deixar_rodar,
-    frente,
+    evento,
     resposta,
 )
 
@@ -59,10 +59,10 @@ def lido(banco: Path, periodo: Periodo = Periodo.D90):
         return armazem.ler(con, 1, CELULA, periodo)
 
 
-def test_frente_classificada_pela_fila_marca_e_refaz_o_painel_da_celula(banco: Path) -> None:
+def test_evento_classificado_pela_fila_marca_e_refaz_o_painel_da_celula(banco: Path) -> None:
     with closing(store.abrir_existente(banco)) as con:
-        armazem_frente.gravar(
-            con, "n1", Origem.WEBHOOK, FrenteBruta("sistema", "texto"), para_iso(agora())
+        armazem_evento.gravar(
+            con, "n1", Origem.WEBHOOK, EventoBruto("sistema", "texto"), para_iso(agora())
         )
     llm, relogio = LlmEmOrdem(padrao=resposta()), RelogioFalso()
     refazedor = Refazedor(
@@ -86,7 +86,7 @@ def test_frente_classificada_pela_fila_marca_e_refaz_o_painel_da_celula(banco: P
 
     painel = lido(banco)
     assert painel.estado is EstadoPainel.ATUAL and painel.porque == BOM["porque"]  # type: ignore[union-attr]
-    assert painel.frentes_na_geracao == 1  # type: ignore[union-attr]
+    assert painel.eventos_na_geracao == 1  # type: ignore[union-attr]
 
 
 def test_gancho_sem_painel_na_aplicacao_nao_faz_nada(banco: Path) -> None:
@@ -98,7 +98,7 @@ def test_gancho_sem_painel_na_aplicacao_nao_faz_nada(banco: Path) -> None:
 def test_a_aplicacao_liga_o_painel_ao_subir_registra_o_gancho_e_desliga_ao_parar(
     banco: Path,
 ) -> None:
-    app = criar_app(config.carregar({"FRENTES_DB": str(banco)}))
+    app = criar_app(config.carregar({"EVENTOS_DB": str(banco)}))
 
     with TestClient(app):
         assert isinstance(app.state.painel, Refazedor)
@@ -110,11 +110,11 @@ def test_a_aplicacao_liga_o_painel_ao_subir_registra_o_gancho_e_desliga_ao_parar
 def test_ao_subir_o_painel_que_ficou_atualizando_de_uma_execucao_anterior_e_encerrado(
     banco: Path,
 ) -> None:
-    frente(banco, "2026-09-20")
+    evento(banco, "2026-09-20")
     with closing(store.abrir_existente(banco)) as con:
         armazem.marcar_atualizando(con, 1, CELULA, Periodo.D90)
         armazem.marcar_atualizando(con, 1, CELULA, Periodo.D30)
-    app = criar_app(config.carregar({"FRENTES_DB": str(banco)}))
+    app = criar_app(config.carregar({"EVENTOS_DB": str(banco)}))
 
     with TestClient(app):
         pass
@@ -128,7 +128,7 @@ def test_sem_configuracao_ou_sem_banco_a_partida_nao_falha(tmp_path: Path) -> No
     asyncio.run(partida.ao_parar(sem_config))  # type: ignore[arg-type]
     assert not hasattr(sem_config.state, "painel")
 
-    app = criar_app(config.carregar({"FRENTES_DB": str(tmp_path / "nao-existe.sqlite")}))
+    app = criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nao-existe.sqlite")}))
     with TestClient(app):
         assert isinstance(app.state.painel, Refazedor)
     assert not (tmp_path / "nao-existe.sqlite").exists()  # o painel não cria banco

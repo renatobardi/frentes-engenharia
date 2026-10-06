@@ -5,47 +5,47 @@ A oitava dimensão: como a lista de problemas sai, como o Jev atribui e o que é
 ## O que é
 
 - **Recorrência** é o mesmo **problema** voltando em dias diferentes. [R8]
-- **Episódio** (várias frentes sobre a mesma ocorrência, no mesmo dia) **não é tratado**: cada frente conta no índice, e a rajada segue esquentando a célula. [R8]
-- **A LLM nomeia, o Jev atribui.** A LLM escreve a lista (nome + descrição); o Jev responde um `choice` por frente, com "Nenhum destes". [R8] [R11]
-- **Lista única e global**, teto de ~40. Um problema pode ter frentes em várias células e nas duas naturezas. [R8]
+- **Episódio** (vários eventos sobre a mesma ocorrência, no mesmo dia) **não é tratado**: cada evento conta no índice, e a rajada segue esquentando a célula. [R8]
+- **A LLM nomeia, o Jev atribui.** A LLM escreve a lista (nome + descrição); o Jev responde um `choice` por evento, com "Nenhum destes". [R8] [R11]
+- **Lista única e global**, teto de ~40. Um problema pode ter eventos em várias células e nas duas naturezas. [R8]
 - **Só entra o que nomeia um objeto concreto da empresa** (sistema, integração, processo ou fornecedor). A mesma espécie de queixa em times diferentes não é problema. [R8]
 - Problema é a **oitava dimensão da taxonomia**, na mesma chamada ao Jev. Lista nova = versão nova, com o histórico reclassificado. **Sem gatilho próprio de revisão**: a lista é refeita em toda revisão. [R8]
-- Risco aceito: um problema novo dentro de um tipo já existente só entra na próxima revisão ou pelo botão. [R8]
+- Risco aceito: um problema novo dentro de uma frente já existente só entra na próxima revisão ou pelo botão. [R8]
 
 ## Como a lista sai
 
 Vale o processo de [R11], que substitui o de [R9].
 
-1. **Candidatos por lote**: uma chamada por lote, com as frentes de evidência de cada candidato.
-2. **Peneira**: uma chamada **por candidato**, que lê até 8 frentes de evidência, lista o objeto que cada frente cita e responde se é o mesmo. Na dúvida, não passa.
-   - **Mesmo objeto e mesmo assunto.** A peneira escreve também a queixa de cada frente e só aprova se as queixas são do mesmo assunto (a mesma dor, o mesmo pedido ou faces do mesmo defeito ou da mesma necessidade do objeto). O nome de um serviço que se repete com queixas sem relação não é problema. [C65] [C109]
-   - **Só lê candidato com 3 ou mais frentes de evidência no lote.** Com menos, o candidato não chega à peneira. [C109]
+1. **Candidatos por lote**: uma chamada por lote, com os eventos de evidência de cada candidato.
+2. **Peneira**: uma chamada **por candidato**, que lê até 8 eventos de evidência, lista o objeto que cada evento cita e responde se é o mesmo. Na dúvida, não passa.
+   - **Mesmo objeto e mesmo assunto.** A peneira escreve também a queixa de cada evento e só aprova se as queixas são do mesmo assunto (a mesma dor, o mesmo pedido ou faces do mesmo defeito ou da mesma necessidade do objeto). O nome de um serviço que se repete com queixas sem relação não é problema. [C65] [C109]
+   - **Só lê candidato com 3 ou mais eventos de evidência no lote.** Com menos, o candidato não chega à peneira. [C109]
 3. **Consolidação**: uma chamada junta os candidatos do mesmo objeto entre lotes e escreve a descrição ancorada no objeto (redação em [02](02-taxonomia-e-versoes.md)). O código garante que a descrição termina em "Não vale para o mesmo sintoma em outro sistema." e cabe no teto: se não cabe, encolhe a lista de falhas, nunca a cláusula. [C109]
-4. **Regra em código**: na v1, o problema precisa aparecer em **2 ou mais lotes**, com **3 ou mais** frentes de evidência. Na revisão, os vigentes ficam (mesmo nome, descrição e chave) e o novo precisa de **5 ou mais** frentes de evidência. Teto de 40.
+4. **Regra em código**: na v1, o problema precisa aparecer em **2 ou mais lotes**, com **3 ou mais** eventos de evidência. Na revisão, os vigentes ficam (mesmo nome, descrição e chave) e o novo precisa de **5 ou mais** eventos de evidência. Teto de 40.
 
 Medido: [R11]
 
 - Com a peneira lendo só nome e descrição, 4 problemas do fundo numa lista de 10. Com todos os candidatos numa chamada, a LLM aprovou tudo em 2 de 4 lotes (lista de 30, 24 do fundo). **Com uma chamada por candidato**, 5 ou 6 problemas e 1 do fundo, nas duas rodadas.
-- Se a peneira falha, o bloco "Problemas recorrentes" fica dominado pelo fundo (290 de 405 frentes com problema).
+- Se a peneira falha, o bloco "Problemas recorrentes" fica dominado pelo fundo (290 de 405 eventos com problema).
 - A lista ainda varia entre rodadas. A v1 é congelada no snapshot, então a construção pode gerar a lista mais de uma vez até a conferência passar.
 - Custo da lista: ~US$0,012 por rodada de 4 lotes; 80 a 140 s por chamada de candidatos.
 
 Medido com a seed inteira (12 lotes): [C65] [C109]
 
 - Só com "mesmo objeto", 282 de 362 candidatos passaram na peneira e a lista saiu com 40 problemas, cerca de 35 do fundo: cada serviço da ficha aparece em média 9 vezes nos meses 1–6 (máximo 25, o teto por item) e se repete dentro do mesmo lote.
-- Com "mesmo assunto" e candidato de 2 frentes, 70 de 362 passaram e a lista saiu com 13 problemas, 9 a 11 do fundo. Nos 12 lotes há 573 pares item × lote com 2 ou mais frentes do mesmo item do fundo, e 165 com 3 ou mais.
+- Com "mesmo assunto" e candidato de 2 eventos, 70 de 362 passaram e a lista saiu com 13 problemas, 9 a 11 do fundo. Nos 12 lotes há 573 pares item × lote com 2 ou mais eventos do mesmo item do fundo, e 165 com 3 ou mais.
 - 13 dos 14 problemas saíram sem a cláusula "Não vale…", com descrições de 125 a 410 caracteres.
 
 ## Atribuição pelo Jev
 
 - Instrução e "Nenhum destes" em [02](02-taxonomia-e-versoes.md). [R11]
-- "Nenhum destes" é a resposta normal; confiança < 0,5 deixa a frente sem problema (regras em [03](03-classificacao.md)). [R8]
-- Medido: quando a descrição nomeia o objeto, gravame 31 de 32, boletos 39 ou 40 de 40, comissão 16 de 17. Nenhuma frente de história caiu em problema de outra história. O Jev aguenta 33 opções (88 de 99 contra 90 de 99 com 6). [R11]
-- A descrição decide o falso positivo: descrito só pelo sintoma, um problema recebeu 32 frentes do fundo e 22 da história; ancorado no objeto, 22 e 3 a 5. [R11]
+- "Nenhum destes" é a resposta normal; confiança < 0,5 deixa o evento sem problema (regras em [03](03-classificacao.md)). [R8]
+- Medido: quando a descrição nomeia o objeto, gravame 31 de 32, boletos 39 ou 40 de 40, comissão 16 de 17. Nenhum evento de história caiu em problema de outra história. O Jev aguenta 33 opções (88 de 99 contra 90 de 99 com 6). [R11]
+- A descrição decide o falso positivo: descrito só pelo sintoma, um problema recebeu 32 eventos do fundo e 22 da história; ancorado no objeto, 22 e 3 a 5. [R11]
 
 ## Problema recorrente
 
-- Problema com frentes em **3 ou mais dias distintos** no período do filtro. Abaixo disso aparece sem a marca. O valor fica em configuração. [R8]
+- Problema com eventos em **3 ou mais dias distintos** no período do filtro. Abaixo disso aparece sem a marca. O valor fica em configuração. [R8]
 - O dia é o de `ocorrido_em`. [R20]
 - Na seed o corte não filtra nada (todo problema aparece em 5+ dias); serve de guarda para o uso ao vivo. [R11]
 - **Só drill-down.** Não muda a severidade, o índice de dor nem o Top 3. [R8]
@@ -53,7 +53,7 @@ Medido com a seed inteira (12 lotes): [C65] [C109]
 
 ### Bloco "Problemas recorrentes" do painel da célula
 
-Nas duas visões: nome do problema, número de frentes, em quantos dias ou meses distintos apareceu, a soma da severidade (ou do impacto esperado), as outras células onde também aparece e quantas frentes o mesmo problema tem na outra visão. A lista de problemas da célula é insumo do "por que está quente" e da sugestão. [R8]
+Nas duas visões: nome do problema, número de eventos, em quantos dias ou meses distintos apareceu, a soma da severidade (ou do impacto esperado), as outras células onde também aparece e quantos eventos o mesmo problema tem na outra visão. A lista de problemas da célula é insumo do "por que está quente" e da sugestão. [R8]
 
 ## Conferência contra o gabarito
 
@@ -63,9 +63,9 @@ Com a seed inteira classificada; cortes a recalibrar. Se falhar, muda a seed ou 
 |---|---|---|
 | histórias de H1 a H5 com problema na lista, depois da revisão | ≥ 4 de 5 | 5 · 4 · 4 |
 | problemas por história | ≤ 3 | 1 · 1 · 1 |
-| problema cuja maioria das frentes é do fundo | nenhum | 1 · 1 · 0 |
+| problema cuja maioria dos eventos é do fundo | nenhum | 1 · 1 · 0 |
 | cobertura de H1 a H5 | ≥ 70% | 78% · 68% · 72% |
-| falso positivo de outro time, sobre as frentes com problema | ≤ 5% | 1/72 · 0/58 · 4/115 |
+| falso positivo de outro time, sobre os eventos com problema | ≤ 5% | 1/72 · 0/58 · 4/115 |
 | falso positivo do mesmo time (objeto vizinho) | sem corte, só reportado | 7 · 4 · 20 |
 
 - A medição usa `historia_id`. `episodio_id` não é usado. [R8]
@@ -73,14 +73,14 @@ Com a seed inteira classificada; cortes a recalibrar. Se falhar, muda a seed ou 
 
 ## Não medido
 
-A descoberta com os ~12 lotes; a seed corrigida gerada de novo; o assistente de IA (só 12 frentes na amostra); a lista com mais de 2 rodadas; o Jev com 40 problemas de verdade. [R11]
+A descoberta com os ~12 lotes; a seed corrigida gerada de novo; o assistente de IA (só 12 eventos na amostra); a lista com mais de 2 rodadas; o Jev com 40 problemas de verdade. [R11]
 
 ## Contradições anotadas
 
 - **Como a lista sai.** [R9]: uma chamada de candidatos, uma de peneira para todos, 3 evidências. [R11]: peneira com uma chamada por candidato lendo as evidências, 2+ lotes na v1, 5+ evidências na revisão. Vale [R11].
 - **Alvo de aceite.** [R8]: cobertura ≥ 70% de H1 a H6, falso positivo ≤ 10% (sem medição). Não passou; vale a tabela de [R11], de H1 a H5.
 - **Custo.** [R8] estimou ~1,5 mil tokens a mais com 40 problemas; [R11] mediu ~3,6 mil.
-- **Peneira.** [R11] e o glossário diziam só "mesmo objeto". Com a seed inteira isso não separa problema de serviço do fundo; [C65] acrescentou "mesmo assunto" e [C109] o manteve, com o mínimo de 3 frentes por candidato. A regra em código da lista (2 ou mais lotes, 3 ou mais evidências, teto de 40) não mudou.
+- **Peneira.** [R11] e o glossário diziam só "mesmo objeto". Com a seed inteira isso não separa problema de serviço do fundo; [C65] acrescentou "mesmo assunto" e [C109] o manteve, com o mínimo de 3 eventos por candidato. A regra em código da lista (2 ou mais lotes, 3 ou mais evidências, teto de 40) não mudou.
 
 [C65]: https://github.com/renatobardi/frentes-engenharia/issues/65 "Gerar o snapshot da demo com a seed inteira"
 [C109]: https://github.com/renatobardi/frentes-engenharia/issues/109 "Segunda rodada de calibração da seed"

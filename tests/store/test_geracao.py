@@ -2,8 +2,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from frentes import store
-from frentes.contratos import (
+from eventos import store
+from eventos.contratos import (
     Dimensao,
     Geracao,
     Operacao,
@@ -11,7 +11,7 @@ from frentes.contratos import (
     TipoGeracao,
     TipoOperacao,
 )
-from frentes.store import geracao as repo
+from eventos.store import geracao as repo
 
 AGORA = datetime(2026, 10, 3, 14, 5, 9, tzinfo=UTC)
 
@@ -21,9 +21,9 @@ def con() -> store.Conexao:
     return store.abrir()
 
 
-def frente(con, id: str, recebido: str, ocorrido: str | None = None, texto: str = "t") -> None:
+def evento(con, id: str, recebido: str, ocorrido: str | None = None, texto: str = "t") -> None:
     con.execute(
-        "INSERT INTO frente (id, origem, emissor, texto, recebido_em, ocorrido_em) "
+        "INSERT INTO evento (id, origem, emissor, texto, recebido_em, ocorrido_em) "
         "VALUES (?, 'relato', 'Fulana Emissora', ?, ?, ?)",
         (id, texto, recebido, ocorrido),
     )
@@ -66,10 +66,10 @@ def test_fechar_com_versao_resultante_so_vale_para_versao_nova(con) -> None:
 
 
 def test_textos_do_periodo_so_trazem_origem_e_texto_na_janela_em_ordem(con) -> None:
-    frente(con, "b", "2026-03-01T00:00:00Z", texto="segunda")
-    frente(con, "a", "2026-09-09T00:00:00Z", ocorrido="2026-01-01T00:00:00Z", texto="primeira")
-    frente(con, "fora", "2026-09-10T00:00:00Z", texto="depois da janela")
-    frente(con, "limite", "2026-07-01T00:00:00Z", texto="no limite superior, fora")
+    evento(con, "b", "2026-03-01T00:00:00Z", texto="segunda")
+    evento(con, "a", "2026-09-09T00:00:00Z", ocorrido="2026-01-01T00:00:00Z", texto="primeira")
+    evento(con, "fora", "2026-09-10T00:00:00Z", texto="depois da janela")
+    evento(con, "limite", "2026-07-01T00:00:00Z", texto="no limite superior, fora")
 
     achadas = repo.textos_do_periodo(con, "2026-01-01T00:00:00Z", "2026-07-01T00:00:00Z")
 
@@ -77,9 +77,9 @@ def test_textos_do_periodo_so_trazem_origem_e_texto_na_janela_em_ordem(con) -> N
 
 
 def test_texto_e_o_original_sem_complemento(con) -> None:
-    frente(con, "a", "2026-01-01T00:00:00Z", texto="original")
+    evento(con, "a", "2026-01-01T00:00:00Z", texto="original")
     con.execute(
-        "UPDATE frente SET complemento = 'extra', complementado_em = '2026-01-02T00:00:00Z'"
+        "UPDATE evento SET complemento = 'extra', complementado_em = '2026-01-02T00:00:00Z'"
     )
 
     assert repo.textos_do_periodo(con, "2026-01-01T00:00:00Z", "2026-02-01T00:00:00Z") == [
@@ -89,15 +89,15 @@ def test_texto_e_o_original_sem_complemento(con) -> None:
 
 def test_primeira_data_usa_ocorrido_em_e_na_falta_recebido_em(con) -> None:
     assert repo.primeira_data(con) is None
-    frente(con, "a", "2026-05-01T00:00:00Z")
-    frente(con, "b", "2026-09-01T00:00:00Z", ocorrido="2026-02-01T00:00:00Z")
+    evento(con, "a", "2026-05-01T00:00:00Z")
+    evento(con, "b", "2026-09-01T00:00:00Z", ocorrido="2026-02-01T00:00:00Z")
     assert repo.primeira_data(con) == "2026-02-01T00:00:00Z"
 
 
 def test_as_operacoes_gravadas_voltam_na_leitura(con) -> None:
     operacao = Operacao(
-        TipoOperacao.CRIAR_SUBTIPO,
-        Dimensao.TIPO,
+        TipoOperacao.CRIAR_SUBFRENTE,
+        Dimensao.FRENTE,
         (),
         {"chave": "x", "nome": "Um"},
         ["f1", "f2"],
@@ -108,14 +108,14 @@ def test_as_operacoes_gravadas_voltam_na_leitura(con) -> None:
     repo.fechar(con, id, ResultadoGeracao.SEM_MUDANCA, operacoes=[operacao])
 
     [lida] = repo.ler(con, id).operacoes
-    assert lida.tipo is TipoOperacao.CRIAR_SUBTIPO and lida.dimensao is Dimensao.TIPO
+    assert lida.tipo is TipoOperacao.CRIAR_SUBFRENTE and lida.dimensao is Dimensao.FRENTE
     assert lida.proposta == {"chave": "x", "nome": "Um"}
-    assert list(lida.frentes_de_evidencia) == ["f1", "f2"] and lida.aplicada
+    assert list(lida.eventos_de_evidencia) == ["f1", "f2"] and lida.aplicada
     assert lida.motivo_do_descarte is None
 
 
 def test_fechar_sem_operacoes_nao_apaga_as_gravadas_ao_abrir(con) -> None:
-    operacao = Operacao(TipoOperacao.REMOVER, Dimensao.TIPO, ("x",), {}, ["f1"], aplicada=False,
+    operacao = Operacao(TipoOperacao.REMOVER, Dimensao.FRENTE, ("x",), {}, ["f1"], aplicada=False,
                         motivo_do_descarte="pouca evidência")  # fmt: skip
     id = repo.abrir(con, Geracao(TipoGeracao.DESCOBERTA, AGORA, operacoes=[operacao]))
 

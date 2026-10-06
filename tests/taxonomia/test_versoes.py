@@ -3,18 +3,18 @@ from datetime import UTC, datetime
 
 import pytest
 
-from frentes import store
-from frentes.contratos import Dimensao
-from frentes.store import versao as repo
-from frentes.taxonomia import versoes
-from frentes.taxonomia.validador import TaxonomiaInvalida
+from eventos import store
+from eventos.contratos import Dimensao
+from eventos.store import versao as repo
+from eventos.taxonomia import versoes
+from eventos.taxonomia.validador import TaxonomiaInvalida
 
 CRIADA = datetime(2026, 9, 1, 12, 0, 0, tzinfo=UTC)
 
 
-def _frente(con, id: str) -> None:
+def _evento(con, id: str) -> None:
     con.execute(
-        "INSERT INTO frente (id, origem, emissor, texto, recebido_em) "
+        "INSERT INTO evento (id, origem, emissor, texto, recebido_em) "
         "VALUES (?, 'relato', 'Ana', 'texto', '2026-09-01T00:00:00Z')",
         (id,),
     )
@@ -22,7 +22,7 @@ def _frente(con, id: str) -> None:
 
 def _classificar(con, id: str, versao: int, estado: str = "classificada") -> None:
     con.execute(
-        "INSERT INTO classificacao (frente_id, versao, resposta_jev, conf_area, conf_tipo, "
+        "INSERT INTO classificacao (evento_id, versao, resposta_jev, conf_area, conf_frente, "
         "conf_natureza, severidade, impacto, urgencia, conf_causa, conf_problema, controle, "
         "estado, tokens_entrada, tokens_saida, latencia_ms, classificada_em) "
         "VALUES (?, ?, '{}', 0, 0, 0, 0, 0, 0, 0, 0, 0, ?, 1, 1, 1, "
@@ -57,7 +57,7 @@ def test_gravar_deriva_os_valores_na_tabela(con, documento) -> None:
     por_chave = {(v.dimensao, v.chave): v for v in versoes.valores(con, 1)}
 
     assert por_chave[(Dimensao.AREA, "proposta")].chave_pai == "originacao"
-    assert por_chave[(Dimensao.TIPO, "tipo3-sub1")].chave_pai == "tipo3"
+    assert por_chave[(Dimensao.FRENTE, "frente3-sub1")].chave_pai == "frente3"
     assert all(v.versao == 1 for v in por_chave.values())
 
 
@@ -86,9 +86,9 @@ def test_falha_na_gravacao_nao_deixa_resto(con, documento) -> None:
     assert repo.numeros(con) == [1]
 
 
-def test_gravar_recusa_documento_fora_dos_tetos(con, documento, tipos) -> None:
+def test_gravar_recusa_documento_fora_dos_tetos(con, documento, frentes) -> None:
     with pytest.raises(TaxonomiaInvalida):
-        versoes.gravar(con, documento(tipos=tipos(3)), "jev-1.13.0")
+        versoes.gravar(con, documento(frentes=frentes(3)), "jev-1.13.0")
 
     assert repo.numeros(con) == []
 
@@ -127,8 +127,8 @@ def test_ativar_versao_menor_que_a_vigente_e_recusado(con, documento) -> None:
 
 def test_ativar_exige_o_historico_inteiro_classificado(con, documento) -> None:
     versoes.gravar(con, documento(), "jev-1.13.0")
-    _frente(con, "f1")
-    _frente(con, "f2")
+    _evento(con, "f1")
+    _evento(con, "f2")
     _classificar(con, "f1", 1)
 
     with pytest.raises(versoes.HistoricoIncompleto):
@@ -144,21 +144,21 @@ def test_ativar_exige_o_historico_inteiro_classificado(con, documento) -> None:
 
 def test_aguardando_llm_nao_conta_como_classificada(con, documento) -> None:
     versoes.gravar(con, documento(), "jev-1.13.0")
-    _frente(con, "f1")
+    _evento(con, "f1")
     _classificar(con, "f1", 1, estado="aguardando_llm")
 
     with pytest.raises(versoes.HistoricoIncompleto):
         versoes.ativar(con, 1)
     assert versoes.vigente(con) is None
 
-    con.execute("UPDATE classificacao SET estado = 'via_llm' WHERE frente_id = 'f1'")
+    con.execute("UPDATE classificacao SET estado = 'via_llm' WHERE evento_id = 'f1'")
     assert versoes.ativar(con, 1).numero == 1
 
 
 def test_classificacao_em_outra_versao_nao_conta(con, documento) -> None:
     versoes.gravar(con, documento(), "jev-1.13.0")
     versoes.gravar(con, documento(), "jev-1.13.0")
-    _frente(con, "f1")
+    _evento(con, "f1")
     _classificar(con, "f1", 1)
 
     with pytest.raises(versoes.HistoricoIncompleto):
@@ -183,8 +183,8 @@ def test_ativar_versao_inexistente(con) -> None:
 def test_nova_chave_ve_as_chaves_da_mesma_revisao(con, documento) -> None:
     versoes.gravar(con, documento(), "jev-1.13.0")
 
-    primeira = versoes.nova_chave(con, Dimensao.TIPO, "Migração")
-    segunda = versoes.nova_chave(con, Dimensao.TIPO, "Migracao", reservadas={primeira})
+    primeira = versoes.nova_chave(con, Dimensao.FRENTE, "Migração")
+    segunda = versoes.nova_chave(con, Dimensao.FRENTE, "Migracao", reservadas={primeira})
 
     assert (primeira, segunda) == ("migracao", "migracao-2")
 
@@ -221,7 +221,7 @@ def test_valores_e_diferenca_de_versao_inexistente_levantam(con, documento) -> N
 
 
 def test_time_nao_some_nem_troca_de_area(con, documento) -> None:
-    from frentes.contratos import AreaDoOrganograma, TimeDoOrganograma
+    from eventos.contratos import AreaDoOrganograma, TimeDoOrganograma
 
     original = documento()
     versoes.gravar(con, original, "jev-1.13.0")
@@ -251,12 +251,12 @@ def test_valor_criado_nao_pega_chave_de_valor_removido(con, documento, lista) ->
     assert repo.numeros(con) == [1, 2]
 
 
-def test_valor_nao_muda_de_nivel(con, documento, tipos) -> None:
+def test_valor_nao_muda_de_nivel(con, documento, frentes) -> None:
     versoes.gravar(con, documento(), "jev-1.13.0")
-    a, b, c, d = tipos(4, 3)
-    # o subtipo tipo1-sub1 vira tipo de primeiro nível
+    a, b, c, d = frentes(4, 3)
+    # a subfrente frente1-sub1 vira frente de primeiro nível
     promovido = replace(a.filhos[0], filhos=d.filhos)
-    novo = documento(tipos=(replace(a, filhos=a.filhos[1:]), b, c, promovido))
+    novo = documento(frentes=(replace(a, filhos=a.filhos[1:]), b, c, promovido))
 
     with pytest.raises(versoes.ChaveInstavel, match="nível"):
         versoes.gravar(con, novo, "jev-1.13.0", base=1)
@@ -287,18 +287,18 @@ def test_inserir_recusa_valor_de_outra_versao_e_versao_ja_ativada(con, documento
 def test_chave_nova_nao_reaproveita_chave_de_versao_antiga(con, documento) -> None:
     versoes.gravar(con, documento(), "jev-1.13.0")
 
-    assert versoes.nova_chave(con, Dimensao.TIPO, "Tipo1") == "tipo1-2"
-    assert versoes.nova_chave(con, Dimensao.TIPO, "Migração") == "migracao"
+    assert versoes.nova_chave(con, Dimensao.FRENTE, "Frente1") == "frente1-2"
+    assert versoes.nova_chave(con, Dimensao.FRENTE, "Migração") == "migracao"
 
 
-def test_diferenca_entre_versoes_gravadas(con, documento, tipos) -> None:
+def test_diferenca_entre_versoes_gravadas(con, documento, frentes) -> None:
     versoes.gravar(con, documento(), "jev-1.13.0")
-    primeiro, *resto = tipos()
+    primeiro, *resto = frentes()
     versoes.gravar(
-        con, documento(tipos=(replace(primeiro, nome="Falha grave"), *resto)), "jev-1.13.0"
+        con, documento(frentes=(replace(primeiro, nome="Falha grave"), *resto)), "jev-1.13.0"
     )
 
     diff = versoes.diferenca(con, 1, 2)
 
-    assert [m.depois.chave for m in diff.renomeados] == ["tipo1"]
+    assert [m.depois.chave for m in diff.renomeados] == ["frente1"]
     assert diff.criados == ()

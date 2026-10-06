@@ -1,6 +1,6 @@
 # 03 · Classificação
 
-O pipeline por frente: a chamada ao Jev, as regras de confiança, o desempate da LLM e o que é gravado.
+O pipeline por evento: a chamada ao Jev, as regras de confiança, o desempate da LLM e o que é gravado.
 
 ## Os dois modelos
 
@@ -20,25 +20,25 @@ O pipeline por frente: a chamada ao Jev, as regras de confiança, o desempate da
 - Request: `{model, state, questions: {<id>: {type: choice|score|noul, instructions, criteria}}}`. [R5]
 - Response: `choice` + `confidence` + `probabilities` por opção; `score` + `confidence` + `probabilities` por nível; `noul` em 0–1; `usage.input_tokens`; `model` com a versão que respondeu. [R5]
 - Limites: 255 opções por `choice`; 64k tokens por request (32k para `state` + a pergunta mais longa); 80 req/s e 100K tok/s, com 429 e `retry-after`. [R5]
-- Sem endpoint de lote: todas as perguntas de uma frente numa chamada, e as frentes em chamadas concorrentes. [R5]
+- Sem endpoint de lote: todas as perguntas de um evento numa chamada, e os eventos em chamadas concorrentes. [R5]
 - Há pequena variação entre chamadas iguais (0,88 contra 0,85): a classificação é gravada uma vez, sem reclassificar na hora da demo. [R5]
-- Medido: 0,28 a 0,32 s por chamada do oute-server [R5]; 252 frentes em 6,6 s, 0 erros [R9].
+- Medido: 0,28 a 0,32 s por chamada do oute-server [R5]; 252 eventos em 6,6 s, 0 erros [R9].
 
 ## Passos
 
-1. **Entrada**: frente bruta → só o `texto` vai ao Jev (original + complemento). [R4] [R20]
+1. **Entrada**: evento bruto → só o `texto` vai ao Jev (original + complemento). [R4] [R20]
 2. **Jev, uma chamada**: as 8 dimensões + a pergunta de controle. Sem LLM antes do Jev. [R6] [R8]
 3. **Regra de confiança**, em código, sem chamar modelo. [R6] [R20]
-4. **Desempate da LLM** em segundo plano, só para quem precisa. Enquanto não volta, a frente fica `aguardando_llm`. [R6] [R23]
+4. **Desempate da LLM** em segundo plano, só para quem precisa. Enquanto não volta, o evento fica `aguardando_llm`. [R6] [R23]
 5. **Painel da célula** refeito em segundo plano (ver [06](06-mapa-e-painel.md)). [R6]
 
-No ato ao vivo, a frente clara pinta em menos de 1 s; a que vai ao desempate, em ~5 a 10 s. [R6]
+No ato ao vivo, o evento claro pinta em menos de 1 s; a que vai ao desempate, em ~5 a 10 s. [R6]
 
 ## Pergunta de controle
 
 - Redação: **"O texto cita algum sistema, processo, número ou situação específica?"** (`noul`), corte **0,5**, em configuração. [R14]
 - É conferida **antes** das outras regras e vence todas. [R14]
-- Medido (169 frentes, dentro da chamada completa, corte 0,5): pega 31 de 34 vagas, derruba 4 de 120 normais e 0 de 4 mal escritas. [R14]
+- Medido (169 eventos, dentro da chamada completa, corte 0,5): pega 31 de 34 vagas, derruba 4 de 120 normais e 0 de 4 mal escritas. [R14]
 - O corte é recalibrado quando a seed inteira for classificada na v1 definitiva. [R14]
 
 ## Regra de confiança
@@ -48,39 +48,39 @@ Na ordem. Limiares em configuração. [R6] [R14] [R20]
 | Caso | Destino | Fonte |
 |---|---|---|
 | pergunta de controle < 0,5 | **incerta, motivo `texto_vago`**. Não vai à LLM, não entra no "+N" de nenhuma célula, não conta no sinal de encaixe; aparece num contador próprio fora da grade | [R14] |
-| área, tipo e natureza ≥ **0,5** (área = soma dos times; tipo = soma dos subtipos) | `classificada`: pinta | [R6] |
-| área, tipo ou natureza < 0,5 | a LLM desempata **só entre o top 3 do Jev** (natureza: reativa/proativa) ou "Nenhum destes". Escolha válida → `via_llm`, pinta com a marca "via LLM". Sem escolha válida → `incerta`, motivo `llm_sem_escolha` | [R6] [R20] |
-| "Nenhum destes" em área ou tipo, mesmo confiante | **sempre passa pela LLM**, livre na versão vigente: confirma "Nenhum destes" (→ `nao_classificada`) ou escolhe um valor (→ `via_llm`) | [R6] |
+| área, frente e natureza ≥ **0,5** (área = soma dos times; frente = soma das subfrentes) | `classificada`: pinta | [R6] |
+| área, frente ou natureza < 0,5 | a LLM desempata **só entre o top 3 do Jev** (natureza: reativo/proativo) ou "Nenhum destes". Escolha válida → `via_llm`, pinta com a marca "via LLM". Sem escolha válida → `incerta`, motivo `llm_sem_escolha` | [R6] [R20] |
+| "Nenhum destes" em área ou frente, mesmo confiante | **sempre passa pela LLM**, livre na versão vigente: confirma "Nenhum destes" (→ `nao_classificada`) ou escolhe um valor (→ `via_llm`) | [R6] |
 | severidade, impacto, urgência | sem limiar: o score vale como vem; a urgência usa o corte do selo "urgente" | [R6] |
 | causa raiz < 0,3 | "causa incerta" no detalhe e fora do painel. Não passa pela LLM | [R6] |
 | problema: "Nenhum destes" | resposta normal. Não leva a "Não classificadas", não passa pela LLM, não conta no sinal de encaixe | [R8] |
-| problema: confiança < 0,5 | a frente fica **sem problema** e segue pintando. Não vira incerta, não passa pela LLM | [R8] [R11] |
+| problema: confiança < 0,5 | o evento fica **sem problema** e segue pintando. Não vira incerta, não passa pela LLM | [R8] [R11] |
 
 - A LLM **nunca cria valor**: responde só com valores da versão vigente ou confirma "Nenhum destes". [R3] [R6]
 - O desempate vê só o nome das áreas, sem a ficha do time. [R13] [R24]
-- **Time e subtipo finais** quando a LLM troca a área ou o tipo: o de maior probabilidade do Jev dentro da área ou do tipo escolhido. [R20]
-- **Incerta por confiança baixa** guarda em `area_final` e `tipo_final` o valor mais provável do Jev, só para o "+N incertas" saber em que célula aparecer. Não soma no índice. [R20]
+- **Time e subfrente finais** quando a LLM troca a área ou a frente: o de maior probabilidade do Jev dentro da área ou da frente escolhida. [R20]
+- **Incerta por confiança baixa** guarda em `area_final` e `frente_final` o valor mais provável do Jev, só para o "+N incertas" saber em que célula aparecer. Não soma no índice. [R20]
 
 ## Estados
 
-`classificada`, `aguardando_llm`, `via_llm`, `incerta` (motivo `texto_vago`, `confianca_baixa` ou `llm_sem_escolha`), `nao_classificada`. Frente sem linha de classificação na versão vigente é a "aguardando classificação". [R6] [R20]
+`classificada`, `aguardando_llm`, `via_llm`, `incerta` (motivo `texto_vago`, `confianca_baixa` ou `llm_sem_escolha`), `nao_classificada`. Evento sem linha de classificação na versão vigente é a "aguardando classificação". [R6] [R20]
 
-A frente **não ganha estado depois de classificada**. [R19]
+O evento **não ganha estado depois de classificada**. [R19]
 
 ## O que é gravado: `classificacao`
 
-Uma linha por frente por versão (`frente_id` + `versao`), larga. [R20]
+Uma linha por evento por versão (`evento_id` + `versao`), larga. [R20]
 
 - `resposta_jev` (JSON): a resposta crua inteira, com as probabilidades de todas as opções e a confiança de cada pergunta.
-- Em colunas, o que o Jev disse: `time`, `area`, `conf_area`, `subtipo`, `tipo`, `conf_tipo`, `natureza`, `conf_natureza`, `severidade`, `impacto`, `urgencia`, `causa_raiz`, `conf_causa`, `problema`, `conf_problema`, `controle`.
+- Em colunas, o que o Jev disse: `time`, `area`, `conf_area`, `subfrente`, `frente`, `conf_frente`, `natureza`, `conf_natureza`, `severidade`, `impacto`, `urgencia`, `causa_raiz`, `conf_causa`, `problema`, `conf_problema`, `controle`.
 - `resposta_llm` (JSON, com o modelo), vazia quando não houve desempate.
-- Resultado final: `estado`, `motivo`, `area_final`, `time_final`, `tipo_final`, `subtipo_final`, `natureza_final`.
+- Resultado final: `estado`, `motivo`, `area_final`, `time_final`, `frente_final`, `subfrente_final`, `natureza_final`.
 - Uso: tokens e latência da chamada (para o apêndice de custo).
 - `classificada_em`.
 
 Regras:
 
-- As colunas finais são **derivadas** de `resposta_jev` + `resposta_llm` + configuração, por código. Mudar um limiar recalcula o estado; só chama a LLM para a frente que passou a precisar de desempate. [R20]
+- As colunas finais são **derivadas** de `resposta_jev` + `resposta_llm` + configuração, por código. Mudar um limiar recalcula o estado; só chama a LLM para o evento que passou a precisar de desempate. [R20]
 - Encaixe fraco, selo "urgente", "causa incerta" e problema recorrente **não são colunas**: saem na leitura. [R20]
 - As classificações antigas nunca são apagadas nem alteradas (exceção: o complemento substitui a da mesma versão). [R20]
 
@@ -88,11 +88,11 @@ Regras:
 
 | Limiar | Valor | Fonte |
 |---|---|---|
-| área, tipo e natureza | 0,5 | [R6] |
+| área, frente e natureza | 0,5 | [R6] |
 | causa raiz | 0,3 | [R6] |
 | problema | 0,5 | [R8] [R11] |
 | texto vago (pergunta de controle) | 0,5 | [R14] |
-| encaixe fraco (confiança do tipo) | 0,7 | [R9] |
+| encaixe fraco (confiança da frente) | 0,7 | [R9] |
 | dias distintos da recorrência | 3 | [R8] |
 | corte do selo "urgente" | não decidido; fica em configuração | [R3] [R20] |
 
@@ -100,7 +100,7 @@ Ficam em `config/limiares.toml` [R23] e são recalibrados contra o gabarito com 
 
 ## Riscos medidos que o limiar não pega
 
-- A frente errada e confiante: "o sistema tá muito lento hoje de novo" foi para Plataforma com 0,89; uma proposta que cita uma fatura subindo saiu reativa com 0,94. [R6]
+- O evento errado e confiante: "o sistema tá muito lento hoje de novo" foi para Plataforma com 0,89; uma proposta que cita uma fatura subindo saiu reativo com 0,94. [R6]
 - Estados medidos na amostra (v1): 79% Jev, 12% via LLM, 7% incerta, 2% não classificada. [R9]
 
 ## Falha e retentativa
@@ -110,7 +110,7 @@ Tempo limite, tentativas e a varredura das pendentes estão em [12](12-operacao-
 ## Contradições anotadas
 
 - **Redação da pergunta de controle.** [R6]: "o texto diz o bastante para saber qual time é afetado?", que derrubava 103 de 120 normais. Vale a de [R14].
-- **Texto vago e o "+N".** Em [R6] a frente de texto vago era uma incerta como as outras; [R14] a tirou do "+N" das células e deu contador próprio. Vale [R14].
+- **Texto vago e o "+N".** Em [R6] o evento de texto vago era uma incerta como as outras; [R14] a tirou do "+N" das células e deu contador próprio. Vale [R14].
 - **Limiar do problema.** [R8] decidiu 0,5 sem medição; [R11] mediu e manteve.
 
 [R2]: https://github.com/renatobardi/frentes-engenharia/issues/2#issuecomment-5963209961 "Métrica de onde investir e eixos do mapa de calor"

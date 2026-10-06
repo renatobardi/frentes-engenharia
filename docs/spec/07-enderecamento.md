@@ -4,8 +4,8 @@ O registro de que alguém decidiu investir numa célula. Toda a regra vem de [R1
 
 ## Regras
 
-- **A frente não tem estado depois de classificada.** Não existe "aberta", "em tratamento" nem "resolvida" por frente. [R19]
-- **A unidade é a célula, numa visão**: área × tipo, em "Onde dói" ou em "Onde há oportunidade". O problema recorrente não é unidade de endereçamento. [R19]
+- **O evento não tem estado depois de classificada.** Não existe "aberta", "em tratamento" nem "resolvida" por evento. [R19]
+- **A unidade é a célula, numa visão**: área × frente, em "Onde dói" ou em "Onde há oportunidade". O problema recorrente não é unidade de endereçamento. [R19]
 - **É uma marca, sem ciclo.** Não há "em andamento" nem "concluído". Pode ser desfeita. No máximo **um endereçamento ativo por célula e visão**. [R19]
 - **Quem endereça é quem está na tela.** Sem login, sem papel. No painel da célula, cada sugestão da LLM tem o botão "Endereçar com esta sugestão", que cria a marca com o texto e o tipo de solução da sugestão; o texto pode ser editado. "Quem decidiu" é texto livre e opcional. [R19]
 - **Não mexe no índice.** Índice de dor, impacto esperado, tendência e ordem do Top 3 não mudam. [R19]
@@ -15,12 +15,12 @@ O registro de que alguém decidiu investir numa célula. Toda a regra vem de [R1
 
 ## Entidade `enderecamento`
 
-Entidade própria, fora de `classificacao`, **sem campo novo na frente**. [R19] [R20]
+Entidade própria, fora de `classificacao`, **sem campo novo no evento**. [R19] [R20]
 
 | Campo | Conteúdo |
 |---|---|
 | área | chave da área no organograma |
-| tipo | chave do tipo na taxonomia |
+| frente | chave da frente na taxonomia |
 | visão | "Onde dói" ou "Onde há oportunidade" |
 | data | quando foi decidido |
 | texto da decisão | livre, pré-preenchido com a sugestão escolhida |
@@ -29,17 +29,17 @@ Entidade própria, fora de `classificacao`, **sem campo novo na frente**. [R19] 
 | procedência | seed ou tela |
 | ativo | falso quando desfeito |
 
-- **Sem ligação com frente nem com problema.** A relação é só com a célula. [R19]
-- Aponta para **chaves** (da área e do tipo), nunca para uma linha de classificação nem para uma versão. [R20]
+- **Sem ligação com evento nem com problema.** A relação é só com a célula. [R19]
+- Aponta para **chaves** (da área e da frente), nunca para uma linha de classificação nem para uma versão. [R20]
 - **Não entra em agregado nenhum**: é lido junto, para o selo e o marcador. [R19]
 - **Fica fora das versões da taxonomia**: não é reclassificado nem copiado por versão. [R19]
-- **Se o tipo não existe na versão lida** (foi dividido, juntado ou removido), o endereçamento não aparece na grade e continua guardado. [R19]
+- **Se a frente não existe na versão lida** (foi dividido, juntado ou removido), o endereçamento não aparece na grade e continua guardado. [R19]
 
 ## O endereçamento plantado na seed (H3)
 
-- O mutirão dos boletos e carnês vira o endereçamento, datado no **fim do mês 6**. As frentes, as curvas e o gabarito não mudam. [R19]
-- Arquivo `enderecamentos.json`: área, visão, data (deslocada pelo carregador como as outras), texto da decisão, tipo de solução e ~5 `id`s de frentes de referência. [R19]
-- O arquivo **não cita tipo**. O carregador usa o tipo mais frequente das frentes de referência na versão vigente. [R19] [R22]
+- O mutirão dos boletos e carnês vira o endereçamento, datado no **fim do mês 6**. Os eventos, as curvas e o gabarito não mudam. [R19]
+- Arquivo `enderecamentos.json`: área, visão, data (deslocada pelo carregador como as outras), texto da decisão, tipo de solução e ~5 `id`s de eventos de referência. [R19]
+- O arquivo **não cita frente**. O carregador usa a frente mais frequente dos eventos de referência na versão vigente. [R19] [R22]
 - Na janela padrão de 90 dias essa célula já está fria: é vista no período de 12 meses e na série de evolução. [R19]
 
 ## Snapshot
@@ -52,11 +52,11 @@ Mostrar o plantado é parte do PoC; marcar ao vivo é gesto de fecho, feito pelo
 
 ## Fora do escopo
 
-Estado ou ciclo por frente; responsável, prazo, acompanhamento e notificação; endereçar por problema recorrente ou por frente; endereçamento que abate o índice ou tira a célula do Top 3; retorno em R$. [R19]
+Estado ou ciclo por evento; responsável, prazo, acompanhamento e notificação; endereçar por problema recorrente ou por evento; endereçamento que abate o índice ou tira a célula do Top 3; retorno em R$. [R19]
 
 ## Contradições anotadas
 
-- [R20] deixou o encaixe aberto ("aponta para chaves da área e do tipo, ou do problema, ou para `frente_id`") porque dava [R19] como ainda sem resolução. [R19] fixa: só a célula, pelas chaves de área e tipo. O ponto que [R20] deixou para lá (a chave que some na versão nova) também está respondido em [R19]: não aparece na grade e continua guardado.
+- [R20] deixou o encaixe aberto ("aponta para chaves da área e da frente, ou do problema, ou para `evento_id`") porque dava [R19] como ainda sem resolução. [R19] fixa: só a célula, pelas chaves de área e frente. O ponto que [R20] deixou para lá (a chave que some na versão nova) também está respondido em [R19]: não aparece na grade e continua guardado.
 
 [R2]: https://github.com/renatobardi/frentes-engenharia/issues/2#issuecomment-5963209961 "Métrica de onde investir e eixos do mapa de calor"
 [R3]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963699217 "Taxonomia das frentes"

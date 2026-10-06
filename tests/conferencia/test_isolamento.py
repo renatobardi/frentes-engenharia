@@ -4,9 +4,9 @@ import ast
 import re
 from pathlib import Path
 
-import frentes
+import eventos
 
-RAIZ = Path(frentes.__file__).parent
+RAIZ = Path(eventos.__file__).parent
 DONOS = {RAIZ / "conferencia", RAIZ / "store" / "gabarito.py"}
 LE_A_TABELA = re.compile(r"\b(FROM|JOIN|INTO|UPDATE)\s+gabarito\b", re.I)
 # O arquivo escrito pela seed (`gabarito.jsonl`) não conta: ela o grava, não o lê. Quem o abre
@@ -43,11 +43,11 @@ def test_ha_arquivos_para_conferir() -> None:
 
 
 def test_nenhum_outro_modulo_importa_a_conferencia_nem_o_arquivo_do_gabarito() -> None:
-    proibidos = ("frentes.conferencia", "frentes.store.gabarito")
+    proibidos = ("eventos.conferencia", "eventos.store.gabarito")
     for arquivo in _de_fora():
         for nome in _importados(arquivo):
             assert not nome.startswith(proibidos), f"{arquivo.relative_to(RAIZ)} importa {nome}"
-        assert "from frentes.store import gabarito" not in arquivo.read_text(encoding="utf-8")
+        assert "from eventos.store import gabarito" not in arquivo.read_text(encoding="utf-8")
 
 
 def test_nenhum_outro_modulo_le_a_tabela_nem_o_arquivo_do_gabarito() -> None:

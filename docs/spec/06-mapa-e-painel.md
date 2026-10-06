@@ -4,14 +4,14 @@ O que o mapa calcula e o que o painel da célula guarda. A forma na tela está e
 
 ## Eixos e visões
 
-- **Linhas**: as áreas. **Colunas**: os tipos. Time e subtipo só no drill-down. [R2] [R3]
-- Cada célula quente vira uma frase que o diretor pode aprovar ("área × tipo"). [R2]
+- **Linhas**: as áreas. **Colunas**: as frentes. Time e subfrente só no drill-down. [R2] [R3]
+- Cada célula quente vira uma frase que o diretor pode aprovar ("área × frente"). [R2]
 - **Duas visões**, mesmos eixos, alternadas por um seletor. Não há visão combinada. [R2]
 
-| Visão | Frentes | Cor |
+| Visão | Eventos | Cor |
 |---|---|---|
-| Onde dói | só as reativas | **índice de dor**: soma da severidade (`score` 0–1) no período |
-| Onde há oportunidade | só as proativas | soma do **impacto esperado** (`score` 0–1) |
+| Onde dói | só as reativos | **índice de dor**: soma da severidade (`score` 0–1) no período |
+| Onde há oportunidade | só as proativos | soma do **impacto esperado** (`score` 0–1) |
 
 ## Métrica
 
@@ -24,12 +24,12 @@ O que o mapa calcula e o que o painel da célula guarda. A forma na tela está e
 
 ## Quem pinta
 
-| Estado da frente | No mapa | Fonte |
+| Estado do evento | No mapa | Fonte |
 |---|---|---|
 | `classificada`, `via_llm` | soma no índice da célula | [R6] |
 | `incerta` por confiança baixa ou sem escolha da LLM | não pinta; entra no "+N incertas" da célula mais provável | [R2] [R20] |
 | `incerta` por texto vago | fora das células e do "+N"; contador próprio fora da grade | [R14] |
-| `nao_classificada` | linha ou coluna "Não classificadas": contagem em cinza, sem índice e sem cor de calor; só aparece quando há frentes | [R2] [R22] |
+| `nao_classificada` | linha ou coluna "Não classificadas": contagem em cinza, sem índice e sem cor de calor; só aparece quando há eventos | [R2] [R22] |
 | aguardando classificação, `aguardando_llm` | não aparece em célula; contador próprio fora da grade (só quando há) | [R22] |
 
 ## Filtros e parâmetros
@@ -41,9 +41,9 @@ O que o mapa calcula e o que o painel da célula guarda. A forma na tela está e
 
 ## Agregados: calculados na leitura
 
-- **Não há tabela de agregados.** Índice de dor, soma do impacto, tendência, série mensal, "+N incertas", contador de texto vago, não classificadas, Top 3 e problemas recorrentes saem de uma consulta sobre `classificacao` + `frente`, com os parâmetros versão, visão, período, origens e data de referência. [R20]
+- **Não há tabela de agregados.** Índice de dor, soma do impacto, tendência, série mensal, "+N incertas", contador de texto vago, não classificadas, Top 3 e problemas recorrentes saem de uma consulta sobre `classificacao` + `evento`, com os parâmetros versão, visão, período, origens e data de referência. [R20]
 - **A data que conta é `ocorrido_em`** (na falta, `recebido_em`). [R20]
-- Por quê: ~6 mil frentes; 32 combinações de origem × 4 períodos × 2 visões; e a rajada precisa esquentar a célula na hora, sem invalidar nada. [R20]
+- Por quê: ~6 mil eventos; 32 combinações de origem × 4 períodos × 2 visões; e a rajada precisa esquentar a célula na hora, sem invalidar nada. [R20]
 
 ## Painel da célula
 
@@ -53,18 +53,18 @@ O clique numa célula mostra, do já decidido em [R2] e completado por [R8], [R1
 2. **Sugestão de investimento**: 1 a 3 ações, cada uma com o tipo de solução (ferramenta/automação, pessoas, treinamento, processo, fornecedor), rotulada como "sugestão". [R2]
 3. **Endereçamento**, quando há. [R19]
 4. **Evolução**: série mensal do índice, com o marcador do endereçamento. [R2] [R19]
-5. **Composição**: por time, por subtipo e por causa raiz. [R22]
+5. **Composição**: por time, por subfrente e por causa raiz. [R22]
 6. **Problemas recorrentes** (ver [05](05-problema-e-recorrencia.md)). [R8]
-7. **Frentes da célula**: ordenadas por severidade ou impacto, com origem, data e confiança; incertas marcadas. [R2]
+7. **Eventos da célula**: ordenadas por severidade ou impacto, com origem, data e confiança; incertas marcadas. [R2]
 
 ### O que é pré-computado: `painel_celula`
 
 - É **o único pré-computado**: o texto do porquê e as sugestões. O resto do painel sai na leitura. [R20]
-- **Chave**: versão + área + tipo + visão + período (30d, 90d, 180d, 12m). [R20]
-- **Guarda**: o texto do porquê, as sugestões com o tipo de solução, `gerado_em`, o modelo da LLM, o estado (`atual`, `atualizando`) e quantas frentes a célula tinha quando foi gerado. [R20]
+- **Chave**: versão + área + frente + visão + período (30d, 90d, 180d, 12m). [R20]
+- **Guarda**: o texto do porquê, as sugestões com o tipo de solução, `gerado_em`, o modelo da LLM, o estado (`atual`, `atualizando`) e quantos eventos a célula tinha quando foi gerado. [R20]
 - **O filtro de origem não entra na chave**: o painel é escrito sobre todas as origens. Com o filtro ligado, os números e a lista seguem o filtro e o texto avisa que considera todas. [R20]
-- **Insumos**: as frentes da célula, a causa raiz (fora as "causa incerta"), a urgência e a lista de problemas da célula. [R3] [R6] [R8]
-- **Refazer**: quando a célula recebe uma frente nova, o painel é refeito com uma espera de ~30 s, para a rajada gerar uma chamada só. Enquanto refaz, mostra o anterior com "atualizando". O clique é instantâneo. [R6] [R23]
+- **Insumos**: os eventos da célula, a causa raiz (fora as "causa incerta"), a urgência e a lista de problemas da célula. [R3] [R6] [R8]
+- **Refazer**: quando a célula recebe um evento novo, o painel é refeito com uma espera de ~30 s, para a rajada gerar uma chamada só. Enquanto refaz, mostra o anterior com "atualizando". O clique é instantâneo. [R6] [R23]
 - Custo: ~150 células × visões, ~US$0,01. [R6]
 
 ## Esboço (visão "Onde dói", 90 dias)

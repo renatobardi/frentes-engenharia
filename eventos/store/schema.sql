@@ -1,0 +1,235 @@
+-- Esquema do frentes-engenharia (SQLite). Decidido na resolução de "Modelo de dados do PoC" (#20)
+-- e o endereçamento de "Ciclo de vida do evento depois de classificada" (#19).
+--
+-- Convenções:
+--   * datas em texto ISO 8601, UTC, no formato único de contratos.para_iso
+--     ('2026-10-03T14:05:09Z'); dia sem hora em 'AAAA-MM-DD'. Com um formato só,
+--     comparar texto é comparar data;
+--   * toda coluna de data termina em `_em` e está em contratos.COLUNAS_DE_DATA, que é o que
+--     o carregador do snapshot desloca. A exceção é snapshot_meta, que guarda datas reais;
+--   * JSON em coluna de texto, conferido por json_valid;
+--   * valores da taxonomia são referidos pela chave, que sobrevive à troca de versão;
+--   * "Nenhum destes" não é valor da taxonomia: nas colunas de classificação é NULL;
+--   * sem migrações: o banco nasce deste arquivo ou do snapshot. Mudou o esquema,
+--     regrava-se o snapshot.
+
+-- O evento bruto. O texto original nunca é alterado; o complemento fica ao lado.
+-- Não há coluna de estado: evento sem linha em `classificacao` na versão vigente
+-- é o evento "aguardando classificação".
+CREATE TABLE evento (
+    id               TEXT PRIMARY KEY,
+    origem           TEXT NOT NULL CHECK (origem IN ('relato', 'webhook', 'log', 'banco', 'mcp')),
+    emissor          TEXT NOT NULL,
+    texto            TEXT NOT NULL CHECK (length(texto) > 0),
+    complemento      TEXT,
+    complementado_em TEXT,
+    ocorrido_em      TEXT,
+    recebido_em      TEXT NOT NULL,
+    ref_externa      TEXT,
+    metadados        TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(metadados)),
+    CHECK ((complemento IS NULL) = (complementado_em IS NULL))
+) STRICT;
+
+-- Reenvio: a mesma ref_externa da mesma origem é descartada na entrada.
+CREATE UNIQUE INDEX evento_reenvio ON evento (origem, ref_externa) WHERE ref_externa IS NOT NULL;
+-- A data que conta nos agregados é ocorrido_em e, na falta, recebido_em.
+CREATE INDEX evento_data ON evento (coalesce(ocorrido_em, recebido_em));
+
+-- Só alimenta a lista do formulário de relato. O evento guarda o emissor como texto.
+CREATE TABLE emissor (
+    id    TEXT PRIMARY KEY,
+    nome  TEXT NOT NULL,
+    tipo  TEXT NOT NULL CHECK (tipo IN ('pessoa', 'sistema')),
+    time  TEXT,  -- chave do time no organograma
+    cargo TEXT
+) STRICT;
+
+-- Descoberta ou revisão da taxonomia, gravada mesmo quando termina sem mudança.
+CREATE TABLE geracao (
+    id                INTEGER PRIMARY KEY,
+    tipo              TEXT NOT NULL CHECK (tipo IN ('descoberta', 'revisao')),
+    -- vazio na descoberta; os três últimos são os gatilhos secundários do sinal de encaixe
+    gatilho           TEXT CHECK (gatilho IN (
+                          'encaixe_fraco', 'mensal', 'botao',
+                          'nao_classificadas', 'incertas', 'maior_frente')),
+    disparada_em      TEXT NOT NULL,
+    versao_base       INTEGER REFERENCES versao_taxonomia (numero),
+    -- o sinal medido na hora: contratos.SinalMedido
+    sinal             TEXT CHECK (sinal IS NULL OR json_valid(sinal)),
+    -- lista de contratos.Operacao, com os eventos de evidência e o destino de cada uma
+    operacoes         TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(operacoes)),
+    resumo            TEXT,  -- a frase para o diretor
+    -- vazio enquanto roda
+    resultado         TEXT CHECK (resultado IN ('versao_nova', 'sem_mudanca', 'recusada')),
+    versao_resultante INTEGER REFERENCES versao_taxonomia (numero),
+    CHECK ((tipo = 'descoberta') = (versao_base IS NULL)),
+    CHECK (versao_resultante IS NULL OR resultado = 'versao_nova')
+) STRICT;
+
+-- Retrato imutável de tudo o que entra na chamada ao Jev.
+-- Versão vigente: a de maior numero com ativada_em preenchido. Não há ponteiro.
+CREATE TABLE versao_taxonomia (
+    numero          INTEGER PRIMARY KEY,
+    documento       TEXT NOT NULL CHECK (json_valid(documento)),  -- contratos.DocumentoTaxonomia.para_dict
+    modelo_jev      TEXT NOT NULL,
+    criada_em       TEXT NOT NULL,
+    geracao_id      INTEGER REFERENCES geracao (id),
+    versao_anterior INTEGER REFERENCES versao_taxonomia (numero),
+    -- vazio enquanto o histórico é reclassificado nesta versão
+    ativada_em      TEXT
+) STRICT;
+
+-- Os valores de cada dimensão numa versão. Deriva do documento; existe para o mapa
+-- e as listas juntarem por valor. Time é valor da dimensão area com chave_pai = área;
+-- subfrente é valor da dimensão frente com chave_pai = frente. Problema é valor da dimensão problema.
+CREATE TABLE valor (
+    versao    INTEGER NOT NULL REFERENCES versao_taxonomia (numero),
+    dimensao  TEXT NOT NULL CHECK (dimensao IN (
+                  'area', 'frente', 'natureza', 'severidade', 'impacto',
+                  'causa_raiz', 'urgencia', 'problema')),
+    chave     TEXT NOT NULL,
+    nome      TEXT NOT NULL,
+    descricao TEXT NOT NULL DEFAULT '',
+    chave_pai TEXT,
+    ordem     INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (versao, dimensao, chave),
+    -- adiada para o fim da transação: o filho pode ser gravado antes do pai
+    FOREIGN KEY (versao, dimensao, chave_pai) REFERENCES valor (versao, dimensao, chave)
+        DEFERRABLE INITIALLY DEFERRED
+) STRICT, WITHOUT ROWID;
+
+-- Uma linha por evento por versão. O complemento substitui a linha da versão.
+CREATE TABLE classificacao (
+    evento_id       TEXT NOT NULL REFERENCES evento (id),
+    versao          INTEGER NOT NULL REFERENCES versao_taxonomia (numero),
+
+    -- a resposta crua do Jev, inteira: contratos.RespostaJev.para_dict (modelo e respostas;
+    -- o uso da chamada fica só nas colunas tokens_* e latencia_ms, mais abaixo)
+    resposta_jev    TEXT NOT NULL CHECK (json_valid(resposta_jev)),
+
+    -- o que o Jev disse (chaves de valor; NULL = "Nenhum destes")
+    time            TEXT,
+    area            TEXT,
+    conf_area       REAL NOT NULL,  -- soma das probabilidades dos times da área
+    subfrente         TEXT,
+    frente            TEXT,
+    conf_frente       REAL NOT NULL,  -- soma das probabilidades das subfrentes da frente
+    natureza        TEXT CHECK (natureza IN ('reativo', 'proativo')),
+    conf_natureza   REAL NOT NULL,
+    severidade      REAL NOT NULL,
+    impacto         REAL NOT NULL,
+    urgencia        REAL NOT NULL,
+    causa_raiz      TEXT,
+    conf_causa      REAL NOT NULL,
+    problema        TEXT,
+    conf_problema   REAL NOT NULL,
+    controle        REAL NOT NULL,  -- a resposta à pergunta de controle
+
+    -- o desempate da LLM, com o modelo: contratos.RespostaLlm. Vazio quando não houve.
+    resposta_llm    TEXT CHECK (resposta_llm IS NULL OR json_valid(resposta_llm)),
+
+    -- o resultado final, derivado por código de resposta_jev + resposta_llm + limiares
+    estado          TEXT NOT NULL CHECK (estado IN (
+                        'classificada', 'aguardando_llm', 'via_llm', 'incerta', 'nao_classificada')),
+    motivo          TEXT CHECK (motivo IN ('texto_vago', 'confianca_baixa', 'llm_sem_escolha')),
+    area_final      TEXT,
+    time_final      TEXT,
+    frente_final      TEXT,
+    subfrente_final   TEXT,
+    natureza_final  TEXT CHECK (natureza_final IN ('reativo', 'proativo')),
+
+    -- uso da chamada ao Jev, para o apêndice de custo. É o único lugar em que ele é
+    -- guardado (contratos.RespostaJev.uso). O uso da LLM vai dentro de resposta_llm.
+    tokens_entrada  INTEGER NOT NULL,
+    tokens_saida    INTEGER NOT NULL,
+    latencia_ms     INTEGER NOT NULL,
+
+    classificada_em TEXT NOT NULL,
+
+    PRIMARY KEY (evento_id, versao),
+    CHECK ((estado = 'incerta') = (motivo IS NOT NULL))
+) STRICT, WITHOUT ROWID;
+
+-- A leitura do mapa: uma versão, por célula; e a varredura das aguardando_llm.
+CREATE INDEX classificacao_celula ON classificacao (versao, area_final, frente_final);
+CREATE INDEX classificacao_estado ON classificacao (versao, estado);
+
+-- O único pré-computado. Sempre escrito sobre todas as origens.
+-- A célula que esquenta pela primeira vez não tem painel anterior: a linha nasce
+-- 'atualizando', sem texto. Só nesse estado os campos do texto podem ficar vazios.
+CREATE TABLE painel_celula (
+    versao             INTEGER NOT NULL REFERENCES versao_taxonomia (numero),
+    area               TEXT NOT NULL,  -- chave
+    frente               TEXT NOT NULL,  -- chave
+    visao              TEXT NOT NULL CHECK (visao IN ('dor', 'oportunidade')),
+    periodo            TEXT NOT NULL CHECK (periodo IN ('30d', '90d', '180d', '12m')),
+    porque             TEXT,  -- por que a célula está quente
+    -- lista de contratos.Sugestao (texto + tipo de solução)
+    sugestoes          TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(sugestoes)),
+    gerado_em          TEXT,
+    modelo_llm         TEXT,
+    estado             TEXT NOT NULL DEFAULT 'atual' CHECK (estado IN ('atual', 'atualizando')),
+    -- quantos eventos a célula tinha quando o texto foi gerado, para saber se envelheceu
+    eventos_na_geracao INTEGER,
+    PRIMARY KEY (versao, area, frente, visao, periodo),
+    CHECK (estado = 'atualizando' OR (
+        porque IS NOT NULL AND gerado_em IS NOT NULL
+        AND modelo_llm IS NOT NULL AND eventos_na_geracao IS NOT NULL))
+) STRICT, WITHOUT ROWID;
+
+-- A marca de que alguém decidiu investir numa célula, numa visão. Fica fora das versões:
+-- aponta para chaves, nunca para uma linha de classificação, um evento ou um problema.
+-- Se a chave da frente não existe na versão lida, a marca não aparece na grade e continua guardada.
+CREATE TABLE enderecamento (
+    id            INTEGER PRIMARY KEY,
+    area          TEXT NOT NULL,  -- chave
+    frente          TEXT NOT NULL,  -- chave
+    visao         TEXT NOT NULL CHECK (visao IN ('dor', 'oportunidade')),
+    decidido_em   TEXT NOT NULL,
+    texto         TEXT NOT NULL,
+    tipo_solucao  TEXT NOT NULL CHECK (tipo_solucao IN (
+                      'ferramenta_automacao', 'pessoas', 'treinamento', 'processo', 'fornecedor')),
+    quem_decidiu  TEXT,
+    procedencia   TEXT NOT NULL CHECK (procedencia IN ('seed', 'tela')),
+    ativo         INTEGER NOT NULL DEFAULT 1 CHECK (ativo IN (0, 1))  -- 0 quando desfeito
+) STRICT;
+
+-- No máximo um endereçamento ativo por célula e visão.
+CREATE UNIQUE INDEX enderecamento_ativo ON enderecamento (area, frente, visao) WHERE ativo = 1;
+
+-- A história plantada em cada evento da seed. Sem ligação com as tabelas do pipeline
+-- (nem chave estrangeira): só eventos/conferencia/ carrega e lê, num banco à parte.
+-- No banco da aplicação e no snapshot esta tabela fica vazia.
+CREATE TABLE gabarito (
+    evento_id      TEXT PRIMARY KEY,
+    historia_id    TEXT NOT NULL,  -- H1..H7, 'fundo' ou 'fora'
+    tema_fundo     TEXT,
+    area           TEXT,
+    time           TEXT,
+    areas_aceitas  TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(areas_aceitas)),
+    natureza       TEXT CHECK (natureza IN ('reativo', 'proativo')),
+    gravidade_alvo TEXT,
+    episodio_id    TEXT,
+    ambigua        TEXT,
+    fora_de_escopo INTEGER NOT NULL DEFAULT 0 CHECK (fora_de_escopo IN (0, 1)),
+    objeto         TEXT,
+    servico        TEXT,
+    -- se o objeto ou serviço está na ficha do time que vai ao Jev, ou é de fora
+    listado        INTEGER CHECK (listado IN (0, 1)),
+    -- só no relato cruzado: o time de quem relata (chave) e o sabor
+    time_relator   TEXT,
+    cruzado        TEXT CHECK (cruzado IN ('so_o_dono', 'dois_objetos')),
+    CHECK ((time_relator IS NULL) = (cruzado IS NULL))
+) STRICT;
+
+-- Linha única: de que snapshot este banco veio. As datas daqui não são deslocadas.
+CREATE TABLE snapshot_meta (
+    id                INTEGER PRIMARY KEY CHECK (id = 1),
+    dia_d             TEXT NOT NULL,  -- o último dia da seed, como gravado ('AAAA-MM-DD')
+    gerado_em         TEXT NOT NULL,
+    commit_sha        TEXT NOT NULL,
+    limiares          TEXT NOT NULL CHECK (json_valid(limiares)),  -- cópia do limiares.toml usado
+    -- preenchidos pelo carregador: quando carregou e quantos dias deslocou as datas
+    carregado_em      TEXT,
+    deslocamento_dias INTEGER
+) STRICT;

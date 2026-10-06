@@ -4,49 +4,49 @@ As dimensões, quem escreve cada uma, o organograma com a ficha do time e como a
 
 ## Quem escreve o quê
 
-- A **LLM gera e revisa**: tipo › subtipo, causa raiz, a régua de severidade, a régua de impacto esperado, o critério de urgência e a lista de problemas. [R3] [R8]
+- A **LLM gera e revisa**: frente › subfrente, causa raiz, a régua de severidade, a régua de impacto esperado, o critério de urgência e a lista de problemas. [R3] [R8]
 - **Nós escrevemos**: área › time (o organograma, com a ficha do time). A **natureza** é fixa. [R3] [R13]
-- **Tetos impostos à LLM**: 4–8 tipos, 2–6 subtipos por tipo, 4–8 causas raiz [R3]; ~40 problemas [R8]. As réguas têm 4 níveis cada [R9].
-- Não existe tipo "Outros". Toda dimensão de lista tem a resposta **"Nenhum destes"**, que não é valor da taxonomia. [R3]
+- **Tetos impostos à LLM**: 4–8 frentes, 2–6 subfrentes por frente, 4–8 causas raiz [R3]; ~40 problemas [R8]. As réguas têm 4 níveis cada [R9].
+- Não existe frente "Outros". Toda dimensão de lista tem a resposta **"Nenhum destes"**, que não é valor da taxonomia. [R3]
 
-## As 8 dimensões, numa chamada ao Jev por frente
+## As 8 dimensões, numa chamada ao Jev por evento
 
 | Dimensão | Pergunta | Valores | Quem define | Fonte |
 |---|---|---|---|---|
 | área › time | `choice` sobre a lista achatada "Área › Time" | 24 times + "Nenhuma destas". A área é derivada do time; a confiança dela é a soma das probabilidades dos seus times | nós | [R3] |
-| tipo › subtipo | `choice` sobre a lista achatada "Tipo › Subtipo" | 4–8 tipos × 2–6 subtipos + "Nenhum destes". A confiança do tipo é a soma dos seus subtipos | LLM | [R3] |
-| natureza | `choice` | reativa, proativa | fixa | [R3] |
-| severidade | `score` 0–1 | régua de severidade. Perguntada sempre, usada se reativa | LLM | [R3] |
-| impacto esperado | `score` 0–1 | régua de impacto. Perguntada sempre, usada se proativa | LLM | [R3] |
+| frente › subfrente | `choice` sobre a lista achatada "Frente › Subfrente" | 4–8 frentes × 2–6 subfrentes + "Nenhum destes". A confiança da frente é a soma dos suas subfrentes | LLM | [R3] |
+| natureza | `choice` | reativo, proativo | fixa | [R3] |
+| severidade | `score` 0–1 | régua de severidade. Perguntada sempre, usada se reativo | LLM | [R3] |
+| impacto esperado | `score` 0–1 | régua de impacto. Perguntada sempre, usada se proativo | LLM | [R3] |
 | causa raiz | `choice` | 4–8 valores, lista plana + "Nenhum destes" | LLM | [R3] |
 | urgência | `noul` 0–1 | critério escrito: a janela de tempo para agir, não o tamanho do estrago | LLM | [R3] |
 | problema | `choice` | lista única, teto ~40 + "Nenhum destes" | LLM | [R8] [R11] |
 
 - Mais a **pergunta de controle** (`noul`), que não é dimensão (ver [03](03-classificacao.md)). [R6] [R14]
 - Severidade e impacto são perguntados sempre porque o Jev avalia as perguntas em paralelo e isoladas. [R3]
-- **Um tipo por frente.** A frente conta numa única célula. Facetas secundárias só aparecem no painel da célula, lidas pela LLM nos textos. Não há `noul` por tipo. [R3a]
-- Causa raiz não é eixo nem filtro: aparece no detalhe da frente, na lista da célula e como insumo do painel. [R3]
+- **Uma frente por evento.** O evento conta numa única célula. Facetas secundárias só aparecem no painel da célula, lidas pela LLM nos textos. Não há `noul` por frente. [R3a]
+- Causa raiz não é eixo nem filtro: aparece no detalhe do evento, na lista da célula e como insumo do painel. [R3]
 - Urgência não pinta: é o selo "urgente" acima de um corte e insumo do painel. **O valor do corte não foi decidido**: [R3] deixou para a construção e [R20] só diz que fica em configuração.
 
 ### Critério da natureza (nosso e fixo)
 
-*Proativa = propõe uma melhoria, mesmo que cite um custo ou uma dor como motivo; reativa = relata uma falha ou um dano que está acontecendo.* Conferido contra o gabarito na construção. [R6]
+*Proativo = propõe uma melhoria, mesmo que cite um custo ou uma dor como motivo; reativo = relata uma falha ou um dano que está acontecendo.* Conferido contra o gabarito na construção. [R6]
 
 ### Pergunta de área
 
-- **Regra de área**: a área é a do time **dono do objeto de que a frente fala** (sistema, tela, rotina ou fornecedor). Quando quem sofre e o dono divergem, vale o dono. [R13]
+- **Regra de área**: a área é a do time **dono do objeto de que o evento fala** (sistema, tela, rotina ou fornecedor). Quando quem sofre e o dono divergem, vale o dono. [R13]
 - **Critério de cada opção**: `Time X, da área Y: <o que o time faz, em uma frase>. Sistemas e rotinas: <itens listados>`. [R13]
-- **Instrução**: pede o time dono do objeto de que a frente fala, mesmo que outro time conserte [R13], mais duas frases [R24]: *"Quem escreve pode ser de outro time: ignore de que time é quem relata e qual trabalho dele foi atrapalhado. Se o texto cita dois sistemas, escolha o dono do que FALHA ou do que tem de mudar, não o de quem sofre o efeito."*
+- **Instrução**: pede o time dono do objeto de que o evento fala, mesmo que outro time conserte [R13], mais duas frases [R24]: *"Quem escreve pode ser de outro time: ignore de que time é quem relata e qual trabalho dele foi atrapalhado. Se o texto cita dois sistemas, escolha o dono do que FALHA ou do que tem de mudar, não o de quem sofre o efeito."*
 
 ### Pergunta de problema
 
-- Instrução: *"De qual destes problemas conhecidos da empresa esta frente trata? Só escolha um problema se o texto cita o objeto dele; o mesmo sintoma em outro sistema é 'Nenhum destes'."* [R11]
-- Critério de "Nenhum destes": *"A frente não cita o objeto de nenhum destes problemas"*. [R11]
-- Descrição de cada problema, ancorada no objeto: *"Frentes que citam <objeto e apelidos, inclusive rota ou serviço dos alertas>: <falhas e pedidos>. Não vale para o mesmo sintoma em outro sistema."* [R11]
+- Instrução: *"De qual destes problemas conhecidos da empresa este evento trata? Só escolha um problema se o texto cita o objeto dele; o mesmo sintoma em outro sistema é 'Nenhum destes'."* [R11]
+- Critério de "Nenhum destes": *"O evento não cita o objeto de nenhum destes problemas"*. [R11]
+- Descrição de cada problema, ancorada no objeto: *"Eventos que citam <objeto e apelidos, inclusive rota ou serviço dos alertas>: <falhas e pedidos>. Não vale para o mesmo sintoma em outro sistema."* [R11]
 
 ## Empresa fictícia e organograma
 
-- **Banco Aurora** (grupo) → **Aurora Financiamentos** (veículos, bens e serviços, empréstimo pessoal; vende por lojistas, concessionárias, correspondentes e online) → **Aurora Tech · Vertical Financiamentos**: ~350 pessoas, 24 times. Nenhum nome real. Os produtos não são áreas: aparecem no texto das frentes. [R3]
+- **Banco Aurora** (grupo) → **Aurora Financiamentos** (veículos, bens e serviços, empréstimo pessoal; vende por lojistas, concessionárias, correspondentes e online) → **Aurora Tech · Vertical Financiamentos**: ~350 pessoas, 24 times. Nenhum nome real. Os produtos não são áreas: aparecem no texto dos eventos. [R3]
 
 | Área | Times |
 |---|---|
@@ -82,14 +82,14 @@ Fonte: [R3].
 | Entidade | Chave | Campos essenciais | Fonte |
 |---|---|---|---|
 | `versao_taxonomia` | `numero` (1, 2, …) | `documento` (o retrato, do jeito que vai ao Jev), `modelo_jev`, `criada_em`, `geracao_id`, `versao_anterior`, `ativada_em` | [R20] |
-| `valor` | `versao` + `dimensao` + `chave` | `nome`, `descricao`, `chave_pai` (time → área, subtipo → tipo), `ordem`. Deriva do `documento` | [R20] |
+| `valor` | `versao` + `dimensao` + `chave` | `nome`, `descricao`, `chave_pai` (time → área, subfrente → frente), `ordem`. Deriva do `documento` | [R20] |
 
 - Organograma, ficha e problema **não têm tabela própria**: vivem no `documento`, e aparecem em `valor`. [R20]
 
 ### Chave
 
 - Todo valor tem uma `chave` que continua a mesma de uma versão para a outra enquanto o valor for o mesmo, ainda que a revisão o renomeie ou reescreva a descrição. [R20]
-- `criar_*`, `dividir_tipo` e `juntar_tipos` geram chave nova. Áreas e times têm chave fixa, escrita por nós. Problemas vigentes mantêm a chave na revisão. [R20]
+- `criar_*`, `dividir_frente` e `juntar_frentes` geram chave nova. Áreas e times têm chave fixa, escrita por nós. Problemas vigentes mantêm a chave na revisão. [R20]
 - As operações da revisão carregam a chave do valor que continua. [R20]
 
 ### Versão vigente
@@ -97,13 +97,13 @@ Fonte: [R3].
 - É a versão de **maior número com `ativada_em` preenchido**. Não há ponteiro nem marca "vigente". [R20]
 - A versão nova só recebe `ativada_em` quando o histórico inteiro já tem classificação nela; até lá o mapa segue na anterior. [R20]
 - O mapa lê uma versão passada como parâmetro; o padrão é a vigente. [R20]
-- Frente que chega depois só é classificada na versão vigente do momento e nas seguintes. [R20]
+- Evento que chega depois só é classificada na versão vigente do momento e nas seguintes. [R20]
 
-## Custo do Jev por versão (6 mil frentes)
+## Custo do Jev por versão (6 mil eventos)
 
 | Medição | Valor | Fonte |
 |---|---|---|
-| 8 dimensões, sem a dimensão problema, com a ficha | 5.120 tokens por frente | [R11] |
+| 8 dimensões, sem a dimensão problema, com a ficha | 5.120 tokens por evento | [R11] |
 | com 8 problemas | ~US$1,45 por versão | [R11] |
 | no teto de 40 problemas | ~US$2,20 por versão | [R11] |
 | por problema de descrição ancorada | ~90 tokens | [R11] |
@@ -112,9 +112,9 @@ Fonte: [R3].
 ## Contradições anotadas
 
 - **7 → 8 dimensões.** [R3] e [R6] falam em 7; [R8] acrescentou problema. Vale 8.
-- **Custo por versão.** [R3] estimou ~US$0,25 para 20 mil frentes, [R6] ~US$1 por 10 mil, [R7] ~US$0,15, [R9] ~US$1,00, [R13] ~US$1,40. Vale a medição mais recente, de [R11]: entre ~US$1,45 e ~US$2,20.
+- **Custo por versão.** [R3] estimou ~US$0,25 para 20 mil eventos, [R6] ~US$1 por 10 mil, [R7] ~US$0,15, [R9] ~US$1,00, [R13] ~US$1,40. Vale a medição mais recente, de [R11]: entre ~US$1,45 e ~US$2,20.
 - **Critério da área.** Em [R3] cada opção era só "Time X, da área Y"; [R13] trocou pela ficha e [R24] acrescentou as duas frases. Vale [R13] + [R24].
-- **"Não classificadas".** [R2] juntava ali "as que nem área ou tipo tiveram com confiança"; [R3] e [R6] fixaram que é a frente cuja resposta em área ou tipo foi "Nenhum destes" (confirmado pela LLM). Vale a segunda.
+- **"Não classificadas".** [R2] juntava ali "as que nem área ou frente tiveram com confiança"; [R3] e [R6] fixaram que é o evento cuja resposta em área ou frente foi "Nenhum destes" (confirmado pela LLM). Vale a segunda.
 
 [R2]: https://github.com/renatobardi/frentes-engenharia/issues/2#issuecomment-5963209961 "Métrica de onde investir e eixos do mapa de calor"
 [R3]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963699217 "Taxonomia das frentes"

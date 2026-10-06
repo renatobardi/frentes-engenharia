@@ -1,16 +1,16 @@
 import pytest
 
-from frentes.contratos import (
+from eventos.contratos import (
     NENHUM_DESTES,
     Pergunta,
     PerguntaDeLista,
     PerguntaDeNumero,
 )
-from frentes.jev import corpo_do_pedido, montar_perguntas
+from eventos.jev import corpo_do_pedido, montar_perguntas
 
 OITO_DIMENSOES = {
     Pergunta.AREA,
-    Pergunta.TIPO,
+    Pergunta.FRENTE,
     Pergunta.NATUREZA,
     Pergunta.SEVERIDADE,
     Pergunta.IMPACTO,
@@ -30,13 +30,13 @@ def test_pedido_tem_as_8_dimensoes_e_a_pergunta_de_controle(documento):
     assert set(corpo["questions"]) == {p.value for p in OITO_DIMENSOES | {Pergunta.CONTROLE}}
 
 
-def test_tipos_das_perguntas_no_pedido(documento):
+def test_frentes_das_perguntas_no_pedido(documento):
     questoes = corpo_do_pedido("m", "t", montar_perguntas(documento()))["questions"]
 
-    tipos = {nome: q["type"] for nome, q in questoes.items()}
-    assert tipos == {
+    frentes = {nome: q["type"] for nome, q in questoes.items()}
+    assert frentes == {
         "area": "choice",
-        "tipo": "choice",
+        "frente": "choice",
         "natureza": "choice",
         "causa_raiz": "choice",
         "problema": "choice",
@@ -67,13 +67,14 @@ def test_listas_achatadas_com_nenhum_destes(documento):
     questoes = corpo_do_pedido("m", "t", montar_perguntas(documento()))["questions"]
 
     assert list(questoes["area"]["criteria"]) == ["simulacao", "proposta", NENHUM_DESTES]
-    assert list(questoes["tipo"]["criteria"]) == ["lentidao", "erro", NENHUM_DESTES]
+    assert list(questoes["frente"]["criteria"]) == ["lentidao", "erro", NENHUM_DESTES]
     assert (
-        questoes["tipo"]["criteria"]["lentidao"] == "Tipo Falha › Lentidão: demora para responder"
+        questoes["frente"]["criteria"]["lentidao"]
+        == "Frente Falha › Lentidão: demora para responder"
     )
     assert list(questoes["causa_raiz"]["criteria"]) == ["config", NENHUM_DESTES]
     assert questoes["problema"]["criteria"][NENHUM_DESTES] == (
-        "A frente não cita o objeto de nenhum destes problemas"
+        "O evento não cita o objeto de nenhum destes problemas"
     )
 
 
@@ -84,7 +85,7 @@ def test_natureza_nao_tem_nenhum_destes(documento):
     assert isinstance(natureza, PerguntaDeLista)
     assert natureza.com_nenhum_destes is False
     criterios = corpo_do_pedido("m", "t", perguntas)["questions"]["natureza"]["criteria"]
-    assert criterios == {"reativa": "falha acontecendo", "proativa": "melhoria"}
+    assert criterios == {"reativo": "falha acontecendo", "proativo": "melhoria"}
 
 
 def test_reguas_e_criterios_das_perguntas_de_numero(documento):

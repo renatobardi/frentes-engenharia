@@ -4,8 +4,8 @@ from dataclasses import replace
 
 import pytest
 
-from frentes import store
-from frentes.contratos import (
+from eventos import store
+from eventos.contratos import (
     AreaDoOrganograma,
     DocumentoTaxonomia,
     EspecieDeItem,
@@ -25,8 +25,10 @@ def _lista(prefixo: str, n: int) -> tuple[ValorDoDocumento, ...]:
     )
 
 
-def _tipos(n: int = 4, subtipos: int = 2) -> tuple[ValorDoDocumento, ...]:
-    return tuple(replace(t, filhos=_lista(f"{t.chave}-sub", subtipos)) for t in _lista("tipo", n))
+def _frentes(n: int = 4, subfrentes: int = 2) -> tuple[ValorDoDocumento, ...]:
+    return tuple(
+        replace(t, filhos=_lista(f"{t.chave}-sub", subfrentes)) for t in _lista("frente", n)
+    )
 
 
 def _regua(n: int = 4) -> tuple[NivelDaRegua, ...]:
@@ -43,13 +45,13 @@ def montar(**trocas: object) -> DocumentoTaxonomia:
     outro = TimeDoOrganograma("proposta", "Proposta", "Registra propostas")
     base = DocumentoTaxonomia(
         organograma=(AreaDoOrganograma("originacao", "Originação", (time, outro)),),
-        tipos=_tipos(),
+        frentes=_frentes(),
         causas_raiz=_lista("causa", 4),
         problemas=_lista("problema", 3),
         regua_severidade=_regua(),
         regua_impacto=_regua(),
         criterio_urgencia="a janela de tempo para agir",
-        criterio_natureza={Natureza.REATIVA: "falha acontecendo", Natureza.PROATIVA: "melhoria"},
+        criterio_natureza={Natureza.REATIVO: "falha acontecendo", Natureza.PROATIVO: "melhoria"},
         pergunta_de_controle="O texto cita algum sistema?",
         instrucoes={p: f"instrução de {p.value}" for p in Pergunta},
     )
@@ -62,8 +64,8 @@ def documento():
 
 
 @pytest.fixture
-def tipos():
-    return _tipos
+def frentes():
+    return _frentes
 
 
 @pytest.fixture

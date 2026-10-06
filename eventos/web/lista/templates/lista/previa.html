@@ -1,0 +1,25 @@
+{% from "_icones.html" import icone %}
+<div class="previa-corpo entra" data-previa-id="{{ p.id }}">
+  <div class="previa-cab">
+    <div>
+      <p class="meta muted">{{ p.data }} · <span class="origem-sq" title="{{ p.origem }}">{{ p.sigla }}</span> {{ p.origem }}</p>
+      <h2 class="card-titulo">{{ p.emissor }}</h2>
+    </div>
+    <button type="button" class="btn btn-ghost btn-icone btn-sm" data-fechar-previa aria-label="Fechar a prévia">{{ icone("x") }}</button>
+  </div>
+  <p class="previa-texto">{{ p.texto }}</p>
+  {% if p.complemento %}<p class="previa-texto meta muted"><strong>Complemento:</strong> {{ p.complemento }}</p>{% endif %}
+  <dl class="previa-campos">
+    <dt>Estado</dt><dd><span class="{{ p.estado_classe }}">{{ p.estado }}</span></dd>
+    <dt>Área › frente</dt><dd>{% if p.area and p.frente %}{{ p.area }} › {{ p.frente }}{% else %}<span class="muted">–</span>{% endif %}</dd>
+    <dt>Natureza</dt><dd>{{ p.natureza or "–" }}</dd>
+    <dt>Sev. / impacto</dt><dd class="num">{{ p.score or "–" }}</dd>
+    <dt>Confiança</dt>
+    <dd>{% if p.confianca_pct is not none %}<span class="confianca"><span class="barra-fina"><span style="width: {{ p.confianca_pct }}%"></span></span><span class="num">{{ p.confianca }}</span></span>{% else %}–{% endif %}</dd>
+    <dt>Taxonomia</dt><dd>v{{ p.versao }}</dd>
+  </dl>
+  {% if p.fora_do_mapa %}
+  <p class="bloco-gate previa-aviso meta">{{ icone("circle-alert", 14) }}<span>Não pinta o mapa: {{ p.fora_do_mapa }}.</span></p>
+  {% endif %}
+  <a class="btn btn-outline previa-abrir" href="/eventos/{{ p.id }}?versao={{ p.versao }}">Abrir o detalhe {{ icone("arrow-right") }}</a>
+</div>

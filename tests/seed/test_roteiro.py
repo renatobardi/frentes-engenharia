@@ -8,9 +8,9 @@ from functools import cache
 
 import pytest
 
-from frentes.contratos import Cruzado, EspecieDeItem, Natureza, Origem
-from frentes.seed import curvas, validador
-from frentes.seed.roteiro import (
+from eventos.contratos import Cruzado, EspecieDeItem, Natureza, Origem
+from eventos.seed import curvas, validador
+from eventos.seed.roteiro import (
     SEED,
     TOTAL,
     ErroDeRoteiro,
@@ -21,7 +21,7 @@ from frentes.seed.roteiro import (
     sortear_time_e_item,
     teto_por_item,
 )
-from frentes.seed.saida import esqueleto_em_json, uso_de_itens
+from eventos.seed.saida import esqueleto_em_json, uso_de_itens
 
 DIA_D = date(2026, 9, 30)
 
@@ -88,7 +88,7 @@ def test_o_volume_cresce_cerca_de_2_por_cento_ao_mes(roteiro: Roteiro) -> None:
     assert 0.015 < crescimento < 0.025
 
 
-def test_ha_menos_frentes_nos_fins_de_semana(roteiro: Roteiro) -> None:
+def test_ha_menos_eventos_nos_fins_de_semana(roteiro: Roteiro) -> None:
     dias = Counter(e.ocorrido_em.date() for e in roteiro.esqueletos)
     inicio, fim = date(2025, 10, 1), DIA_D
     todos = [date.fromordinal(o) for o in range(inicio.toordinal(), fim.toordinal() + 1)]
@@ -126,10 +126,10 @@ def test_origens_seguem_a_distribuicao(roteiro: Roteiro) -> None:
 
 def test_natureza_65_por_cento_reativa_e_log_e_banco_sempre_reativas(roteiro: Roteiro) -> None:
     com = [e for e in roteiro.esqueletos if e.natureza is not None]
-    assert parte(com, lambda e: e.natureza is Natureza.REATIVA) == pytest.approx(0.65, abs=0.015)
+    assert parte(com, lambda e: e.natureza is Natureza.REATIVO) == pytest.approx(0.65, abs=0.015)
     for e in roteiro.esqueletos:
         if e.origem in (Origem.LOG, Origem.BANCO):
-            assert e.natureza is Natureza.REATIVA
+            assert e.natureza is Natureza.REATIVO
 
 
 def test_ruido_8_por_cento_ambiguas_em_4_sabores_so_em_relato_e_mcp(roteiro: Roteiro) -> None:
@@ -199,15 +199,15 @@ def test_h1_e_h6_reativas_levam_episodio_e_as_outras_nao(roteiro: Roteiro) -> No
     assert min(episodios.values()) >= 1
     for e in roteiro.esqueletos:
         if e.episodio_id:
-            assert e.natureza is Natureza.REATIVA
+            assert e.natureza is Natureza.REATIVO
             assert e.episodio_id.endswith(f"{e.ocorrido_em:%Y%m%d}")  # mesmo dia
-    # a spec: toda reativa de H1 e H6 leva episódio
-    reativas = [
+    # a spec: toda reativo de H1 e H6 leva episódio
+    reativos = [
         e
         for e in roteiro.esqueletos
-        if e.historia_id in ("H1", "H6") and e.natureza is Natureza.REATIVA
+        if e.historia_id in ("H1", "H6") and e.natureza is Natureza.REATIVO
     ]
-    assert reativas and all(e.episodio_id for e in reativas)
+    assert reativos and all(e.episodio_id for e in reativos)
 
 
 def test_h5_log_e_webhook_sao_sempre_do_time_app(roteiro: Roteiro) -> None:
@@ -219,7 +219,7 @@ def test_h5_log_e_webhook_sao_sempre_do_time_app(roteiro: Roteiro) -> None:
     assert h5 and all(e.time == "app" for e in h5)
     pedidos = [e for e in roteiro.esqueletos if e.historia_id == "H5" and e.cenario == "pedido"]
     assert pedidos and all(e.time != "app" for e in pedidos)
-    assert all(e.natureza is Natureza.PROATIVA for e in pedidos)
+    assert all(e.natureza is Natureza.PROATIVO for e in pedidos)
 
 
 def test_sem_duplicata_exata_de_ref_externa(roteiro: Roteiro) -> None:
@@ -241,7 +241,7 @@ def fundo(roteiro: Roteiro):
 
 
 def test_o_fundo_e_metade_tecnico_e_metade_funcional(roteiro: Roteiro) -> None:
-    from frentes.seed.temas import TEMAS_POR_CHAVE
+    from eventos.seed.temas import TEMAS_POR_CHAVE
 
     grupos = Counter(TEMAS_POR_CHAVE[e.tema_fundo].grupo for e in fundo(roteiro))
     assert grupos["tecnico"] / sum(grupos.values()) == pytest.approx(0.5, abs=0.01)
@@ -394,7 +394,7 @@ def test_volume_pequeno_demais_para_o_teto_e_erro() -> None:
 
 
 def test_ids_com_largura_do_total_e_ordem_pelo_tempo(roteiro: Roteiro) -> None:
-    assert re.fullmatch(r"fr-\d{4}", roteiro.esqueletos[0].id)
+    assert re.fullmatch(r"ev-\d{4}", roteiro.esqueletos[0].id)
     datas = [e.ocorrido_em for e in roteiro.esqueletos]
     assert datas == sorted(datas)
 
@@ -415,18 +415,18 @@ def test_origens_que_nao_fecham_sao_erro(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_naturezas_que_nao_fecham_sao_erro(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(curvas, "REATIVA", 0.0)
+    monkeypatch.setattr(curvas, "REATIVO", 0.0)
     with pytest.raises(ErroDeRoteiro, match="naturezas não fecham"):
         gerar()
 
 
 def test_h1_e_o_top_1_de_onde_doi_nos_ultimos_90_dias(roteiro: Roteiro) -> None:
-    """O roteiro da demo exige a H1 na frente da H5, por história, por time e por área."""
+    """O roteiro da demo exige a H1 no evento da H5, por história, por time e por área."""
     fim = max(e.ocorrido_em for e in roteiro.esqueletos)
     janela = [
         e
         for e in roteiro.esqueletos
-        if e.natureza is Natureza.REATIVA and (fim - e.ocorrido_em).days < 90
+        if e.natureza is Natureza.REATIVO and (fim - e.ocorrido_em).days < 90
     ]
     h1 = next(e for e in janela if e.historia_id == "H1")
     h5 = next(e for e in janela if e.historia_id == "H5" and e.cenario != "pedido")

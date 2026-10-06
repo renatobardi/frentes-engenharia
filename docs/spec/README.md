@@ -14,35 +14,35 @@ A spec consolidada das 17 resoluções do [mapa](https://github.com/renatobardi/
 
 | Arquivo | Peça | Pastas que implementam |
 |---|---|---|
-| [01-entrada.md](01-entrada.md) | origens, frente bruta, `POST /frentes`, formulário, complemento, rajada | `frentes/entrada/` |
-| [02-taxonomia-e-versoes.md](02-taxonomia-e-versoes.md) | as 8 dimensões, organograma e ficha do time, versão, chave, vigente | `frentes/taxonomia/`, `frentes/jev/`, `seed/` |
-| [03-classificacao.md](03-classificacao.md) | Jev e LLM, pergunta de controle, regra de confiança, desempate, estados, o que é gravado | `frentes/jev/`, `frentes/llm/`, `frentes/classificacao/`, `frentes/fila.py` |
-| [04-descoberta-e-revisao.md](04-descoberta-e-revisao.md) | descoberta da v1, sinal de encaixe, revisão por operações | `frentes/taxonomia/` |
-| [05-problema-e-recorrencia.md](05-problema-e-recorrencia.md) | lista de problemas, peneira, atribuição, problema recorrente | `frentes/taxonomia/`, `frentes/mapa/` |
-| [06-mapa-e-painel.md](06-mapa-e-painel.md) | eixos, visões, índice, agregados na leitura, painel da célula | `frentes/mapa/`, `frentes/painel/` |
-| [07-enderecamento.md](07-enderecamento.md) | a marca na célula, o plantado da H3 | `frentes/enderecamento/` |
-| [08-seed-e-gabarito.md](08-seed-e-gabarito.md) | histórias, fundo, relato cruzado, geração, gabarito, conferência da área | `frentes/seed/`, `seed/`, `frentes/conferencia/` |
-| [09-snapshot.md](09-snapshot.md) | conteúdo, formato, carga e deslocamento de datas | `frentes/snapshot/`, `data/snapshot/` |
-| [10-telas.md](10-telas.md) | as cinco telas, o menu, o efeito ao vivo | `frentes/web/` |
+| [01-entrada.md](01-entrada.md) | origens, evento bruto, `POST /eventos`, formulário, complemento, rajada | `eventos/entrada/` |
+| [02-taxonomia-e-versoes.md](02-taxonomia-e-versoes.md) | as 8 dimensões, organograma e ficha do time, versão, chave, vigente | `eventos/taxonomia/`, `eventos/jev/`, `seed/` |
+| [03-classificacao.md](03-classificacao.md) | Jev e LLM, pergunta de controle, regra de confiança, desempate, estados, o que é gravado | `eventos/jev/`, `eventos/llm/`, `eventos/classificacao/`, `eventos/fila.py` |
+| [04-descoberta-e-revisao.md](04-descoberta-e-revisao.md) | descoberta da v1, sinal de encaixe, revisão por operações | `eventos/taxonomia/` |
+| [05-problema-e-recorrencia.md](05-problema-e-recorrencia.md) | lista de problemas, peneira, atribuição, problema recorrente | `eventos/taxonomia/`, `eventos/mapa/` |
+| [06-mapa-e-painel.md](06-mapa-e-painel.md) | eixos, visões, índice, agregados na leitura, painel da célula | `eventos/mapa/`, `eventos/painel/` |
+| [07-enderecamento.md](07-enderecamento.md) | a marca na célula, o plantado da H3 | `eventos/enderecamento/` |
+| [08-seed-e-gabarito.md](08-seed-e-gabarito.md) | histórias, fundo, relato cruzado, geração, gabarito, conferência da área | `eventos/seed/`, `seed/`, `eventos/conferencia/` |
+| [09-snapshot.md](09-snapshot.md) | conteúdo, formato, carga e deslocamento de datas | `eventos/snapshot/`, `data/snapshot/` |
+| [10-telas.md](10-telas.md) | as cinco telas, o menu, o efeito ao vivo | `eventos/web/` |
 | [11-demo-e-roteiro.md](11-demo-e-roteiro.md) | o pedido, o roteiro, os riscos e o plano B | — (ensaio) |
-| [12-operacao-e-deploy.md](12-operacao-e-deploy.md) | stack, pastas, segundo plano, comandos, segredos, gates, host, deploy | `frentes/fila.py`, `frentes/config.py`, `scripts/` |
+| [12-operacao-e-deploy.md](12-operacao-e-deploy.md) | stack, pastas, segundo plano, comandos, segredos, gates, host, deploy | `eventos/fila.py`, `eventos/config.py`, `scripts/` |
 
 ## As 17 resoluções
 
 | Marca | Ticket | Onde entra |
 |---|---|---|
 | [R2] | Métrica de onde investir e eixos do mapa de calor | 06, 10 |
-| [R3], [R3a] | Taxonomia das frentes (e o adendo das facetas secundárias) | 02, 04 |
+| [R3], [R3a] | Taxonomia dos eventos (e o adendo das facetas secundárias) | 02, 04 |
 | [R4] | Fontes de entrada do PoC | 01 |
 | [R5] | Chamar o Jev pelo OpenRouter com saída tipada e confiança | 03 |
 | [R6] | Divisão de trabalho Jev × LLM | 03, 06 |
-| [R7] | Seed monstra de frentes fictícias | 08, 09 |
-| [R8] | Detecção de recorrência entre frentes | 05 |
+| [R7] | Seed monstra de eventos fictícios | 08, 09 |
+| [R8] | Detecção de recorrência entre eventos | 05 |
 | [R9] | Descoberta e revisão da taxonomia pela LLM | 04 |
 | [R11] | Problema como dimensão: lista e atribuição contra o gabarito | 05, 02 |
 | [R13] | Fundo da seed: área no texto e serviços nos logs | 02, 08 |
 | [R14] | Pergunta de controle "texto vago": corte e redação | 03, 01 |
-| [R19] | Ciclo de vida da frente depois de classificada | 07 |
+| [R19] | Ciclo de vida do evento depois de classificada | 07 |
 | [R20] | Modelo de dados do PoC | 02, 03, 06, 09 |
 | [R21] | Roteiro da demo para o diretor | 11 |
 | [R22] | Telas do PoC além do mapa de calor | 10 |
@@ -61,7 +61,7 @@ Não é decisão desta spec: é o que as resoluções entregaram à construção
 
 ## Fora do escopo do PoC
 
-Do [mapa](https://github.com/renatobardi/frentes-engenharia/issues/1): produto multi-tenant, billing e onboarding; integrações de produção com sistemas reais; SSO; dados reais da empresa; comparação Jev × LLM como tema da demo; agrupamento real de logs e integrações ao vivo de log, banco e MCP [R4]; ciclo por frente, responsável, prazo e retorno em R$ [R19]; o desenho do piloto [R21].
+Do [mapa](https://github.com/renatobardi/frentes-engenharia/issues/1): produto multi-tenant, billing e onboarding; integrações de produção com sistemas reais; SSO; dados reais da empresa; comparação Jev × LLM como tema da demo; agrupamento real de logs e integrações ao vivo de log, banco e MCP [R4]; ciclo por evento, responsável, prazo e retorno em R$ [R19]; o desenho do piloto [R21].
 
 [R2]: https://github.com/renatobardi/frentes-engenharia/issues/2#issuecomment-5963209961 "Métrica de onde investir e eixos do mapa de calor"
 [R3]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963699217 "Taxonomia das frentes"

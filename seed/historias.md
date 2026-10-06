@@ -1,10 +1,10 @@
 # Histórias plantadas
 
-As sete histórias da seed da Aurora Tech · Vertical Financiamentos, como em `docs/spec/08-seed-e-gabarito.md`. O gabarito é história + área › time, **sem nome de tipo**. Os meses contam a partir do dia D: o mês 1 é o mais antigo e o mês 12 termina em D.
+As sete histórias da seed da Aurora Tech · Vertical Financiamentos, como em `docs/spec/08-seed-e-gabarito.md`. O gabarito é história + área › time, **sem nome de frente**. Os meses contam a partir do dia D: o mês 1 é o mais antigo e o mês 12 termina em D.
 
 **Dia D**: 2026-09-30
 
-Histórias ≈ 21% das frentes, fundo ≈ 77%, fora do escopo 2%. Intensidade na janela de 90 dias: o Top 1 de cada visão fica entre 6 e 10× a mediana das células; as demais histórias, entre 2,5 e 6×.
+Histórias ≈ 21% dos eventos, fundo ≈ 77%, fora do escopo 2%. Intensidade na janela de 90 dias: o Top 1 de cada visão fica entre 6 e 10× a mediana das células; as demais histórias, entre 2,5 e 6×.
 
 | # | História | Área › Time | Visão | Curva | Peso |
 |---|---|---|---|---|---|
@@ -18,14 +18,14 @@ Histórias ≈ 21% das frentes, fundo ≈ 77%, fora do escopo 2%. Intensidade na
 
 ## Origens e regras de forma
 
-- Cada história usa 2 ou 3 origens que façam sentido. H1 e H6, reativas, levam `episodio_id`.
+- Cada história usa 2 ou 3 origens que façam sentido. H1 e H6, reativos, levam `episodio_id`.
 - H1: os templates de log e webhook da esteira de propostas citam o objeto (proposta), não só o serviço de infra.
 - H5: log e webhook são sempre do time App; o template diz "assistente virtual do app".
-- H3 traz o endereçamento plantado (`enderecamentos.json`): o mutirão, datado no fim do mês 6. As frentes, as curvas e o gabarito não mudam.
+- H3 traz o endereçamento plantado (`enderecamentos.json`): o mutirão, datado no fim do mês 6. Os eventos, as curvas e o gabarito não mudam.
 
 ## Termos que a ficha não repete
 
-O validador (`frentes/seed/validador.py`) lê esta seção. Nenhum objeto, serviço ou fornecedor do organograma pode conter um destes termos (sem acento e sem diferença de maiúscula), porque o fundo não pode nomear o objeto de uma história.
+O validador (`eventos/seed/validador.py`) lê esta seção. Nenhum objeto, serviço ou fornecedor do organograma pode conter um destes termos (sem acento e sem diferença de maiúscula), porque o fundo não pode nomear o objeto de uma história.
 
 - H1: esteira
 - H2: gravame; registro de gravame

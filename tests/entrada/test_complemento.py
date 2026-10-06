@@ -5,11 +5,11 @@ from dataclasses import replace
 
 import pytest
 
-from frentes import contratos, store
-from frentes.entrada import complemento, recepcao
-from frentes.store import classificacao as armazem
-from frentes.store import relato
-from frentes.store import versao as armazem_versao
+from eventos import contratos, store
+from eventos.entrada import complemento, recepcao
+from eventos.store import classificacao as armazem
+from eventos.store import relato
+from eventos.store import versao as armazem_versao
 from tests.fila.documento import DOCUMENTO, QUANDO
 from tests.store.test_classificacao import classificacao as pronta
 
@@ -41,23 +41,23 @@ def _vago(con: store.Conexao, origem: contratos.Origem = ORIGEM.RELATO) -> str:
 
 
 def _gravar(con: store.Conexao, origem: contratos.Origem, texto: str = "isso não funciona") -> str:
-    return recepcao.receber(con, contratos.FrenteBruta("Ana", texto), origem).id
+    return recepcao.receber(con, contratos.EventoBruto("Ana", texto), origem).id
 
 
 def test_complementar_grava_ao_lado_do_original(con: store.Conexao) -> None:
     id_ = _vago(con)
 
-    frente = complemento.complementar(con, id_, " é o simulador\n")
+    evento = complemento.complementar(con, id_, " é o simulador\n")
 
-    assert frente.texto == "isso não funciona"
-    assert frente.complemento == " é o simulador\n"  # como veio
-    assert frente.complementado_em is not None
-    assert frente.texto_para_o_jev == "isso não funciona\n\n é o simulador\n"
-    assert armazem.ler_frente(con, id_) == frente
+    assert evento.texto == "isso não funciona"
+    assert evento.complemento == " é o simulador\n"  # como veio
+    assert evento.complementado_em is not None
+    assert evento.texto_para_o_jev == "isso não funciona\n\n é o simulador\n"
+    assert armazem.ler_evento(con, id_) == evento
 
 
 @pytest.mark.parametrize("origem", [ORIGEM.WEBHOOK, ORIGEM.LOG, ORIGEM.BANCO, ORIGEM.MCP])
-def test_complemento_em_frente_que_nao_e_relato_e_recusado(
+def test_complemento_em_evento_que_nao_e_relato_e_recusado(
     con: store.Conexao, origem: contratos.Origem
 ) -> None:
     id_ = _vago(con, origem)
@@ -65,11 +65,11 @@ def test_complemento_em_frente_que_nao_e_relato_e_recusado(
     with pytest.raises(complemento.NaoEhRelato):
         complemento.complementar(con, id_, "mais contexto")
 
-    assert armazem.ler_frente(con, id_).complemento is None
+    assert armazem.ler_evento(con, id_).complemento is None
 
 
-def test_complemento_em_frente_inexistente(con: store.Conexao) -> None:
-    with pytest.raises(complemento.FrenteInexistente):
+def test_complemento_em_evento_inexistente(con: store.Conexao) -> None:
+    with pytest.raises(complemento.EventoInexistente):
         complemento.complementar(con, "nao-existe", "mais contexto")
 
 
@@ -80,7 +80,7 @@ def test_segundo_complemento_e_recusado_e_o_primeiro_fica(con: store.Conexao) ->
     with pytest.raises(complemento.JaComplementada):
         complemento.complementar(con, id_, "segundo")
 
-    assert armazem.ler_frente(con, id_).complemento == "primeiro"
+    assert armazem.ler_evento(con, id_).complemento == "primeiro"
 
 
 @pytest.mark.parametrize("texto", ["", "   \n", "a\x00b", "x" * (recepcao.LIMITE_TEXTO + 1)])
@@ -90,7 +90,7 @@ def test_complemento_invalido_e_recusado(con: store.Conexao, texto: str) -> None
     with pytest.raises(complemento.ComplementoInvalido):
         complemento.complementar(con, id_, texto)
 
-    assert armazem.ler_frente(con, id_).complemento is None
+    assert armazem.ler_evento(con, id_).complemento is None
 
 
 def test_gravar_complemento_so_no_relato_sem_complemento(con: store.Conexao) -> None:
@@ -103,7 +103,7 @@ def test_gravar_complemento_so_no_relato_sem_complemento(con: store.Conexao) -> 
 
 
 def test_emissores_por_nome(con: store.Conexao) -> None:
-    from frentes.store import emissor
+    from eventos.store import emissor
 
     emissor.gravar_todos(
         con,
@@ -146,7 +146,7 @@ def test_complemento_so_no_relato_que_ficou_vago(
     with pytest.raises(complemento.NaoEstaVaga):
         complemento.complementar(con, id_, "mais contexto")
 
-    assert armazem.ler_frente(con, id_).complemento is None
+    assert armazem.ler_evento(con, id_).complemento is None
 
 
 def test_complemento_em_relato_ainda_sem_classificacao_e_recusado(con: store.Conexao) -> None:

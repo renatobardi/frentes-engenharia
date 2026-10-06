@@ -4,44 +4,44 @@ from pathlib import Path
 
 import pytest
 
-from frentes import store
-from frentes.contratos import Celula, Procedencia, TipoSolucao, Visao, de_iso
-from frentes.enderecamento import marcas, plantio
-from frentes.enderecamento.marcas import CelulaJaEnderecada
-from frentes.enderecamento.plantio import ErroDePlantio
+from eventos import store
+from eventos.contratos import Celula, Procedencia, TipoSolucao, Visao, de_iso
+from eventos.enderecamento import marcas, plantio
+from eventos.enderecamento.marcas import CelulaJaEnderecada
+from eventos.enderecamento.plantio import ErroDePlantio
 
 DOR = Celula("pos-venda", "cobranca", Visao.DOR)
 OPORTUNIDADE = Celula("pos-venda", "cobranca", Visao.OPORTUNIDADE)
 DIA = datetime(2026, 3, 31, 18, 0, tzinfo=UTC)
 
 
-def versao(con: store.Conexao, numero: int, tipos: list[str], ativa: bool = True) -> None:
+def versao(con: store.Conexao, numero: int, frentes: list[str], ativa: bool = True) -> None:
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
         " VALUES (?, '{}', 'jev', '2026-01-01T00:00:00Z', ?)",
         (numero, "2026-01-01T00:00:00Z" if ativa else None),
     )
-    for chave in tipos:
+    for chave in frentes:
         con.execute(
-            "INSERT INTO valor (versao, dimensao, chave, nome) VALUES (?, 'tipo', ?, ?)",
+            "INSERT INTO valor (versao, dimensao, chave, nome) VALUES (?, 'frente', ?, ?)",
             (numero, chave, chave),
         )
 
 
-def classificar(con: store.Conexao, frente_id: str, numero: int, tipo: str | None) -> None:
+def classificar(con: store.Conexao, evento_id: str, numero: int, frente: str | None) -> None:
     con.execute("INSERT OR IGNORE INTO emissor (id, nome, tipo) VALUES ('e', 'e', 'sistema')")
     con.execute(
-        "INSERT INTO frente (id, origem, emissor, texto, recebido_em)"
+        "INSERT INTO evento (id, origem, emissor, texto, recebido_em)"
         " VALUES (?, 'relato', 'e', 'texto', '2026-01-01T00:00:00Z')",
-        (frente_id,),
+        (evento_id,),
     )
     con.execute(
-        "INSERT INTO classificacao (frente_id, versao, resposta_jev, conf_area, conf_tipo,"
+        "INSERT INTO classificacao (evento_id, versao, resposta_jev, conf_area, conf_frente,"
         " conf_natureza, severidade, impacto, urgencia, conf_causa, conf_problema, controle,"
-        " estado, tipo_final, tokens_entrada, tokens_saida, latencia_ms, classificada_em)"
+        " estado, frente_final, tokens_entrada, tokens_saida, latencia_ms, classificada_em)"
         " VALUES (?, ?, '{}', 1, 1, 1, 0, 0, 0, 1, 1, 0, 'classificada', ?, 0, 0, 0,"
         " '2026-01-01T00:00:00Z')",
-        (frente_id, numero, tipo),
+        (evento_id, numero, frente),
     )
 
 
@@ -109,7 +109,7 @@ def test_desfazer_o_que_nao_existe_ou_ja_foi_desfeito(con: store.Conexao) -> Non
     assert marcas.desfazer(con, marca.id) is False
 
 
-def test_tipo_ausente_na_versao_lida_nao_aparece_e_volta_numa_que_o_tem(
+def test_frente_ausente_na_versao_lida_nao_aparece_e_volta_numa_que_o_tem(
     con: store.Conexao,
 ) -> None:
     versao(con, 2, ["acesso"])  # a versão 2 não tem "cobranca"
@@ -152,11 +152,11 @@ def item(**extra):
         "decidido_em": "2026-03-31T18:00:00Z",
         "texto": "Mutirão",
         "tipo_solucao": "processo",
-        "frentes_de_referencia": ["f1", "f2", "f3"],
+        "eventos_de_referencia": ["f1", "f2", "f3"],
     } | extra
 
 
-def test_plantado_usa_o_tipo_mais_frequente_das_frentes_de_referencia(
+def test_plantado_usa_a_frente_mais_frequente_dos_eventos_de_referencia(
     con: store.Conexao,
 ) -> None:
     classificar(con, "f1", 1, "acesso")
@@ -177,16 +177,16 @@ def test_plantado_le_a_versao_vigente_e_desempata_pela_chave(con: store.Conexao)
     versao(con, 2, ["cobranca", "acesso"])
     versao(con, 3, ["cobranca"], ativa=False)  # em reclassificação: não é a vigente
     classificar(con, "f1", 1, "cobranca")
-    for frente, tipo in (("f2", "cobranca"), ("f3", "acesso")):
-        classificar(con, frente, 2, tipo)
-    con.execute(  # f1 também na versão 2, sem tipo: não conta
-        "UPDATE classificacao SET versao = 2, tipo_final = NULL WHERE frente_id = 'f1'"
+    for evento, frente in (("f2", "cobranca"), ("f3", "acesso")):
+        classificar(con, evento, 2, frente)
+    con.execute(  # f1 também na versão 2, sem frente: não conta
+        "UPDATE classificacao SET versao = 2, frente_final = NULL WHERE evento_id = 'f1'"
     )
 
     plantio.plantar(con, [item()])
 
     # na vigente (2) f2 e f3 empatam: vale a menor chave
-    assert [m.celula.tipo for m in marcas.lidos(con, 2)] == ["acesso"]
+    assert [m.celula.frente for m in marcas.lidos(con, 2)] == ["acesso"]
 
 
 def test_plantar_de_novo_nao_duplica(con: store.Conexao) -> None:
@@ -202,11 +202,11 @@ def test_plantar_sem_versao_vigente_falha() -> None:
 
 
 @pytest.mark.parametrize("referencia", [[], ["nao-existe"]])
-def test_plantar_sem_tipo_nas_frentes_de_referencia_falha(
+def test_plantar_sem_frente_nos_eventos_de_referencia_falha(
     con: store.Conexao, referencia: list[str]
 ) -> None:
     with pytest.raises(ErroDePlantio, match="H3"):
-        plantio.plantar(con, [item(frentes_de_referencia=referencia)])
+        plantio.plantar(con, [item(eventos_de_referencia=referencia)])
 
 
 def test_ler_arquivo(tmp_path: Path) -> None:

@@ -4,16 +4,16 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-import frentes
-import frentes.store
-import frentes.web
-from frentes import config, store
-from frentes.__main__ import main
-from frentes.web.app import criar_app
+import eventos
+import eventos.store
+import eventos.web
+from eventos import config, store
+from eventos.__main__ import main
+from eventos.web.app import criar_app
 from tests.encaixe import encaixado
 
 STORE = """
-from frentes.store import Conexao
+from eventos.store import Conexao
 
 
 def gravar(con: Conexao, id: str) -> None:
@@ -25,8 +25,8 @@ def nomes(con: Conexao) -> list[str]:
 """
 
 CLI = """
-from frentes import config, store
-from frentes.store import emissores_novos
+from eventos import config, store
+from eventos.store import emissores_novos
 
 
 def listar(argumentos):
@@ -44,9 +44,9 @@ COMANDOS = {"listar-emissores": ("lista os emissores", listar)}
 ROTAS = """
 from fastapi import APIRouter, Request
 
-from frentes import store
-from frentes.store import emissores_novos
-from frentes.web.telas import renderizar
+from eventos import store
+from eventos.store import emissores_novos
+from eventos.web.telas import renderizar
 
 roteador = APIRouter()
 
@@ -65,16 +65,16 @@ PAGINA = """{% extends "base.html" %}
 def test_comando_tela_e_store_novos_sem_editar_arquivo_de_outro_modulo(
     tmp_path: Path, monkeypatch, capsys
 ) -> None:
-    banco = tmp_path / "frentes.sqlite"
-    monkeypatch.setenv("FRENTES_DB", str(banco))
+    banco = tmp_path / "eventos.sqlite"
+    monkeypatch.setenv("EVENTOS_DB", str(banco))
     pasta = tmp_path / "novo"
     with (
-        encaixado(frentes.store, pasta / "store", {"emissores_novos.py": STORE}),
+        encaixado(eventos.store, pasta / "store", {"emissores_novos.py": STORE}),
         encaixado(
-            frentes, pasta / "modulos", {"emissores/__init__.py": "", "emissores/cli.py": CLI}
+            eventos, pasta / "modulos", {"emissores/__init__.py": "", "emissores/cli.py": CLI}
         ),
         encaixado(
-            frentes.web,
+            eventos.web,
             pasta / "telas",
             {
                 "emissores/__init__.py": "",

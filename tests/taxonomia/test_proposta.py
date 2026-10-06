@@ -1,8 +1,8 @@
 import pytest
 
-from frentes.contratos import AreaDoOrganograma, TimeDoOrganograma
-from frentes.taxonomia import proposta as p
-from tests.taxonomia.propostas import proposta, tipo
+from eventos.contratos import AreaDoOrganograma, TimeDoOrganograma
+from eventos.taxonomia import proposta as p
+from tests.taxonomia.propostas import frente, proposta
 
 ORGANOGRAMA = (
     AreaDoOrganograma(
@@ -35,15 +35,15 @@ def test_marcas_tiram_a_palavra_que_tambem_e_assunto() -> None:
 
 
 @pytest.mark.parametrize("n", [3, 9])
-def test_tetos_de_tipos(n: int) -> None:
-    tipos = [tipo(f"Assunto {chr(65 + i)}") for i in range(n)]
-    assert regras(proposta(tipos=tipos)) == {"tipos"}
+def test_tetos_de_frentes(n: int) -> None:
+    frentes = [frente(f"Assunto {chr(65 + i)}") for i in range(n)]
+    assert regras(proposta(frentes=frentes)) == {"frentes"}
 
 
 @pytest.mark.parametrize("n", [1, 7])
-def test_tetos_de_subtipos(n: int) -> None:
-    tipos = [tipo("Assunto Um", subtipos=n), *proposta()["tipos"][1:]]
-    assert regras(proposta(tipos=tipos)) == {"subtipos"}
+def test_tetos_de_subfrentes(n: int) -> None:
+    frentes = [frente("Assunto Um", subfrentes=n), *proposta()["frentes"][1:]]
+    assert regras(proposta(frentes=frentes)) == {"subfrentes"}
 
 
 @pytest.mark.parametrize("n", [3, 9])
@@ -67,12 +67,14 @@ def test_criterio_de_urgencia_nao_pode_ser_vazio() -> None:
 @pytest.mark.parametrize(
     "nome", ["Outros", "Outros Assuntos", "Diversos", "Geral", "Miscelânea", "Nenhum destes"]
 )
-def test_nome_generico_em_tipo_subtipo_e_causa(nome: str) -> None:
-    assert regras(proposta(tipos=[tipo(nome), *proposta()["tipos"][1:]])) == {"nome_generico"}
+def test_nome_generico_em_frente_subfrente_e_causa(nome: str) -> None:
+    assert regras(proposta(frentes=[frente(nome), *proposta()["frentes"][1:]])) == {"nome_generico"}
 
-    com_subtipo = tipo("Assunto Um")
-    com_subtipo["subtipos"][0]["nome"] = nome
-    assert regras(proposta(tipos=[com_subtipo, *proposta()["tipos"][1:]])) == {"nome_generico"}
+    com_subfrente = frente("Assunto Um")
+    com_subfrente["subfrentes"][0]["nome"] = nome
+    assert regras(proposta(frentes=[com_subfrente, *proposta()["frentes"][1:]])) == {
+        "nome_generico"
+    }
 
     causas = [{"nome": nome, "descricao": "porque"}, *proposta()["causas_raiz"][1:]]
     assert regras(proposta(causas_raiz=causas)) == {"nome_generico"}
@@ -80,71 +82,75 @@ def test_nome_generico_em_tipo_subtipo_e_causa(nome: str) -> None:
 
 @pytest.mark.parametrize("nome", ["", "Rede › Latência"])
 def test_nome_vazio_ou_com_separador(nome: str) -> None:
-    assert regras(proposta(tipos=[tipo(nome), *proposta()["tipos"][1:]])) >= {"nome_invalido"}
+    assert regras(proposta(frentes=[frente(nome), *proposta()["frentes"][1:]])) >= {"nome_invalido"}
 
 
 @pytest.mark.parametrize(
     "nome", ["Falhas de Gravame", "Simulacao de Crédito", "Gravames Lentos", "Infra Gravame"]
 )
-def test_nome_de_area_time_ou_produto_no_tipo_e_no_subtipo(nome: str) -> None:
-    assert regras(proposta(tipos=[tipo(nome), *proposta()["tipos"][1:]])) == {
+def test_nome_de_area_time_ou_produto_na_frente_e_na_subfrente(nome: str) -> None:
+    assert regras(proposta(frentes=[frente(nome), *proposta()["frentes"][1:]])) == {
         "nome_de_area_time_ou_produto"
     }
 
-    com_subtipo = tipo("Assunto Um")
-    com_subtipo["subtipos"][1]["nome"] = nome
-    assert regras(proposta(tipos=[com_subtipo, *proposta()["tipos"][1:]])) == {
+    com_subfrente = frente("Assunto Um")
+    com_subfrente["subfrentes"][1]["nome"] = nome
+    assert regras(proposta(frentes=[com_subfrente, *proposta()["frentes"][1:]])) == {
         "nome_de_area_time_ou_produto"
     }
 
 
 def test_palavra_de_area_que_tambem_e_assunto_nao_conta() -> None:
-    assert regras(proposta(tipos=[tipo("Falhas de Cloud"), *proposta()["tipos"][1:]])) == set()
+    assert (
+        regras(proposta(frentes=[frente("Falhas de Cloud"), *proposta()["frentes"][1:]])) == set()
+    )
 
 
 @pytest.mark.parametrize("nome", ["Melhorias de Processo", "Sugestões", "Pedidos de Parceiros"])
-def test_tipo_so_de_melhoria_pelo_nome(nome: str) -> None:
-    assert regras(proposta(tipos=[tipo(nome), *proposta()["tipos"][1:]])) == {"tipo_so_de_melhoria"}
+def test_frente_so_de_melhoria_pelo_nome(nome: str) -> None:
+    assert regras(proposta(frentes=[frente(nome), *proposta()["frentes"][1:]])) == {
+        "frente_so_de_melhoria"
+    }
 
 
-def test_tipo_so_de_melhoria_pela_descricao() -> None:
-    so_proativo = tipo("Ciclo de Plataforma", "Propõe melhorias e novas ideias.")
-    assert regras(proposta(tipos=[so_proativo, *proposta()["tipos"][1:]])) == {
-        "tipo_so_de_melhoria"
+def test_frente_so_de_melhoria_pela_descricao() -> None:
+    so_proativo = frente("Ciclo de Plataforma", "Propõe melhorias e novas ideias.")
+    assert regras(proposta(frentes=[so_proativo, *proposta()["frentes"][1:]])) == {
+        "frente_so_de_melhoria"
     }
 
 
 def test_descricao_que_cita_a_falha_nao_e_so_de_melhoria() -> None:
-    misto = tipo("Ciclo de Plataforma", "Propõe melhorias e relata falhas na plataforma.")
-    assert regras(proposta(tipos=[misto, *proposta()["tipos"][1:]])) == set()
+    misto = frente("Ciclo de Plataforma", "Propõe melhorias e relata falhas na plataforma.")
+    assert regras(proposta(frentes=[misto, *proposta()["frentes"][1:]])) == set()
 
 
-def test_descricao_vazia_em_tipo_subtipo_e_causa() -> None:
-    sem_tipo = tipo("Assunto Um", "")
-    sem_tipo["subtipos"][0]["descricao"] = ""
+def test_descricao_vazia_em_frente_subfrente_e_causa() -> None:
+    sem_frente = frente("Assunto Um", "")
+    sem_frente["subfrentes"][0]["descricao"] = ""
     causas = [{"nome": "Causa A", "descricao": ""}, *proposta()["causas_raiz"][1:]]
-    conteudo = proposta(tipos=[sem_tipo, *proposta()["tipos"][1:]], causas_raiz=causas)
+    conteudo = proposta(frentes=[sem_frente, *proposta()["frentes"][1:]], causas_raiz=causas)
     lida, _ = p.ler(conteudo)
     assert lida is not None
     sem_descricao = [v for v in p.validar(lida, MARCAS) if v.regra == "sem_descricao"]
     assert len(sem_descricao) == 3
 
 
-def test_subtipo_repetido_no_mesmo_tipo_e_entre_tipos() -> None:
-    um = tipo("Assunto Um")
-    um["subtipos"][1]["nome"] = um["subtipos"][0]["nome"]
-    assert regras(proposta(tipos=[um, *proposta()["tipos"][1:]])) == {"nome_repetido"}
+def test_subfrente_repetido_na_mesma_frente_e_entre_frentes() -> None:
+    um = frente("Assunto Um")
+    um["subfrentes"][1]["nome"] = um["subfrentes"][0]["nome"]
+    assert regras(proposta(frentes=[um, *proposta()["frentes"][1:]])) == {"nome_repetido"}
 
-    dois = tipo("Assunto Dois")
-    dois["subtipos"][0]["nome"] = "assunto um 1"
-    assert regras(proposta(tipos=[tipo("Assunto Um"), dois, *proposta()["tipos"][2:]])) == {
+    dois = frente("Assunto Dois")
+    dois["subfrentes"][0]["nome"] = "assunto um 1"
+    assert regras(proposta(frentes=[frente("Assunto Um"), dois, *proposta()["frentes"][2:]])) == {
         "nome_repetido"
     }
 
 
-def test_tipo_e_causa_repetidos() -> None:
-    tipos = [tipo("Assunto Um"), tipo("assunto um"), *proposta()["tipos"][2:]]
-    assert regras(proposta(tipos=tipos)) == {"nome_repetido"}
+def test_frente_e_causa_repetidos() -> None:
+    frentes = [frente("Assunto Um"), frente("assunto um"), *proposta()["frentes"][2:]]
+    assert regras(proposta(frentes=frentes)) == {"nome_repetido"}
 
     causas = [{"nome": "Causa A", "descricao": "x"}] * 4
     assert regras(proposta(causas_raiz=causas)) == {"nome_repetido"}
@@ -154,8 +160,8 @@ def test_tipo_e_causa_repetidos() -> None:
     "conteudo",
     [
         {},
-        {**proposta(), "tipos": "texto"},
-        {**proposta(), "tipos": [{"nome": "X"}]},
+        {**proposta(), "frentes": "texto"},
+        {**proposta(), "frentes": [{"nome": "X"}]},
         {**proposta(), "causas_raiz": [{"descricao": "sem nome"}]},
         {**proposta(), "regua_impacto": [1, 2, 3, 4]},
         {**proposta(), "criterio_urgencia": None},
@@ -170,25 +176,25 @@ def test_json_fora_do_formato_vira_violacao_de_formato(conteudo: dict) -> None:
 def test_para_dict_leva_exemplos_e_evidencias_e_na_consolidacao_so_a_contagem() -> None:
     lida, _ = p.ler(proposta())
     assert lida is not None
-    completo = lida.para_dict()["tipos"][0]
+    completo = lida.para_dict()["frentes"][0]
     assert completo["exemplo_reativo"] == "algo quebrou"
-    assert completo["subtipos"][0] == {
+    assert completo["subfrentes"][0] == {
         "nome": "Falha de Integração 1",
         "descricao": "Critério Falha de Integração 1.",
         "evidencias": [1],
     }
-    enxuto = lida.para_dict(so_a_contagem=True)["tipos"][0]["subtipos"][0]
+    enxuto = lida.para_dict(so_a_contagem=True)["frentes"][0]["subfrentes"][0]
     assert enxuto["n_evidencias"] == 1 and "evidencias" not in enxuto
 
 
 def com_primeiro(primeiro: dict) -> dict:
-    return proposta(tipos=[primeiro, *proposta()["tipos"][1:]])
+    return proposta(frentes=[primeiro, *proposta()["frentes"][1:]])
 
 
 @pytest.mark.parametrize("campo", ["exemplo_reativo", "exemplo_proativo"])
 @pytest.mark.parametrize("valor", [None, "", "   "])
-def test_tipo_sem_exemplo_reativo_ou_proativo(campo: str, valor: str | None) -> None:
-    sem = tipo("Assunto Um")
+def test_frente_sem_exemplo_reativo_ou_proativo(campo: str, valor: str | None) -> None:
+    sem = frente("Assunto Um")
     if valor is None:
         del sem[campo]
     else:
@@ -201,7 +207,7 @@ def test_tipo_sem_exemplo_reativo_ou_proativo(campo: str, valor: str | None) -> 
 
 @pytest.mark.parametrize("nome", ["Automação de Fluxo", "Oportunidades", "Evolução de Produto"])
 def test_nome_de_melhoria_que_o_prompt_proibe(nome: str) -> None:
-    assert regras(com_primeiro(tipo(nome, "Falhas na entrega."))) == {"tipo_so_de_melhoria"}
+    assert regras(com_primeiro(frente(nome, "Falhas na entrega."))) == {"frente_so_de_melhoria"}
 
 
 @pytest.mark.parametrize(
@@ -216,7 +222,7 @@ def test_nome_de_melhoria_que_o_prompt_proibe(nome: str) -> None:
     ],
 )
 def test_nome_generico_em_qualquer_palavra(nome: str) -> None:
-    assert regras(com_primeiro(tipo(nome))) == {"nome_generico"}
+    assert regras(com_primeiro(frente(nome))) == {"nome_generico"}
 
 
 @pytest.mark.parametrize("nome", ["Erro de Boleto", "Falha de Contrato", "Boletos"])
@@ -228,7 +234,7 @@ def test_nome_de_time_no_singular_ou_plural_e_marca(nome: str) -> None:
         ),
     )  # fmt: skip
     marcas = p.marcas_do_organograma(organograma)
-    assert regras(com_primeiro(tipo(nome)), marcas) == {"nome_de_area_time_ou_produto"}
+    assert regras(com_primeiro(frente(nome)), marcas) == {"nome_de_area_time_ou_produto"}
 
 
 @pytest.mark.parametrize("nome", ["Prazo Regulatório", "Relatório Atrasado", "Política Confusa"])
@@ -240,7 +246,7 @@ def test_palavra_de_assunto_no_plural_do_time_nao_e_marca(nome: str) -> None:
         ),
     )  # fmt: skip
     marcas = p.marcas_do_organograma(organograma)
-    assert regras(com_primeiro(tipo(nome)), marcas) == set()
+    assert regras(com_primeiro(frente(nome)), marcas) == set()
 
 
 @pytest.mark.parametrize(
@@ -250,11 +256,11 @@ def test_palavra_de_assunto_no_plural_do_time_nao_e_marca(nome: str) -> None:
         lambda t: t.update(nome="um dois tres quatro cinco seis sete"),
         lambda t: t.update(descricao="d" * 501),
         lambda t: t.update(exemplo_reativo="e" * 301),
-        lambda t: t["subtipos"][0].update(descricao="d" * 501),
+        lambda t: t["subfrentes"][0].update(descricao="d" * 501),
     ],
 )
 def test_tetos_de_tamanho_do_que_a_llm_devolve(mudanca) -> None:
-    primeiro = tipo("Assunto Um")
+    primeiro = frente("Assunto Um")
     mudanca(primeiro)
     assert "tamanho" in regras(com_primeiro(primeiro))
 
@@ -265,25 +271,25 @@ def test_tetos_de_tamanho_das_reguas_e_da_urgencia() -> None:
 
 
 def test_nome_com_quebra_de_linha_e_invalido() -> None:
-    assert "nome_invalido" in regras(com_primeiro(tipo("Falha\nSistêmica")))
+    assert "nome_invalido" in regras(com_primeiro(frente("Falha\nSistêmica")))
 
 
-def validar_lote(conteudo: dict, n_frentes: int | None) -> set[str]:
+def validar_lote(conteudo: dict, n_eventos: int | None) -> set[str]:
     lida, _ = p.ler(conteudo)
     assert lida is not None
-    return {v.regra for v in p.validar(lida, MARCAS, n_frentes)}
+    return {v.regra for v in p.validar(lida, MARCAS, n_eventos)}
 
 
 @pytest.mark.parametrize("evidencias", [[], [0], [99], [1, 99]])
-def test_subtipo_sem_evidencia_valida_no_lote_nao_entra(evidencias: list[int]) -> None:
-    conteudo = com_primeiro(tipo("Assunto Um", evidencias=evidencias))
+def test_subfrente_sem_evidencia_valida_no_lote_nao_entra(evidencias: list[int]) -> None:
+    conteudo = com_primeiro(frente("Assunto Um", evidencias=evidencias))
     assert validar_lote(conteudo, 5) == {"evidencia"}
-    assert validar_lote(conteudo, None) == set()  # na consolidação são lotes, não frentes
+    assert validar_lote(conteudo, None) == set()  # na consolidação são lotes, não eventos
 
 
 def test_evidencia_que_nao_e_lista_de_numeros_e_formato() -> None:
     for ruim in ("1,2", [1, "2"], [True]):
-        primeiro = tipo("Assunto Um")
-        primeiro["subtipos"][0]["evidencias"] = ruim
+        primeiro = frente("Assunto Um")
+        primeiro["subfrentes"][0]["evidencias"] = ruim
         lida, violacoes = p.ler(com_primeiro(primeiro))
         assert lida is None and [v.regra for v in violacoes] == ["formato"]

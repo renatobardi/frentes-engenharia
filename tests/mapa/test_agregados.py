@@ -9,10 +9,10 @@ from itertools import count
 
 import pytest
 
-from frentes import contratos, store
-from frentes.contratos import Origem, Periodo, Visao
-from frentes.mapa import agregados
-from frentes.mapa.agregados import VersaoInexistente
+from eventos import contratos, store
+from eventos.contratos import Origem, Periodo, Visao
+from eventos.mapa import agregados
+from eventos.mapa.agregados import VersaoInexistente
 
 REF = date(2026, 10, 3)
 JEV = '{"modelo": "jev-1.13.0", "respostas": {}}'
@@ -27,17 +27,17 @@ def _versao(con: store.Conexao, numero: int, ativada: bool) -> None:
     )
 
 
-def _frente(
+def _evento(
     con: store.Conexao,
     origem: str = "relato",
     quando: str = "2026-09-10",
     recebido: str | None = None,
 ) -> str:
-    """Uma frente com `ocorrido_em` em `quando` (ou sem, se `quando` for vazio)."""
+    """Um evento com `ocorrido_em` em `quando` (ou sem, se `quando` for vazio)."""
     id = f"f{next(_ids)}"
     ocorrido = f"{quando}T10:00:00Z" if quando else None
     con.execute(
-        "INSERT INTO frente (id, origem, emissor, texto, ocorrido_em, recebido_em)"
+        "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em)"
         " VALUES (?, ?, 'Ana', 'texto', ?, ?)",
         (id, origem, ocorrido, recebido or f"{quando}T10:05:00Z"),
     )
@@ -46,11 +46,11 @@ def _frente(
 
 def _class(con: store.Conexao, id: str, versao: int = 1, **campos: object) -> None:
     linha = {
-        "frente_id": id,
+        "evento_id": id,
         "versao": versao,
         "resposta_jev": JEV,
         "conf_area": 0.9,
-        "conf_tipo": 0.9,
+        "conf_frente": 0.9,
         "conf_natureza": 0.9,
         "severidade": 0.66,
         "impacto": 0.77,
@@ -62,7 +62,7 @@ def _class(con: store.Conexao, id: str, versao: int = 1, **campos: object) -> No
         "tokens_saida": 1,
         "latencia_ms": 1,
         "estado": "classificada",
-        "natureza_final": "reativa",
+        "natureza_final": "reativo",
         "classificada_em": "2026-10-03T12:00:01Z",
         **campos,
     }
@@ -75,19 +75,19 @@ def _class(con: store.Conexao, id: str, versao: int = 1, **campos: object) -> No
 def _pinta(
     con: store.Conexao,
     area: str,
-    tipo: str,
+    frente: str,
     score: float,
     *,
     origem: str = "relato",
     quando: str = "2026-09-10",
     estado: str = "classificada",
-    natureza: str = "reativa",
-    **frente: str,
+    natureza: str = "reativo",
+    **evento: str,
 ) -> str:
-    id = _frente(con, origem, quando, **frente)
-    coluna = "severidade" if natureza == "reativa" else "impacto"
+    id = _evento(con, origem, quando, **evento)
+    coluna = "severidade" if natureza == "reativo" else "impacto"
     _class(
-        con, id, estado=estado, natureza_final=natureza, area_final=area, tipo_final=tipo,
+        con, id, estado=estado, natureza_final=natureza, area_final=area, frente_final=frente,
         **{coluna: score},
     )  # fmt: skip
     return id
@@ -122,50 +122,55 @@ def con() -> store.Conexao:
     _pinta(con, "fin", "custo", 0.1, origem="webhook")
 
     # --- onde dói: o que não pinta
-    inc = {"estado": "incerta", "natureza_final": "reativa"}
-    for area, tipo, motivo, quando in [
+    inc = {"estado": "incerta", "natureza_final": "reativo"}
+    for area, frente, motivo, quando in [
         ("plat", "incidente", "confianca_baixa", "2026-09-12"),
         ("ops", "processo", "llm_sem_escolha", "2026-09-15"),
         ("dados", "risco", "confianca_baixa", "2026-09-18"),
     ]:
-        id = _frente(con, quando=quando)
-        _class(con, id, **inc, motivo=motivo, area_final=area, tipo_final=tipo, severidade=0.99)
-    vago = _frente(con, quando="2026-09-05")
+        id = _evento(con, quando=quando)
+        _class(con, id, **inc, motivo=motivo, area_final=area, frente_final=frente, severidade=0.99)
+    vago = _evento(con, quando="2026-09-05")
     _class(con, vago, estado="incerta", motivo="texto_vago", natureza_final=None, severidade=0.99)
-    for area, tipo in [("plat", None), ("plat", None), (None, "risco"), (None, None)]:
-        id = _frente(con, quando="2026-09-06")
+    for area, frente in [("plat", None), ("plat", None), (None, "risco"), (None, None)]:
+        id = _evento(con, quando="2026-09-06")
         _class(
-            con, id, estado="nao_classificada", area_final=area, tipo_final=tipo, severidade=0.99
+            con,
+            id,
+            estado="nao_classificada",
+            area_final=area,
+            frente_final=frente,
+            severidade=0.99,
         )
-    _frente(con, quando="2026-09-28")  # sem classificação: aguardando
-    espera = _frente(con, quando="2026-09-29")
+    _evento(con, quando="2026-09-28")  # sem classificação: aguardando
+    espera = _evento(con, quando="2026-09-29")
     _class(con, espera, estado="aguardando_llm", natureza_final=None, severidade=0.99)
-    _frente(con, quando="2025-01-01")  # aguardando, mas fora do período
+    _evento(con, quando="2025-01-01")  # aguardando, mas fora do período
 
     # --- onde há oportunidade
-    _pinta(con, "plat", "incidente", 0.8, natureza="proativa", quando="2026-09-12")
-    _pinta(con, "ops", "processo", 0.4, natureza="proativa", quando="2026-09-13", estado="via_llm")
-    id = _frente(con, quando="2026-09-14")
-    _class(con, id, estado="incerta", motivo="confianca_baixa", natureza_final="proativa",
-           area_final="ops", tipo_final="processo")  # fmt: skip
-    id = _frente(con, quando="2026-09-14")
+    _pinta(con, "plat", "incidente", 0.8, natureza="proativo", quando="2026-09-12")
+    _pinta(con, "ops", "processo", 0.4, natureza="proativo", quando="2026-09-13", estado="via_llm")
+    id = _evento(con, quando="2026-09-14")
+    _class(con, id, estado="incerta", motivo="confianca_baixa", natureza_final="proativo",
+           area_final="ops", frente_final="processo")  # fmt: skip
+    id = _evento(con, quando="2026-09-14")
     _class(
         con,
         id,
         estado="nao_classificada",
-        natureza_final="proativa",
+        natureza_final="proativo",
         area_final="fin",
-        tipo_final=None,
+        frente_final=None,
     )
 
-    # --- versão 2 (não ativada): outra leitura das mesmas frentes
-    outra = _frente(con, quando="2026-09-10")
-    _class(con, outra, 2, area_final="seg", tipo_final="risco", severidade=0.5)
+    # --- versão 2 (não ativada): outra leitura dos mesmos eventos
+    outra = _evento(con, quando="2026-09-10")
+    _class(con, outra, 2, area_final="seg", frente_final="risco", severidade=0.5)
     return con
 
 
-def _celula(mapa: agregados.Mapa, area: str, tipo: str) -> agregados.Celula:
-    (achada,) = [c for c in mapa.celulas if (c.area, c.tipo) == (area, tipo)]
+def _celula(mapa: agregados.Mapa, area: str, frente: str) -> agregados.Celula:
+    (achada,) = [c for c in mapa.celulas if (c.area, c.frente) == (area, frente)]
     return achada
 
 
@@ -173,7 +178,7 @@ def test_grade_indice_de_dor_por_celula(con: store.Conexao) -> None:
     mapa = agregados.ler(con, visao=Visao.DOR, referencia=REF)
     assert mapa.versao == 1  # a vigente
     assert mapa.periodo is Periodo.D90
-    indices = {(c.area, c.tipo): (c.indice, c.frentes) for c in mapa.celulas}
+    indices = {(c.area, c.frente): (c.indice, c.eventos) for c in mapa.celulas}
     assert indices == {
         ("plat", "incidente"): (pytest.approx(0.6 + 0.3 + 0.1 + 0.2), 4),
         ("ops", "processo"): (pytest.approx(0.5 + 0.2), 2),
@@ -188,7 +193,7 @@ def test_grade_indice_de_dor_por_celula(con: store.Conexao) -> None:
 
 def test_index_de_oportunidade_soma_o_impacto_das_proativas(con: store.Conexao) -> None:
     mapa = agregados.ler(con, visao=Visao.OPORTUNIDADE, referencia=REF)
-    indices = {(c.area, c.tipo): c.indice for c in mapa.celulas}
+    indices = {(c.area, c.frente): c.indice for c in mapa.celulas}
     assert indices == {
         ("plat", "incidente"): pytest.approx(0.8),
         ("ops", "processo"): pytest.approx(0.4),
@@ -223,9 +228,9 @@ def test_periodo_de_30_dias(con: store.Conexao) -> None:
     assert _celula(mapa, "ops", "processo").indice == 0.0
 
 
-def test_incertas_por_celula_pela_area_e_tipo_mais_provaveis(con: store.Conexao) -> None:
+def test_incertas_por_celula_pela_area_e_frente_mais_provaveis(con: store.Conexao) -> None:
     mapa = agregados.ler(con, visao=Visao.DOR, referencia=REF)
-    assert {(c.area, c.tipo): c.incertas for c in mapa.celulas if c.incertas} == {
+    assert {(c.area, c.frente): c.incertas for c in mapa.celulas if c.incertas} == {
         ("plat", "incidente"): 1,
         ("ops", "processo"): 1,
         ("dados", "risco"): 1,
@@ -239,13 +244,13 @@ def test_contadores_fora_da_grade(con: store.Conexao) -> None:
     # sem classificação na v1: a de 09-28 e a da v2; mais a aguardando_llm. A de 2025 fica fora
     assert mapa.aguardando == 3
     assert mapa.nao_classificadas_por_area == {"plat": 2}
-    assert mapa.nao_classificadas_por_tipo == {"risco": 1}
+    assert mapa.nao_classificadas_por_frente == {"risco": 1}
     assert mapa.nao_classificadas_sem_ambos == 1
 
 
 def test_top3_pelo_maior_indice(con: store.Conexao) -> None:
     mapa = agregados.ler(con, visao=Visao.DOR, referencia=REF)
-    assert [(c.area, c.tipo) for c in mapa.top3] == [
+    assert [(c.area, c.frente) for c in mapa.top3] == [
         ("plat", "incidente"),
         ("ops", "processo"),
         ("dados", "custo"),
@@ -264,7 +269,7 @@ def test_top3_ignora_celula_so_de_incertas(con: store.Conexao) -> None:
 )
 def test_estado_que_nao_pinta_nao_soma_no_indice(con: store.Conexao, caso: str) -> None:
     antes = agregados.ler(con, visao=Visao.DOR, referencia=REF)
-    id = _frente(con, quando="2026-09-11")
+    id = _evento(con, quando="2026-09-11")
     if caso == "incerta":
         _class(
             con,
@@ -272,7 +277,7 @@ def test_estado_que_nao_pinta_nao_soma_no_indice(con: store.Conexao, caso: str) 
             estado="incerta",
             motivo="confianca_baixa",
             area_final="fin",
-            tipo_final="custo",
+            frente_final="custo",
             severidade=0.9,
         )
     elif caso == "texto_vago":
@@ -282,16 +287,16 @@ def test_estado_que_nao_pinta_nao_soma_no_indice(con: store.Conexao, caso: str) 
             estado="incerta",
             motivo="texto_vago",
             area_final="fin",
-            tipo_final="custo",
+            frente_final="custo",
             severidade=0.9,
         )
     elif caso == "nao_classificada":
         _class(
-            con, id, estado="nao_classificada", area_final="fin", tipo_final=None, severidade=0.9
+            con, id, estado="nao_classificada", area_final="fin", frente_final=None, severidade=0.9
         )
     elif caso == "aguardando_llm":
         _class(
-            con, id, estado="aguardando_llm", area_final="fin", tipo_final="custo", severidade=0.9
+            con, id, estado="aguardando_llm", area_final="fin", frente_final="custo", severidade=0.9
         )
     depois = agregados.ler(con, visao=Visao.DOR, referencia=REF)
     assert (
@@ -299,9 +304,9 @@ def test_estado_que_nao_pinta_nao_soma_no_indice(con: store.Conexao, caso: str) 
         == _celula(antes, "fin", "custo").indice
         == pytest.approx(0.1)
     )
-    assert _celula(depois, "fin", "custo").frentes == 1
-    assert {(c.area, c.tipo): c.indice for c in depois.top3} == {
-        (c.area, c.tipo): c.indice for c in antes.top3
+    assert _celula(depois, "fin", "custo").eventos == 1
+    assert {(c.area, c.frente): c.indice for c in depois.top3} == {
+        (c.area, c.frente): c.indice for c in antes.top3
     }
 
 
@@ -309,10 +314,10 @@ def test_versao_e_data_de_referencia_mudam_o_resultado_sem_gravar(con: store.Con
     antes = con.total_changes
     v1 = agregados.ler(con, visao=Visao.DOR, referencia=REF)
     v2 = agregados.ler(con, visao=Visao.DOR, referencia=REF, versao=2)
-    assert {(c.area, c.tipo): c.indice for c in v2.celulas} == {("seg", "risco"): 0.5}
+    assert {(c.area, c.frente): c.indice for c in v2.celulas} == {("seg", "risco"): 0.5}
     assert v2.versao == 2 and v1 != v2
 
-    # o mapa "como estava" em 2026-08-31: só entram frentes até esse dia
+    # o mapa "como estava" em 2026-08-31: só entram eventos até esse dia
     antigo = agregados.ler(con, visao=Visao.DOR, referencia=date(2026, 8, 31))
     assert antigo.ate == datetime(2026, 9, 1, tzinfo=UTC)
     assert _celula(antigo, "plat", "incidente").indice == pytest.approx(
@@ -341,10 +346,10 @@ def test_filtro_de_origem_com_selecao_multipla(con: store.Conexao) -> None:
     assert indice([Origem.RELATO, Origem.LOG, Origem.MCP]) == pytest.approx(1.2)
     assert indice(None) == indice([]) == pytest.approx(1.2)  # sem seleção: todas
     mapa = agregados.ler(con, visao=Visao.DOR, referencia=REF, origens=["webhook", "banco"])
-    assert {(c.area, c.tipo) for c in mapa.celulas} == {
+    assert {(c.area, c.frente) for c in mapa.celulas} == {
         ("ops", "processo"), ("dados", "custo"), ("pessoas", "risco"), ("fin", "custo"),
     }  # fmt: skip
-    # o filtro vale também para os contadores: todas as frentes sem classificação são de relato
+    # o filtro vale também para os contadores: todos os eventos sem classificação são de relato
     assert agregados.ler(con, visao=Visao.DOR, referencia=REF, origens=["webhook"]).aguardando == 0
     assert mapa.aguardando == 0 and mapa.texto_vago == 0 and mapa.incertas == 0
 
@@ -356,7 +361,7 @@ def test_origem_desconhecida_e_recusada(con: store.Conexao) -> None:
 
 def test_serie_mensal_da_celula(con: store.Conexao) -> None:
     serie = agregados.serie_mensal(
-        con, area="plat", tipo="incidente", visao=Visao.DOR, meses=4, referencia=REF
+        con, area="plat", frente="incidente", visao=Visao.DOR, meses=4, referencia=REF
     )
     assert [(p.mes, p.indice) for p in serie] == [
         ("2026-07", pytest.approx(0.2)),
@@ -368,24 +373,24 @@ def test_serie_mensal_da_celula(con: store.Conexao) -> None:
 
 def test_serie_mensal_de_12_meses_cruza_o_ano_e_respeita_origem(con: store.Conexao) -> None:
     serie = agregados.serie_mensal(
-        con, area="plat", tipo="incidente", visao=Visao.DOR, referencia=REF
+        con, area="plat", frente="incidente", visao=Visao.DOR, referencia=REF
     )
     assert [p.mes for p in serie][0] == "2025-11" and [p.mes for p in serie][-1] == "2026-10"
     assert len(serie) == 12
     assert {p.mes: p.indice for p in serie}["2026-05"] == pytest.approx(0.45)
     so_log = agregados.serie_mensal(
-        con, area="plat", tipo="incidente", visao=Visao.DOR, referencia=REF, origens=["log"]
+        con, area="plat", frente="incidente", visao=Visao.DOR, referencia=REF, origens=["log"]
     )
     assert sum(p.indice for p in so_log) == pytest.approx(0.3)
     oportunidade = agregados.serie_mensal(
-        con, area="plat", tipo="incidente", visao=Visao.OPORTUNIDADE, meses=2, referencia=REF
+        con, area="plat", frente="incidente", visao=Visao.OPORTUNIDADE, meses=2, referencia=REF
     )
     assert [p.indice for p in oportunidade] == [pytest.approx(0.8), 0.0]
 
 
 def test_serie_mensal_recusa_zero_meses(con: store.Conexao) -> None:
     with pytest.raises(ValueError):
-        agregados.serie_mensal(con, area="plat", tipo="incidente", visao=Visao.DOR, meses=0)
+        agregados.serie_mensal(con, area="plat", frente="incidente", visao=Visao.DOR, meses=0)
 
 
 def test_padrao_e_a_ultima_versao_ativada() -> None:
@@ -405,10 +410,10 @@ def test_sem_versao_vigente_ou_versao_inexistente_e_erro() -> None:
     with pytest.raises(VersaoInexistente):
         agregados.ler(vazio, visao=Visao.DOR, versao=99)
     with pytest.raises(VersaoInexistente):
-        agregados.serie_mensal(vazio, area="a", tipo="t", visao=Visao.DOR, versao=99)
+        agregados.serie_mensal(vazio, area="a", frente="t", visao=Visao.DOR, versao=99)
 
 
-def test_banco_sem_frentes_devolve_mapa_vazio() -> None:
+def test_banco_sem_eventos_devolve_mapa_vazio() -> None:
     con = store.abrir()
     _versao(con, 1, True)
     mapa = agregados.ler(con, visao=Visao.DOR, referencia=REF)
@@ -429,11 +434,11 @@ def test_periodo_em_texto_vale_como_o_enum(con: store.Conexao) -> None:
 
 
 def test_celula_que_zerou_volta_com_queda_de_100_por_cento(con: store.Conexao) -> None:
-    # só tinha frente no período anterior (2026-05-15)
+    # só tinha evento no período anterior (2026-05-15)
     _pinta(con, "seg", "risco", 0.4, quando="2026-05-15")
     mapa = agregados.ler(con, visao=Visao.DOR, referencia=REF)
     seg = _celula(mapa, "seg", "risco")
-    assert (seg.indice, seg.frentes, seg.anterior) == (0.0, 0, pytest.approx(0.4))
+    assert (seg.indice, seg.eventos, seg.anterior) == (0.0, 0, pytest.approx(0.4))
     assert seg.variacao == pytest.approx(-1.0)
     assert seg not in mapa.top3
     # em 12 meses não há anterior: a célula não volta
@@ -451,9 +456,9 @@ def test_bordas_da_janela() -> None:
         ("2026-10-03T23:59:59Z", "fim"),
         ("2026-10-04T00:00:00Z", "depois"),
     ]:
-        id = _frente(con, quando="2026-01-01")
-        con.execute("UPDATE frente SET ocorrido_em = ? WHERE id = ?", (quando, id))
-        _class(con, id, area_final=area, tipo_final="t", severidade=0.5)
+        id = _evento(con, quando="2026-01-01")
+        con.execute("UPDATE evento SET ocorrido_em = ? WHERE id = ?", (quando, id))
+        _class(con, id, area_final=area, frente_final="t", severidade=0.5)
     mapa = agregados.ler(con, visao=Visao.DOR, referencia=REF)
     assert {c.area: c.indice for c in mapa.celulas if c.indice} == {"inicio": 0.5, "fim": 0.5}
     # a que ficou fora no início pertence ao período anterior
@@ -461,7 +466,7 @@ def test_bordas_da_janela() -> None:
     assert "depois" not in {c.area for c in mapa.celulas}
 
 
-def test_empate_no_top3_desempata_por_area_e_tipo() -> None:
+def test_empate_no_top3_desempata_por_area_e_frente() -> None:
     con = store.abrir()
     _versao(con, 1, True)
     for area in ["d", "b", "a", "c"]:
@@ -473,7 +478,7 @@ def test_empate_no_top3_desempata_por_area_e_tipo() -> None:
 def test_enderecamento_ativo_nao_muda_indice_tendencia_nem_top3(con: store.Conexao) -> None:
     antes = agregados.ler(con, visao=Visao.DOR, referencia=REF)
     con.execute(
-        "INSERT INTO enderecamento (area, tipo, visao, decidido_em, texto, tipo_solucao,"
+        "INSERT INTO enderecamento (area, frente, visao, decidido_em, texto, tipo_solucao,"
         " procedencia, ativo) VALUES ('plat', 'incidente', 'dor', '2026-09-01T10:00:00Z',"
         " 'trocar o gateway', 'ferramenta_automacao', 'tela', 1)"
     )

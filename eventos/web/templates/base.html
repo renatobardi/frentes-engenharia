@@ -1,0 +1,71 @@
+{#- Layout das telas (fase 1 do #116). Blocos para as telas preencherem:
+    titulo       <title>
+    head         <link>/<style> extras no <head> (o CSS da tela)
+    trilha       a trilha (breadcrumb) do cabeçalho; o padrão é "Análise › <item do menu>"
+    acoes_topo   botões à direita do cabeçalho, antes de "Relatar um evento"
+    conteudo     o miolo de <main>
+    scripts      <script> extras no fim do <body> -#}
+{% from "_icones.html" import icone %}
+{%- set r = resumo() -%}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}frentes-engenharia{% endblock %}</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/htmx.min.js" defer></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="app{% if trilho %} app-trilho{% endif %}">
+    <div class="sidebar">
+      <a class="sidebar-marca" href="/" {% if trilho %}title="Eventos" aria-label="Eventos — Mapa de calor"{% endif %}>
+        <span class="sidebar-logo">{{ icone("flame", 18) }}</span>
+        <span class="sidebar-marca-texto"><strong>Eventos</strong><span>Aurora Tech · Financiamentos</span></span>
+      </a>
+      <nav class="menu" aria-label="Principal">
+        <p class="sidebar-grupo">Análise</p>
+        {% for nome, destino in menu %}
+        {% set ativo = (destino == "/" and caminho == "/") or (destino != "/" and caminho.startswith(destino)) %}
+        <a class="nav-item" href="{{ destino }}"{% if ativo %} aria-current="page"{% endif %}{% if trilho %} title="{{ nome }}" aria-label="{{ nome }}"{% endif %}>
+          {{- icone(icones_do_menu[destino]) -}}
+          <span class="nav-nome">{{ nome }}</span>
+          {%- if destino == "/eventos" and r and r.eventos %}<span class="nav-extra">{{ "{:,}".format(r.eventos).replace(",", ".") }}</span>{% endif -%}
+          {%- if destino == "/taxonomia" and r and r.versao %}<span class="nav-extra">v{{ r.versao }}</span>{% endif -%}
+        </a>
+        {% endfor %}
+      </nav>
+      {% if r and (r.dia or r.versao) %}
+      <div class="sidebar-rodape card">
+        <span class="sidebar-rodape-titulo"><span class="bolinha"></span>Snapshot{% if r.dia %} · dia D {{ r.dia[8:10] }}/{{ r.dia[5:7] }}{% endif %}</span>
+        <span class="sidebar-rodape-texto">
+          {%- if r.versao %}Taxonomia v{{ r.versao }} vigente{% endif %}
+          {%- if r.versao and r.eventos %} · {% endif %}
+          {%- if r.eventos %}{{ "{:,}".format(r.eventos).replace(",", ".") }} eventos{% endif -%}
+        </span>
+      </div>
+      {% endif %}
+    </div>
+    <div class="principal">
+      <header class="topo">
+        <a class="btn btn-ghost btn-icone" href="{{ alternar_menu }}" title="{% if trilho %}Abrir{% else %}Recolher{% endif %} a barra lateral" aria-label="{% if trilho %}Abrir{% else %}Recolher{% endif %} a barra lateral">{{ icone("panel-left") }}</a>
+        <nav class="trilha" aria-label="Trilha">
+          {% block trilha %}
+          <span>Análise</span>
+          {% for nome, destino in menu %}{% if (destino == "/" and caminho == "/") or (destino != "/" and caminho.startswith(destino)) %}{{ icone("chevron-right", 14) }}<span aria-current="page">{{ nome }}</span>{% endif %}{% endfor %}
+          {% endblock %}
+        </nav>
+        <div class="topo-acoes">
+          {% block acoes_topo %}{% endblock %}
+          <a class="btn" href="{{ relatar[1] }}">{{ icone("plus") }}{{ relatar[0] }}</a>
+        </div>
+      </header>
+      <main id="conteudo">
+        {% block conteudo %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

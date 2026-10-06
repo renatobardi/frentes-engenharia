@@ -1,6 +1,6 @@
-"""Bancos pequenos montados à mão para a conferência: versões, frentes, classificações e gabarito.
+"""Bancos pequenos montados à mão para a conferência: versões, eventos, classificações e gabarito.
 
-Referência fixa: 2026-10-03. As datas das frentes ficam em 2026-09-10 (a janela de 90 dias vai
+Referência fixa: 2026-10-03. As datas dos eventos ficam em 2026-09-10 (a janela de 90 dias vai
 de 2026-07-06 a 2026-10-03), semanas longe dos limites.
 """
 
@@ -9,10 +9,10 @@ from dataclasses import asdict
 from itertools import count
 from pathlib import Path
 
-from frentes import config, store
-from frentes.conferencia import conferir as orquestra
-from frentes.conferencia.relatorio import Conferencia, Relatorio
-from frentes.store.gabarito import Gabarito
+from eventos import config, store
+from eventos.conferencia import conferir as orquestra
+from eventos.conferencia.relatorio import Conferencia, Relatorio
+from eventos.store.gabarito import Gabarito
 
 DIA = "2026-09-10"
 AREAS = {"formalizacao": ("gravame",), "originacao": ("proposta",), "canal": ("app",)}
@@ -28,10 +28,10 @@ def versao(
     numero: int = 1,
     *,
     ativada: bool = True,
-    tipos: tuple[str, ...] = ("incidente", "melhoria"),
+    frentes: tuple[str, ...] = ("incidente", "melhoria"),
     times: dict[str, str] | None = None,
 ) -> None:
-    """Uma versão com os tipos e os times dados (time → área). Sem `times`, os de `AREAS`."""
+    """Uma versão com as frentes e os times dados (time → área). Sem `times`, os de `AREAS`."""
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
         " VALUES (?, '{}', 'jev-1', '2026-01-01T00:00:00Z', ?)",
@@ -40,7 +40,7 @@ def versao(
     times = times or {t: a for a, ts in AREAS.items() for t in ts}
     valores = [("area", a, None) for a in sorted(set(times.values()))]
     valores += [("area", t, a) for t, a in times.items()]
-    valores += [("tipo", t, None) for t in tipos]
+    valores += [("frente", t, None) for t in frentes]
     for dimensao, chave, pai in valores:
         con.execute(
             "INSERT INTO valor (versao, dimensao, chave, nome, chave_pai) VALUES (?, ?, ?, ?, ?)",
@@ -49,7 +49,7 @@ def versao(
     con.commit()
 
 
-def frente(
+def evento(
     con: store.Conexao,
     historia: str = "fundo",
     *,
@@ -62,10 +62,10 @@ def frente(
     estado: str = "classificada",
     motivo: str | None = None,
     area_final: str | None = "formalizacao",
-    tipo_final: str | None = "incidente",
-    tipo: str | None = "incidente",
-    conf_tipo: float = 0.9,
-    natureza_final: str | None = "reativa",
+    frente_final: str | None = "incidente",
+    frente: str | None = "incidente",
+    conf_frente: float = 0.9,
+    natureza_final: str | None = "reativo",
     severidade: float = 1.0,
     problema: str | None = None,
     conf_problema: float = 0.9,
@@ -74,16 +74,16 @@ def frente(
     resposta_llm: str | None = None,
     **gabarito: object,
 ) -> Gabarito:
-    """Grava a frente e a classificação dela na versão e devolve o gabarito (que o teste
+    """Grava o evento e a classificação dela na versão e devolve o gabarito (que o teste
     entrega à conferência). O `area` do gabarito é, se faltar, a `area_final`."""
-    id = f"fr-{next(_ids):04d}"
+    id = f"ev-{next(_ids):04d}"
     con.execute(
-        "INSERT INTO frente (id, origem, emissor, texto, ocorrido_em, recebido_em)"
+        "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em)"
         " VALUES (?, 'relato', 'Ana', 'texto', ?, ?)",
         (id, f"{quando}T10:00:00Z", f"{quando}T10:05:00Z"),
     )
     linha = {
-        "frente_id": id,
+        "evento_id": id,
         "versao": versao,
         "resposta_jev": '{"modelo": "jev-1", "respostas": {}}',
         "conf_area": 0.9,
@@ -96,9 +96,9 @@ def frente(
         "estado": estado,
         "motivo": motivo,
         "area_final": area_final,
-        "tipo_final": tipo_final,
-        "tipo": tipo,
-        "conf_tipo": conf_tipo,
+        "frente_final": frente_final,
+        "frente": frente,
+        "conf_frente": conf_frente,
         "natureza_final": natureza_final,
         "problema": problema,
         "conf_problema": conf_problema,
@@ -115,7 +115,7 @@ def frente(
     con.commit()
     area = area if area is not None else area_final
     return Gabarito(
-        frente_id=id,
+        evento_id=id,
         historia_id=historia,
         area=area,
         time=time,
@@ -125,7 +125,7 @@ def frente(
 
 
 def varias(con: store.Conexao, n: int, historia: str = "fundo", **campos: object) -> list[Gabarito]:
-    return [frente(con, historia, **campos) for _ in range(n)]  # type: ignore[arg-type]
+    return [evento(con, historia, **campos) for _ in range(n)]  # type: ignore[arg-type]
 
 
 def rodar(con: store.Conexao, gabaritos: list[Gabarito], numero: int = 1) -> Relatorio:
@@ -145,14 +145,14 @@ _AREAS_DO_FUNDO = ("canal", "dados", "credito", "formalizacao", "originacao", "p
 
 
 def tudo_certo(con: store.Conexao, versao: int = 1) -> list[Gabarito]:
-    """Uma seed de 33 frentes, na versão dada (a 1), em que nenhum corte com valor falha.
+    """Uma seed de 33 eventos, na versão dada (a 1), em que nenhum corte com valor falha.
 
     Dor (índices; fundo 1 em cada uma de 6 células, mediana 1): H1 8, H2 3, H3 3.
     Oportunidade (fundo 1 em cada uma de 6 células, mediana 1): H4 7.
-    Problema: H1 a H4 com um problema cada; H5 não tem frente (4 de 5 histórias).
+    Problema: H1 a H4 com um problema cada; H5 não tem evento (4 de 5 histórias).
     """
-    reativa = {"natureza": "reativa"}
-    proativa = {"natureza": "proativa", "natureza_final": "proativa", "tipo_final": "melhoria"}
+    reativo = {"natureza": "reativo"}
+    proativo = {"natureza": "proativo", "natureza_final": "proativo", "frente_final": "melhoria"}
     g = varias(
         con,
         8,
@@ -161,7 +161,7 @@ def tudo_certo(con: store.Conexao, versao: int = 1) -> list[Gabarito]:
         area_final="originacao",
         time="proposta",
         problema="esteira",
-        **reativa,
+        **reativo,
     )
     g += varias(
         con,
@@ -171,7 +171,7 @@ def tudo_certo(con: store.Conexao, versao: int = 1) -> list[Gabarito]:
         area_final="formalizacao",
         time="gravame",
         problema="gravame",
-        **reativa,
+        **reativo,
     )
     g += varias(
         con,
@@ -181,7 +181,7 @@ def tudo_certo(con: store.Conexao, versao: int = 1) -> list[Gabarito]:
         area_final="pos-venda",
         time="boletos",
         problema="boletos",
-        **reativa,
+        **reativo,
     )
     g += varias(
         con,
@@ -191,7 +191,7 @@ def tudo_certo(con: store.Conexao, versao: int = 1) -> list[Gabarito]:
         area_final="canal",
         time="portal",
         problema="comissao",
-        **proativa,
+        **proativo,
     )
     for area in _AREAS_DO_FUNDO:
         g += varias(
@@ -201,7 +201,7 @@ def tudo_certo(con: store.Conexao, versao: int = 1) -> list[Gabarito]:
             versao=versao,
             area_final=area,
             listado=True,
-            **{**reativa, "tipo_final": "melhoria"},
+            **{**reativo, "frente_final": "melhoria"},
         )
-        g += varias(con, 1, "fundo", versao=versao, area_final=area, listado=True, **proativa)
+        g += varias(con, 1, "fundo", versao=versao, area_final=area, listado=True, **proativo)
     return g

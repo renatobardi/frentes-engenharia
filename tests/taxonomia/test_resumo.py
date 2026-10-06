@@ -2,10 +2,10 @@ from dataclasses import replace
 
 import pytest
 
-from frentes.contratos import Dimensao, Operacao, TipoOperacao
-from frentes.taxonomia.resumo import resumir_operacoes
+from eventos.contratos import Dimensao, Operacao, TipoOperacao
+from eventos.taxonomia.resumo import resumir_operacoes
 
-APLICADA = Operacao(TipoOperacao.CRIAR_TIPO, Dimensao.TIPO, (), {}, (), aplicada=True)
+APLICADA = Operacao(TipoOperacao.CRIAR_FRENTE, Dimensao.FRENTE, (), {}, (), aplicada=True)
 DESCARTADA = replace(APLICADA, aplicada=False, motivo_do_descarte="evidência insuficiente")
 
 
@@ -26,7 +26,7 @@ def test_sem_operacoes_nao_inventa_proposta_nem_criacao() -> None:
 def test_resumo_conta_cada_destino_e_so_afirma_as_aplicadas(operacoes, contagens) -> None:
     texto = resumir_operacoes(operacoes)
     assert texto.startswith(contagens)
-    assert ("Operações aplicadas: criar tipo" in texto) == any(o.aplicada for o in operacoes)
+    assert ("Operações aplicadas: criar frente" in texto) == any(o.aplicada for o in operacoes)
     assert texto.count("evidência insuficiente") == sum(not o.aplicada for o in operacoes)
 
 

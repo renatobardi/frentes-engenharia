@@ -11,4 +11,4 @@ format:
 	uv run ruff check --fix . && uv run ruff format .
 
 servir:
-	uv run python -m frentes servir
+	uv run python -m eventos servir

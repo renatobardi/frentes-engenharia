@@ -5,11 +5,11 @@ from typing import Any
 
 import pytest
 
-from frentes import config
-from frentes.classificacao import regras
-from frentes.classificacao.regras import RespostaInvalida
-from frentes.config import Limiares
-from frentes.contratos import (
+from eventos import config
+from eventos.classificacao import regras
+from eventos.classificacao.regras import RespostaInvalida
+from eventos.config import Limiares
+from eventos.contratos import (
     NENHUM_DESTES,
     AreaDoOrganograma,
     Classificacao,
@@ -42,7 +42,7 @@ def _area(chave: str, *times: str) -> AreaDoOrganograma:
     )
 
 
-# 5 áreas (o top 3 deixa duas de fora) e 4 tipos
+# 5 áreas (o top 3 deixa duas de fora) e 4 frentes
 DOCUMENTO = DocumentoTaxonomia(
     organograma=(
         _area("plat", "plat_a", "plat_b"),
@@ -51,7 +51,7 @@ DOCUMENTO = DocumentoTaxonomia(
         _area("fin", "fin_a"),
         _area("seg", "seg_a"),
     ),
-    tipos=(
+    frentes=(
         _valor("incidente", _valor("inc_disp"), _valor("inc_perf")),
         _valor("melhoria", _valor("mel_proc")),
         _valor("custo", _valor("cus_a")),
@@ -68,9 +68,9 @@ DOCUMENTO = DocumentoTaxonomia(
 )
 
 # Jev confiante: área plat (0,6 + 0,25 = 0,85, e nenhum time sozinho passa de 0,6),
-# tipo incidente (0,7 + 0,2 = 0,9)
+# frente incidente (0,7 + 0,2 = 0,9)
 AREA_CONFIANTE = {"plat_a": 0.6, "plat_b": 0.25, "dados_a": 0.05, "pessoas_a": 0.05, "fin_a": 0.05}
-TIPO_CONFIANTE = {"inc_disp": 0.7, "inc_perf": 0.2, "mel_proc": 0.05, "cus_a": 0.05}
+FRENTE_CONFIANTE = {"inc_disp": 0.7, "inc_perf": 0.2, "mel_proc": 0.05, "cus_a": 0.05}
 
 
 def _lista(
@@ -83,8 +83,8 @@ def _lista(
 
 def jev(
     area: Mapping[str, float] = AREA_CONFIANTE,
-    tipo: Mapping[str, float] = TIPO_CONFIANTE,
-    natureza: tuple[str, float] = ("reativa", 0.9),
+    frente: Mapping[str, float] = FRENTE_CONFIANTE,
+    natureza: tuple[str, float] = ("reativo", 0.9),
     controle: float = 0.9,
     causa: tuple[str, float] = ("c1", 0.8),
     problema: tuple[str, float] = ("p1", 0.8),
@@ -96,9 +96,9 @@ def jev(
         "jev-teste",
         {
             Pergunta.AREA: _lista(area),
-            Pergunta.TIPO: _lista(tipo),
+            Pergunta.FRENTE: _lista(frente),
             Pergunta.NATUREZA: RespostaDeLista(
-                natureza[0], natureza[1], {"reativa": 0.5, "proativa": 0.5}
+                natureza[0], natureza[1], {"reativo": 0.5, "proativo": 0.5}
             ),
             Pergunta.SEVERIDADE: RespostaDeNumero(severidade),
             Pergunta.IMPACTO: RespostaDeNumero(impacto),
@@ -140,8 +140,8 @@ AREA_NENHUM = {
     "pessoas_a": 0.05,
     NENHUM_DESTES: 0.8,
 }
-TIPO_BAIXO = {"inc_disp": 0.2, "inc_perf": 0.1, "mel_proc": 0.4, "cus_a": 0.2, "ris_a": 0.1}
-TIPO_NENHUM = {"inc_disp": 0.05, "mel_proc": 0.05, NENHUM_DESTES: 0.9}
+FRENTE_BAIXO = {"inc_disp": 0.2, "inc_perf": 0.1, "mel_proc": 0.4, "cus_a": 0.2, "ris_a": 0.1}
+FRENTE_NENHUM = {"inc_disp": 0.05, "mel_proc": 0.05, NENHUM_DESTES: 0.9}
 
 
 # -------------------- colunas do Jev
@@ -152,9 +152,9 @@ def test_tira_as_colunas_da_resposta_do_jev() -> None:
 
     assert (c.time, c.area) == ("plat_a", "plat")
     assert c.conf_area == pytest.approx(0.85)  # soma dos times, não o do mais provável
-    assert (c.subtipo, c.tipo) == ("inc_disp", "incidente")
-    assert c.conf_tipo == pytest.approx(0.9)  # soma dos subtipos
-    assert (c.natureza, c.conf_natureza) == (Natureza.REATIVA, 0.9)
+    assert (c.subfrente, c.frente) == ("inc_disp", "incidente")
+    assert c.conf_frente == pytest.approx(0.9)  # soma das subfrentes
+    assert (c.natureza, c.conf_natureza) == (Natureza.REATIVO, 0.9)
     assert (c.severidade, c.impacto, c.urgencia) == (0.6, 0.1, 0.4)
     assert (c.causa_raiz, c.conf_causa) == ("c1", 0.8)
     assert (c.problema, c.conf_problema) == ("p1", 0.8)
@@ -173,12 +173,12 @@ def test_a_area_e_a_de_maior_soma_e_o_time_o_mais_provavel_dentro_dela() -> None
 
 
 def test_nenhum_destes_do_jev_vira_none() -> None:
-    resposta = jev(area=AREA_NENHUM, tipo=TIPO_NENHUM, causa=(NENHUM_DESTES, 0.9))
+    resposta = jev(area=AREA_NENHUM, frente=FRENTE_NENHUM, causa=(NENHUM_DESTES, 0.9))
     c = regras.ler_jev(resposta, DOCUMENTO, LIMIARES)
 
-    assert (c.time, c.area, c.subtipo, c.tipo, c.causa_raiz) == (None,) * 5
+    assert (c.time, c.area, c.subfrente, c.frente, c.causa_raiz) == (None,) * 5
     assert c.conf_area == 0.8
-    assert c.conf_tipo == 0.9
+    assert c.conf_frente == 0.9
 
 
 def test_resposta_sem_pergunta_ou_com_chave_desconhecida_e_invalida() -> None:
@@ -202,7 +202,7 @@ def test_linha_controle_abaixo_do_corte_e_incerta_por_texto_vago() -> None:
 
     assert (r.estado, r.motivo) == (Estado.INCERTA, MotivoIncerta.TEXTO_VAGO)
     assert r.pedido is None
-    assert (r.area_final, r.tipo_final) == (None, None)  # fora de toda célula
+    assert (r.area_final, r.frente_final) == (None, None)  # fora de toda célula
 
 
 def test_texto_vago_vence_as_outras_regras_e_nao_pede_desempate() -> None:
@@ -210,8 +210,10 @@ def test_texto_vago_vence_as_outras_regras_e_nao_pede_desempate() -> None:
     r = resolver(jev(controle=0.1))
     assert (r.estado, r.motivo, r.pedido) == (Estado.INCERTA, MotivoIncerta.TEXTO_VAGO, None)
 
-    # e com área e tipo fracos e Nenhum destes, que sem o controle iriam à LLM
-    r = resolver(jev(area=AREA_NENHUM, tipo=TIPO_BAIXO, natureza=("reativa", 0.2), controle=0.1))
+    # e com área e frente fracas e Nenhum destes, que sem o controle iriam à LLM
+    r = resolver(
+        jev(area=AREA_NENHUM, frente=FRENTE_BAIXO, natureza=("reativo", 0.2), controle=0.1)
+    )
     assert (r.estado, r.motivo, r.pedido) == (Estado.INCERTA, MotivoIncerta.TEXTO_VAGO, None)
 
 
@@ -228,15 +230,15 @@ def test_linha_tudo_acima_do_limiar_e_classificada() -> None:
     assert r.motivo is None
     assert r.pedido is None
     assert (r.area_final, r.time_final) == ("plat", "plat_a")
-    assert (r.tipo_final, r.subtipo_final) == ("incidente", "inc_disp")
-    assert r.natureza_final is Natureza.REATIVA
+    assert (r.frente_final, r.subfrente_final) == ("incidente", "inc_disp")
+    assert r.natureza_final is Natureza.REATIVO
 
 
 def test_limiar_e_inclusivo_na_confianca_exata() -> None:
     area = {"plat_a": 0.5, "dados_a": 0.5}
-    tipo = {"inc_disp": 0.5, "mel_proc": 0.5}
+    frente = {"inc_disp": 0.5, "mel_proc": 0.5}
 
-    r = resolver(jev(area=area, tipo=tipo, natureza=("reativa", 0.5)))
+    r = resolver(jev(area=area, frente=frente, natureza=("reativo", 0.5)))
 
     assert r.estado is Estado.CLASSIFICADA
 
@@ -245,11 +247,11 @@ def test_limiar_e_inclusivo_na_confianca_exata() -> None:
     ("dimensao", "resposta"),
     [
         (Dimensao.AREA, jev(area=AREA_BAIXA)),
-        (Dimensao.TIPO, jev(tipo=TIPO_BAIXO)),
-        (Dimensao.NATUREZA, jev(natureza=("reativa", 0.49))),
+        (Dimensao.FRENTE, jev(frente=FRENTE_BAIXO)),
+        (Dimensao.NATUREZA, jev(natureza=("reativo", 0.49))),
     ],
 )
-def test_linha_confianca_baixa_em_area_tipo_ou_natureza_espera_a_llm(
+def test_linha_confianca_baixa_em_area_frente_ou_natureza_espera_a_llm(
     dimensao: Dimensao, resposta: RespostaJev
 ) -> None:
     r = resolver(resposta)
@@ -270,27 +272,27 @@ def test_pedido_de_area_e_o_top_3_do_jev_mais_nenhum_destes() -> None:
     assert [o.nome for o in opcoes] == ["PLAT", "DADOS", "PESSOAS", "Nenhum destes"]
 
 
-def test_pedido_de_tipo_e_natureza() -> None:
-    r = resolver(jev(tipo=TIPO_BAIXO, natureza=("proativa", 0.3)))
+def test_pedido_de_frente_e_natureza() -> None:
+    r = resolver(jev(frente=FRENTE_BAIXO, natureza=("proativo", 0.3)))
     assert r.pedido is not None
 
     # somas: incidente 0,3, melhoria 0,4, custo 0,2, risco 0,1
-    assert [o.chave for o in r.pedido.opcoes[Dimensao.TIPO]] == [
+    assert [o.chave for o in r.pedido.opcoes[Dimensao.FRENTE]] == [
         "melhoria",
         "incidente",
         "custo",
         NENHUM_DESTES,
     ]
-    # a natureza tem só reativa e proativa, sem "Nenhum destes"
-    assert [o.chave for o in r.pedido.opcoes[Dimensao.NATUREZA]] == ["reativa", "proativa"]
+    # a natureza tem só reativo e proativo, sem "Nenhum destes"
+    assert [o.chave for o in r.pedido.opcoes[Dimensao.NATUREZA]] == ["reativo", "proativo"]
 
 
 def test_linha_nenhum_destes_confiante_vai_sempre_a_llm_com_a_lista_inteira() -> None:
-    r = resolver(jev(area=AREA_NENHUM, tipo=TIPO_NENHUM))
+    r = resolver(jev(area=AREA_NENHUM, frente=FRENTE_NENHUM))
 
     assert r.estado is Estado.AGUARDANDO_LLM
     assert r.pedido is not None
-    assert r.pedido.livres == {Dimensao.AREA, Dimensao.TIPO}
+    assert r.pedido.livres == {Dimensao.AREA, Dimensao.FRENTE}
     assert [o.chave for o in r.pedido.opcoes[Dimensao.AREA]] == [
         "plat",
         "dados",
@@ -299,7 +301,7 @@ def test_linha_nenhum_destes_confiante_vai_sempre_a_llm_com_a_lista_inteira() ->
         "seg",
         NENHUM_DESTES,
     ]
-    assert [o.chave for o in r.pedido.opcoes[Dimensao.TIPO]] == [
+    assert [o.chave for o in r.pedido.opcoes[Dimensao.FRENTE]] == [
         "incidente",
         "melhoria",
         "custo",
@@ -308,7 +310,7 @@ def test_linha_nenhum_destes_confiante_vai_sempre_a_llm_com_a_lista_inteira() ->
     ]
 
 
-def test_nenhum_destes_so_na_area_nao_pergunta_o_tipo() -> None:
+def test_nenhum_destes_so_na_area_nao_pergunta_a_frente() -> None:
     r = resolver(jev(area=AREA_NENHUM))
 
     assert r.pedido is not None
@@ -321,9 +323,9 @@ def test_linha_llm_escolhe_valor_da_lista_vira_via_llm() -> None:
 
     assert (r.estado, r.motivo, r.pedido) == (Estado.VIA_LLM, None, None)
     assert r.area_final == "fin"
-    # time e subtipo finais: o mais provável do Jev dentro da área escolhida
+    # time e subfrente finais: o mais provável do Jev dentro da área escolhida
     assert r.time_final == "fin_a"
-    assert (r.tipo_final, r.subtipo_final) == ("incidente", "inc_disp")
+    assert (r.frente_final, r.subfrente_final) == ("incidente", "inc_disp")
 
 
 def test_linha_llm_confirma_nenhum_destes_vira_nao_classificada() -> None:
@@ -333,11 +335,11 @@ def test_linha_llm_confirma_nenhum_destes_vira_nao_classificada() -> None:
     assert (r.area_final, r.time_final) == (None, None)
 
 
-def test_nenhum_destes_confirmado_em_tipo_tambem_e_nao_classificada() -> None:
-    r = resolver(jev(tipo=TIPO_NENHUM), llm(tipo=NENHUM_DESTES))
+def test_nenhum_destes_confirmado_em_frente_tambem_e_nao_classificada() -> None:
+    r = resolver(jev(frente=FRENTE_NENHUM), llm(frente=NENHUM_DESTES))
 
     assert r.estado is Estado.NAO_CLASSIFICADA
-    assert (r.tipo_final, r.subtipo_final) == (None, None)
+    assert (r.frente_final, r.subfrente_final) == (None, None)
     assert r.area_final == "plat"
 
 
@@ -358,12 +360,16 @@ def test_llm_troca_a_area_e_o_time_final_e_o_mais_provavel_do_jev_nela() -> None
     assert r.time_final == "plat_a"
 
 
-def test_llm_troca_o_tipo_e_o_subtipo_final_e_o_mais_provavel_dentro_dele() -> None:
-    tipo = {"inc_disp": 0.1, "inc_perf": 0.15, "mel_proc": 0.3, "cus_a": 0.25, "ris_a": 0.2}
+def test_llm_troca_a_frente_e_a_subfrente_final_e_o_mais_provavel_dentro_dele() -> None:
+    frente = {"inc_disp": 0.1, "inc_perf": 0.15, "mel_proc": 0.3, "cus_a": 0.25, "ris_a": 0.2}
 
-    r = resolver(jev(tipo=tipo), llm(tipo="incidente"))
+    r = resolver(jev(frente=frente), llm(frente="incidente"))
 
-    assert (r.estado, r.tipo_final, r.subtipo_final) == (Estado.VIA_LLM, "incidente", "inc_perf")
+    assert (r.estado, r.frente_final, r.subfrente_final) == (
+        Estado.VIA_LLM,
+        "incidente",
+        "inc_perf",
+    )
 
 
 def test_llm_mantem_a_mais_provavel_do_jev_e_o_time_continua_o_do_jev() -> None:
@@ -373,20 +379,20 @@ def test_llm_mantem_a_mais_provavel_do_jev_e_o_time_continua_o_do_jev() -> None:
 
 
 def test_llm_desempata_a_natureza() -> None:
-    r = resolver(jev(natureza=("reativa", 0.3)), llm(natureza="proativa"))
+    r = resolver(jev(natureza=("reativo", 0.3)), llm(natureza="proativo"))
 
-    assert (r.estado, r.natureza_final) == (Estado.VIA_LLM, Natureza.PROATIVA)
+    assert (r.estado, r.natureza_final) == (Estado.VIA_LLM, Natureza.PROATIVO)
 
 
 def test_llm_responde_varias_dimensoes_de_uma_vez() -> None:
     r = resolver(
-        jev(area=AREA_BAIXA, tipo=TIPO_BAIXO, natureza=("reativa", 0.3)),
-        llm(area="dados", tipo="custo", natureza="proativa"),
+        jev(area=AREA_BAIXA, frente=FRENTE_BAIXO, natureza=("reativo", 0.3)),
+        llm(area="dados", frente="custo", natureza="proativo"),
     )
 
     assert r.estado is Estado.VIA_LLM
-    assert (r.area_final, r.tipo_final, r.natureza_final) == ("dados", "custo", Natureza.PROATIVA)
-    assert (r.time_final, r.subtipo_final) == ("dados_a", "cus_a")
+    assert (r.area_final, r.frente_final, r.natureza_final) == ("dados", "custo", Natureza.PROATIVO)
+    assert (r.time_final, r.subfrente_final) == ("dados_a", "cus_a")
 
 
 # -------------------- incerta
@@ -406,7 +412,7 @@ def test_linha_llm_sem_escolha_valida_e_incerta_com_o_motivo(resposta_llm: Respo
 
     assert (r.estado, r.motivo, r.pedido) == (Estado.INCERTA, MotivoIncerta.LLM_SEM_ESCOLHA, None)
     # fica na célula do mais provável do Jev, para o "+N incertas"
-    assert (r.area_final, r.tipo_final) == ("plat", "incidente")
+    assert (r.area_final, r.frente_final) == ("plat", "incidente")
 
 
 def test_sem_escolha_onde_o_jev_disse_nenhum_destes_vira_nao_classificada() -> None:
@@ -414,19 +420,19 @@ def test_sem_escolha_onde_o_jev_disse_nenhum_destes_vira_nao_classificada() -> N
     r = resolver(jev(area=AREA_NENHUM), llm(area="marketing"))
     assert (r.estado, r.motivo, r.area_final) == (Estado.NAO_CLASSIFICADA, None, None)
 
-    r = resolver(jev(tipo=TIPO_NENHUM), llm(tipo=None))
-    assert (r.estado, r.motivo, r.tipo_final) == (Estado.NAO_CLASSIFICADA, None, None)
+    r = resolver(jev(frente=FRENTE_NENHUM), llm(frente=None))
+    assert (r.estado, r.motivo, r.frente_final) == (Estado.NAO_CLASSIFICADA, None, None)
 
 
 def test_natureza_fora_de_reativa_e_proativa_e_sem_escolha() -> None:
-    r = resolver(jev(natureza=("reativa", 0.3)), llm(natureza=NENHUM_DESTES))
+    r = resolver(jev(natureza=("reativo", 0.3)), llm(natureza=NENHUM_DESTES))
 
     assert (r.estado, r.motivo) == (Estado.INCERTA, MotivoIncerta.LLM_SEM_ESCOLHA)
-    assert r.natureza_final is Natureza.REATIVA
+    assert r.natureza_final is Natureza.REATIVO
 
 
-def test_uma_dimensao_sem_escolha_entre_varias_derruba_a_frente() -> None:
-    r = resolver(jev(area=AREA_BAIXA, tipo=TIPO_BAIXO), llm(area="plat", tipo="inventado"))
+def test_uma_dimensao_sem_escolha_entre_varias_derruba_o_evento() -> None:
+    r = resolver(jev(area=AREA_BAIXA, frente=FRENTE_BAIXO), llm(area="plat", frente="inventado"))
 
     assert (r.estado, r.motivo) == (Estado.INCERTA, MotivoIncerta.LLM_SEM_ESCOLHA)
 
@@ -436,13 +442,13 @@ def test_llm_diz_nenhum_destes_onde_o_jev_tinha_um_valor_fraco_e_nao_classificad
 
     assert (r.estado, r.motivo, r.pedido) == (Estado.NAO_CLASSIFICADA, None, None)
     assert (r.area_final, r.time_final) == (None, None)
-    assert (r.tipo_final, r.subtipo_final) == ("incidente", "inc_disp")
+    assert (r.frente_final, r.subfrente_final) == ("incidente", "inc_disp")
 
 
 def test_nao_classificada_em_uma_dimensao_basta_com_a_outra_fraca() -> None:
     r = resolver(
-        jev(area=AREA_NENHUM, tipo=TIPO_BAIXO),
-        llm(area=NENHUM_DESTES, tipo=NENHUM_DESTES),
+        jev(area=AREA_NENHUM, frente=FRENTE_BAIXO),
+        llm(area=NENHUM_DESTES, frente=NENHUM_DESTES),
     )
 
     assert r.estado is Estado.NAO_CLASSIFICADA
@@ -480,7 +486,7 @@ def test_linha_problema_nenhum_destes_e_resposta_normal() -> None:
 
     assert resolver(resposta).estado is Estado.CLASSIFICADA
     assert c.estado is Estado.CLASSIFICADA
-    assert regras.problema_da_frente(c, LIMIARES) is None
+    assert regras.problema_do_evento(c, LIMIARES) is None
 
 
 def test_linha_problema_abaixo_de_05_fica_sem_problema_e_segue_pintando() -> None:
@@ -489,25 +495,25 @@ def test_linha_problema_abaixo_de_05_fica_sem_problema_e_segue_pintando() -> Non
 
     assert (c.estado, c.area_final) == (Estado.CLASSIFICADA, "plat")
     assert c.problema == "p1"  # a coluna guarda o que o Jev disse
-    assert regras.problema_da_frente(c, LIMIARES) is None
-    assert regras.problema_da_frente(_classificacao(jev(problema=("p1", 0.5))), LIMIARES) == "p1"
+    assert regras.problema_do_evento(c, LIMIARES) is None
+    assert regras.problema_do_evento(_classificacao(jev(problema=("p1", 0.5))), LIMIARES) == "p1"
 
 
-def test_encaixe_fraco_e_nenhum_destes_ou_confianca_do_tipo_abaixo_de_07() -> None:
-    assert regras.encaixe_fraco(_classificacao(jev(tipo=TIPO_NENHUM)), LIMIARES) is True
+def test_encaixe_fraco_e_nenhum_destes_ou_confianca_da_frente_abaixo_de_07() -> None:
+    assert regras.encaixe_fraco(_classificacao(jev(frente=FRENTE_NENHUM)), LIMIARES) is True
     forte = {"inc_disp": 0.75, "mel_proc": 0.25}
     fraco = {"inc_disp": 0.69, "mel_proc": 0.31}
-    assert regras.encaixe_fraco(_classificacao(jev(tipo=forte)), LIMIARES) is False
-    assert regras.encaixe_fraco(_classificacao(jev(tipo=fraco)), LIMIARES) is True
+    assert regras.encaixe_fraco(_classificacao(jev(frente=forte)), LIMIARES) is False
+    assert regras.encaixe_fraco(_classificacao(jev(frente=fraco)), LIMIARES) is True
 
 
 def test_encaixe_fraco_conta_antes_do_desempate_mas_nao_o_texto_vago() -> None:
-    c = _classificacao(jev(tipo=TIPO_BAIXO))
-    c, _ = regras.fechar(c, llm(tipo="melhoria"), DOCUMENTO, LIMIARES)
+    c = _classificacao(jev(frente=FRENTE_BAIXO))
+    c, _ = regras.fechar(c, llm(frente="melhoria"), DOCUMENTO, LIMIARES)
     assert c.estado is Estado.VIA_LLM
     assert regras.encaixe_fraco(c, LIMIARES) is True
 
-    vaga = _classificacao(jev(tipo=TIPO_NENHUM, controle=0.1))
+    vaga = _classificacao(jev(frente=FRENTE_NENHUM, controle=0.1))
     assert regras.encaixe_fraco(vaga, LIMIARES) is False
 
 
@@ -531,9 +537,9 @@ def test_classificar_monta_a_classificacao_e_o_pedido() -> None:
 
     c, pedido = regras.classificar("f1", 3, resposta, DOCUMENTO, LIMIARES, QUANDO)
 
-    assert (c.frente_id, c.versao, c.classificada_em) == ("f1", 3, QUANDO)
+    assert (c.evento_id, c.versao, c.classificada_em) == ("f1", 3, QUANDO)
     assert c.resposta_jev is resposta
-    assert (c.time, c.area, c.tipo, c.subtipo) == ("plat_a", "plat", "incidente", "inc_disp")
+    assert (c.time, c.area, c.frente, c.subfrente) == ("plat_a", "plat", "incidente", "inc_disp")
     assert c.estado is Estado.AGUARDANDO_LLM
     assert c.resposta_llm is None
     assert pedido is not None
@@ -590,9 +596,9 @@ def test_recalcular_com_limiar_mais_frouxo_resolve_sem_desempate() -> None:
 
 
 def test_recalcular_so_lista_quem_passou_a_precisar_de_desempate() -> None:
-    nova_dimensao = _classificacao(jev(natureza=("reativa", 0.6)))
-    ja_esperava = replace(_classificacao(jev(area=AREA_BAIXA)), frente_id="f2")
-    estavel = replace(_classificacao(jev()), frente_id="f3")
+    nova_dimensao = _classificacao(jev(natureza=("reativo", 0.6)))
+    ja_esperava = replace(_classificacao(jev(area=AREA_BAIXA)), evento_id="f2")
+    estavel = replace(_classificacao(jev()), evento_id="f3")
 
     r = regras.recalcular(
         [nova_dimensao, ja_esperava, estavel], DOCUMENTO, com_confianca(natureza=0.8)
@@ -630,7 +636,7 @@ def test_recalcular_com_texto_vago_mais_exigente() -> None:
     novo = r.classificacoes["f1"]
     assert (novo.estado, novo.motivo) == (Estado.INCERTA, MotivoIncerta.TEXTO_VAGO)
     assert r.precisam_de_desempate == {}
-    assert (novo.area_final, novo.tipo_final) == (None, None)
+    assert (novo.area_final, novo.frente_final) == (None, None)
 
 
 # --------------------------------------------------------------------------- ajustes da auditoria
@@ -638,12 +644,12 @@ def test_recalcular_com_texto_vago_mais_exigente() -> None:
 
 def test_soma_do_pai_acima_do_limiar_vence_o_nenhum_destes_isolado() -> None:
     area = {"plat_a": 0.33, "plat_b": 0.33, NENHUM_DESTES: 0.34}
-    tipo = {"inc_disp": 0.3, "inc_perf": 0.3, NENHUM_DESTES: 0.4}
+    frente = {"inc_disp": 0.3, "inc_perf": 0.3, NENHUM_DESTES: 0.4}
 
-    r = resolver(jev(area=area, tipo=tipo))
+    r = resolver(jev(area=area, frente=frente))
 
     assert r.estado is Estado.CLASSIFICADA
-    assert (r.area_final, r.tipo_final) == ("plat", "incidente")
+    assert (r.area_final, r.frente_final) == ("plat", "incidente")
     c = regras.ler_jev(jev(area=area), DOCUMENTO, LIMIARES)
     assert c.conf_area == pytest.approx(0.66)
 
@@ -694,15 +700,15 @@ def test_causa_raiz_ou_problema_que_a_versao_nao_conhece_e_resposta_invalida(
 
 
 def test_fechar_com_resposta_parcial_devolve_o_pedido_do_que_falta() -> None:
-    c = _classificacao(jev(area=AREA_BAIXA, tipo=TIPO_NENHUM))
+    c = _classificacao(jev(area=AREA_BAIXA, frente=FRENTE_NENHUM))
 
     fechada, pedido = regras.fechar(c, llm(area="plat"), DOCUMENTO, LIMIARES)
 
     assert fechada.estado is Estado.AGUARDANDO_LLM
     assert fechada.resposta_llm is not None
     assert pedido is not None
-    assert set(pedido.opcoes) == {Dimensao.TIPO}
-    assert pedido.livres == {Dimensao.TIPO}  # a dimensão livre continua livre no pendente
+    assert set(pedido.opcoes) == {Dimensao.FRENTE}
+    assert pedido.livres == {Dimensao.FRENTE}  # a dimensão livre continua livre no pendente
     assert Dimensao.AREA not in pedido.opcoes
 
 
@@ -716,11 +722,11 @@ def test_fechar_com_resposta_completa_nao_devolve_pedido() -> None:
 
 def test_encaixe_fraco_na_borda_exata_de_07_nao_e_fraco() -> None:
     exato = {"inc_disp": 0.7, "mel_proc": 0.3}
-    c = _classificacao(jev(tipo=exato))
+    c = _classificacao(jev(frente=exato))
 
-    assert c.conf_tipo == pytest.approx(0.7)
-    assert regras.encaixe_fraco(c, replace(LIMIARES, encaixe_fraco_confianca_tipo=0.7)) is False
-    assert regras.encaixe_fraco(c, replace(LIMIARES, encaixe_fraco_confianca_tipo=0.71)) is True
+    assert c.conf_frente == pytest.approx(0.7)
+    assert regras.encaixe_fraco(c, replace(LIMIARES, encaixe_fraco_confianca_frente=0.7)) is False
+    assert regras.encaixe_fraco(c, replace(LIMIARES, encaixe_fraco_confianca_frente=0.71)) is True
 
 
 def test_empate_no_top_3_vale_a_ordem_da_versao() -> None:
@@ -738,7 +744,7 @@ def test_empate_no_top_3_vale_a_ordem_da_versao() -> None:
     ]
 
 
-def test_recalcular_com_texto_vago_mais_frouxo_devolve_a_frente_ao_fluxo() -> None:
+def test_recalcular_com_texto_vago_mais_frouxo_devolve_o_evento_ao_fluxo() -> None:
     c = _classificacao(jev(area=AREA_BAIXA, controle=0.3))
     assert (c.estado, c.motivo) == (Estado.INCERTA, MotivoIncerta.TEXTO_VAGO)
 

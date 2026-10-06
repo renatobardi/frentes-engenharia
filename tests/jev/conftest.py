@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from frentes.contratos import (
+from eventos.contratos import (
     AreaDoOrganograma,
     DocumentoTaxonomia,
     EspecieDeItem,
@@ -16,7 +16,7 @@ from frentes.contratos import (
     TimeDoOrganograma,
     ValorDoDocumento,
 )
-from frentes.jev import montar_perguntas
+from eventos.jev import montar_perguntas
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -38,7 +38,7 @@ def _documento(instrucoes=None) -> DocumentoTaxonomia:
     textos = instrucoes or {p: f"instrução de {p.value}" for p in Pergunta}
     return DocumentoTaxonomia(
         organograma=(AreaDoOrganograma("originacao", "Originação", (time, outro)),),
-        tipos=(
+        frentes=(
             ValorDoDocumento(
                 "falha",
                 "Falha",
@@ -50,11 +50,11 @@ def _documento(instrucoes=None) -> DocumentoTaxonomia:
             ),
         ),
         causas_raiz=(ValorDoDocumento("config", "Configuração", "ajuste errado"),),
-        problemas=(ValorDoDocumento("p1", "Simulador fora", "Frentes que citam o simulador"),),
+        problemas=(ValorDoDocumento("p1", "Simulador fora", "Eventos que citam o simulador"),),
         regua_severidade=regua,
         regua_impacto=regua,
         criterio_urgencia="a janela de tempo para agir",
-        criterio_natureza={Natureza.REATIVA: "falha acontecendo", Natureza.PROATIVA: "melhoria"},
+        criterio_natureza={Natureza.REATIVO: "falha acontecendo", Natureza.PROATIVO: "melhoria"},
         pergunta_de_controle="O texto cita algum sistema, processo, número ou situação?",
         instrucoes=textos,
     )

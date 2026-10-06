@@ -8,26 +8,26 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from frentes import config, contratos, store
-from frentes.contratos import Gatilho, Geracao, ResultadoGeracao, SinalMedido, TipoGeracao
-from frentes.mapa import agregados
-from frentes.store import geracao as store_geracao
-from frentes.web.app import criar_app
+from eventos import config, contratos, store
+from eventos.contratos import Gatilho, Geracao, ResultadoGeracao, SinalMedido, TipoGeracao
+from eventos.mapa import agregados
+from eventos.store import geracao as store_geracao
+from eventos.web.app import criar_app
 
 AREAS = {"plat": "Plataforma"}
-TIPOS_V1 = {"incidente": "Incidente", "tecnologia": "Tecnologia"}
-TIPOS_V2 = {"incidente": "Incidente", "fornecedor": "Fornecedor"}
-RESUMO = "Fornecedor virou um tipo à parte: <b>muitas</b> frentes falavam dele."
+FRENTES_V1 = {"incidente": "Incidente", "tecnologia": "Tecnologia"}
+FRENTES_V2 = {"incidente": "Incidente", "fornecedor": "Fornecedor"}
+RESUMO = "Fornecedor virou uma frente à parte: <b>muitas</b> eventos falavam dele."
 DISPARADA = datetime(2026, 9, 14, 10, 0, tzinfo=UTC)
 
 
-def _versao(con: store.Conexao, numero: int, tipos: dict[str, str], ativada: bool = True) -> None:
+def _versao(con: store.Conexao, numero: int, frentes: dict[str, str], ativada: bool = True) -> None:
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
         " VALUES (?, '{}', 'jev-1.13.0', '2026-01-01T00:00:00Z', ?)",
         (numero, "2026-01-02T00:00:00Z" if ativada else None),
     )
-    for dimensao, valores in (("area", AREAS), ("tipo", tipos)):
+    for dimensao, valores in (("area", AREAS), ("frente", frentes)):
         for ordem, (chave, nome) in enumerate(valores.items()):
             con.execute(
                 "INSERT INTO valor (versao, dimensao, chave, nome, ordem) VALUES (?, ?, ?, ?, ?)",
@@ -37,7 +37,7 @@ def _versao(con: store.Conexao, numero: int, tipos: dict[str, str], ativada: boo
 
 def _revisao(con: store.Conexao, base: int, resultante: int, gatilho: Gatilho) -> int:
     sinal = SinalMedido(
-        frentes=240, encaixe_fraco=0.18, nao_classificadas=0.02, incertas=0.1, maior_tipo=0.5
+        eventos=240, encaixe_fraco=0.18, nao_classificadas=0.02, incertas=0.1, maior_frente=0.5
     )
     id = store_geracao.abrir(
         con,
@@ -56,11 +56,11 @@ def _revisao(con: store.Conexao, base: int, resultante: int, gatilho: Gatilho) -
 
 
 def _banco(tmp_path: Path, *, com_revisao: bool = True, gatilho=Gatilho.ENCAIXE_FRACO) -> Path:
-    caminho = tmp_path / "frentes.db"
+    caminho = tmp_path / "eventos.db"
     con = store.abrir(caminho)
-    _versao(con, 1, TIPOS_V1)
+    _versao(con, 1, FRENTES_V1)
     if com_revisao:
-        _versao(con, 2, TIPOS_V2)
+        _versao(con, 2, FRENTES_V2)
         _revisao(con, 1, 2, gatilho)
     con.commit()
     con.close()
@@ -68,7 +68,7 @@ def _banco(tmp_path: Path, *, com_revisao: bool = True, gatilho=Gatilho.ENCAIXE_
 
 
 def _cliente(banco: Path) -> TestClient:
-    return TestClient(criar_app(config.carregar({"FRENTES_DB": str(banco)})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(banco)})))
 
 
 @pytest.fixture
@@ -86,11 +86,11 @@ def test_na_v1_a_faixa_traz_o_valor_e_o_limite_gravados_e_o_link_do_diff(banco: 
 
 
 def test_na_revisao_por_outro_gatilho_o_selo_e_o_do_gatilho_que_disparou(tmp_path: Path) -> None:
-    banco = _banco(tmp_path, gatilho=Gatilho.MAIOR_TIPO)
+    banco = _banco(tmp_path, gatilho=Gatilho.MAIOR_FRENTE)
 
     html = _cliente(banco).get("/?versao=1").text
 
-    assert "Maior tipo 50% · limite 45%" in html
+    assert "Maior frente 50% · limite 45%" in html
 
 
 def test_na_revisao_mensal_o_selo_e_o_do_encaixe_fraco(tmp_path: Path) -> None:
@@ -125,10 +125,10 @@ def test_com_uma_so_versao_no_banco_nenhuma_faixa_aparece(tmp_path: Path) -> Non
 
 
 def test_revisao_cuja_versao_nao_foi_ativada_nao_faz_faixa_na_v1(tmp_path: Path) -> None:
-    caminho = tmp_path / "frentes.db"
+    caminho = tmp_path / "eventos.db"
     con = store.abrir(caminho)
-    _versao(con, 1, TIPOS_V1)
-    _versao(con, 2, TIPOS_V2, ativada=False)
+    _versao(con, 1, FRENTES_V1)
+    _versao(con, 2, FRENTES_V2, ativada=False)
     _revisao(con, 1, 2, Gatilho.ENCAIXE_FRACO)
     con.commit()
     con.close()
@@ -167,10 +167,10 @@ def test_trocar_a_versao_nao_muda_a_data_de_referencia(
     assert not re.search(r"[?&;](data|referencia|ate)=", html)
 
 
-def _com_painel_aberto(http: TestClient, area: str, tipo: str, de: str, para: int):
+def _com_painel_aberto(http: TestClient, area: str, frente: str, de: str, para: int):
     """O gesto do seletor: o HTMX pede a outra versão com a célula nos campos ocultos."""
     return http.get(
-        f"/?visao=dor&periodo=90d&versao={para}&area={area}&tipo={tipo}",
+        f"/?visao=dor&periodo=90d&versao={para}&area={area}&frente={frente}",
         headers={"HX-Request": "true", "HX-Current-URL": f"http://t/{de}"},
     )
 
@@ -205,20 +205,20 @@ def test_trocar_a_versao_com_a_celula_nas_duas_mantem_o_painel_aberto(banco: Pat
 def test_celula_inexistente_no_mesmo_endereco_continua_404(banco: Path) -> None:
     http = _cliente(banco)
 
-    assert http.get("/?versao=2&area=plat&tipo=tecnologia").status_code == 404
+    assert http.get("/?versao=2&area=plat&frente=tecnologia").status_code == 404
     mesma = http.get(
-        "/?versao=2&area=plat&tipo=tecnologia",
+        "/?versao=2&area=plat&frente=tecnologia",
         headers={"HX-Request": "true", "HX-Current-URL": "http://t/?versao=2"},
     )
     assert mesma.status_code == 404
 
 
 def test_versao_pulada_nao_entra_no_seletor_nem_no_mapa(tmp_path: Path) -> None:
-    caminho = tmp_path / "frentes.db"
+    caminho = tmp_path / "eventos.db"
     con = store.abrir(caminho)
-    _versao(con, 1, TIPOS_V1)
-    _versao(con, 2, TIPOS_V2, ativada=False)
-    _versao(con, 3, TIPOS_V2)
+    _versao(con, 1, FRENTES_V1)
+    _versao(con, 2, FRENTES_V2, ativada=False)
+    _versao(con, 3, FRENTES_V2)
     con.commit()
     con.close()
     http = _cliente(caminho)
@@ -234,7 +234,7 @@ def test_versao_pulada_nao_entra_no_seletor_nem_no_mapa(tmp_path: Path) -> None:
 )
 def test_endereco_de_origem_malformado_nao_derruba_a_tela(banco: Path, atual: str) -> None:
     resposta = _cliente(banco).get(
-        "/?versao=2&area=plat&tipo=tecnologia",
+        "/?versao=2&area=plat&frente=tecnologia",
         headers={"HX-Request": "true", "HX-Current-URL": atual},
     )
 
@@ -246,23 +246,23 @@ def test_sem_javascript_o_formulario_leva_a_versao_de_origem_e_o_painel_fecha(
 ) -> None:
     http = _cliente(banco)
 
-    aberta = http.get("/?versao=1&area=plat&tipo=tecnologia").text
+    aberta = http.get("/?versao=1&area=plat&frente=tecnologia").text
     # o campo `de` só existe dentro do <noscript>: com JavaScript ele não vai no pedido
     assert re.search(r'<noscript><input type="hidden" name="de" value="1">', aberta)
     # o que o navegador sem JavaScript pede ao aplicar: sem HX-*, com `de`
-    resposta = http.get("/?visao=dor&periodo=90d&versao=2&area=plat&tipo=tecnologia&de=1")
+    resposta = http.get("/?visao=dor&periodo=90d&versao=2&area=plat&frente=tecnologia&de=1")
 
     assert resposta.status_code == 200
     assert "o painel foi fechado" in resposta.text and 'name="area"' not in resposta.text
     # `de` igual à versão pedida: a célula errada continua sendo 404
-    assert http.get("/?versao=2&area=plat&tipo=tecnologia&de=2").status_code == 404
+    assert http.get("/?versao=2&area=plat&frente=tecnologia&de=2").status_code == 404
 
 
 def test_o_selo_diz_a_janela_e_o_gatilho_de_verdade(tmp_path: Path) -> None:
     for gatilho, texto in (
         (Gatilho.BOTAO, "disparada por botão «Revisar a taxonomia agora»"),
         (Gatilho.MENSAL, "disparada por revisão mensal"),
-        (Gatilho.MAIOR_TIPO, "disparada por um tipo grande demais"),
+        (Gatilho.MAIOR_FRENTE, "disparada por uma frente grande demais"),
     ):
         pasta = tmp_path / gatilho.value
         pasta.mkdir()

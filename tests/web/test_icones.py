@@ -3,7 +3,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from frentes.web import telas
+from eventos.web import telas
 
 # O contrato com as outras fases: estes nomes existem na macro.
 NOMES = (

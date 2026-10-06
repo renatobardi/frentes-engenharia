@@ -1,5 +1,5 @@
 """A tela Taxonomia pelo HTML devolvido, sobre revisões gravadas de verdade (`revisar` com a LLM
-falsa) num banco em arquivo. Nada chama rede nem chave; o relógio é o das frentes do teste."""
+falsa) num banco em arquivo. Nada chama rede nem chave; o relógio é o dos eventos do teste."""
 
 import asyncio
 import re
@@ -10,30 +10,30 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from frentes import config, store
-from frentes.contratos import Gatilho, Geracao, Natureza, ResultadoGeracao, TipoGeracao
-from frentes.llm import ErroLlmEsgotado
-from frentes.store import classificacao as repo_classificacao
-from frentes.store import geracao as repo
-from frentes.store import historico
-from frentes.store import versao as repo_versao
-from frentes.taxonomia.revisao import revisar
-from frentes.web.app import criar_app
-from frentes.web.taxonomia import rotas
+from eventos import config, store
+from eventos.contratos import Gatilho, Geracao, Natureza, ResultadoGeracao, TipoGeracao
+from eventos.llm import ErroLlmEsgotado
+from eventos.store import classificacao as repo_classificacao
+from eventos.store import geracao as repo
+from eventos.store import historico
+from eventos.store import versao as repo_versao
+from eventos.taxonomia.revisao import revisar
+from eventos.web.app import criar_app
+from eventos.web.taxonomia import rotas
 from tests.taxonomia.conftest import montar
 from tests.taxonomia.revisoes import (
     AGORA,
     LIMIARES,
     LlmDaRevisao,
     banco_vigente,
-    criar_tipo,
+    criar_frente,
     firmes,
     fracas,
     numeros,
     resposta,
 )
 
-FRASE = "A taxonomia ganhou o tipo Assistente Virtual <script>alert('frase')</script>"
+FRASE = "A taxonomia ganhou a frente Assistente Virtual <script>alert('frase')</script>"
 TEXTO_PERIGOSO = "<img src=x onerror=alert('texto')>"
 
 
@@ -51,23 +51,23 @@ def _ativar(caminho: Path, versao: int) -> None:
 
 
 def _banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "frentes.sqlite"
+    caminho = tmp_path / "eventos.sqlite"
     with closing(banco_vigente(montar(), ativada_ha_dias=10, caminho=caminho)) as con:
-        fracas(con, "a", ["tipo1", "tipo2"] * 6, texto=TEXTO_PERIGOSO)
+        fracas(con, "a", ["frente1", "frente2"] * 6, texto=TEXTO_PERIGOSO)
         firmes(con, "b", 6)
     return caminho
 
 
 def _cliente(caminho: Path, **ambiente: str) -> TestClient:
-    cfg = config.carregar({"FRENTES_DB": str(caminho), **ambiente})
+    cfg = config.carregar({"EVENTOS_DB": str(caminho), **ambiente})
     return TestClient(criar_app(cfg), follow_redirects=False)
 
 
 @pytest.fixture
 def com_versao_nova(tmp_path: Path) -> Path:
-    """v1 vigente e uma revisão que criou a v2 (sem ativação), com 12 frentes de evidência."""
+    """v1 vigente e uma revisão que criou a v2 (sem ativação), com 12 eventos de evidência."""
     caminho = _banco(tmp_path)
-    llm = LlmDaRevisao(resposta(criar_tipo("Assistente Virtual", numeros(12)), resumo=FRASE))
+    llm = LlmDaRevisao(resposta(criar_frente("Assistente Virtual", numeros(12)), resumo=FRASE))
     with closing(store.abrir(caminho)) as con:
         _revisar(con, llm)
     return caminho
@@ -89,7 +89,7 @@ def _geracoes(caminho: Path) -> int:
 # --------------------------------------------------------------------------- o diff
 
 
-def test_o_diff_mostra_a_frase_o_sinal_as_operacoes_e_cinco_frentes_de_evidencia(
+def test_o_diff_mostra_a_frase_o_sinal_as_operacoes_e_cinco_eventos_de_evidencia(
     com_versao_nova: Path,
 ) -> None:
     resposta_http = _cliente(com_versao_nova).get("/taxonomia")
@@ -99,22 +99,22 @@ def test_o_diff_mostra_a_frase_o_sinal_as_operacoes_e_cinco_frentes_de_evidencia
     assert '<blockquote class="frase">1 proposta, 1 aplicada, 0 descartadas.' in html
     # A frase da LLM fica nos dados brutos, escapada, separada do resumo calculado.
     assert re.search(
-        r'<blockquote class="frase-bruta">[^<]*A taxonomia ganhou o tipo Assistente', html
+        r'<blockquote class="frase-bruta">[^<]*A taxonomia ganhou a frente Assistente', html
     )
     assert "<script>alert('frase')" not in html
     assert "&lt;script&gt;alert(&#39;frase&#39;)" in html
     # o sinal que disparou, com o medido e o limite
     assert "disparada por botão" in html
     assert re.search(r"Encaixe fraco.*?(\d+)%.*?12%", html, re.S)
-    assert "(18 frentes na janela)" in html
-    # a operação aplicada com o número de frentes de evidência
-    assert "Criar tipo" in html and "aplicada" in html
+    assert "(18 eventos na janela)" in html
+    # a operação aplicada com o número de eventos de evidência
+    assert "Criar frente" in html and "aplicada" in html
     assert "Assistente Virtual" in html
-    assert "12 frentes de evidência" in html
-    # cinco frentes de evidência, clicáveis, e o tipo da v1 de onde vieram
-    ancoras = re.findall(r'<a href="/frentes/(a\d\d)">', html)
+    assert "12 eventos de evidência" in html
+    # cinco eventos de evidência, clicáveis, e a frente da v1 de onde vieram
+    ancoras = re.findall(r'<a href="/eventos/(a\d\d)">', html)
     assert ancoras == ["a01", "a02", "a03", "a04", "a05"]
-    assert "do tipo" not in html and "dos tipos Tipo 1, Tipo 2 da v1" in html
+    assert "da frente" not in html and "das frentes Frente 1, Frente 2 da v1" in html
     assert "<img src=x" not in html
 
 
@@ -207,7 +207,7 @@ def test_a_versao_vigente_aparece_so_para_leitura(com_versao_nova: Path) -> None
     vigente = html.split('id="t-vigente"')[1].split('id="t-historico"')[0]
 
     for esperado in (
-        "Tipo 1", "Tipo1-Sub 1", "Originação", "Simulação", "Calcula parcelas",
+        "Frente 1", "Frente1-Sub 1", "Originação", "Simulação", "Calcula parcelas",
         "Causa 1", "Problema 1", "Severidade", "Impacto", "nível 1", "critério 1",
     ):  # fmt: skip
         assert esperado in vigente, esperado
@@ -304,7 +304,9 @@ def test_o_botao_dispara_a_revisao_em_segundo_plano_e_volta_para_a_tela(
     monkeypatch.setattr(rotas, "agora", lambda: AGORA)
     caminho = _banco(tmp_path)
     cliente = _cliente(caminho)
-    llm = LlmDaRevisao(resposta(criar_tipo("Assistente Virtual", numeros(12)), resumo="Tipo novo."))
+    llm = LlmDaRevisao(
+        resposta(criar_frente("Assistente Virtual", numeros(12)), resumo="Frente nova.")
+    )
     cliente.app.state.revisao_llm = llm
 
     resposta_http = cliente.post("/taxonomia/revisar")
@@ -316,7 +318,7 @@ def test_o_botao_dispara_a_revisao_em_segundo_plano_e_volta_para_a_tela(
     assert gerada.gatilho is Gatilho.BOTAO and gerada.resultado is ResultadoGeracao.VERSAO_NOVA
     assert len(llm.revisoes) == 1
     assert cliente.app.state.revisao_em_curso is False  # liberou o botão
-    assert "Tipo novo." in cliente.get("/taxonomia").text
+    assert "Frente nova." in cliente.get("/taxonomia").text
 
 
 def test_o_botao_nao_dispara_uma_segunda_revisao_enquanto_uma_roda(tmp_path: Path) -> None:
@@ -331,10 +333,10 @@ def test_o_botao_nao_dispara_uma_segunda_revisao_enquanto_uma_roda(tmp_path: Pat
     assert _geracoes(caminho) == 0
 
 
-def test_o_botao_sem_frente_na_janela_explica_e_nao_cria_geracao(
+def test_o_botao_sem_evento_na_janela_explica_e_nao_cria_geracao(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(rotas, "agora", lambda: AGORA.replace(year=2030))  # frentes fora da janela
+    monkeypatch.setattr(rotas, "agora", lambda: AGORA.replace(year=2030))  # eventos fora da janela
     caminho = _banco(tmp_path)
     cliente = _cliente(caminho)
     cliente.app.state.revisao_llm = LlmDaRevisao(resposta())
@@ -468,7 +470,7 @@ def test_dois_posts_simultaneos_disparam_uma_revisao_so(
             return await super().completar(instrucao, entrada)
 
     llm = Lenta(resposta(resumo="Nada novo."))
-    app = criar_app(config.carregar({"FRENTES_DB": str(caminho)}))
+    app = criar_app(config.carregar({"EVENTOS_DB": str(caminho)}))
     app.state.revisao_llm = llm
 
     async def disparar() -> list[int]:
@@ -489,22 +491,22 @@ def test_o_historico_diz_de_que_versao_cada_revisao_partiu(com_versao_nova: Path
     assert "Partiu da v1" in historico_html
 
 
-def test_o_diff_de_dividir_e_juntar_diz_quais_tipos() -> None:
-    from frentes.contratos import Dimensao, Operacao, TipoOperacao
-    from frentes.web.taxonomia import montagem
+def test_o_diff_de_dividir_e_juntar_diz_quais_frentes() -> None:
+    from eventos.contratos import Dimensao, Operacao, TipoOperacao
+    from eventos.web.taxonomia import montagem
 
-    nomes = {("tipo", "t1"): "Incidente", ("tipo", "t2"): "Falha", ("tipo", "t3"): "Pedido"}
+    nomes = {("frente", "t1"): "Incidente", ("frente", "t2"): "Falha", ("frente", "t3"): "Pedido"}
     dividir = Operacao(
-        TipoOperacao.DIVIDIR_TIPO,
-        Dimensao.TIPO,
+        TipoOperacao.DIVIDIR_FRENTE,
+        Dimensao.FRENTE,
         ("t1",),
         {"partes": [{"chave": "n1", "nome": "Queda"}, {"chave": "n2", "nome": "Lentidão"}]},
         ("f1",) * 5,
         True,
     )
     juntar = Operacao(
-        TipoOperacao.JUNTAR_TIPOS,
-        Dimensao.TIPO,
+        TipoOperacao.JUNTAR_FRENTES,
+        Dimensao.FRENTE,
         ("t2", "t3"),
         {"chave": "n3", "nome": "Atendimento"},
         ("f1",) * 5,
@@ -521,7 +523,7 @@ def test_o_diff_de_dividir_e_juntar_diz_quais_tipos() -> None:
 
 
 def _com_mapa_nas_duas_versoes(caminho: Path) -> None:
-    """v1: 18 frentes na Originação; v2: só as 12 de evidência, já no tipo novo."""
+    """v1: 18 eventos na Originação; v2: só as 12 de evidência, já na frente nova."""
     with closing(store.abrir(caminho)) as con:
         novo = next(
             v.chave
@@ -532,7 +534,7 @@ def _com_mapa_nas_duas_versoes(caminho: Path) -> None:
             c = repo_classificacao.ler(con, n, 1)
             assert c is not None
             repo_classificacao.gravar(
-                con, replace(c, area_final="originacao", natureza_final=Natureza.REATIVA)
+                con, replace(c, area_final="originacao", natureza_final=Natureza.REATIVO)
             )
             if n[0] == "a" and int(n[1:]) <= 12:
                 repo_classificacao.gravar(
@@ -541,8 +543,8 @@ def _com_mapa_nas_duas_versoes(caminho: Path) -> None:
                         c,
                         versao=2,
                         area_final="originacao",
-                        natureza_final=Natureza.REATIVA,
-                        tipo_final=novo,
+                        natureza_final=Natureza.REATIVO,
+                        frente_final=novo,
                     ),
                 )
 
@@ -575,7 +577,7 @@ def test_o_que_mudou_no_mapa_nao_aparece_na_revisao_sem_mudanca(sem_mudanca: Pat
 
 
 def test_geracao_sem_versao_nova_nao_tem_o_que_mudar(com_versao_nova: Path) -> None:
-    from frentes.web.taxonomia import mudanca
+    from eventos.web.taxonomia import mudanca
 
     with closing(store.abrir(com_versao_nova)) as con:
         g = repo.ler(con, 1)
@@ -593,12 +595,14 @@ def test_o_sinal_ganha_barra_com_marca_no_limite_e_ambar_acima_dele(com_versao_n
     assert 'class="sinal-barra"' in html  # as medidas abaixo do limite ficam sem âmbar
 
 
-def test_a_barra_de_origem_conta_de_que_tipo_da_v1_vieram_as_frentes(com_versao_nova: Path) -> None:
+def test_a_barra_de_origem_conta_de_que_frente_da_v1_vieram_os_eventos(
+    com_versao_nova: Path,
+) -> None:
     html = _cliente(com_versao_nova).get("/taxonomia").text
 
-    assert "De que tipo da v1 vieram as 12 frentes da coluna nova «Assistente Virtual»" in html
-    assert re.search(r"Tipo 1 <span[^>]*>6 · 50%</span>", html)
-    assert re.search(r"Tipo 2 <span[^>]*>6 · 50%</span>", html)
+    assert "De que frente da v1 vieram os 12 eventos da coluna nova «Assistente Virtual»" in html
+    assert re.search(r"Frente 1 <span[^>]*>6 · 50%</span>", html)
+    assert re.search(r"Frente 2 <span[^>]*>6 · 50%</span>", html)
 
 
 def test_a_aba_inicial_e_a_revisao_e_o_endereco_com_versao_abre_a_vigente(

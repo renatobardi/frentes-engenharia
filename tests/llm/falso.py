@@ -9,7 +9,7 @@ lista esgotada, levanta `SemGravacao` com a mensagem do que faltou.
 
 from collections.abc import Mapping, Sequence
 
-from frentes.contratos import RespostaLlm, Uso
+from eventos.contratos import RespostaLlm, Uso
 
 Chave = str | tuple[str, str]
 Gravacao = RespostaLlm | Exception | Sequence[RespostaLlm | Exception]

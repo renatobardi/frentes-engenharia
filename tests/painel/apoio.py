@@ -1,4 +1,4 @@
-"""O que os testes do painel dividem: um banco com a versão 1 ativa, frentes classificadas na
+"""O que os testes do painel dividem: um banco com a versão 1 ativa, eventos classificados na
 célula `plat` × `incidente`, a LLM falsa em ordem e o relógio da espera trocado.
 
 A referência é fixa (2026-10-03) e as datas ficam semanas longe dos limites das janelas."""
@@ -11,10 +11,10 @@ from itertools import count
 from pathlib import Path
 from typing import Any
 
-from frentes import store
-from frentes.contratos import Celula, RespostaLlm, VersaoTaxonomia, Visao, para_iso
-from frentes.store import versao as armazem_versao
-from frentes.taxonomia.valores import derivar
+from eventos import store
+from eventos.contratos import Celula, RespostaLlm, VersaoTaxonomia, Visao, para_iso
+from eventos.store import versao as armazem_versao
+from eventos.taxonomia.valores import derivar
 from tests.fila.documento import DOCUMENTO, QUANDO
 from tests.llm.falso import LlmFalsa, SemGravacao, resposta_llm
 
@@ -39,7 +39,7 @@ def resposta(conteudo: dict[str, Any] | None = None, modelo: str = "deepseek/dee
 
 
 def criar_banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "frentes.sqlite"
+    caminho = tmp_path / "eventos.sqlite"
     with closing(store.abrir(caminho)) as con:
         versao = VersaoTaxonomia(1, DOCUMENTO, "jev-latest", QUANDO)
         armazem_versao.inserir(con, versao, derivar(1, DOCUMENTO))
@@ -47,7 +47,7 @@ def criar_banco(tmp_path: Path) -> Path:
     return caminho
 
 
-def frente(
+def evento(
     banco: Path,
     quando: str = "2026-09-20",
     *,
@@ -55,24 +55,24 @@ def frente(
     complemento: str | None = None,
     origem: str = "relato",
     score: float = 0.5,
-    natureza: str = "reativa",
+    natureza: str = "reativo",
     area: str | None = "plat",
-    tipo: str | None = "incidente",
+    frente: str | None = "incidente",
     estado: str = "classificada",
     versao: int = 1,
     **campos: object,
 ) -> str:
-    """Grava uma frente e a classificação dela na versão; devolve o id."""
+    """Grava um evento e a classificação dela na versão; devolve o id."""
     id = f"f{next(_ids)}"
     linha = {
-        "frente_id": id,
+        "evento_id": id,
         "versao": versao,
         "resposta_jev": '{"modelo": "jev-1.13.0", "respostas": {}}',
         "conf_area": 0.9,
-        "conf_tipo": 0.8,
+        "conf_frente": 0.8,
         "conf_natureza": 0.9,
-        "severidade": score if natureza == "reativa" else 0.1,
-        "impacto": score if natureza == "proativa" else 0.1,
+        "severidade": score if natureza == "reativo" else 0.1,
+        "impacto": score if natureza == "proativo" else 0.1,
         "urgencia": 0.4,
         "conf_causa": 0.9,
         "conf_problema": 0.9,
@@ -83,13 +83,13 @@ def frente(
         "estado": estado,
         "natureza_final": natureza,
         "area_final": area,
-        "tipo_final": tipo,
+        "frente_final": frente,
         "classificada_em": "2026-10-03T12:00:01Z",
         **campos,
     }
     with closing(store.abrir_existente(banco)) as con, con:
         con.execute(
-            "INSERT INTO frente (id, origem, emissor, texto, complemento, complementado_em,"
+            "INSERT INTO evento (id, origem, emissor, texto, complemento, complementado_em,"
             " ocorrido_em, recebido_em) VALUES (?, ?, 'Ana', ?, ?, ?, ?, ?)",
             (
                 id,
@@ -109,11 +109,11 @@ def frente(
     return id
 
 
-def classificacao_de(banco: Path, frente_id: str):
-    from frentes.store import classificacao as armazem
+def classificacao_de(banco: Path, evento_id: str):
+    from eventos.store import classificacao as armazem
 
     with closing(store.abrir_existente(banco)) as con:
-        c = armazem.ler(con, frente_id, 1)
+        c = armazem.ler(con, evento_id, 1)
     assert c is not None
     return c
 

@@ -4,17 +4,17 @@ import socket
 
 import pytest
 
-# Tudo o que frentes/config.py lê do ambiente. Os segredos primeiro.
+# Tudo o que eventos/config.py lê do ambiente. Os segredos primeiro.
 VARIAVEIS = (
     "TYPESAFE_API_KEY",
     "OUTE_TYPESAFE_API_KEY",
     "OPENROUTER_API_KEY",
-    "FRENTES_WEBHOOK_TOKEN",
-    "FRENTES_DB",
-    "FRENTES_HOST",
-    "FRENTES_PORT",
-    "FRENTES_COMMIT",
-    "FRENTES_LIMIARES",
+    "EVENTOS_WEBHOOK_TOKEN",
+    "EVENTOS_DB",
+    "EVENTOS_HOST",
+    "EVENTOS_PORT",
+    "EVENTOS_COMMIT",
+    "EVENTOS_LIMIARES",
     "REVISAO_AUTOMATICA",
 )
 
@@ -45,7 +45,7 @@ def sem_snapshot_do_repo(monkeypatch: pytest.MonkeyPatch, tmp_path_factory) -> N
     """A aplicação que sobe sem banco carrega o snapshot do repo (`data/snapshot/`). No teste,
     o caminho padrão aponta para um arquivo que não existe: quem quer um snapshot grava o seu,
     e nenhum teste depende do conteúdo do snapshot da demo sem pedir por ele."""
-    from frentes.snapshot import arquivo
+    from eventos.snapshot import arquivo
 
-    ausente = tmp_path_factory.getbasetemp() / "sem-snapshot" / "frentes.sqlite.gz"
+    ausente = tmp_path_factory.getbasetemp() / "sem-snapshot" / "eventos.sqlite.gz"
     monkeypatch.setattr(arquivo, "CAMINHO_PADRAO", ausente)

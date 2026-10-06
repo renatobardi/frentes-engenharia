@@ -2,12 +2,12 @@
   "enderecamentos": [
     {
       "historia": "H3",
-      "frentes_de_referencia": [
-        "fr-2697",
-        "fr-2735",
-        "fr-2762",
-        "fr-2786",
-        "fr-2808"
+      "eventos_de_referencia": [
+        "ev-2697",
+        "ev-2735",
+        "ev-2762",
+        "ev-2786",
+        "ev-2808"
       ]
     }
   ]

@@ -3,43 +3,43 @@
 # finais da classificação sem chamar o Jev de novo. Segredo nunca entra aqui.
 # A cópia usada na gravação do snapshot vai para snapshot_meta.limiares.
 
-# Confiança mínima por dimensão (#6, #11). Abaixo dela: área, tipo e natureza
+# Confiança mínima por dimensão (#6, #11). Abaixo dela: área, frente e natureza
 # vão ao desempate da LLM; causa raiz vira "causa incerta"; problema fica sem valor.
 [confianca]
 area = 0.5
-tipo = 0.5
+frente = 0.5
 natureza = 0.5
 causa_raiz = 0.3
 problema = 0.5
 
-# Pergunta de controle (#14): abaixo do corte a frente é incerta por texto vago.
+# Pergunta de controle (#14): abaixo do corte o evento é incerta por texto vago.
 [controle]
 texto_vago = 0.5
 
-# Encaixe fraco (#9): "Nenhum destes" no tipo ou confiança do tipo abaixo deste valor,
+# Encaixe fraco (#9): "Nenhum destes" na frente ou confiança da frente abaixo deste valor,
 # contado antes do desempate da LLM.
 [encaixe_fraco]
-confianca_tipo = 0.7
+confianca_frente = 0.7
 
-# Sinal de encaixe (#9): gatilhos da revisão da taxonomia, em fração das frentes.
+# Sinal de encaixe (#9): gatilhos da revisão da taxonomia, em fração dos eventos.
 [sinal_de_encaixe]
 encaixe_fraco = 0.12
 janela_dias = 30
-minimo_frentes = 100
+minimo_eventos = 100
 nao_classificadas = 0.05
 incertas = 0.15
-maior_tipo = 0.45
+maior_frente = 0.45
 
-# Revisão (#9): operação com menos frentes de evidência é descartada.
+# Revisão (#9): operação com menos eventos de evidência é descartada.
 [revisao]
 evidencia_minima = 5
 
-# Problema recorrente (#8): frentes em pelo menos este número de dias distintos.
+# Problema recorrente (#8): eventos em pelo menos este número de dias distintos.
 [recorrencia]
 dias_distintos = 3
 
 # Selo "urgente" (#3 deixou o valor para a construção). Escolhido na seed inteira (#65): em 0,7
-# marca 6,8% das frentes (12% das de gravidade-alvo crítica, 5% das baixas); nenhum corte de
+# marca 6,8% dos eventos (12% das de gravidade-alvo crítica, 5% das baixas); nenhum corte de
 # 0,3 a 0,8 separa melhor.
 [urgencia]
 selo = 0.7
@@ -53,7 +53,7 @@ llm = 8
 jev_por_s = 60
 
 # Tempo limite de uma chamada, em segundos. llm_lote_s é o das chamadas de lote da LLM (candidatos
-# da lista de problemas e propostas da descoberta: 80 a 140 s medidos); llm_s, o da chamada por frente.
+# da lista de problemas e propostas da descoberta: 80 a 140 s medidos); llm_s, o da chamada por evento.
 [tempo_limite]
 jev_s = 5
 llm_s = 30
@@ -61,14 +61,14 @@ llm_lote_s = 180
 
 # Tentativas por chamada, com espera crescente a partir de espera_inicial_s (dobra a cada
 # tentativa). A espera inicial é valor da construção: a spec só diz "espera crescente".
-# Depois das tentativas a frente continua pendente e a varredura tenta de novo.
+# Depois das tentativas o evento continua pendente e a varredura tenta de novo.
 [retentativa]
 tentativas = 3
 espera_inicial_s = 1
 
 [fila]
 varredura_s = 30
-# Espera do painel da célula depois de uma frente nova, para a rajada gerar uma chamada só.
+# Espera do painel da célula depois de um evento novo, para a rajada gerar uma chamada só.
 painel_espera_s = 30
 
 # Modelos. O do Jev vai no retrato da versão da taxonomia (modelo_jev); aqui é o que a

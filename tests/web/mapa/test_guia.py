@@ -11,37 +11,37 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from frentes import config, contratos, store
-from frentes.web.app import criar_app
+from eventos import config, contratos, store
+from eventos.web.app import criar_app
 
 _ids = count(1)
 JEV = '{"modelo": "jev-1.13.0", "respostas": {}}'
 VALORES = {
     "area": {"plat": "Plataforma", "ops": "Operações"},
-    "tipo": {"incidente": "Incidente", "processo": "Processo"},
+    "frente": {"incidente": "Incidente", "processo": "Processo"},
 }
-CELULA = "area=plat&tipo=incidente"
+CELULA = "area=plat&frente=incidente"
 
 
 def _data(dias: int) -> str:
     return contratos.para_iso(contratos.agora() - timedelta(days=dias))
 
 
-def _pinta(con: store.Conexao, area: str, tipo: str, severidade: float, dias: int) -> None:
+def _pinta(con: store.Conexao, area: str, frente: str, severidade: float, dias: int) -> None:
     id = f"g{next(_ids)}"
     con.execute(
-        "INSERT INTO frente (id, origem, emissor, texto, ocorrido_em, recebido_em)"
+        "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em)"
         " VALUES (?, 'relato', 'Ana', 'texto', ?, ?)",
         (id, _data(dias), _data(dias)),
     )
     linha = {
-        "frente_id": id, "versao": 1, "resposta_jev": JEV,
-        "conf_area": 0.9, "conf_tipo": 0.9, "conf_natureza": 0.9,
+        "evento_id": id, "versao": 1, "resposta_jev": JEV,
+        "conf_area": 0.9, "conf_frente": 0.9, "conf_natureza": 0.9,
         "severidade": severidade, "impacto": 0.5, "urgencia": 0.4,
         "conf_causa": 0.2, "conf_problema": 0.1, "controle": 0.9,
         "tokens_entrada": 1, "tokens_saida": 1, "latencia_ms": 1,
-        "estado": "classificada", "natureza_final": "reativa",
-        "area_final": area, "tipo_final": tipo, "classificada_em": _data(1),
+        "estado": "classificada", "natureza_final": "reativo",
+        "area_final": area, "frente_final": frente, "classificada_em": _data(1),
     }  # fmt: skip
     con.execute(
         f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
@@ -51,7 +51,7 @@ def _pinta(con: store.Conexao, area: str, tipo: str, severidade: float, dias: in
 
 @pytest.fixture
 def http(tmp_path: Path) -> TestClient:
-    caminho = tmp_path / "frentes.db"
+    caminho = tmp_path / "eventos.db"
     con = store.abrir(caminho)
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
@@ -68,7 +68,7 @@ def http(tmp_path: Path) -> TestClient:
     _pinta(con, "ops", "processo", 0.6, 4)
     con.commit()
     con.close()
-    return TestClient(criar_app(config.carregar({"FRENTES_DB": str(caminho)})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)})))
 
 
 def _passos(html: str) -> list[dict[str, str]]:
@@ -155,7 +155,7 @@ def test_abre_sozinho_so_no_mapa_sem_celula_aberta_e_sem_guia_0(http: TestClient
 
 
 def test_a_tela_sem_banco_nao_traz_o_guia(tmp_path: Path) -> None:
-    sem_banco = TestClient(criar_app(config.carregar({"FRENTES_DB": str(tmp_path / "nao.db")})))
+    sem_banco = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nao.db")})))
 
     html = sem_banco.get("/").text
 
@@ -163,7 +163,7 @@ def test_a_tela_sem_banco_nao_traz_o_guia(tmp_path: Path) -> None:
 
 
 def test_o_guia_js_guarda_a_dispensa_no_navegador_sem_quebrar_sem_ele() -> None:
-    js = (Path(__file__).parents[3] / "frentes/web/static/guia.js").read_text()
+    js = (Path(__file__).parents[3] / "eventos/web/static/guia.js").read_text()
 
     assert "localStorage" in js and "try" in js
     assert "htmx:afterSettle" in js  # o filtro e o polling trocam os alvos

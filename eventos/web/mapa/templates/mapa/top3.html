@@ -1,0 +1,24 @@
+<div id="top3-vivo"{% if oob %} hx-swap-oob="true"{% endif %}>
+<ol class="top3" aria-label="Top 3 onde investir">
+  {% for d in top3 %}
+  {% set aberto = celula_aberta == d.chave %}
+  {% set destino = grade[d.chave].endereco %}
+  <li class="destaque card{% if aberto %} aberto{% endif %}">
+    <a class="destaque-link" href="{{ destino }}" hx-get="{{ destino }}" hx-target="#mapa" hx-swap="outerHTML" hx-push-url="true"{% if aberto %} aria-current="true"{% endif %}>
+      <span class="posicao{% if d.posicao == 1 %} primeiro{% endif %}">{{ d.posicao }}</span>
+      <span class="destaque-nomes">
+        <span class="destaque-area">{{ d.area }}<span class="so-leitor"> × </span></span>
+        <span class="destaque-frente meta muted">{{ d.frente }}</span>
+        {% if d.selo %}<span class="selo-top3 fino gate">◆ endereçada em {{ d.selo }}</span>{% endif %}
+      </span>
+      {% if d.evolucao %}
+      <svg class="minigrafico" width="76" height="30" viewBox="0 0 76 30" aria-hidden="true" focusable="false"><polyline points="{{ d.evolucao.pontos }}"/><circle cx="{{ d.evolucao.ux }}" cy="{{ d.evolucao.uy }}" r="2.5"/></svg>
+      {% endif %}
+      <span class="destaque-valor"><strong>{{ d.indice }}</strong>{% if d.seta %} <span class="seta">{{ d.seta }}{{ d.variacao }}</span>{% endif %}</span>
+    </a>
+  </li>
+  {% else %}
+  <li class="vazio muted">Nenhuma célula com índice neste recorte.</li>
+  {% endfor %}
+</ol>
+</div>

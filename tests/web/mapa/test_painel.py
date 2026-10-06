@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from frentes import store
-from frentes.web.mapa import painel
+from eventos import store
+from eventos.web.mapa import painel
 from tests.web.mapa.test_mapa import (
     CELULA,
     PORQUE,
@@ -20,12 +20,12 @@ from tests.web.mapa.test_mapa import (
     _valores_do_painel,
 )
 
-STATIC = Path(__file__).parents[3] / "frentes/web/static"
+STATIC = Path(__file__).parents[3] / "eventos/web/static"
 
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "frentes.db"
+    caminho = tmp_path / "eventos.db"
     with closing(store.abrir(caminho)) as con:
         _montar(con)
         con.commit()
@@ -44,7 +44,7 @@ def _aside(com_painel: Path, extra: str = "&periodo=90d") -> str:
     return html[html.index('<aside class="painel"') :]
 
 
-def test_cabecalho_tem_area_tipo_indice_meta_e_os_dois_botoes(com_painel: Path) -> None:
+def test_cabecalho_tem_area_frente_indice_meta_e_os_dois_botoes(com_painel: Path) -> None:
     aside = _aside(com_painel)
     cab = aside[: aside.index("</header>")]
 
@@ -70,7 +70,7 @@ def test_sem_texto_gerado_nao_ha_linha_de_geracao(banco: Path) -> None:
     assert "gerado por" not in html
 
 
-def test_sugestoes_sao_numeradas_com_tipo_e_formulario_com_cancelar(com_painel: Path) -> None:
+def test_sugestoes_sao_numeradas_com_frente_e_formulario_com_cancelar(com_painel: Path) -> None:
     aside = _aside(com_painel)
     bloco = aside[aside.index('id="painel-sugestoes"') : aside.index('id="painel-evolucao"')]
 
@@ -90,7 +90,7 @@ def test_formulario_reaberto_pelo_erro_marca_o_card(com_painel: Path) -> None:
             "visao": "dor",
             "periodo": "90d",
             "area": "plat",
-            "tipo": "incidente",
+            "frente": "incidente",
             "texto": "  ",
             "tipo_solucao": "treinamento",
             "quem_decidiu": "Ana",
@@ -105,29 +105,29 @@ def test_formulario_reaberto_pelo_erro_marca_o_card(com_painel: Path) -> None:
     assert 'role="alert"' in resposta.text
 
 
-def test_frentes_mostram_o_valor_e_via_llm(banco: Path) -> None:
+def test_eventos_mostram_o_valor_e_via_llm(banco: Path) -> None:
     _escrever(banco, _valores_do_painel)
     _escrever(banco, lambda con: _gravar_painel(con, PORQUE))
     _escrever(
         banco,
         lambda con: con.execute(
             "UPDATE classificacao SET estado = 'via_llm' WHERE versao = 2 AND area_final = 'plat'"
-            " AND tipo_final = 'incidente' AND estado = 'classificada'"
+            " AND frente_final = 'incidente' AND estado = 'classificada'"
         ),
     )
 
     html = _cliente(banco).get(f"/?{CELULA}&periodo=30d").text
-    lista = html[html.index('class="frentes-da-celula') :]
+    lista = html[html.index('class="eventos-da-celula') :]
 
-    assert re.search(r'class="frente-valor num" title="Severidade">\d', lista)
+    assert re.search(r'class="evento-valor num" title="Severidade">\d', lista)
     assert "· via LLM" in lista
-    assert "Ver todas as" in lista
+    assert "Ver todos os" in lista
 
 
-def test_frente_nao_via_llm_nao_leva_a_marca(com_painel: Path) -> None:
+def test_evento_nao_via_llm_nao_leva_a_marca(com_painel: Path) -> None:
     aside = _aside(com_painel)
 
-    assert "via LLM" not in aside[aside.index('id="painel-frentes"') :]
+    assert "via LLM" not in aside[aside.index('id="painel-eventos"') :]
 
 
 def test_evolucao_tem_linha_de_base_guia_area_e_pico(com_painel: Path) -> None:

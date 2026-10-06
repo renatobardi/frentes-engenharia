@@ -3,14 +3,14 @@ from pathlib import Path
 
 import pytest
 
-from frentes import store
-from frentes.contratos import COLUNAS_DE_DATA
+from eventos import store
+from eventos.contratos import COLUNAS_DE_DATA
 
 ENTIDADES = [
     "classificacao",
     "emissor",
     "enderecamento",
-    "frente",
+    "evento",
     "gabarito",
     "geracao",
     "painel_celula",
@@ -27,7 +27,7 @@ def con() -> store.Conexao:
     return store.abrir()
 
 
-def frente(con: store.Conexao, id: str = "f1", **campos: object) -> None:
+def evento(con: store.Conexao, id: str = "f1", **campos: object) -> None:
     linha = {
         "id": id,
         "origem": "relato",
@@ -37,7 +37,7 @@ def frente(con: store.Conexao, id: str = "f1", **campos: object) -> None:
         **campos,
     }
     con.execute(
-        f"INSERT INTO frente ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
+        f"INSERT INTO evento ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
         list(linha.values()),
     )
 
@@ -50,13 +50,13 @@ def versao(con: store.Conexao, numero: int = 1, ativada_em: str | None = None) -
     )
 
 
-def classificacao(con: store.Conexao, frente_id: str = "f1", versao: int = 1, **campos: object):
+def classificacao(con: store.Conexao, evento_id: str = "f1", versao: int = 1, **campos: object):
     linha = {
-        "frente_id": frente_id,
+        "evento_id": evento_id,
         "versao": versao,
         "resposta_jev": JEV,
         "conf_area": 0.9,
-        "conf_tipo": 0.8,
+        "conf_frente": 0.8,
         "conf_natureza": 0.95,
         "severidade": 0.6,
         "impacto": 0.1,
@@ -80,7 +80,7 @@ def classificacao(con: store.Conexao, frente_id: str = "f1", versao: int = 1, **
 def enderecamento(con: store.Conexao, **campos: object) -> None:
     linha = {
         "area": "cobranca",
-        "tipo": "t-boletos",
+        "frente": "t-boletos",
         "visao": "dor",
         "decidido_em": "2026-04-30T15:00:00Z",
         "texto": "Mutirão dos boletos e carnês",
@@ -99,15 +99,15 @@ def test_o_esquema_cria_todas_as_entidades_do_modelo(con: store.Conexao) -> None
 
 
 def test_o_banco_em_arquivo_e_criado_e_relido(tmp_path: Path) -> None:
-    caminho = tmp_path / "pasta-nova" / "frentes.sqlite"
+    caminho = tmp_path / "pasta-nova" / "eventos.sqlite"
 
     con = store.abrir(caminho)
-    frente(con, metadados='{"linhas": ["503 /checkout"]}')
+    evento(con, metadados='{"linhas": ["503 /checkout"]}')
     con.commit()
     con.close()
 
     relido = store.abrir(caminho)
-    linha = relido.execute("SELECT * FROM frente").fetchone()
+    linha = relido.execute("SELECT * FROM evento").fetchone()
     assert store.tabelas(relido) == ENTIDADES
     assert (linha["id"], linha["origem"], linha["emissor"]) == ("f1", "relato", "Ana Prado")
     assert linha["metadados"] == '{"linhas": ["503 /checkout"]}'
@@ -115,7 +115,7 @@ def test_o_banco_em_arquivo_e_criado_e_relido(tmp_path: Path) -> None:
 
 
 def test_abrir_existente_nao_cria_arquivo_nem_pasta(tmp_path: Path) -> None:
-    caminho = tmp_path / "pasta-nova" / "frentes.sqlite"
+    caminho = tmp_path / "pasta-nova" / "eventos.sqlite"
 
     with pytest.raises(store.BancoAusente, match="não há banco"):
         store.abrir_existente(caminho)
@@ -124,7 +124,7 @@ def test_abrir_existente_nao_cria_arquivo_nem_pasta(tmp_path: Path) -> None:
 
 
 def test_abrir_existente_recusa_arquivo_sem_esquema_e_nao_o_cria(tmp_path: Path) -> None:
-    caminho = tmp_path / "frentes.sqlite"
+    caminho = tmp_path / "eventos.sqlite"
     caminho.touch()
 
     with pytest.raises(store.BancoAusente, match="não tem o esquema"):
@@ -134,14 +134,14 @@ def test_abrir_existente_recusa_arquivo_sem_esquema_e_nao_o_cria(tmp_path: Path)
 
 
 def test_abrir_existente_le_o_banco_que_ja_foi_criado(tmp_path: Path) -> None:
-    caminho = tmp_path / "frentes.sqlite"
+    caminho = tmp_path / "eventos.sqlite"
     store.abrir(caminho).close()
 
     assert store.tabelas(store.abrir_existente(caminho)) == ENTIDADES
 
 
 def test_abrir_um_banco_que_ja_tem_tabelas_nao_recria_o_esquema(tmp_path: Path) -> None:
-    caminho = tmp_path / "frentes.sqlite"
+    caminho = tmp_path / "eventos.sqlite"
     con = store.abrir(caminho)
     con.execute("DROP TABLE gabarito")
     con.commit()
@@ -162,23 +162,23 @@ def test_toda_coluna_de_data_do_esquema_esta_em_colunas_de_data(con: store.Conex
     }
 
 
-# ----------------------------------------------------------------------- frente
+# ----------------------------------------------------------------------- evento
 
 
 def test_reenvio_da_mesma_ref_externa_na_mesma_origem_e_recusado(con: store.Conexao) -> None:
-    frente(con, "f1", origem="webhook", ref_externa="evt-1")
+    evento(con, "f1", origem="webhook", ref_externa="evt-1")
 
     with pytest.raises(store.ErroDeIntegridade):
-        frente(con, "f2", origem="webhook", ref_externa="evt-1")
+        evento(con, "f2", origem="webhook", ref_externa="evt-1")
 
 
-def test_mesma_ref_externa_em_outra_origem_e_frente_sem_ref_passam(con: store.Conexao) -> None:
-    frente(con, "f1", origem="webhook", ref_externa="evt-1")
-    frente(con, "f2", origem="banco", ref_externa="evt-1")
-    frente(con, "f3")
-    frente(con, "f4")
+def test_mesma_ref_externa_em_outra_origem_e_evento_sem_ref_passam(con: store.Conexao) -> None:
+    evento(con, "f1", origem="webhook", ref_externa="evt-1")
+    evento(con, "f2", origem="banco", ref_externa="evt-1")
+    evento(con, "f3")
+    evento(con, "f4")
 
-    assert con.execute("SELECT count(*) FROM frente").fetchone()[0] == 4
+    assert con.execute("SELECT count(*) FROM evento").fetchone()[0] == 4
 
 
 @pytest.mark.parametrize(
@@ -190,9 +190,9 @@ def test_mesma_ref_externa_em_outra_origem_e_frente_sem_ref_passam(con: store.Co
         {"complemento": "faltou dizer o sistema"},  # complemento sem complementado_em
     ],
 )
-def test_frente_invalida_e_recusada(con: store.Conexao, campos: dict) -> None:
+def test_evento_invalida_e_recusada(con: store.Conexao, campos: dict) -> None:
     with pytest.raises(store.ErroDeIntegridade):
-        frente(con, **campos)
+        evento(con, **campos)
 
 
 # ----------------------------------------------------------------------- taxonomia
@@ -222,7 +222,7 @@ def test_time_aponta_para_a_area_e_o_pai_tem_que_existir(con: store.Conexao) -> 
 
     con.execute(
         "INSERT INTO valor (versao, dimensao, chave, nome, chave_pai)"
-        " VALUES (1, 'tipo', 'st-orfao', 'Órfão', 'tipo-que-nao-existe')"
+        " VALUES (1, 'frente', 'st-orfao', 'Órfão', 'frente-que-nao-existe')"
     )
     with pytest.raises(store.ErroDeIntegridade):
         con.commit()
@@ -252,8 +252,8 @@ def test_geracao_revisao_exige_versao_base_e_descoberta_nao_tem(con: store.Conex
 # ----------------------------------------------------------------------- classificação
 
 
-def test_uma_classificacao_por_frente_por_versao(con: store.Conexao) -> None:
-    frente(con)
+def test_uma_classificacao_por_evento_por_versao(con: store.Conexao) -> None:
+    evento(con)
     versao(con, 1)
     versao(con, 2)
     classificacao(con, versao=1)
@@ -263,19 +263,19 @@ def test_uma_classificacao_por_frente_por_versao(con: store.Conexao) -> None:
         classificacao(con, versao=2)
 
 
-def test_classificacao_exige_frente_e_versao_que_existem(con: store.Conexao) -> None:
-    frente(con)
+def test_classificacao_exige_evento_e_versao_que_existem(con: store.Conexao) -> None:
+    evento(con)
     versao(con)
 
     with pytest.raises(store.ErroDeIntegridade):
-        classificacao(con, frente_id="nao-existe")
+        classificacao(con, evento_id="nao-existe")
     with pytest.raises(store.ErroDeIntegridade):
         classificacao(con, versao=9)
 
 
 def test_motivo_existe_se_e_so_se_a_classificacao_e_incerta(con: store.Conexao) -> None:
     for id in ("f1", "f2", "f3"):
-        frente(con, id)
+        evento(con, id)
     versao(con)
     classificacao(con, "f1", estado="incerta", motivo="texto_vago")
 
@@ -291,8 +291,8 @@ def test_motivo_existe_se_e_so_se_a_classificacao_e_incerta(con: store.Conexao) 
 def test_painel_e_um_por_versao_celula_visao_e_periodo(con: store.Conexao) -> None:
     versao(con)
     sql = (
-        "INSERT INTO painel_celula (versao, area, tipo, visao, periodo, porque, gerado_em,"
-        " modelo_llm, frentes_na_geracao) VALUES (1, 'cobranca', 't-boletos', ?, ?,"
+        "INSERT INTO painel_celula (versao, area, frente, visao, periodo, porque, gerado_em,"
+        " modelo_llm, eventos_na_geracao) VALUES (1, 'cobranca', 't-boletos', ?, ?,"
         " 'Carnês voltam sem registro.', '2026-10-02T03:00:00Z', 'deepseek/deepseek-v4-flash', 41)"
     )
     con.execute(sql, ("dor", "90d"))
@@ -306,7 +306,7 @@ def test_painel_e_um_por_versao_celula_visao_e_periodo(con: store.Conexao) -> No
 def test_celula_sem_painel_anterior_pode_ser_marcada_atualizando(con: store.Conexao) -> None:
     versao(con)
     sql = (
-        "INSERT INTO painel_celula (versao, area, tipo, visao, periodo, estado)"
+        "INSERT INTO painel_celula (versao, area, frente, visao, periodo, estado)"
         " VALUES (1, 'cobranca', 't-boletos', 'dor', ?, ?)"
     )
     con.execute(sql, ("90d", "atualizando"))
@@ -322,7 +322,7 @@ def test_celula_sem_painel_anterior_pode_ser_marcada_atualizando(con: store.Cone
 def test_no_maximo_um_enderecamento_ativo_por_celula_e_visao(con: store.Conexao) -> None:
     enderecamento(con)
     enderecamento(con, visao="oportunidade")
-    enderecamento(con, tipo="t-outro")
+    enderecamento(con, frente="t-outro")
 
     with pytest.raises(store.ErroDeIntegridade):
         enderecamento(con, procedencia="tela")
@@ -337,8 +337,8 @@ def test_enderecamento_desfeito_fica_guardado_e_libera_a_celula(con: store.Conex
     assert [linha["ativo"] for linha in ativos] == [0, 1]
 
 
-def test_enderecamento_nao_depende_de_versao_frente_nem_classificacao(con: store.Conexao) -> None:
-    enderecamento(con)  # banco sem versão, sem frente e sem valor: a marca aponta para chaves
+def test_enderecamento_nao_depende_de_versao_evento_nem_classificacao(con: store.Conexao) -> None:
+    enderecamento(con)  # banco sem versão, sem evento e sem valor: a marca aponta para chaves
 
     referencias = con.execute("SELECT * FROM pragma_foreign_key_list('enderecamento')").fetchall()
     assert referencias == []
@@ -348,7 +348,7 @@ def test_enderecamento_nao_depende_de_versao_frente_nem_classificacao(con: store
 
 
 def test_gabarito_nao_tem_ligacao_com_as_tabelas_do_pipeline(con: store.Conexao) -> None:
-    con.execute("INSERT INTO gabarito (frente_id, historia_id) VALUES ('f-sem-frente', 'H3')")
+    con.execute("INSERT INTO gabarito (evento_id, historia_id) VALUES ('f-sem-evento', 'H3')")
 
     for tabela in ENTIDADES:
         referencias = con.execute("SELECT * FROM pragma_foreign_key_list(?)", (tabela,)).fetchall()
@@ -361,7 +361,7 @@ def test_gabarito_do_relato_cruzado_leva_o_time_de_quem_relata_e_o_sabor(
     con: store.Conexao,
 ) -> None:
     sql = (
-        "INSERT INTO gabarito (frente_id, historia_id, time, time_relator, cruzado)"
+        "INSERT INTO gabarito (evento_id, historia_id, time, time_relator, cruzado)"
         " VALUES (?, 'fundo', 'cobranca-boletos', ?, ?)"
     )
     con.execute(sql, ("f1", None, None))  # relato que não é cruzado

@@ -11,14 +11,14 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from frentes import config, contratos, fila, store
-from frentes.entrada import recepcao
-from frentes.jev import ErroJev
-from frentes.store import classificacao as armazem
-from frentes.store import relato as armazem_relato
-from frentes.store import versao as armazem_versao
-from frentes.taxonomia import valores
-from frentes.web.app import criar_app
+from eventos import config, contratos, fila, store
+from eventos.entrada import recepcao
+from eventos.jev import ErroJev
+from eventos.store import classificacao as armazem
+from eventos.store import relato as armazem_relato
+from eventos.store import versao as armazem_versao
+from eventos.taxonomia import valores
+from eventos.web.app import criar_app
 from tests.fila.documento import DOCUMENTO, QUANDO
 from tests.fila.test_fila import jev
 from tests.jev.falso import JevFalso
@@ -34,7 +34,7 @@ CABECALHO_HTMX = {"HX-Request": "true"}
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "frentes.sqlite"
+    caminho = tmp_path / "eventos.sqlite"
     with closing(store.abrir(caminho)) as con:
         versao = contratos.VersaoTaxonomia(1, DOCUMENTO, "jev-latest", QUANDO)
         armazem_versao.inserir(con, versao, valores.derivar(1, DOCUMENTO))
@@ -44,7 +44,7 @@ def banco(tmp_path: Path) -> Path:
 
 
 def armazem_relato_emissores(con: store.Conexao) -> None:
-    from frentes.store import emissor
+    from eventos.store import emissor
 
     emissor.gravar_todos(
         con,
@@ -59,7 +59,7 @@ def armazem_relato_emissores(con: store.Conexao) -> None:
 def servidor(banco: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
     """A app com a fila ligada a um Jev falso, que o teste põe em `servidor.jev`."""
     monkeypatch.setattr(fila, "ao_partir", lambda app: None)
-    app = criar_app(config.carregar({"FRENTES_DB": str(banco)}))
+    app = criar_app(config.carregar({"EVENTOS_DB": str(banco)}))
     with TestClient(app) as cliente:
 
         def ligar(jev_falso: Any) -> TestClient:
@@ -73,9 +73,9 @@ def servidor(banco: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
         yield cliente
 
 
-def ler_frentes(banco: Path) -> list[Any]:
+def ler_eventos(banco: Path) -> list[Any]:
     with closing(store.abrir(banco)) as con:
-        return con.execute("SELECT * FROM frente ORDER BY recebido_em, id").fetchall()
+        return con.execute("SELECT * FROM evento ORDER BY recebido_em, id").fetchall()
 
 
 def classificacao(banco: Path, id_: str) -> contratos.Classificacao | None:
@@ -92,7 +92,7 @@ def esperar(condicao: Any, segundos: float = 10.0) -> None:
 
 def enviar(cliente: TestClient, emissor: str, texto: str, **kw: Any) -> Any:
     return cliente.post(
-        "/frentes/relatar",
+        "/eventos/relatar",
         data={"emissor": emissor, "texto": texto},
         headers=CABECALHO_HTMX,
         **kw,
@@ -103,7 +103,7 @@ def enviar(cliente: TestClient, emissor: str, texto: str, **kw: Any) -> Any:
 
 
 def test_formulario_traz_a_lista_de_emissores_e_o_texto_de_ajuda(servidor: TestClient) -> None:
-    resposta = servidor.get("/frentes/relatar")
+    resposta = servidor.get("/eventos/relatar")
 
     assert resposta.status_code == 200
     html = resposta.text
@@ -115,16 +115,16 @@ def test_formulario_traz_a_lista_de_emissores_e_o_texto_de_ajuda(servidor: TestC
 
 
 def test_formulario_com_htmx_devolve_so_a_gaveta(servidor: TestClient) -> None:
-    html = servidor.get("/frentes/relatar", headers=CABECALHO_HTMX).text
+    html = servidor.get("/eventos/relatar", headers=CABECALHO_HTMX).text
 
     assert html.lstrip().startswith("<section")
     assert "<html" not in html
 
 
 def test_formulario_sem_banco_abre_com_a_lista_vazia(tmp_path: Path) -> None:
-    app = criar_app(config.carregar({"FRENTES_DB": str(tmp_path / "nao-existe.sqlite")}))
+    app = criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nao-existe.sqlite")}))
 
-    resposta = TestClient(app).get("/frentes/relatar")
+    resposta = TestClient(app).get("/eventos/relatar")
 
     assert resposta.status_code == 200
     assert "<option" not in resposta.text
@@ -133,7 +133,7 @@ def test_formulario_sem_banco_abre_com_a_lista_vazia(tmp_path: Path) -> None:
 # ------------------------------------------------------------------------- enviar
 
 
-def test_enviar_grava_a_frente_com_origem_relato_e_o_emissor_da_lista(
+def test_enviar_grava_o_evento_com_origem_relato_e_o_emissor_da_lista(
     servidor: TestClient, banco: Path
 ) -> None:
     servidor.ligar(JevFalso({TEXTO: jev()}))
@@ -141,9 +141,9 @@ def test_enviar_grava_a_frente_com_origem_relato_e_o_emissor_da_lista(
     resposta = enviar(servidor, "Ana Prado", TEXTO)
 
     assert resposta.status_code == 200
-    [linha] = ler_frentes(banco)
+    [linha] = ler_eventos(banco)
     assert (linha["origem"], linha["emissor"], linha["texto"]) == ("relato", "Ana Prado", TEXTO)
-    assert resposta.headers["HX-Push-Url"] == f"/frentes/relatar/{linha['id']}"
+    assert resposta.headers["HX-Push-Url"] == f"/eventos/relatar/{linha['id']}"
     assert "Recebida, classificando" in resposta.text or "Classificação" in resposta.text
 
 
@@ -152,7 +152,7 @@ def test_enviar_grava_o_emissor_digitado(servidor: TestClient, banco: Path) -> N
 
     enviar(servidor, "  Zé do Suporte", TEXTO)
 
-    [linha] = ler_frentes(banco)
+    [linha] = ler_eventos(banco)
     assert linha["emissor"] == "  Zé do Suporte"  # como veio
     assert linha["origem"] == "relato"
 
@@ -162,7 +162,7 @@ def test_enviar_agenda_a_classificacao_pela_fila(servidor: TestClient, banco: Pa
 
     enviar(servidor, "Ana Prado", TEXTO)
 
-    [linha] = ler_frentes(banco)
+    [linha] = ler_eventos(banco)
     esperar(lambda: classificacao(banco, linha["id"]) is not None)
     assert classificacao(banco, linha["id"]).estado is contratos.Estado.CLASSIFICADA
 
@@ -185,7 +185,7 @@ def test_enviar_invalido_da_422_com_a_mensagem_e_nao_grava(
 
     assert resposta.status_code == 422
     assert "relato inválido" in resposta.text
-    assert ler_frentes(banco) == []
+    assert ler_eventos(banco) == []
 
 
 def test_enviar_escapa_o_que_o_usuario_digitou(servidor: TestClient) -> None:
@@ -200,16 +200,16 @@ def test_enviar_sem_htmx_redireciona_para_o_resultado(servidor: TestClient, banc
     servidor.ligar(JevFalso({TEXTO: jev()}))
 
     resposta = servidor.post(
-        "/frentes/relatar", data={"emissor": "Ana", "texto": TEXTO}, follow_redirects=False
+        "/eventos/relatar", data={"emissor": "Ana", "texto": TEXTO}, follow_redirects=False
     )
 
-    [linha] = ler_frentes(banco)
+    [linha] = ler_eventos(banco)
     assert resposta.status_code == 303
-    assert resposta.headers["location"] == f"/frentes/relatar/{linha['id']}"
+    assert resposta.headers["location"] == f"/eventos/relatar/{linha['id']}"
 
 
 def test_enviar_sem_banco_da_503(tmp_path: Path) -> None:
-    app = criar_app(config.carregar({"FRENTES_DB": str(tmp_path / "nao-existe.sqlite")}))
+    app = criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nao-existe.sqlite")}))
 
     resposta = enviar(TestClient(app), "Ana", TEXTO)
 
@@ -220,39 +220,39 @@ def test_enviar_sem_banco_da_503(tmp_path: Path) -> None:
 
 
 def _id(banco: Path) -> str:
-    return ler_frentes(banco)[-1]["id"]
+    return ler_eventos(banco)[-1]["id"]
 
 
-def test_resultado_de_frente_clara_mostra_as_tres_barras_de_confianca(
+def test_resultado_de_evento_claro_mostra_as_tres_barras_de_confianca(
     servidor: TestClient, banco: Path
 ) -> None:
-    natureza = contratos.RespostaDeLista("reativa", 0.8, {"reativa": 0.8, "proativa": 0.2})
+    natureza = contratos.RespostaDeLista("reativo", 0.8, {"reativo": 0.8, "proativo": 0.2})
     area = {"plat_a": 0.6, "plat_b": 0.1, "dados_a": 0.3}
     servidor.ligar(JevFalso({TEXTO: jev(area, natureza=natureza)}))
     enviar(servidor, "Ana Prado", TEXTO)
     esperar(lambda: classificacao(banco, _id(banco)) is not None)
 
-    html = servidor.get(f"/frentes/relatar/{_id(banco)}", headers=CABECALHO_HTMX).text
+    html = servidor.get(f"/eventos/relatar/{_id(banco)}", headers=CABECALHO_HTMX).text
 
     assert "PLAT › PLAT_A" in html  # área › time
-    assert "INCIDENTE › INC_DISP" in html  # tipo › subtipo
-    assert "Reativa" in html
+    assert "INCIDENTE › INC_DISP" in html  # frente › subfrente
+    assert "Reativo" in html
     barras = re.findall(r'role="meter"[^>]*aria-valuenow="(\d+)"', html)
-    assert barras == ["70", "90", "80"]  # área, tipo, natureza
+    assert barras == ["70", "90", "80"]  # área, frente, natureza
     assert "Severidade: alta (0,60)" in html
     assert "hx-trigger" not in html  # chegou ao resultado: para de consultar
     assert "ficou vago" not in html
 
 
 def test_resultado_proativo_mostra_o_impacto(servidor: TestClient, banco: Path) -> None:
-    proativa = jev(
-        natureza=contratos.RespostaDeLista("proativa", 0.9, {"reativa": 0.1, "proativa": 0.9})
+    proativo = jev(
+        natureza=contratos.RespostaDeLista("proativo", 0.9, {"reativo": 0.1, "proativo": 0.9})
     )
-    servidor.ligar(JevFalso({TEXTO: proativa}))
+    servidor.ligar(JevFalso({TEXTO: proativo}))
     enviar(servidor, "Ana Prado", TEXTO)
     esperar(lambda: classificacao(banco, _id(banco)) is not None)
 
-    html = servidor.get(f"/frentes/relatar/{_id(banco)}").text
+    html = servidor.get(f"/eventos/relatar/{_id(banco)}").text
 
     assert "Impacto esperado: baixo (0,10)" in html
     assert "Severidade" not in html
@@ -261,15 +261,15 @@ def test_resultado_proativo_mostra_o_impacto(servidor: TestClient, banco: Path) 
 def test_resultado_antes_de_classificar_diz_recebida_classificando_e_consulta_de_novo(
     servidor: TestClient, banco: Path
 ) -> None:
-    servidor.ligar(JevFalso({}))  # nada gravado: o teste grava a frente sem agendar
+    servidor.ligar(JevFalso({}))  # nada gravado: o teste grava o evento sem agendar
     with closing(store.abrir(banco)) as con:
-        from frentes.entrada import recepcao
+        from eventos.entrada import recepcao
 
         gravada = recepcao.receber(
-            con, contratos.FrenteBruta("Ana", TEXTO), contratos.Origem.RELATO
+            con, contratos.EventoBruto("Ana", TEXTO), contratos.Origem.RELATO
         )
 
-    html = servidor.get(f"/frentes/relatar/{gravada.id}").text
+    html = servidor.get(f"/eventos/relatar/{gravada.id}").text
 
     assert "Recebida, classificando" in html
     assert 'hx-trigger="every 1s"' in html
@@ -283,7 +283,7 @@ def test_sem_jev_a_gaveta_mostra_aguardando_classificacao_com_o_motivo(
     enviar(servidor, "Ana Prado", TEXTO)
     id_ = _id(banco)
     esperar(lambda: fila.motivo_pendente(servidor.app_, id_) is not None)
-    html = servidor.get(f"/frentes/relatar/{id_}").text
+    html = servidor.get(f"/eventos/relatar/{id_}").text
 
     assert "aguardando classificação" in html
     assert "sem chave da TypeSafe" in html
@@ -297,13 +297,13 @@ def test_sem_resposta_depois_do_tempo_a_gaveta_diz_aguardando(
     antiga = contratos.para_iso(contratos.agora().replace(year=2020))
     with closing(store.abrir(banco)) as con:
         con.execute(
-            "INSERT INTO frente (id, origem, emissor, texto, recebido_em)"
+            "INSERT INTO evento (id, origem, emissor, texto, recebido_em)"
             " VALUES ('velha', 'relato', 'Ana', 'texto', ?)",
             (antiga,),
         )
         con.commit()
 
-    html = servidor.get("/frentes/relatar/velha").text
+    html = servidor.get("/eventos/relatar/velha").text
 
     assert "aguardando classificação" in html
     assert "Motivo:" not in html
@@ -314,24 +314,24 @@ def test_resultado_escapa_o_texto_do_relato(servidor: TestClient, banco: Path) -
     perigoso = '<img src=x onerror="alert(1)">'
     enviar(servidor, "Ana", perigoso)
 
-    html = servidor.get(f"/frentes/relatar/{_id(banco)}").text
+    html = servidor.get(f"/eventos/relatar/{_id(banco)}").text
 
     assert "<img" not in html
     assert "&lt;img src=x" in html
 
 
-def test_resultado_de_id_desconhecido_ou_de_frente_que_nao_e_relato_da_404(
+def test_resultado_de_id_desconhecido_ou_de_evento_que_nao_e_relato_da_404(
     servidor: TestClient, banco: Path
 ) -> None:
     with closing(store.abrir(banco)) as con:
         con.execute(
-            "INSERT INTO frente (id, origem, emissor, texto, recebido_em)"
+            "INSERT INTO evento (id, origem, emissor, texto, recebido_em)"
             " VALUES ('w1', 'webhook', 'sys', 'texto', '2026-10-03T12:00:00Z')"
         )
         con.commit()
 
-    assert servidor.get("/frentes/relatar/nao-existe").status_code == 404
-    assert servidor.get("/frentes/relatar/w1").status_code == 404
+    assert servidor.get("/eventos/relatar/nao-existe").status_code == 404
+    assert servidor.get("/eventos/relatar/w1").status_code == 404
 
 
 # ------------------------------------------------------------------------- texto vago e complemento
@@ -353,10 +353,10 @@ def test_texto_vago_mostra_o_aviso_e_o_campo_para_completar(
 ) -> None:
     id_ = _vago(servidor, banco)
 
-    html = servidor.get(f"/frentes/relatar/{id_}").text
+    html = servidor.get(f"/eventos/relatar/{id_}").text
 
     assert "Seu relato ficou vago. Cite o sistema, o processo, um número ou a situação." in html
-    assert f'action="/frentes/relatar/{id_}/complemento"' in html
+    assert f'action="/eventos/relatar/{id_}/complemento"' in html
     assert 'name="texto"' in html
     assert classificacao(banco, id_).motivo is contratos.MotivoIncerta.TEXTO_VAGO
 
@@ -368,23 +368,23 @@ def test_completar_mantem_o_original_grava_o_complemento_e_reclassifica_com_os_d
     # a classificação do vago é de antes: o complemento vem depois dela
     with closing(store.abrir(banco)) as con:
         con.execute(
-            "UPDATE classificacao SET classificada_em = '2020-01-01T00:00:00Z' WHERE frente_id = ?",
+            "UPDATE classificacao SET classificada_em = '2020-01-01T00:00:00Z' WHERE evento_id = ?",
             (id_,),
         )
         con.commit()
 
     resposta = servidor.post(
-        f"/frentes/relatar/{id_}/complemento", data={"texto": COMPLEMENTO}, headers=CABECALHO_HTMX
+        f"/eventos/relatar/{id_}/complemento", data={"texto": COMPLEMENTO}, headers=CABECALHO_HTMX
     )
 
     assert resposta.status_code == 200
     esperar(lambda: classificacao(banco, id_).estado is contratos.Estado.CLASSIFICADA)
-    [linha] = ler_frentes(banco)
+    [linha] = ler_eventos(banco)
     assert linha["texto"] == VAGO  # o original não muda
     assert linha["complemento"] == COMPLEMENTO
     assert linha["complementado_em"] is not None
     assert [t for t, _ in servidor.jev_.chamadas][-1] == f"{VAGO}\n\n{COMPLEMENTO}"
-    html = servidor.get(f"/frentes/relatar/{id_}").text
+    html = servidor.get(f"/eventos/relatar/{id_}").text
     assert "Classificação</h2>" in html
     assert "ficou vago" not in html
     assert COMPLEMENTO in html and VAGO in html
@@ -398,14 +398,14 @@ def test_enquanto_reclassifica_a_gaveta_nao_mostra_a_resposta_antiga(
     id_ = _vago(servidor, banco)
     with closing(store.abrir(banco)) as con:
         con.execute(
-            "UPDATE classificacao SET classificada_em = '2020-01-01T00:00:00Z' WHERE frente_id = ?",
+            "UPDATE classificacao SET classificada_em = '2020-01-01T00:00:00Z' WHERE evento_id = ?",
             (id_,),
         )
         armazem_relato.gravar_complemento(
             con, id_, COMPLEMENTO, contratos.para_iso(contratos.agora())
         )
 
-    html = servidor.get(f"/frentes/relatar/{id_}").text
+    html = servidor.get(f"/eventos/relatar/{id_}").text
 
     assert "Recebida, classificando" in html
     assert "ficou vago" not in html
@@ -415,32 +415,32 @@ def test_complemento_vazio_da_422_e_nao_grava(servidor: TestClient, banco: Path)
     id_ = _vago(servidor, banco)
 
     resposta = servidor.post(
-        f"/frentes/relatar/{id_}/complemento", data={"texto": "  "}, headers=CABECALHO_HTMX
+        f"/eventos/relatar/{id_}/complemento", data={"texto": "  "}, headers=CABECALHO_HTMX
     )
 
     assert resposta.status_code == 422
     assert "complemento vazio" in resposta.text
-    assert ler_frentes(banco)[0]["complemento"] is None
+    assert ler_eventos(banco)[0]["complemento"] is None
 
 
-def test_complemento_em_frente_que_nao_e_relato_e_recusado(
+def test_complemento_em_evento_que_nao_e_relato_e_recusado(
     servidor: TestClient, banco: Path
 ) -> None:
     with closing(store.abrir(banco)) as con:
         con.execute(
-            "INSERT INTO frente (id, origem, emissor, texto, recebido_em)"
+            "INSERT INTO evento (id, origem, emissor, texto, recebido_em)"
             " VALUES ('w1', 'webhook', 'sys', 'texto', '2026-10-03T12:00:00Z')"
         )
         con.commit()
 
-    resposta = servidor.post("/frentes/relatar/w1/complemento", data={"texto": COMPLEMENTO})
+    resposta = servidor.post("/eventos/relatar/w1/complemento", data={"texto": COMPLEMENTO})
 
     assert resposta.status_code == 409
-    assert ler_frentes(banco)[0]["complemento"] is None
+    assert ler_eventos(banco)[0]["complemento"] is None
 
 
-def test_complemento_em_frente_inexistente_da_404(servidor: TestClient) -> None:
-    resposta = servidor.post("/frentes/relatar/nao-existe/complemento", data={"texto": "x"})
+def test_complemento_em_evento_inexistente_da_404(servidor: TestClient) -> None:
+    resposta = servidor.post("/eventos/relatar/nao-existe/complemento", data={"texto": "x"})
 
     assert resposta.status_code == 404
 
@@ -449,34 +449,34 @@ def test_segundo_complemento_e_recusado_e_o_primeiro_fica(
     servidor: TestClient, banco: Path
 ) -> None:
     id_ = _vago(servidor, banco)
-    servidor.post(f"/frentes/relatar/{id_}/complemento", data={"texto": COMPLEMENTO})
+    servidor.post(f"/eventos/relatar/{id_}/complemento", data={"texto": COMPLEMENTO})
 
-    resposta = servidor.post(f"/frentes/relatar/{id_}/complemento", data={"texto": "outro"})
+    resposta = servidor.post(f"/eventos/relatar/{id_}/complemento", data={"texto": "outro"})
 
     assert resposta.status_code == 409
-    assert ler_frentes(banco)[0]["complemento"] == COMPLEMENTO
+    assert ler_eventos(banco)[0]["complemento"] == COMPLEMENTO
 
 
 def test_complemento_sem_htmx_redireciona(servidor: TestClient, banco: Path) -> None:
     id_ = _vago(servidor, banco)
 
     resposta = servidor.post(
-        f"/frentes/relatar/{id_}/complemento",
+        f"/eventos/relatar/{id_}/complemento",
         data={"texto": COMPLEMENTO},
         follow_redirects=False,
     )
 
     assert resposta.status_code == 303
-    assert resposta.headers["location"] == f"/frentes/relatar/{id_}"
+    assert resposta.headers["location"] == f"/eventos/relatar/{id_}"
 
 
 def test_aguardando_llm_aparece_como_classificando() -> None:
-    from frentes.web.relato import montagem
+    from eventos.web.relato import montagem
 
     c = armazem_classificacao_pronta(contratos.Estado.AGUARDANDO_LLM)
-    frente = contratos.Frente("f", contratos.Origem.RELATO, "Ana", "t", contratos.agora())
+    evento = contratos.Evento("f", contratos.Origem.RELATO, "Ana", "t", contratos.agora())
 
-    gaveta = montagem.montar(frente, c, DOCUMENTO, [], None, contratos.agora())
+    gaveta = montagem.montar(evento, c, DOCUMENTO, [], None, contratos.agora())
 
     assert gaveta.estado == "classificando"
 
@@ -506,11 +506,11 @@ def test_envio_de_outra_origem_da_403_e_nao_grava(
     servidor.ligar(JevFalso({TEXTO: jev()}))
 
     resposta = servidor.post(
-        "/frentes/relatar", data={"emissor": "Ana", "texto": TEXTO}, headers=cabecalhos
+        "/eventos/relatar", data={"emissor": "Ana", "texto": TEXTO}, headers=cabecalhos
     )
 
     assert resposta.status_code == 403
-    assert ler_frentes(banco) == []
+    assert ler_eventos(banco) == []
 
 
 def test_complemento_de_outra_origem_da_403_e_nao_grava(servidor: TestClient, banco: Path) -> None:
@@ -518,13 +518,13 @@ def test_complemento_de_outra_origem_da_403_e_nao_grava(servidor: TestClient, ba
 
     for cabecalhos in ({"Sec-Fetch-Site": "cross-site"}, {"Origin": "https://evil.example"}):
         resposta = servidor.post(
-            f"/frentes/relatar/{id_}/complemento",
+            f"/eventos/relatar/{id_}/complemento",
             data={"texto": COMPLEMENTO},
             headers=cabecalhos,
         )
         assert resposta.status_code == 403
 
-    assert ler_frentes(banco)[0]["complemento"] is None
+    assert ler_eventos(banco)[0]["complemento"] is None
 
 
 @pytest.mark.parametrize(
@@ -537,14 +537,14 @@ def test_envio_da_propria_origem_passa(
     servidor.ligar(JevFalso({TEXTO: jev()}))
 
     resposta = servidor.post(
-        "/frentes/relatar",
+        "/eventos/relatar",
         data={"emissor": "Ana", "texto": TEXTO},
         headers=cabecalhos,
         follow_redirects=False,
     )
 
     assert resposta.status_code == 303
-    assert len(ler_frentes(banco)) == 1
+    assert len(ler_eventos(banco)) == 1
 
 
 def test_texto_acima_do_limite_volta_em_html_escapado_e_nao_grava(
@@ -558,7 +558,7 @@ def test_texto_acima_do_limite_volta_em_html_escapado_e_nao_grava(
     assert resposta.headers["content-type"].startswith("text/html")
     assert "<img src=x" not in resposta.text
     assert "relato inválido" in resposta.text
-    assert ler_frentes(banco) == []
+    assert ler_eventos(banco) == []
 
 
 def test_complemento_acima_do_limite_volta_em_html_escapado(
@@ -567,7 +567,7 @@ def test_complemento_acima_do_limite_volta_em_html_escapado(
     id_ = _vago(servidor, banco)
 
     resposta = servidor.post(
-        f"/frentes/relatar/{id_}/complemento",
+        f"/eventos/relatar/{id_}/complemento",
         data={"texto": "<img src=x>" + "a" * recepcao.LIMITE_TEXTO},
         headers=CABECALHO_HTMX,
     )
@@ -575,33 +575,33 @@ def test_complemento_acima_do_limite_volta_em_html_escapado(
     assert resposta.status_code == 422
     assert resposta.headers["content-type"].startswith("text/html")
     assert "<img src=x>" not in resposta.text
-    assert ler_frentes(banco)[0]["complemento"] is None
+    assert ler_eventos(banco)[0]["complemento"] is None
 
 
 def test_corpo_acima_de_256_kib_da_413_e_nao_grava(servidor: TestClient, banco: Path) -> None:
     corpo = "emissor=Ana&texto=" + "a" * (recepcao.LIMITE_CORPO + 1)
 
     declarado = servidor.post(
-        "/frentes/relatar",
+        "/eventos/relatar",
         content=corpo,
         headers={"content-type": "application/x-www-form-urlencoded"},
     )
     em_pedacos = servidor.post(
-        "/frentes/relatar",
+        "/eventos/relatar",
         content=iter([corpo.encode()[:1000], corpo.encode()[1000:]]),  # sem Content-Length
         headers={"content-type": "application/x-www-form-urlencoded"},
     )
 
     assert declarado.status_code == 413
     assert em_pedacos.status_code == 413
-    assert ler_frentes(banco) == []
+    assert ler_eventos(banco) == []
 
 
 def test_corpo_que_nao_e_formulario_da_415(servidor: TestClient, banco: Path) -> None:
-    resposta = servidor.post("/frentes/relatar", json={"emissor": "Ana", "texto": TEXTO})
+    resposta = servidor.post("/eventos/relatar", json={"emissor": "Ana", "texto": TEXTO})
 
     assert resposta.status_code == 415
-    assert ler_frentes(banco) == []
+    assert ler_eventos(banco) == []
 
 
 def test_complemento_em_relato_que_nao_ficou_vago_da_409_e_nao_reclassifica(
@@ -613,10 +613,10 @@ def test_complemento_em_relato_que_nao_ficou_vago_da_409_e_nao_reclassifica(
     id_ = _id(banco)
     esperar(lambda: classificacao(banco, id_) is not None)
 
-    resposta = servidor.post(f"/frentes/relatar/{id_}/complemento", data={"texto": COMPLEMENTO})
+    resposta = servidor.post(f"/eventos/relatar/{id_}/complemento", data={"texto": COMPLEMENTO})
 
     assert resposta.status_code == 409
-    assert ler_frentes(banco)[0]["complemento"] is None
+    assert ler_eventos(banco)[0]["complemento"] is None
     assert len(falso.chamadas) == 1  # nenhuma reclassificação paga
 
 
@@ -625,8 +625,8 @@ def test_os_formularios_desligam_o_botao_no_envio_e_trocam_so_html(
 ) -> None:
     id_ = _vago(servidor, banco)
 
-    formulario_novo = servidor.get("/frentes/relatar").text
-    formulario_vago = servidor.get(f"/frentes/relatar/{id_}").text
+    formulario_novo = servidor.get("/eventos/relatar").text
+    formulario_vago = servidor.get(f"/eventos/relatar/{id_}").text
 
     assert 'hx-disabled-elt="find button"' in formulario_novo
     assert 'hx-disabled-elt="find button"' in formulario_vago
@@ -635,7 +635,7 @@ def test_os_formularios_desligam_o_botao_no_envio_e_trocam_so_html(
 
 
 def test_formulario_traz_o_medidor_de_concretude_escondido_e_o_script(servidor: TestClient) -> None:
-    html = servidor.get("/frentes/relatar").text
+    html = servidor.get("/eventos/relatar").text
 
     assert "data-medidor" in html and "data-medidor hidden" in html  # sem JS fica escondido
     for check in ("sistema", "numero", "efeito", "afetado"):
@@ -647,28 +647,28 @@ def test_formulario_traz_o_medidor_de_concretude_escondido_e_o_script(servidor: 
     assert servidor.get("/static/relato.js").status_code == 200
 
 
-def test_resultado_de_frente_clara_liga_a_celula_do_mapa(servidor: TestClient, banco: Path) -> None:
-    natureza = contratos.RespostaDeLista("reativa", 0.8, {"reativa": 0.8, "proativa": 0.2})
+def test_resultado_de_evento_claro_liga_a_celula_do_mapa(servidor: TestClient, banco: Path) -> None:
+    natureza = contratos.RespostaDeLista("reativo", 0.8, {"reativo": 0.8, "proativo": 0.2})
     area = {"plat_a": 0.6, "plat_b": 0.1, "dados_a": 0.3}
     servidor.ligar(JevFalso({TEXTO: jev(area, natureza=natureza)}))
     enviar(servidor, "Ana Prado", TEXTO)
     esperar(lambda: classificacao(banco, _id(banco)) is not None)
 
-    html = servidor.get(f"/frentes/relatar/{_id(banco)}", headers=CABECALHO_HTMX).text
+    html = servidor.get(f"/eventos/relatar/{_id(banco)}", headers=CABECALHO_HTMX).text
 
     assert "Conta em" in html
-    assert 'href="/?visao=dor&amp;versao=1&amp;area=plat&amp;tipo=incidente"' in html
+    assert 'href="/?visao=dor&amp;versao=1&amp;area=plat&amp;frente=incidente"' in html
 
 
 def test_enquanto_classifica_mostra_o_esqueleto(servidor: TestClient, banco: Path) -> None:
-    servidor.ligar(JevFalso({}))  # nada gravado: o teste grava a frente sem agendar
+    servidor.ligar(JevFalso({}))  # nada gravado: o teste grava o evento sem agendar
     with closing(store.abrir(banco)) as con:
-        from frentes.entrada import recepcao
+        from eventos.entrada import recepcao
 
         gravada = recepcao.receber(
-            con, contratos.FrenteBruta("Ana", TEXTO), contratos.Origem.RELATO
+            con, contratos.EventoBruto("Ana", TEXTO), contratos.Origem.RELATO
         )
 
-    html = servidor.get(f"/frentes/relatar/{gravada.id}").text
+    html = servidor.get(f"/eventos/relatar/{gravada.id}").text
 
     assert 'class="esqueleto"' in html

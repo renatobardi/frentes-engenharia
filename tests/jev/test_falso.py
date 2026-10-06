@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from frentes.contratos import (
+from eventos.contratos import (
     NENHUM_DESTES,
     ClienteJev,
     Pergunta,

@@ -5,12 +5,12 @@ from enum import StrEnum
 
 import pytest
 
-from frentes import contratos, store
-from frentes.contratos import Frente, Origem
+from eventos import contratos, store
+from eventos.contratos import Evento, Origem
 
 # (tabela, coluna) do esquema -> o enum que diz os valores aceitos
 ENUMS_DO_ESQUEMA: dict[tuple[str, str], type[StrEnum]] = {
-    ("frente", "origem"): contratos.Origem,
+    ("evento", "origem"): contratos.Origem,
     ("emissor", "tipo"): contratos.TipoEmissor,
     ("geracao", "tipo"): contratos.TipoGeracao,
     ("geracao", "gatilho"): contratos.Gatilho,
@@ -90,8 +90,8 @@ def test_agora_e_utc_sem_fracao_de_segundo() -> None:
 
 def test_o_que_vai_ao_jev_e_o_texto_original_seguido_do_complemento() -> None:
     recebido = datetime(2026, 10, 3, 14, 0, tzinfo=UTC)
-    vaga = Frente("f1", Origem.RELATO, "Ana Prado", "Tá tudo lento.", recebido)
-    completa = Frente(
+    vaga = Evento("f1", Origem.RELATO, "Ana Prado", "Tá tudo lento.", recebido)
+    completa = Evento(
         "f1",
         Origem.RELATO,
         "Ana Prado",
@@ -112,8 +112,8 @@ def test_a_data_que_conta_e_ocorrido_em_e_na_falta_recebido_em() -> None:
     recebido = datetime(2026, 10, 3, 14, 0, tzinfo=UTC)
     ocorrido = recebido - timedelta(days=2)
 
-    assert Frente("f1", Origem.LOG, "svc", "x", recebido).data == recebido
-    assert Frente("f1", Origem.LOG, "svc", "x", recebido, ocorrido_em=ocorrido).data == ocorrido
+    assert Evento("f1", Origem.LOG, "svc", "x", recebido).data == recebido
+    assert Evento("f1", Origem.LOG, "svc", "x", recebido, ocorrido_em=ocorrido).data == ocorrido
 
 
 DOCUMENTO = contratos.DocumentoTaxonomia(
@@ -138,7 +138,7 @@ DOCUMENTO = contratos.DocumentoTaxonomia(
             ),
         ),
     ),
-    tipos=(
+    frentes=(
         contratos.ValorDoDocumento(
             "t-integracao",
             "Integração",
@@ -152,8 +152,8 @@ DOCUMENTO = contratos.DocumentoTaxonomia(
     regua_impacto=(contratos.NivelDaRegua("alto", "Muda o resultado da área."),),
     criterio_urgencia="A janela de tempo para agir.",
     criterio_natureza={
-        contratos.Natureza.REATIVA: "Relata uma falha que está acontecendo.",
-        contratos.Natureza.PROATIVA: "Propõe uma melhoria.",
+        contratos.Natureza.REATIVO: "Relata uma falha que está acontecendo.",
+        contratos.Natureza.PROATIVO: "Propõe uma melhoria.",
     },
     pergunta_de_controle="O texto cita algum sistema, processo, número ou situação específica?",
     instrucoes={pergunta: f"instrução de {pergunta}" for pergunta in contratos.Pergunta},
