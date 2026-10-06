@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Saúde · frentes-engenharia{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/saude.css">{% endblock %}
+{% block conteudo %}
+<section class="saude">
+  <div class="pagina-cab">
+    <div class="pagina-cab-texto">
+      <h1>Saúde da classificação</h1>
+      <p class="desc">Como a classificação está indo: os estados dos eventos, a confiança do Jev na frente, quanto de cada origem chega ao mapa, o custo de cada chamada e o sinal de encaixe da taxonomia. Só leitura.</p>
+    </div>
+  </div>
+
+  <form class="filtros" action="/saude" method="get">
+    <label>Taxonomia
+      <select name="versao">
+        {% for n in versoes %}<option value="{{ n }}"{% if n == versao %} selected{% endif %}>v{{ n }}{% if n == vigente %} vigente{% endif %}</option>{% endfor %}
+      </select>
+    </label>
+    <button class="btn btn-outline btn-sm" type="submit">Aplicar</button>
+    <span class="meta muted">{{ total }} eventos no banco, todas as datas.</span>
+  </form>
+
+  <h2 class="saude-titulo">Estados</h2>
+  <div class="estados" id="estados">
+    {% for e in estados %}
+    <a class="card estado" href="{{ e.destino }}" data-estado="{{ e.chave }}">
+      <span class="estado-nome">{{ e.nome }}</span>
+      <span class="estado-num num">{{ e.quantos }}</span>
+      <span class="meta muted">{{ e.parte }} dos eventos</span>
+    </a>
+    {% endfor %}
+  </div>
+  <p class="meta muted">Cada número abre a lista de eventos filtrada pelo estado, na mesma versão.</p>
+
+  <h2 class="saude-titulo">Confiança do Jev na frente <span class="num fino">{{ histograma.total }}</span></h2>
+  {% if histograma.total %}
+  <div class="card card-pad">
+    <div class="histograma" id="histograma" role="img" aria-label="Quantas classificações há em cada faixa de confiança na frente">
+      {% for f in histograma.faixas %}
+      <div class="faixa{% if f.abaixo_do_corte %} abaixo{% endif %}" title="de {{ f.de }} a {{ f.ate }}: {{ f.quantos }}">
+        <span class="faixa-num num">{{ f.quantos }}</span>
+        <span class="faixa-barra" style="height: {{ f.altura }}%"></span>
+        <span class="faixa-rotulo num">{{ f.de }}</span>
+      </div>
+      {% endfor %}
+      <span class="marca marca-corte" style="left: {{ (histograma.corte * 100)|round(1) }}%" data-marca="corte"><span>corte {{ histograma.corte_texto }}</span></span>
+      <span class="marca marca-encaixe" style="left: {{ (histograma.encaixe * 100)|round(1) }}%" data-marca="encaixe"><span>encaixe fraco {{ histograma.encaixe_texto }}</span></span>
+    </div>
+  </div>
+  <p class="meta muted">Faixas de 0,1, da confiança na frente de cada classificação da versão. Abaixo do corte de {{ histograma.corte_texto }} a frente vai ao desempate da LLM; abaixo de {{ histograma.encaixe_texto }} conta como encaixe fraco no sinal.</p>
+  {% else %}
+  <div class="estado-vazio card">{{ icone("circle-check") }}<p>Nenhuma classificação nesta versão.</p></div>
+  {% endif %}
+
+  <h2 class="saude-titulo">Quanto pinta o mapa, por origem</h2>
+  <div class="card rolagem">
+    <table class="tabela" id="pinta">
+      <thead><tr><th>Origem</th><th class="num">Eventos</th><th class="num">Pintam o mapa</th><th class="barra-cel"><span class="sr-only">Parte que pinta</span></th><th class="num">Parte</th></tr></thead>
+      <tbody>
+        {% for o in pinta %}
+        <tr>
+          <th scope="row">{{ o.nome }}</th>
+          <td class="num">{{ o.eventos }}</td>
+          <td class="num">{{ o.pintam }}</td>
+          <td class="barra-cel"><div class="barra" aria-hidden="true"><span style="width: {{ o.largura }}%"></span></div></td>
+          <td class="num">{{ o.parte }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="meta muted">Pinta o evento classificado pelo Jev ou via LLM que termina numa área e numa frente. Incerta, texto vago, não classificada e aguardando ficam fora do mapa.</p>
+
+  <h2 class="saude-titulo">Tokens e latência</h2>
+  <div class="card rolagem">
+    <table class="tabela" id="uso">
+      <thead><tr>
+        <th>Origem</th><th class="num">Classificados</th><th class="num">Tokens de entrada</th><th class="num">Tokens de saída</th>
+        <th class="num">Entrada por evento</th><th class="num">Saída por evento</th><th class="num">Latência média</th><th class="num">Latência máxima</th>
+      </tr></thead>
+      <tbody>
+        {% for u in uso_por_origem %}
+        <tr>
+          <th scope="row">{{ u.nome }}</th>
+          <td class="num">{{ u.classificados }}</td><td class="num">{{ u.entrada }}</td><td class="num">{{ u.saida }}</td>
+          <td class="num">{{ u.media_de_entrada }}</td><td class="num">{{ u.media_de_saida }}</td>
+          <td class="num">{{ u.latencia_media }}</td><td class="num">{{ u.latencia_maxima }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="total">
+          <th scope="row">{{ uso_total.nome }}</th>
+          <td class="num">{{ uso_total.classificados }}</td><td class="num">{{ uso_total.entrada }}</td><td class="num">{{ uso_total.saida }}</td>
+          <td class="num">{{ uso_total.media_de_entrada }}</td><td class="num">{{ uso_total.media_de_saida }}</td>
+          <td class="num">{{ uso_total.latencia_media }}</td><td class="num">{{ uso_total.latencia_maxima }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <p class="meta muted">Só a chamada ao Jev, uma por classificação da versão. O uso da LLM do desempate não entra.</p>
+
+  <h2 class="saude-titulo">Sinal de encaixe <span class="suave meta">({{ eventos_no_sinal }} eventos que contam, na janela de {{ janela_do_sinal }} dias)</span></h2>
+  <div class="card card-pad" id="sinal">
+    <table class="sinal-tabela">
+      <thead><tr><th scope="col">Medida</th><th scope="col">Medido contra o limite</th><th scope="col">Medido</th><th scope="col">Limite</th></tr></thead>
+      <tbody>
+        {% for l in sinal %}
+        <tr{% if l.disparou %} class="disparou"{% endif %}>
+          <th scope="row">{{ l.rotulo }}{% if l.disparou %} <span class="badge badge-gate">dispara</span>{% endif %}</th>
+          <td class="sinal-barra-cel">
+            <div class="sinal-barra{% if l.acima %} acima{% endif %}" aria-hidden="true">
+              <span class="sinal-preenchido" style="width: {{ (l.valor * 100)|round(1) }}%"></span>
+              <span class="sinal-marca" style="left: {{ (l.corte * 100)|round(1) }}%"></span>
+            </div>
+          </td>
+          <td class="num">{{ l.medido }}</td><td class="num">{{ l.limite }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="meta muted">{% if dispara %}Há um limite alcançado e a janela tem eventos suficientes: a revisão da taxonomia dispara.{% elif eventos_no_sinal < minimo_do_sinal %}A janela tem menos de {{ minimo_do_sinal }} eventos: com tão poucos o sinal não dispara, mesmo com o limite alcançado.{% else %}Nenhum limite foi alcançado.{% endif %} O mesmo cálculo e os mesmos limites do selo da versão anterior no <a href="/">mapa</a>.</p>
+</section>
+{% endblock %}
