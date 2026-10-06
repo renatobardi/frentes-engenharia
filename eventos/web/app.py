@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from eventos import config, partida, store
 from eventos.web import telas
+from eventos.web.leitura import Leitura
 
 
 def criar_app(cfg: config.Config | None = None) -> FastAPI:
@@ -30,6 +31,7 @@ def criar_app(cfg: config.Config | None = None) -> FastAPI:
         lifespan=ciclo,
     )
     app.state.config = cfg
+    app.add_middleware(Leitura)
     app.mount("/static", StaticFiles(directory=telas.ESTATICOS), name="static")
     telas.montar(app)
 

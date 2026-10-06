@@ -578,3 +578,16 @@ def test_o_miolo_tem_o_aviso_oculto(http: TestClient) -> None:
     html = http.get("/").text
 
     assert re.search(r'<p id="aviso-enderecar"[^>]*role="alert" hidden>', html)
+
+
+def test_na_internet_a_celula_nao_oferece_enderecar_nem_desfazer(
+    banco: Path, http: TestClient
+) -> None:
+    publico = {"X-Frentes-Publico": "1"}
+    assert "/mapa/enderecar" in http.get(_celula_url()).text
+    assert "/mapa/enderecar" not in http.get(_celula_url(), headers=publico).text
+    _enderecar(http)
+    assert "/mapa/desfazer" in http.get(_celula_url()).text
+    mostrando = http.get(_celula_url(), headers=publico).text
+    assert "/mapa/desfazer" not in mostrando
+    assert 'id="painel-enderecamento"' in mostrando  # a decisão aparece, sem o botão

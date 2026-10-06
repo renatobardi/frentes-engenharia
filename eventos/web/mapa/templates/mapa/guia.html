@@ -14,7 +14,7 @@
     <li data-alvo=".top3" data-titulo="Top 3">As três células com o maior índice neste recorte. Comece por aqui.</li>
     <li data-alvo=".celula .abrir" data-alvo-pelo-link-de=".top3 .destaque-link" data-titulo="A célula">Cada célula é uma área × uma frente. O número é o índice, a seta é a variação contra o período anterior e &#9670; marca a célula endereçada. Clique para ver por que está quente.</li>
     <li data-alvo=".contadores" data-titulo="Fora da grade">Eventos que não pintam o mapa: incertas, de texto vago e aguardando classificação. O clique abre a lista filtrada.</li>
-    <li data-alvo=".topo-acoes a[href='{{ relatar[1] }}']" data-titulo="{{ relatar[0] }}">Viu um problema ou uma oportunidade? Relate aqui: o evento é classificado e entra no mapa.</li>
+    {% if not somente_leitura %}<li data-alvo=".topo-acoes a[href='{{ relatar[1] }}']" data-titulo="{{ relatar[0] }}">Viu um problema ou uma oportunidade? Relate aqui: o evento é classificado e entra no mapa.</li>{% endif %}
   </ol>
   <p class="guia-conta fino muted" data-guia-conta></p>
   <h2 id="guia-titulo"></h2>

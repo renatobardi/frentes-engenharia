@@ -66,7 +66,7 @@
           {% block acoes_topo %}{% endblock %}
           {% include "busca/topo.html" ignore missing %}
           {% include "tema/topo.html" ignore missing %}
-          <a class="btn" href="{{ relatar[1] }}">{{ icone("plus") }}{{ relatar[0] }}</a>
+          {% if not somente_leitura %}<a class="btn" href="{{ relatar[1] }}">{{ icone("plus") }}{{ relatar[0] }}</a>{% endif %}
         </div>
       </header>
       <main id="conteudo">
