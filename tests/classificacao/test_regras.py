@@ -91,9 +91,10 @@ def jev(
     severidade: float = 0.6,
     impacto: float = 0.1,
     urgencia: float = 0.4,
+    modelo: str = "jev-teste",
 ) -> RespostaJev:
     return RespostaJev(
-        "jev-teste",
+        modelo,
         {
             Pergunta.AREA: _lista(area),
             Pergunta.FRENTE: _lista(frente),
@@ -221,6 +222,45 @@ def test_controle_no_corte_exato_nao_e_vago() -> None:
     r = resolver(jev(controle=LIMIARES.texto_vago))
 
     assert r.estado is Estado.CLASSIFICADA
+
+
+ELO_1 = "inception/mercury-decide-20260930"
+
+
+def test_o_elo_1_tem_corte_de_texto_vago_proprio_e_o_jev_segue_no_geral() -> None:
+    assert LIMIARES.texto_vago == 0.5
+    assert LIMIARES.texto_vago_de(ELO_1) == 0.3
+
+    no_elo_1 = resolver(jev(controle=0.4, modelo=ELO_1))
+    no_jev = resolver(jev(controle=0.4))
+
+    assert no_elo_1.estado is Estado.CLASSIFICADA
+    assert (no_jev.estado, no_jev.motivo) == (Estado.INCERTA, MotivoIncerta.TEXTO_VAGO)
+
+
+def test_corte_do_elo_1_vale_no_limite_exato_e_abaixo_dele_o_texto_e_vago() -> None:
+    assert resolver(jev(controle=0.3, modelo=ELO_1)).estado is Estado.CLASSIFICADA
+    r = resolver(jev(controle=0.29, modelo=ELO_1))
+    assert (r.estado, r.motivo) == (Estado.INCERTA, MotivoIncerta.TEXTO_VAGO)
+
+
+@pytest.mark.parametrize(
+    ("gravado", "corte"),
+    [
+        ("inception/mercury-decide-20260930", 0.3),  # o id que a rota devolve
+        ("inception/mercury-decide-20270101", 0.3),  # outra data do mesmo modelo
+        ("inception/mercury-decide:free", 0.3),  # o id configurado
+        ("inception/mercury-decide", 0.3),
+        ("inception/mercury-decider-x", 0.5),  # outro modelo com o mesmo começo
+        ("perplexity/pplx-decider-v1-27b-20261001", 0.5),
+        ("jev-latest", 0.5),
+        ("", 0.5),
+    ],
+)
+def test_o_corte_por_modelo_casa_o_id_gravado_sem_o_sufixo_e_com_ou_sem_data(
+    gravado: str, corte: float
+) -> None:
+    assert LIMIARES.texto_vago_de(gravado) == corte
 
 
 def test_linha_tudo_acima_do_limiar_e_classificada() -> None:

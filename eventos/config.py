@@ -44,6 +44,9 @@ class SinalDeEncaixe:
 class Limiares:
     confianca: Confianca
     texto_vago: float
+    # Corte de texto vago do modelo que respondeu, pelo id configurado (#155). Quem não está
+    # aqui, o Jev inclusive, usa `texto_vago`.
+    texto_vago_por_modelo: Mapping[str, float]
     encaixe_fraco_confianca_frente: float
     sinal_de_encaixe: SinalDeEncaixe
     revisao_evidencia_minima: int
@@ -51,6 +54,19 @@ class Limiares:
     urgencia_selo: float
     # O arquivo como foi lido, para a cópia que vai ao snapshot_meta.
     bruto: Mapping[str, Any] = field(compare=False, repr=False)
+
+    def texto_vago_de(self, modelo: str) -> float:
+        """O corte de texto vago para a resposta gravada de `modelo` (`RespostaJev.modelo`).
+
+        A rota devolve o id com a data (`inception/mercury-decide-20260930`) e o arquivo traz o
+        pedido (`inception/mercury-decide:free`): casa pelo id sem o sufixo `:...`, igual ou
+        seguido de `-`.
+        """
+        for configurado, corte in self.texto_vago_por_modelo.items():
+            base = configurado.split(":", 1)[0]
+            if modelo in (configurado, base) or modelo.startswith(base + "-"):
+                return corte
+        return self.texto_vago
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,6 +145,17 @@ def _textos(tabela: Mapping[str, Any], secao: str, chave: str) -> tuple[str, ...
     return tuple(v.strip() for v in valor)
 
 
+def _cortes_por_modelo(tabela: Mapping[str, Any], secao: str, chave: str) -> dict[str, float]:
+    """Tabela opcional `[secao.chave]` de id de modelo para fração de 0 a 1."""
+    valor = tabela.get(secao, {}).get(chave, {}) if isinstance(tabela.get(secao), dict) else {}
+    if not isinstance(valor, dict):
+        raise ErroDeConfig(f"limiares: [{secao}] {chave} deve ser uma tabela, veio {valor!r}")
+    return {
+        modelo.strip(): _fracao({f"{secao}.{chave}": valor}, f"{secao}.{chave}", modelo)
+        for modelo in valor
+    }
+
+
 def _valor(tabela: Mapping[str, Any], secao: str, chave: str) -> Any:
     try:
         return tabela[secao][chave]
@@ -179,6 +206,7 @@ def carregar_limiares(caminho: Path = LIMIARES_PADRAO) -> Limiares:
             problema=_fracao(bruto, "confianca", "problema"),
         ),
         texto_vago=_fracao(bruto, "controle", "texto_vago"),
+        texto_vago_por_modelo=_cortes_por_modelo(bruto, "controle", "por_modelo"),
         encaixe_fraco_confianca_frente=_fracao(bruto, "encaixe_fraco", "confianca_frente"),
         sinal_de_encaixe=SinalDeEncaixe(
             encaixe_fraco=_fracao(bruto, "sinal_de_encaixe", "encaixe_fraco"),

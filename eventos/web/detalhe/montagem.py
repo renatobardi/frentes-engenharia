@@ -261,9 +261,10 @@ def _motivo(
     if c.estado is not Estado.INCERTA:
         return None
     if c.motivo is MotivoIncerta.TEXTO_VAGO:
+        corte = limiares.texto_vago_de(c.resposta_jev.modelo)
         return (
             f"Texto vago: a pergunta de controle deu {numero(c.controle)}, abaixo do corte "
-            f"de {numero(limiares.texto_vago)}. O texto traz só a sensação, sem nada concreto."
+            f"de {numero(corte)}. O texto traz só a sensação, sem nada concreto."
         )
     if c.motivo is MotivoIncerta.LLM_SEM_ESCOLHA:
         return "Incerta: a LLM não escolheu entre as opções que o Jev deixou."
@@ -518,12 +519,13 @@ def _caminho(
 def _rodape(c: Classificacao, documento: DocumentoTaxonomia, limiares: Limiares) -> Rodape:
     uso = c.resposta_jev.uso
     llm = c.resposta_llm
+    corte = limiares.texto_vago_de(c.resposta_jev.modelo)
     return Rodape(
         pergunta=documento.pergunta_de_controle,
         controle=numero(c.controle),
         barra=round(c.controle * 100),
-        corte=numero(limiares.texto_vago),
-        corte_barra=round(limiares.texto_vago * 100),
+        corte=numero(corte),
+        corte_barra=round(corte * 100),
         modelo=c.resposta_jev.modelo,
         tokens_entrada=uso.tokens_entrada,
         tokens_saida=uso.tokens_saida,

@@ -77,6 +77,8 @@ class ColunasJev:
     # probabilidade de cada time e de cada subfrente, para o top 3 e para time/subfrente finais
     prob_times: Mapping[str, float]
     prob_subfrentes: Mapping[str, float]
+    # O modelo que respondeu (`RespostaJev.modelo`): o corte de texto vago pode ser dele.
+    modelo: str = ""
 
 
 def _lista(resposta: RespostaJev, pergunta: Pergunta) -> RespostaDeLista:
@@ -214,6 +216,7 @@ def ler_jev(resposta: RespostaJev, documento: DocumentoTaxonomia, limiares: Limi
         controle=_numero(resposta, Pergunta.CONTROLE),
         prob_times={c: p for c, p in r_area.probabilidades.items() if c in pais_times},
         prob_subfrentes={c: p for c, p in r_frente.probabilidades.items() if c in pais_subfrentes},
+        modelo=resposta.modelo,
     )
 
 
@@ -347,7 +350,7 @@ def resolver(
 ) -> Resultado:
     """Aplica a regra de confiança, na ordem da spec. Sem `resposta_llm` e com dimensão
     a desempatar, o estado é `aguardando_llm` com o pedido."""
-    if colunas.controle < limiares.texto_vago:
+    if colunas.controle < limiares.texto_vago_de(colunas.modelo):
         return Resultado(Estado.INCERTA, MotivoIncerta.TEXTO_VAGO)
 
     pedido = montar_pedido(colunas, documento, limiares)

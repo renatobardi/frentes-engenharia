@@ -40,7 +40,7 @@ Decisão do Bardi em 2026-10-06 [C112]: a chamada das 8 dimensões passa por uma
 - **Disjuntor**: o elo que falha 5 vezes seguidas é pulado por 300 s; depois é tentado de novo. O último elo nunca é pulado. Os dois valores são da construção e ficam em `[disjuntor]` do `config/limiares.toml`. [C112]
 - **Configuração**: os elos antes do Jev direto são a lista `[modelos] jev_antes`; lista vazia deixa só o Jev direto. O paralelismo de cada elo do OpenRouter é `[concorrencia] decisoes` (4). [C112]
 - **As quedas por elo** (respostas, quedas e pulos) são contadas na memória do processo: o comando `classificar` as imprime no fim, e cada queda vai ao log. Não ficam no banco.
-- **Os limiares são um conjunto só**, calibrado no Jev. Medido em 200 eventos [M112]: o elo 1 acerta a área como o Jev (90,8% contra 91,3%), mas a confiança dele fica colada em 1 (mediana 0,9999) e o corte de 0,5 da pergunta de controle derruba 10 de 194 eventos normais (o Jev derruba 1). Limiar por elo é decisão a tomar.
+- **Os limiares são um conjunto só, calibrado no Jev, com uma exceção: o corte de texto vago tem valor por modelo** ([#155](https://github.com/renatobardi/frentes-engenharia/issues/155), `[controle.por_modelo]` em `config/limiares.toml`; o elo 1 usa 0,3, os demais 0,5). Os outros cortes seguem um conjunto só. Medido em 200 eventos [M112]: o elo 1 acerta a área como o Jev (90,8% contra 91,3%), mas a confiança dele fica colada em 1 (mediana 0,9999) e o corte de 0,5 da pergunta de controle derruba 10 de 194 eventos normais (o Jev derruba 1). Com 0,3 o elo 1 pega as mesmas 36 de 40 vagas e derruba 4. Os demais cortes por elo (selo "urgente" e gatilho de encaixe fraco) seguem sem valor decidido.
 - **Escalas diferentes no mesmo mapa**: a severidade média foi 0,38 no elo 1 e 0,48 no Jev [M112]. Célula com eventos de elos diferentes soma as duas.
 
 ## Passos
@@ -110,7 +110,7 @@ Regras:
 | área, frente e natureza | 0,5 | [R6] |
 | causa raiz | 0,3 | [R6] |
 | problema | 0,5 | [R8] [R11] |
-| texto vago (pergunta de controle) | 0,5 | [R14] |
+| texto vago (pergunta de controle) | 0,5; 0,3 no elo 1 | [R14] [M112] |
 | encaixe fraco (confiança da frente) | 0,7 | [R9] |
 | dias distintos da recorrência | 3 | [R8] |
 | corte do selo "urgente" | não decidido; fica em configuração | [R3] [R20] |
