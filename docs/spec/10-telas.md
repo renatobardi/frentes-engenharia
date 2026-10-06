@@ -141,7 +141,7 @@ Lê a versão do endereço, como o mapa. Só leitura, e não chama modelo: tudo 
 4. **Tokens e latência** da classificação.
 5. **Sinal de encaixe**: o valor medido e o limite, como no selo da faixa da v1 no mapa.
 
-- **Em aberto, decide a [#118]**: as faixas do histograma e o recorte de tokens e latência (total, média ou por origem).
+- **Decidido na [#118]**: o histograma tem dez faixas de 0,1, com a marca do corte da frente (0,5) e a do encaixe fraco (0,7). Tokens e latência saem por origem e no total: soma e média por evento dos tokens, e média e máxima da latência da chamada ao Jev (o uso da LLM do desempate não entra). O escopo é todos os eventos, na versão do endereço; o sinal de encaixe é o da janela de agora.
 
 ## Busca
 

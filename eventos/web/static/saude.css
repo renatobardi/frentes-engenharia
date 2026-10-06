@@ -1,0 +1,43 @@
+/* Tela Saúde. Escrito à mão, sem endereço externo. Usa as classes do app.css
+   (.pagina-cab, .tabela, .badge, .card, .rolagem, .estado-vazio); aqui só o que é desta tela. */
+.saude .filtros {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-bottom: 16px;
+  padding: 12px 16px; border-radius: var(--raio-card);
+  background: color-mix(in oklab, var(--muted) 55%, transparent);
+}
+.saude .filtros label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted-foreground); }
+.saude-titulo { margin: 24px 0 8px; font-size: 16px; font-weight: 500; }
+.saude .card + .meta { margin: 8px 0 0; }
+.saude .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.saude .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.saude .estados { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 12px; }
+.saude .estado { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; color: var(--foreground); text-decoration: none; }
+.saude .estado:hover { border-color: var(--foreground); }
+.saude .estado-nome { font-size: 13px; color: var(--muted-foreground); }
+.saude .estado-num { text-align: left; font-size: 28px; font-weight: 500; line-height: 1.2; }
+
+.saude .histograma { position: relative; display: flex; align-items: flex-end; gap: 6px; height: 12rem; padding-top: 1.25rem; }
+.saude .faixa { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; }
+.saude .faixa-num, .saude .faixa-rotulo { text-align: center; font-size: 11px; color: var(--muted-foreground); }
+.saude .faixa-barra { display: block; background: var(--foreground); border-radius: 3px 3px 0 0; min-height: 1px; }
+.saude .faixa.abaixo .faixa-barra { background: var(--muted-foreground); opacity: .55; }
+.saude .marca { position: absolute; top: 0; bottom: 1.1rem; border-left: 2px dashed var(--foreground); pointer-events: none; }
+.saude .marca > span { position: absolute; top: -2px; left: 4px; font-size: 11px; white-space: nowrap; color: var(--foreground); }
+.saude .marca-encaixe { opacity: .7; border-left-style: dotted; }
+.saude .marca-encaixe > span { top: 12px; }
+
+.saude .barra-cel { width: 30%; min-width: 8rem; }
+.saude .barra { height: 8px; border-radius: 4px; background: var(--muted); overflow: hidden; }
+.saude .barra > span { display: block; height: 100%; background: var(--foreground); }
+.saude .tabela tfoot .total th, .saude .tabela tfoot .total td { border-top: 1px solid var(--border); font-weight: 500; }
+
+.saude .sinal-tabela { width: 100%; border-collapse: collapse; }
+.saude .sinal-tabela th, .saude .sinal-tabela td { padding: 8px 12px; text-align: left; font-weight: 400; }
+.saude .sinal-tabela td.num { text-align: right; }
+.saude .sinal-tabela thead th { font-size: 12px; color: var(--muted-foreground); }
+.saude .sinal-barra-cel { width: 40%; min-width: 8rem; }
+.saude .sinal-barra { position: relative; height: 8px; border-radius: 4px; background: var(--muted); }
+.saude .sinal-preenchido { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--muted-foreground); }
+.saude .sinal-barra.acima .sinal-preenchido { background: var(--foreground); }
+.saude .sinal-marca { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--foreground); }
