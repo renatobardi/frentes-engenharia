@@ -275,6 +275,20 @@ def test_texto_vago_mostra_o_valor_e_o_corte(banco: Path, http: TestClient) -> N
     assert "<strong>0,32</strong>" in html  # no rodapé
 
 
+def test_texto_vago_do_elo_1_mostra_o_corte_proprio_dele(banco: Path, http: TestClient) -> None:
+    elo_1 = RespostaJev("inception/mercury-decide-20260930", _jev().respostas, Uso(120, 45, 310))
+    c = _classificacao(
+        "f5b", estado=Estado.INCERTA, motivo=MotivoIncerta.TEXTO_VAGO, controle=0.2,
+        resposta_jev=elo_1,
+    )  # fmt: skip
+    _gravar(banco, c, evento="f5b", texto="está tudo lento, sei lá")
+
+    html = _pagina(http, "f5b")
+
+    assert "Texto vago: a pergunta de controle deu 0,20, abaixo do corte de 0,30." in html
+    assert 'aria-label="controle 20%, corte 30%"' in html
+
+
 def test_nao_classificada(banco: Path, http: TestClient) -> None:
     c = _classificacao(
         "f6", estado=Estado.NAO_CLASSIFICADA, area_final=None, time_final=None,

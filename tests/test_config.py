@@ -101,6 +101,7 @@ def test_limiares_do_repo_trazem_os_valores_decididos() -> None:
         area=0.5, frente=0.5, natureza=0.5, causa_raiz=0.3, problema=0.5
     )
     assert limiares.texto_vago == 0.5
+    assert limiares.texto_vago_por_modelo == {"inception/mercury-decide:free": 0.3}
     assert limiares.encaixe_fraco_confianca_frente == 0.7
     assert limiares.sinal_de_encaixe == config.SinalDeEncaixe(
         encaixe_fraco=0.12,
@@ -164,6 +165,42 @@ def test_contagem_que_nao_e_inteiro_positivo_e_recusada(tmp_path: Path, valor: s
 
     with pytest.raises(ErroDeConfig, match=r"\[recorrencia\] dias_distintos"):
         config.carregar_limiares(caminho)
+
+
+def test_sem_corte_por_modelo_vale_o_corte_geral(tmp_path: Path) -> None:
+    sem_tabela = LIMIARES.replace(
+        '[controle.por_modelo]\n"inception/mercury-decide:free" = 0.3\n', ""
+    )
+    assert sem_tabela != LIMIARES
+
+    limiares = config.carregar_limiares(limiares_em(tmp_path, sem_tabela))
+
+    assert limiares.texto_vago_por_modelo == {}
+    assert limiares.texto_vago_de("inception/mercury-decide-20260930") == 0.5
+
+
+@pytest.mark.parametrize("valor", ["1.5", "-0.1", '"meio"', "true"])
+def test_corte_por_modelo_fora_de_0_a_1_e_recusado(tmp_path: Path, valor: str) -> None:
+    caminho = limiares_em(
+        tmp_path,
+        LIMIARES.replace(
+            '"inception/mercury-decide:free" = 0.3', f'"inception/mercury-decide:free" = {valor}'
+        ),
+    )
+
+    with pytest.raises(
+        ErroDeConfig, match=r"\[controle\.por_modelo\] inception/mercury-decide:free"
+    ):
+        config.carregar_limiares(caminho)
+
+
+def test_corte_por_modelo_que_nao_e_tabela_e_recusado(tmp_path: Path) -> None:
+    texto = LIMIARES.replace(
+        '[controle.por_modelo]\n"inception/mercury-decide:free" = 0.3\n', ""
+    ).replace("texto_vago = 0.5", 'texto_vago = 0.5\npor_modelo = ["x"]')
+
+    with pytest.raises(ErroDeConfig, match=r"\[controle\] por_modelo deve ser uma tabela"):
+        config.carregar_limiares(limiares_em(tmp_path, texto))
 
 
 def test_env_example_traz_so_os_nomes_dos_tres_segredos() -> None:

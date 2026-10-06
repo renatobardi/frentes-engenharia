@@ -16,6 +16,14 @@ problema = 0.5
 [controle]
 texto_vago = 0.5
 
+# Corte de texto vago do modelo que respondeu (#155), pelo id da cadeia do Jev (o de jev_antes
+# em modelos); casa com o id gravado, que a rota devolve com a data. Modelo fora da tabela, o Jev
+# inclusive, usa o corte acima. O elo 1 dá confiança colada em 1: com 0,5 ele derruba 10 de 194
+# eventos normais (o Jev, 1); com 0,3 pega as mesmas 36 de 40 vagas e derruba 4 (#112, relatório
+# da fase 1, seção 5).
+[controle.por_modelo]
+"inception/mercury-decide:free" = 0.3
+
 # Encaixe fraco (#9): "Nenhum destes" na frente ou confiança da frente abaixo deste valor,
 # contado antes do desempate da LLM.
 [encaixe_fraco]
