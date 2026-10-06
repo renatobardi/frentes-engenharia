@@ -1,0 +1,24 @@
+/* O passeio guiado do mapa (#139): o balão e o destaque do alvo. Os dois são `position: fixed`
+   e o guia.js escreve top/left/width/height a cada passo, rolagem e troca do HTMX. Fica acima
+   do cabeçalho e das gavetas (z-index 20/21) e abaixo do toast (50). */
+.guia-destaque {
+  position: fixed; z-index: 30; pointer-events: none; border-radius: var(--raio);
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--foreground),
+              0 0 0 200vmax color-mix(in oklab, var(--foreground) 32%, transparent);
+  transition: top var(--t), left var(--t), width var(--t), height var(--t);
+}
+.guia {
+  position: fixed; z-index: 31; width: min(340px, calc(100vw - 24px)); padding: 14px 16px 12px;
+  box-shadow: var(--anel), 0 12px 32px color-mix(in oklab, var(--foreground) 18%, transparent);
+  transition: top var(--t), left var(--t);
+}
+.guia[hidden], .guia-destaque[hidden] { display: none; }
+.guia-conta { margin: 0 0 2px; }
+.guia h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+.guia #guia-texto { margin: 0; color: var(--muted-foreground); }
+.guia-acoes { display: flex; gap: 8px; margin-top: 12px; }
+.guia-acoes [data-guia-pular] { margin-right: auto; margin-left: -12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .guia, .guia-destaque { transition: none; }
+}

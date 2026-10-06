@@ -193,6 +193,7 @@ Lista derivada da [spec do roteiro][spec]. Os itens abaixo permanecem **não ver
 - Conferir a leitura dos números e o salto da rajada a três metros.
 - Conferir o serviço externo antes da reunião, conforme a spec; isso não foi feito nesta sessão.
 - Recarregar o snapshot como último passo antes da reunião, num procedimento autorizado. A recarga desfaz as escritas do ensaio.
+- Abrir o mapa uma vez com `?guia=0` no navegador e no endereço da demo, antes da reunião: isso desliga o passeio guiado ([#139][i139]) naquele navegador. Sem isso, o passeio abre sozinho sobre o mapa na primeira tela. Conferido só numa app local, não no oute-server.
 - Preparar o slide de abertura, os slides de reserva e a página das cinco linhas do pedido; são entregas do Bardi.
 
 ## Fontes reproduzíveis
@@ -377,6 +378,7 @@ PY
 [spec]: ../spec/11-demo-e-roteiro.md
 [pr113]: https://github.com/renatobardi/frentes-engenharia/pull/113
 [i114]: https://github.com/renatobardi/frentes-engenharia/issues/114
+[i139]: https://github.com/renatobardi/frentes-engenharia/issues/139
 [snapshot]: https://github.com/renatobardi/frentes-engenharia/blob/3f68184/data/snapshot/frentes.sqlite.gz
 [carregador]: https://github.com/renatobardi/frentes-engenharia/blob/3f68184/frentes/snapshot/arquivo.py#L127
 [conferir-cli]: https://github.com/renatobardi/frentes-engenharia/blob/3f68184/frentes/conferencia/cli.py
