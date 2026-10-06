@@ -93,7 +93,10 @@ def test_429_sem_retry_after_ate_o_fim_das_tentativas_e_erro_jev(perguntas):
         perguntar(perguntas, *[httpx.Response(429)] * OPERACAO.tentativas)
 
 
-@pytest.mark.parametrize("status", [400, 404])
+# 422: medido em 2026-10-06 (#155): um pedido de cerca de 209 mil caracteres, acima do contexto
+# de 33K do elo 1, voltou HTTP 422 "Decision service could not complete the request". Erro
+# do pedido, não do serviço: repetir não adianta, e a cadeia passa ao elo seguinte.
+@pytest.mark.parametrize("status", [400, 404, 422])
 def test_recusa_e_guardrail_sao_erro_jev_sem_repetir(perguntas, status):
     recusa = httpx.Response(status, json={"error": {"message": "No endpoints found"}})
 
