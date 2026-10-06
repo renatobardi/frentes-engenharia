@@ -64,29 +64,33 @@ def test_menu_marca_o_item_do_caminho_atual(tmp_path: Path) -> None:
     assert 'class="nav-item" href="/"' in html
 
 
-def test_menu_so_mostra_decisoes_e_saude_quando_a_tela_existe(tmp_path: Path) -> None:
+def test_menu_so_mostra_o_item_cuja_tela_existe(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # um item de menu inventado no fim: o que vale para Decisões e Saúde vale para ele, sem
+    # depender de qual das duas telas já existe na pasta `web/`
+    monkeypatch.setattr(telas, "MENU", (*telas.MENU, ("Extra", "/extra")))
+    monkeypatch.setattr(telas, "ICONES_DO_MENU", {**telas.ICONES_DO_MENU, "/extra": "list"})
     with encaixado(eventos.web, tmp_path, tela("minha_tela")):
         sem = cliente().get("/minha_tela").text
-    assert 'href="/decisoes"' not in sem
-    assert 'href="/saude"' not in sem
+    assert 'href="/extra"' not in sem
 
-    with encaixado(eventos.web, tmp_path / "com", {**tela("decisoes"), **tela("saude")}):
-        http = cliente()
-        com = http.get("/decisoes").text
-        saude = http.get("/saude").text
+    with encaixado(eventos.web, tmp_path / "com", tela("extra")):
+        com = cliente().get("/extra").text
 
-    assert re.search(r'href="/decisoes" aria-current="page">.*Decisões', com)
-    assert re.search(r'class="nav-item" href="/saude">.*Saúde', com)
-    assert 'href="/saude" aria-current="page"' in saude
-    # a ordem do menu: as três de antes, depois as duas novas
-    destinos = re.findall(r'class="nav-item" href="([^"]*)"', com)
-    assert destinos == ["/", "/eventos", "/taxonomia", "/decisoes", "/saude"]
-    # cada item novo tem ícone desenhado
-    assert all(
-        len(re.findall(r"<svg", trecho)) == 1
-        for trecho in re.findall(
-            r'<a class="nav-item" href="/(?:decisoes|saude)".*?</a>', com, flags=re.S
+    assert re.search(r'href="/extra" aria-current="page">.*Extra', com)
+    # o item novo vem depois dos que já estavam, com ícone desenhado
+    assert (
+        re.findall(r'class="nav-item" href="([^"]*)"', com.replace(' aria-current="page"', ""))[-1]
+        == "/extra"
+    )
+    assert (
+        len(
+            re.findall(
+                r"<svg", re.search(r'<a class="nav-item" href="/extra".*?</a>', com, re.S)[0]
+            )
         )
+        == 1
     )
 
 

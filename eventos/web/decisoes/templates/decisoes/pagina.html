@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+{% block titulo %}Decisões · frentes-engenharia{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/decisoes.css">{% endblock %}
+{% block conteudo %}
+<section class="decisoes">
+  <div class="pagina-cab">
+    <div class="pagina-cab-texto">
+      <h1>Decisões</h1>
+      <p class="desc">Onde já se decidiu investir e o que o índice fez depois, e as células quentes que ainda não têm decisão.</p>
+    </div>
+  </div>
+
+  <form class="filtros" action="/decisoes" method="get">
+    <label>Visão
+      <select name="visao">
+        {% for valor, nome in visoes %}<option value="{{ valor.value }}"{% if valor == visao %} selected{% endif %}>{{ nome }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Período da fila
+      <select name="periodo">
+        {% for valor, nome in periodos %}<option value="{{ valor.value }}"{% if valor == periodo %} selected{% endif %}>{{ nome }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Taxonomia
+      <select name="versao">
+        {% for n in versoes %}<option value="{{ n }}"{% if n == versao %} selected{% endif %}>v{{ n }}{% if n == vigente %} vigente{% endif %}</option>{% endfor %}
+      </select>
+    </label>
+    <button class="btn btn-outline btn-sm" type="submit">Aplicar</button>
+  </form>
+
+  <h2 class="decisoes-titulo">Endereçadas <span class="num fino">{{ decididas|length }}</span></h2>
+  {% if decididas %}
+  <div class="card rolagem">
+    <table class="tabela" id="enderecadas">
+      <thead><tr>
+        <th>Célula</th><th>Decisão</th><th>Quando</th><th class="num">Índice antes</th><th class="num">Índice agora</th><th class="num">Variação</th>
+      </tr></thead>
+      <tbody>
+        {% for d in decididas %}
+        <tr class="linha-clicavel">
+          <td><a class="decisao-link" href="{{ d.destino }}"><strong>{{ d.area }}</strong> <span class="muted">× {{ d.frente }}</span></a></td>
+          <td class="decisao-texto">{{ d.texto }}<span class="meta muted"><span class="badge badge-secundario">{{ d.tipo }}</span>{% if d.quem %} · decidiu {{ d.quem }}{% endif %}</span></td>
+          <td class="num">◆ {{ d.data }}</td>
+          <td class="num">{{ d.antes }}</td>
+          <td class="num">{{ d.agora }}{% if d.ate and not d.sem_base %}<span class="meta muted"> até {{ d.ate }}</span>{% endif %}</td>
+          <td class="num">{% if d.sem_base %}<span class="muted">sem base de comparação</span>{% else %}<span class="seta">{{ d.seta }}{{ d.variacao }}</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="meta muted">Índice mensal, como na evolução do painel: o do mês da decisão contra o do último mês fechado. Não muda o índice nem a ordem do mapa.</p>
+  {% else %}
+  <div class="estado-vazio card">{{ icone("circle-check") }}<p>Nenhuma célula endereçada nesta visão e versão.</p><a class="btn btn-outline" href="{{ mapa }}">Ver o mapa</a></div>
+  {% endif %}
+
+  <h2 class="decisoes-titulo">Fila sem decisão <span class="num fino">{{ fila.total }}</span></h2>
+  {% if fila.celulas %}
+  <div class="card rolagem">
+    <table class="tabela" id="fila">
+      <thead><tr><th class="num">#</th><th>Célula</th><th class="num">Índice</th><th class="num">Tendência</th></tr></thead>
+      <tbody>
+        {% for c in fila.celulas %}
+        <tr class="linha-clicavel">
+          <td class="num">{{ c.posicao }}</td>
+          <td><a class="decisao-link" href="{{ c.destino }}"><strong>{{ c.area }}</strong> <span class="muted">× {{ c.frente }}</span></a></td>
+          <td class="num">{{ c.indice }}</td>
+          <td class="num">{% if c.seta %}<span class="seta">{{ c.seta }}{{ c.variacao }}</span>{% else %}<span class="muted">–</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="meta muted">As {{ tamanho_da_fila }} mais quentes{% if fila.total > fila.celulas|length %} de {{ fila.total }}{% endif %}, no período escolhido.</p>
+  {% else %}
+  <div class="estado-vazio card">{{ icone("circle-check") }}<p>Nenhuma célula quente sem decisão neste período.</p></div>
+  {% endif %}
+</section>
+{% endblock %}
