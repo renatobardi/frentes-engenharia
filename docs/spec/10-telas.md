@@ -37,6 +37,15 @@ As cinco telas e o menu. Quase tudo vem de [R22]; o que o mapa calcula está em 
 - Célula: índice, seta de tendência (sem seta em 12 meses), "+N incertas". [R2] [R22]
 - **Selo do endereçamento**: "◆ dd/mm" no canto de baixo da célula, sobre fundo claro; no Top 3, "◆ endereçada em dd/mm". Aparece em qualquer período. [R22]
 
+### Passeio guiado
+
+- Cinco balões na tela do mapa, cada um ancorado num elemento: o seletor de visão, o Top 3, a célula do Top 1 na grade, os contadores fora da grade e o botão "Relatar uma frente". Os textos estão em `frentes/web/mapa/templates/mapa/guia.html`. [#139]
+- **Abre sozinho na primeira visita** ao mapa. "Pular", "Concluir" e Esc fecham e gravam a dispensa no navegador (`localStorage`); depois disso só abre pelo botão **"Como ler o mapa"**, no cabeçalho. [#139]
+- Não abre sozinho quando o endereço já abre uma célula, na tela sem banco, nem sem JavaScript. [#139]
+- **`?guia=0`** no endereço não abre o passeio e grava a dispensa: uma visita com ele desliga o passeio naquele navegador. É o que a demo usa. [#139]
+- Passo cujo alvo não está na tela é pulado. O balão segue o alvo depois da troca do HTMX. [#139]
+- Só o mapa tem passeio. A dispensa não vai ao servidor: outro navegador ou outro endereço vê o passeio de novo. [#139]
+
 ### Painel da célula
 
 Cabeçalho (célula, visão, período, índice, seta, selo) e os blocos, nesta ordem: [R22]
@@ -134,3 +143,4 @@ A lista de frentes é a primeira tela a cortar; depois, a versão vigente e o hi
 [R22]: https://github.com/renatobardi/frentes-engenharia/issues/22#issuecomment-5975630924 "Telas do PoC além do mapa de calor"
 [R23]: https://github.com/renatobardi/frentes-engenharia/issues/23#issuecomment-5975570909 "Stack e onde o PoC roda"
 [R24]: https://github.com/renatobardi/frentes-engenharia/issues/24#issuecomment-5975617171 "Área quando quem relata não é o dono do objeto"
+[#139]: https://github.com/renatobardi/frentes-engenharia/issues/139 "Passeio guiado no mapa de calor"
