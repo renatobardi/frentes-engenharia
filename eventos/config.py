@@ -69,6 +69,11 @@ class Operacao:
     painel_espera_s: float
     modelo_jev: str
     modelo_llm: str
+    # Cadeia do Jev (#112): os elos antes do Jev direto, o paralelismo deles e o disjuntor.
+    modelos_antes_do_jev: tuple[str, ...] = ()
+    semaforo_decisoes: int = 4
+    disjuntor_falhas: int = 5
+    disjuntor_pausa_s: float = 300.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +120,15 @@ def _texto(tabela: Mapping[str, Any], secao: str, chave: str) -> str:
     return valor.strip()
 
 
+def _textos(tabela: Mapping[str, Any], secao: str, chave: str) -> tuple[str, ...]:
+    valor = _valor(tabela, secao, chave)
+    if not isinstance(valor, list) or not all(isinstance(v, str) and v.strip() for v in valor):
+        raise ErroDeConfig(
+            f"limiares: [{secao}] {chave} deve ser uma lista de textos, veio {valor!r}"
+        )
+    return tuple(v.strip() for v in valor)
+
+
 def _valor(tabela: Mapping[str, Any], secao: str, chave: str) -> Any:
     try:
         return tabela[secao][chave]
@@ -147,6 +161,10 @@ def carregar_operacao(caminho: Path = LIMIARES_PADRAO) -> Operacao:
         painel_espera_s=_segundos(bruto, "fila", "painel_espera_s"),
         modelo_jev=_texto(bruto, "modelos", "jev"),
         modelo_llm=_texto(bruto, "modelos", "llm"),
+        modelos_antes_do_jev=_textos(bruto, "modelos", "jev_antes"),
+        semaforo_decisoes=_inteiro(bruto, "concorrencia", "decisoes"),
+        disjuntor_falhas=_inteiro(bruto, "disjuntor", "falhas_seguidas"),
+        disjuntor_pausa_s=_segundos(bruto, "disjuntor", "pausa_s"),
     )
 
 

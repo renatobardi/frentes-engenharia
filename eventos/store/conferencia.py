@@ -51,6 +51,7 @@ class UsoDaVersao:
     latencia_ms: int  # soma das latências das chamadas ao Jev
     primeira: str | None  # `classificada_em` mais antigo e mais novo
     ultima: str | None
+    por_modelo: tuple[armazem.UsoDoModelo, ...] = ()  # o Jev, por modelo que respondeu
 
 
 def classificadas(con: Conexao, versao: int) -> list[Linha]:
@@ -125,6 +126,7 @@ def uso_por_versao(con: Conexao) -> list[UsoDaVersao]:
                 latencia_ms=extra["ms"] or 0,
                 primeira=extra["de"],
                 ultima=extra["ate"],
+                por_modelo=tuple(totais.por_modelo),
             )
         )
     return achados

@@ -33,7 +33,7 @@ from typing import Any
 from fastapi import FastAPI
 
 from eventos import config, store
-from eventos.classificacao import regras
+from eventos.classificacao import precos, regras
 from eventos.contratos import (
     Classificacao,
     ClienteJev,
@@ -163,7 +163,7 @@ class Progresso:
 
     @property
     def custo_jev_usd(self) -> float:
-        return self.totais.jev_entrada * PRECO_JEV_USD_POR_MTOK / 1_000_000
+        return _custo_do_jev(self.totais)
 
     def texto(self) -> str:
         t = self.totais
@@ -581,9 +581,16 @@ class VersaoAntiga(Exception):
     """Pediram para classificar uma versão menor que a vigente."""
 
 
-# Preço do Jev: US$ 0,042 por milhão de tokens de entrada, saída grátis (spec 02, [R5]).
-# A spec não traz preço da LLM: o custo estimado cobre só o Jev.
-PRECO_JEV_USD_POR_MTOK = 0.042
+def _custo_do_jev(totais: "armazem.Totais") -> float:
+    """A soma do custo de cada modelo que respondeu como Jev (`classificacao/precos.py`).
+    Modelo sem preço na tabela não soma. A spec não traz preço da LLM: ela fica de fora."""
+    return sum(precos.custo_usd(m.modelo, m.entrada) or 0.0 for m in totais.por_modelo)
+
+
+def _linha_do_modelo(m: "armazem.UsoDoModelo") -> str:
+    custo = precos.custo_usd(m.modelo, m.entrada)
+    valor = "sem preço na tabela" if custo is None else f"US$ {custo:.4f}"
+    return f"  {m.modelo}: {m.eventos} eventos, {m.entrada} tokens de entrada, {valor}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -601,7 +608,7 @@ class ResumoDaVersao:
 
     @property
     def custo_estimado_usd(self) -> float:
-        return self.totais.jev_entrada * PRECO_JEV_USD_POR_MTOK / 1_000_000
+        return _custo_do_jev(self.totais)
 
     @property
     def completo(self) -> bool:
@@ -618,6 +625,8 @@ class ResumoDaVersao:
             f"tokens: Jev {t.jev_entrada} de entrada e {t.jev_saida} de saída; "
             f"LLM {t.llm_entrada} e {t.llm_saida}"
         )
+        linhas.append("Jev, por modelo que respondeu:")
+        linhas += [_linha_do_modelo(m) for m in t.por_modelo]
         linhas.append(
             f"custo estimado: US$ {self.custo_estimado_usd:.4f} (só o Jev; "
             f"a spec não tem preço da LLM), tempo: {self.segundos:.1f} s"
@@ -673,14 +682,18 @@ def motivo_pendente(app: FastAPI, evento_id: str) -> str | None:
 def montar_fila(app: FastAPI | None, cfg: config.Config) -> tuple[Fila, dict[str, Any]]:
     """A fila com os clientes reais, e os clientes do Jev para quem fechar (`aclose`) depois."""
     # Import aqui: a rede só entra na hora de montar os clientes reais.
-    from eventos.jev import ClienteTypesafe
+    from eventos.jev import ClienteEmCadeia, montar_cadeia
     from eventos.llm import ClienteOpenRouter
 
     clientes: dict[str, Any] = {}
 
-    def jev_para(modelo: str) -> ClienteTypesafe:
+    def jev_para(modelo: str) -> ClienteEmCadeia:
+        # A cadeia (#112): os elos da configuração e, por último, o Jev direto com o modelo
+        # da versão. Sem elo antes, a cadeia tem só o Jev direto.
         if modelo not in clientes:
-            clientes[modelo] = ClienteTypesafe(cfg.typesafe_api_key, modelo, cfg.operacao)
+            clientes[modelo] = montar_cadeia(
+                cfg.typesafe_api_key, cfg.openrouter_api_key, modelo, cfg.operacao
+            )
         return clientes[modelo]
 
     llm = ClienteOpenRouter(cfg.openrouter_api_key, cfg.operacao)

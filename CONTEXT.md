@@ -64,6 +64,14 @@ _Avoid_: id da frente, slug
 As respostas que um evento recebeu em cada dimensão de uma versão da taxonomia, cada uma com a sua confiança. Um evento acumula uma classificação por versão, e só a da versão vigente conta no mapa. Guarda a resposta inteira do Jev, com a probabilidade de cada opção, e o resultado final sai dela pelas regras de confiança.
 _Avoid_: categorização, rótulo
 
+**Cadeia do Jev**:
+A lista ordenada de modelos que respondem à chamada do Jev, com o mesmo pedido e a mesma resposta. O primeiro é tentado, e o seguinte entra quando o anterior falha. O Jev direto é o último. A classificação guarda o modelo que respondeu.
+_Avoid_: fallback, roteador
+
+**Elo**:
+Um modelo da cadeia do Jev, na posição dele. Um elo cai quando falha e o evento passa ao seguinte.
+_Avoid_: provedor, etapa
+
 **Área**:
 A parte do organograma dona do objeto de que o evento fala (sistema, tela, rotina ou fornecedor), porque investir é consertar a causa. Quando quem sofre e o dono divergem, vale o dono: se o time A relata que um sistema do time B falha e o atrapalha, a área é a de B. É a única lista de valores escrita por nós, não pela LLM.
 _Avoid_: departamento, setor

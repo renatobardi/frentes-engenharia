@@ -245,6 +245,9 @@ LIDOS_DO_ARQUIVO = [
     ("fila", "varredura_s", "30", "31", lambda c: c.operacao.varredura_s),
     ("fila", "painel_espera_s", "30", "32", lambda c: c.operacao.painel_espera_s),
     ("modelos", "jev", '"jev-latest"', '"jev-9"', lambda c: c.operacao.modelo_jev),
+    ("concorrencia", "decisoes", "4", "5", lambda c: c.operacao.semaforo_decisoes),
+    ("disjuntor", "falhas_seguidas", "5", "6", lambda c: c.operacao.disjuntor_falhas),
+    ("disjuntor", "pausa_s", "300", "301", lambda c: c.operacao.disjuntor_pausa_s),
     (
         "modelos",
         "llm",
@@ -293,7 +296,31 @@ def test_operacao_do_repo_traz_os_valores_decididos() -> None:
         painel_espera_s=30.0,
         modelo_jev="jev-latest",
         modelo_llm="deepseek/deepseek-v4-flash",
+        modelos_antes_do_jev=("inception/mercury-decide:free", "perplexity/pplx-decider-v1-27b"),
+        semaforo_decisoes=4,
+        disjuntor_falhas=5,
+        disjuntor_pausa_s=300.0,
     )
+
+
+ELOS = 'jev_antes = ["inception/mercury-decide:free", "perplexity/pplx-decider-v1-27b"]'
+
+
+def test_a_cadeia_do_jev_e_lida_na_ordem_do_arquivo_e_pode_ser_vazia(tmp_path: Path) -> None:
+    assert ELOS in LIMIARES
+    trocada = limiares_em(tmp_path, LIMIARES.replace(ELOS, 'jev_antes = ["b/dois", " a/um "]'))
+    assert config.carregar_operacao(trocada).modelos_antes_do_jev == ("b/dois", "a/um")
+
+    vazia = limiares_em(tmp_path, LIMIARES.replace(ELOS, "jev_antes = []"))
+    assert config.carregar_operacao(vazia).modelos_antes_do_jev == ()
+
+
+@pytest.mark.parametrize("valor", ['"um/modelo"', "[1]", '[""]', "3"])
+def test_cadeia_do_jev_que_nao_e_lista_de_textos_e_recusada(tmp_path: Path, valor: str) -> None:
+    caminho = limiares_em(tmp_path, LIMIARES.replace(ELOS, f"jev_antes = {valor}"))
+
+    with pytest.raises(ErroDeConfig, match=r"\[modelos\] jev_antes deve ser uma lista de textos"):
+        config.carregar_operacao(caminho)
 
 
 @pytest.mark.parametrize("valor", ["0", "-1", '"cinco"', "true"])

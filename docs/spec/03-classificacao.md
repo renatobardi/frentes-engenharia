@@ -8,7 +8,7 @@ O pipeline por evento: a chamada ao Jev, as regras de confiança, o desempate da
 |---|---|---|
 | Caminho | API direta da TypeSafe: `POST https://api.typesafe.ai/v1/systemone`, `Authorization: Bearer $TYPESAFE_API_KEY` [R5] | OpenRouter, `OPENROUTER_API_KEY` [R5] |
 | Modelo | `jev-latest` (respondeu `jev-1.13.0`) [R5] | `deepseek/deepseek-v4-flash`, **sem raciocínio** (`reasoning.enabled=false`), em todos os papéis [R6] |
-| Papel | classifica as 8 dimensões e a pergunta de controle | desempate, painel da célula, descoberta e revisão [R6] |
+| Papel | classifica as 8 dimensões e a pergunta de controle; desde [C112], é o último elo da cadeia (abaixo) | desempate, painel da célula, descoberta e revisão [R6] |
 
 - Pelo OpenRouter não sai saída tipada: `typesafe/jev-router` roteia para uma LLM. [R5]
 - O guardrail do workspace do OpenRouter bloqueia Gemini e GLM; só passam DeepSeek e Qwen. [R6]
@@ -23,6 +23,25 @@ O pipeline por evento: a chamada ao Jev, as regras de confiança, o desempate da
 - Sem endpoint de lote: todas as perguntas de um evento numa chamada, e os eventos em chamadas concorrentes. [R5]
 - Há pequena variação entre chamadas iguais (0,88 contra 0,85): a classificação é gravada uma vez, sem reclassificar na hora da demo. [R5]
 - Medido: 0,28 a 0,32 s por chamada do oute-server [R5]; 252 eventos em 6,6 s, 0 erros [R9].
+
+### Cadeia do Jev
+
+Decisão do Bardi em 2026-10-06 [C112]: a chamada das 8 dimensões passa por uma lista ordenada de elos. O primeiro é tentado, e o seguinte entra quando o anterior falha.
+
+| Elo | Modelo | Caminho | Preço |
+|---|---|---|---|
+| 1 | `inception/mercury-decide:free` | OpenRouter, `POST https://openrouter.ai/api/alpha/decisions`, `OPENROUTER_API_KEY` | gratuito; 1.000 requisições por dia e contexto de 33K [C112] |
+| 2 | `perplexity/pplx-decider-v1-27b` | a mesma rota | US$0,04 por milhão de tokens de entrada [M112] |
+| 3 | o `modelo_jev` da versão (`jev-latest`) | TypeSafe direto, como acima | US$0,042 por milhão de tokens de entrada [R5] |
+
+- **O pedido e a resposta são os do Jev** nos três elos: `{model, state, questions}` e `answers`. O mesmo código lê os três. [M112]
+- **Passa ao elo seguinte** com erro HTTP (404 de guardrail, 400, 5xx), tempo esgotado, limite de taxa, resposta fora do formato ou `answers` sem as perguntas pedidas. No 429 o elo respeita o `Retry-After` e esgota as tentativas dele antes de cair. [C112]
+- **O modelo que respondeu é gravado** em `resposta_jev.modelo`, como já era. O custo estimado e a conferência separam as chamadas por esse modelo. [C112]
+- **Disjuntor**: o elo que falha 5 vezes seguidas é pulado por 300 s; depois é tentado de novo. O último elo nunca é pulado. Os dois valores são da construção e ficam em `[disjuntor]` do `config/limiares.toml`. [C112]
+- **Configuração**: os elos antes do Jev direto são a lista `[modelos] jev_antes`; lista vazia deixa só o Jev direto. O paralelismo de cada elo do OpenRouter é `[concorrencia] decisoes` (4). [C112]
+- **As quedas por elo** (respostas, quedas e pulos) são contadas na memória do processo: o comando `classificar` as imprime no fim, e cada queda vai ao log. Não ficam no banco.
+- **Os limiares são um conjunto só**, calibrado no Jev. Medido em 200 eventos [M112]: o elo 1 acerta a área como o Jev (90,8% contra 91,3%), mas a confiança dele fica colada em 1 (mediana 0,9999) e o corte de 0,5 da pergunta de controle derruba 10 de 194 eventos normais (o Jev derruba 1). Limiar por elo é decisão a tomar.
+- **Escalas diferentes no mesmo mapa**: a severidade média foi 0,38 no elo 1 e 0,48 no Jev [M112]. Célula com eventos de elos diferentes soma as duas.
 
 ## Passos
 
@@ -113,6 +132,8 @@ Tempo limite, tentativas e a varredura das pendentes estão em [12](12-operacao-
 - **Texto vago e o "+N".** Em [R6] o evento de texto vago era uma incerta como as outras; [R14] a tirou do "+N" das células e deu contador próprio. Vale [R14].
 - **Limiar do problema.** [R8] decidiu 0,5 sem medição; [R11] mediu e manteve.
 
+[C112]: https://github.com/renatobardi/frentes-engenharia/issues/112#issuecomment-6012905157 "Roteiro da cadeia do Jev"
+[M112]: https://github.com/renatobardi/frentes-engenharia/issues/112#issuecomment-6013067041 "Medição dos elos 1 e 2 contra o Jev do snapshot"
 [R2]: https://github.com/renatobardi/frentes-engenharia/issues/2#issuecomment-5963209961 "Métrica de onde investir e eixos do mapa de calor"
 [R3]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963699217 "Taxonomia das frentes"
 [R3a]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963730296 "Taxonomia das frentes: adendo das facetas secundárias"

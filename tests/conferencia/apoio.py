@@ -72,6 +72,7 @@ def evento(
     tokens: tuple[int, int, int] = (1, 1, 1),
     classificada_em: str = "2026-10-03T12:00:01Z",
     resposta_llm: str | None = None,
+    modelo: str = "jev-1",
     **gabarito: object,
 ) -> Gabarito:
     """Grava o evento e a classificação dela na versão e devolve o gabarito (que o teste
@@ -85,7 +86,7 @@ def evento(
     linha = {
         "evento_id": id,
         "versao": versao,
-        "resposta_jev": '{"modelo": "jev-1", "respostas": {}}',
+        "resposta_jev": json.dumps({"modelo": modelo, "respostas": {}}),
         "conf_area": 0.9,
         "conf_natureza": 0.9,
         "severidade": severidade,

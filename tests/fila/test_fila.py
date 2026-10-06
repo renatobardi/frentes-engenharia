@@ -29,7 +29,7 @@ from eventos.contratos import (
     VersaoTaxonomia,
     para_iso,
 )
-from eventos.jev import ClienteTypesafe, ErroJev
+from eventos.jev import ClienteEmCadeia, ClienteTypesafe, Elo, ErroJev
 from eventos.llm import ClienteOpenRouter, ErroLlmEsgotado
 from eventos.store import classificacao as armazem
 from eventos.store import evento as armazem_evento
@@ -890,3 +890,93 @@ def test_parar_logo_depois_de_agendar_nao_deixa_corrotina_sem_aguardar(banco: Pa
 
     assert [str(a.message) for a in avisos if "never awaited" in str(a.message)] == []
     assert ler(banco, "f1") is None
+
+
+# ------------------------------------------------------------------------- cadeia do Jev (#112)
+
+
+def em_cadeia(*clientes: Any) -> ClienteEmCadeia:
+    elos = [Elo(f"elo-{i}", c) for i, c in enumerate(clientes, start=1)]
+    return ClienteEmCadeia(elos, falhas_para_pausar=5, pausa_s=300.0)
+
+
+def modelo_gravado(banco: Path, id_: str) -> str | None:
+    with closing(store.abrir(banco)) as con:
+        linha = con.execute(
+            "SELECT json_extract(resposta_jev, '$.modelo') AS m FROM classificacao"
+            " WHERE evento_id = ?",
+            (id_,),
+        ).fetchone()
+    return linha["m"] if linha else None
+
+
+def de(modelo: str) -> Any:
+    return replace(jev(), modelo=modelo)
+
+
+def test_cadeia_o_primeiro_elo_falha_o_segundo_responde_e_o_gravado_e_o_que_respondeu(
+    banco: Path,
+) -> None:
+    gravar_evento(banco, "f1", "texto")
+    cadeia = em_cadeia(
+        JevFalso({"texto": ErroJev("HTTP 404")}),
+        JevFalso({"texto": de("perplexity/pplx-decider-v1-27b-20261001")}),
+        JevFalso({}),  # o Jev direto não é chamado: sem gravação, falharia o teste
+    )
+
+    varrer(montar(banco, cadeia, LlmFalsa({})))
+
+    c = ler(banco, "f1")
+    assert c is not None and c.estado is Estado.CLASSIFICADA
+    assert c.resposta_jev.modelo == "perplexity/pplx-decider-v1-27b-20261001"
+    assert modelo_gravado(banco, "f1") == "perplexity/pplx-decider-v1-27b-20261001"
+    assert [(e.respostas, e.quedas) for e in cadeia.contagem()] == [(0, 1), (1, 0), (0, 0)]
+
+
+def test_cadeia_os_dois_primeiros_falham_e_o_gravado_e_o_jev_direto(banco: Path) -> None:
+    gravar_evento(banco, "f1", "texto")
+    cadeia = em_cadeia(
+        JevFalso({"texto": ErroJev("tempo esgotado")}),
+        JevFalso({"texto": ErroJev("HTTP 429")}),
+        JevFalso({"texto": de("jev-1.13.0")}),
+    )
+
+    varrer(montar(banco, cadeia, LlmFalsa({})))
+
+    assert modelo_gravado(banco, "f1") == "jev-1.13.0"
+
+
+def test_cadeia_os_tres_falham_e_o_evento_fica_pendente_com_o_motivo_de_cada_elo(
+    banco: Path,
+) -> None:
+    gravar_evento(banco, "f1", "texto")
+    cadeia = em_cadeia(
+        JevFalso({"texto": ErroJev("HTTP 404")}),
+        JevFalso({"texto": ErroJev("HTTP 429")}),
+        JevFalso({"texto": ErroJev("tempo esgotado")}),
+    )
+    f = montar(banco, cadeia, LlmFalsa({}))
+
+    varrer(f)
+
+    motivo = f.motivo_pendente("f1")
+    assert ler(banco, "f1") is None
+    assert motivo is not None and "nenhum elo da cadeia do Jev respondeu" in motivo
+    assert "elo-1: HTTP 404; elo-2: HTTP 429; elo-3: tempo esgotado" in motivo
+
+
+def test_montar_fila_entrega_a_cadeia_da_configuracao(banco: Path) -> None:
+    async def montar_e_fechar() -> list[str]:
+        f, clientes = fila.montar_fila(None, config.carregar({"EVENTOS_DB": str(banco)}))
+        cliente = f._jev_para("jev-latest")
+        try:
+            assert clientes == {"jev-latest": cliente}
+            return [e.nome for e in cliente.contagem()]
+        finally:
+            await cliente.aclose()
+
+    assert asyncio.run(montar_e_fechar()) == [
+        "inception/mercury-decide:free",
+        "perplexity/pplx-decider-v1-27b",
+        "jev-latest",
+    ]

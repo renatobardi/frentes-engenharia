@@ -474,6 +474,27 @@ def test_uso_por_versao_tokens_custo_e_tempo() -> None:
     assert "1.0 min" in v2.texto
 
 
+def test_uso_separa_as_chamadas_e_o_custo_por_modelo_que_respondeu() -> None:
+    con = banco()
+    versao(con, 1)
+    gratuito, pago = "inception/mercury-decide-20260930", "perplexity/pplx-decider-v1-27b-20261001"
+    gs = [
+        evento(con, tokens=(3_000_000, 1, 1), modelo=gratuito),
+        evento(con, tokens=(1_000_000, 1, 1), modelo=gratuito),
+        evento(con, tokens=(2_000_000, 1, 1), modelo=pago),
+        evento(con, tokens=(1_000_000, 1, 1), modelo="jev-1.13.0"),
+        evento(con, tokens=(5_000_000, 1, 1), modelo="modelo/sem-preco"),
+    ]
+    v1 = por_nome(rodar(con, gs, 1))["versão 1"]
+
+    # 2 M no pago (US$ 0,04 por milhão) + 1 M no Jev (0,042); o gratuito e o sem preço não somam
+    assert v1.medido == pytest.approx(0.08 + 0.042)
+    assert f"{gratuito}: 2 eventos, 4000000 tokens de entrada (US$ 0.00)" in v1.texto
+    assert f"{pago}: 1 eventos, 2000000 tokens de entrada (US$ 0.08)" in v1.texto
+    assert "jev-1.13.0: 1 eventos, 1000000 tokens de entrada (US$ 0.04)" in v1.texto
+    assert "modelo/sem-preco: 1 eventos, 5000000 tokens de entrada (custo não calculado" in v1.texto
+
+
 def _celulas_de_1(con, areas):  # type: ignore[no-untyped-def]
     return [g for area in areas for g in varias(con, 1, "fundo", area_final=area)]
 

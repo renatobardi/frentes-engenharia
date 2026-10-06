@@ -6,7 +6,7 @@ prontas de `eventos.classificacao.regras`.
 """
 
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -175,8 +175,32 @@ def da_versao(con: Conexao, versao: int) -> list[Classificacao]:
 
 
 @dataclass(frozen=True, slots=True)
+class UsoDoModelo:
+    """As chamadas de uma versão respondidas por um modelo, pelo `modelo` de `resposta_jev`."""
+
+    modelo: str
+    eventos: int
+    entrada: int
+    saida: int
+
+
+def uso_por_modelo(con: Conexao, versao: int) -> list[UsoDoModelo]:
+    """O uso do Jev na versão, separado pelo modelo que respondeu, em ordem de nome."""
+    return [
+        UsoDoModelo(linha["modelo"] or "", linha["n"], linha["e"], linha["s"])
+        for linha in con.execute(
+            "SELECT json_extract(resposta_jev, '$.modelo') AS modelo, count(*) AS n, "
+            "coalesce(sum(tokens_entrada), 0) AS e, coalesce(sum(tokens_saida), 0) AS s "
+            "FROM classificacao WHERE versao = ? GROUP BY modelo ORDER BY modelo",
+            (versao,),
+        )
+    ]
+
+
+@dataclass(frozen=True, slots=True)
 class Totais:
-    """O que o banco guarda de uma versão: eventos, estados e tokens (Jev e LLM)."""
+    """O que o banco guarda de uma versão: eventos, estados e tokens (Jev e LLM). Os tokens
+    do Jev somam todos os modelos da cadeia; `por_modelo` os separa."""
 
     eventos: int
     por_estado: Mapping[Estado, int]
@@ -184,6 +208,7 @@ class Totais:
     jev_saida: int
     llm_entrada: int
     llm_saida: int
+    por_modelo: Sequence[UsoDoModelo] = ()
 
 
 def totais(con: Conexao, versao: int) -> Totais:
@@ -210,4 +235,12 @@ def totais(con: Conexao, versao: int) -> Totais:
         uso = _llm_de_json(linha["resposta_llm"]).uso
         llm_entrada += uso.tokens_entrada
         llm_saida += uso.tokens_saida
-    return Totais(eventos, por_estado, jev["e"], jev["s"], llm_entrada, llm_saida)
+    return Totais(
+        eventos,
+        por_estado,
+        jev["e"],
+        jev["s"],
+        llm_entrada,
+        llm_saida,
+        tuple(uso_por_modelo(con, versao)),
+    )

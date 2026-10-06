@@ -12,7 +12,7 @@ import pytest
 from eventos import config, fila, store
 from eventos.classificacao import cli
 from eventos.contratos import Estado, Perguntas, RespostaJev, VersaoTaxonomia, para_iso
-from eventos.jev import ErroJev
+from eventos.jev import ClienteEmCadeia, Elo, ErroJev
 from eventos.store import classificacao as armazem
 from eventos.store import versao as armazem_versao
 from tests.fila.documento import DOCUMENTO, QUANDO
@@ -102,6 +102,8 @@ def test_classifica_tudo_ativa_a_versao_e_o_resumo_bate_com_o_banco(banco: Path)
     texto = resumo.texto()
     assert "versão 2: 3 de 3 eventos classificados" in texto
     assert "via_llm: 1" in texto and "versão 2 ativada" in texto and "US$" in texto
+    assert "Jev, por modelo que respondeu:" in texto
+    assert "  jev-1.13.0: 3 eventos, 30 tokens de entrada, US$ 0.0000" in texto
 
 
 def test_nao_toca_na_versao_vigente_nem_dispara_ganchos_do_painel(banco: Path) -> None:
@@ -372,6 +374,35 @@ def test_comando_classifica_ativa_imprime_o_resumo_e_sai_com_0(
     assert vigente(banco) == 2
 
 
+def test_comando_imprime_as_respostas_e_as_quedas_de_cada_elo_da_cadeia(
+    banco: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("EVENTOS_DB", str(banco))
+    monkeypatch.setenv("TYPESAFE_API_KEY", "chave-falsa-de-teste")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
+    gravar_evento(banco, "f1", "texto")
+    cadeia = ClienteEmCadeia(
+        [
+            Elo("gratuito", JevFalso({"texto": ErroJev("HTTP 429")})),
+            Elo("jev-latest", JevFalso({"texto": jev()})),
+        ],
+        falhas_para_pausar=5,
+        pausa_s=300.0,
+    )
+    monkeypatch.setattr(
+        fila,
+        "montar_fila",
+        lambda app, cfg: (montar(banco, cadeia, LlmFalsa({})), {"jev-latest": cadeia}),
+    )
+
+    assert cli.classificar(["--versao", "2"]) == 0
+
+    saida = capsys.readouterr().out
+    assert "cadeia do Jev nesta execução:" in saida
+    assert "  gratuito: 0 respostas, 1 quedas, 0 pulos" in saida
+    assert "  jev-latest: 1 respostas, 0 quedas, 0 pulos" in saida
+
+
 def test_comando_com_evento_que_falhou_sai_com_1(
     banco: Path, comando: Any, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -613,3 +644,27 @@ def test_comando_recusado_pela_trava_sai_com_2(
         segurada.close()
 
     assert "já está classificando" in capsys.readouterr().err
+
+
+def test_resumo_soma_o_custo_por_modelo_e_diz_qual_nao_tem_preco() -> None:
+    totais = armazem.Totais(
+        eventos=3,
+        por_estado={Estado.CLASSIFICADA: 3},
+        jev_entrada=4_000_000,
+        jev_saida=0,
+        llm_entrada=0,
+        llm_saida=0,
+        por_modelo=(
+            armazem.UsoDoModelo("inception/mercury-decide-20260930", 1, 1_000_000, 0),
+            armazem.UsoDoModelo("modelo/sem-preco", 1, 1_000_000, 0),
+            armazem.UsoDoModelo("perplexity/pplx-decider-v1-27b-20261001", 1, 2_000_000, 0),
+        ),
+    )
+    resumo = fila.ResumoDaVersao(versao=2, totais=totais, recalculadas=0, ativada=True)
+
+    texto = resumo.texto()
+    assert resumo.custo_estimado_usd == pytest.approx(0.08)  # só o pago soma
+    assert "  inception/mercury-decide-20260930: 1 eventos, 1000000 tokens" in texto
+    assert "1000000 tokens de entrada, US$ 0.0000" in texto
+    assert "  modelo/sem-preco: 1 eventos, 1000000 tokens de entrada, sem preço na tabela" in texto
+    assert "custo estimado: US$ 0.0800" in texto
