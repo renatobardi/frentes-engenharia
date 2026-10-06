@@ -33,6 +33,7 @@ from frentes.contratos import (
 
 NOME_NENHUM_DESTES = "Nenhum destes"
 AUSENTE = "—"
+SELO_RECORRENTE = "problema recorrente"
 TOP = 3
 MAX_BARRAS = 6
 _AO_VIVO = (Origem.RELATO, Origem.WEBHOOK)  # as origens ao vivo da spec 01
@@ -195,7 +196,7 @@ def _nivel(regua: tuple[str, ...], valor: float) -> str:
     return f"{regua[max(0, min(indice, len(regua) - 1))]} (nível {indice + 1} de {len(regua)})"
 
 
-def _periodo(ocorrida: datetime) -> Periodo:
+def periodo_da(ocorrida: datetime) -> Periodo:
     """O menor período do mapa em que a frente cabe."""
     dias = (agora() - ocorrida).days
     for periodo, limite in _JANELAS:
@@ -216,7 +217,7 @@ def _onde(c: Classificacao, frente: Frente, nomes: _Nomes) -> Onde | None:
     # só o que o mapa entende: visão, período e versão
     parametros = {
         "visao": visao.value,
-        "periodo": _periodo(frente.data).value,
+        "periodo": periodo_da(frente.data).value,
         "versao": str(c.versao),
     }
     return Onde(
@@ -399,9 +400,16 @@ def _linhas(
     return tuple(linhas)
 
 
-def _marcas(frente: Frente, c: Classificacao | None, limiares: Limiares) -> tuple[str, ...]:
+def _marcas(
+    frente: Frente, c: Classificacao | None, limiares: Limiares, recorrente: bool
+) -> tuple[str, ...]:
     marcas = []
     if c is not None:
+        natureza = (c.natureza_final if c.estado is not Estado.AGUARDANDO_LLM else c.natureza) or (
+            c.natureza
+        )
+        if natureza in _NATUREZAS:
+            marcas.append(_NATUREZAS[natureza])
         if c.estado is Estado.VIA_LLM:
             marcas.append("via LLM")
         if c.estado is Estado.INCERTA:
@@ -410,6 +418,8 @@ def _marcas(frente: Frente, c: Classificacao | None, limiares: Limiares) -> tupl
                 marcas.append("texto vago")
         if c.urgencia >= limiares.urgencia_selo:
             marcas.append("urgente")
+    if recorrente:
+        marcas.append(SELO_RECORRENTE)
     if frente.origem in _AO_VIVO:
         marcas.append("ao vivo")
     return tuple(marcas)
@@ -532,6 +542,7 @@ def montar(
     sem_typesafe: bool,
     sem_openrouter: bool,
     time_do_relator: str | None = None,
+    recorrente: bool = False,
 ) -> Detalhe:
     nomes = _Nomes(documento) if documento else None
     pronto = classificacao is not None and documento is not None and nomes is not None
@@ -540,7 +551,7 @@ def montar(
     return Detalhe(
         frente=frente,
         quando=data(frente.data),
-        marcas=_marcas(frente, classificacao, limiares),
+        marcas=_marcas(frente, classificacao, limiares, recorrente),
         metadados=json.dumps(dict(frente.metadados), ensure_ascii=False, indent=2, default=str)
         if frente.metadados
         else None,
