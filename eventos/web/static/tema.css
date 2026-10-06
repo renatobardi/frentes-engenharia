@@ -1,0 +1,53 @@
+/* Tema escuro (#120): os tokens `.dark` do Kubo (docs/design/v3/tokens/colors.css), com os mesmos
+   nomes dos de app.css. Vem depois do app.css e vale em todas as telas, ligado por <html data-tema="escuro">
+   (tema.js). Sem endereço externo. */
+
+:root[data-tema="escuro"] {
+  color-scheme: dark;
+  --background: oklch(0.147 0.004 49.25);
+  --foreground: oklch(0.985 0.001 106.423);
+  --card: oklch(0.216 0.006 56.043);
+  --primary: oklch(0.92 0.004 106.423);
+  --primary-foreground: oklch(0.205 0.006 56.043);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.268 0.007 34.298);
+  --muted-foreground: oklch(0.709 0.01 56.259);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.553 0.013 58.071);
+  --destructive: oklch(0.704 0.191 22.216);
+  --sidebar: oklch(0.216 0.006 56.043);
+  --sidebar-accent: oklch(0.268 0.007 34.298);
+  /* Âmbar de atenção: o texto "gate" clareia para ler sobre o fundo escuro (o do claro é escuro). */
+  --gate: oklch(0.82 0.14 75);
+
+  /* Escala de calor do mapa. No claro o texto da célula troca de escuro para claro em --escala 0,53
+     (montagem.LIMITE_DO_TEXTO_CLARO, a classe .alta). No escuro a mesma troca precisa de um degrau:
+     texto claro só é legível (4,5:1) até 43% de mistura e texto escuro só a partir de 48%, e uma
+     rampa contínua passaria pelo meio onde nenhum dos dois chega a 4,5:1.
+     Os dois valores abaixo são % de mistura: onde acaba a rampa das células de texto claro (escala até
+     0,53) e onde começa a das de texto escuro (.alta). */
+  --calor-frio-fim: 43;
+  --calor-quente-ini: 48;
+}
+:root[data-tema="escuro"] .celula {
+  --p: calc(5 + (var(--calor-frio-fim) - 5) * var(--escala, 0) / 0.53);
+}
+:root[data-tema="escuro"] .celula.alta {
+  --p: calc(var(--calor-quente-ini) + (90 - var(--calor-quente-ini)) * (var(--escala, 0) - 0.53) / 0.47);
+}
+
+/* Cores fixas do estilo antigo do mapa.css (painel e marcas), trocadas por tokens no escuro. */
+:root[data-tema="escuro"] .painel { background: var(--card); }
+:root[data-tema="escuro"] .atualizando { background: var(--gate-bg); }
+:root[data-tema="escuro"] .tipo-solucao,
+:root[data-tema="escuro"] .marca-recorrente,
+:root[data-tema="escuro"] .marca-incerta { background: var(--secondary); color: var(--secondary-foreground); }
+:root[data-tema="escuro"] .barra-trilho { background: var(--muted); }
+:root[data-tema="escuro"] .selo { background: var(--muted); }
+
+/* O botão do tema: a lua no claro, o sol no escuro. */
+.tema-sol { display: none; }
+:root[data-tema="escuro"] .tema-sol { display: inline; }
+:root[data-tema="escuro"] .tema-lua { display: none; }
