@@ -64,6 +64,62 @@ def test_menu_marca_o_item_do_caminho_atual(tmp_path: Path) -> None:
     assert 'class="nav-item" href="/"' in html
 
 
+def test_menu_so_mostra_decisoes_e_saude_quando_a_tela_existe(tmp_path: Path) -> None:
+    with encaixado(eventos.web, tmp_path, tela("minha_tela")):
+        sem = cliente().get("/minha_tela").text
+    assert 'href="/decisoes"' not in sem
+    assert 'href="/saude"' not in sem
+
+    with encaixado(eventos.web, tmp_path / "com", {**tela("decisoes"), **tela("saude")}):
+        http = cliente()
+        com = http.get("/decisoes").text
+        saude = http.get("/saude").text
+
+    assert re.search(r'href="/decisoes" aria-current="page">.*Decisões', com)
+    assert re.search(r'class="nav-item" href="/saude">.*Saúde', com)
+    assert 'href="/saude" aria-current="page"' in saude
+    # a ordem do menu: as três de antes, depois as duas novas
+    destinos = re.findall(r'class="nav-item" href="([^"]*)"', com)
+    assert destinos == ["/", "/eventos", "/taxonomia", "/decisoes", "/saude"]
+    # cada item novo tem ícone desenhado
+    assert all(
+        len(re.findall(r"<svg", trecho)) == 1
+        for trecho in re.findall(
+            r'<a class="nav-item" href="/(?:decisoes|saude)".*?</a>', com, flags=re.S
+        )
+    )
+
+
+def test_layout_inclui_os_fragmentos_da_busca_e_do_tema_so_quando_existem(tmp_path: Path) -> None:
+    with encaixado(eventos.web, tmp_path, tela("minha_tela")):
+        sem = cliente().get("/minha_tela").text
+    assert "encaixe-" not in sem
+
+    vazio = "from fastapi import APIRouter\nroteador = APIRouter()\n"
+    arquivos = {
+        **tela("minha_tela"),
+        "busca/__init__.py": "",
+        "busca/rotas.py": vazio,
+        "busca/templates/busca/topo.html": '<i id="encaixe-busca"></i>',
+        "tema/__init__.py": "",
+        "tema/rotas.py": vazio,
+        "tema/templates/tema/head.html": '<meta id="encaixe-tema-head">',
+        "tema/templates/tema/topo.html": '<i id="encaixe-tema-topo"></i>',
+    }
+    with encaixado(eventos.web, tmp_path / "com", arquivos):
+        com = cliente().get("/minha_tela").text
+
+    cabeca, corpo = com.split("</head>")
+    assert 'id="encaixe-tema-head"' in cabeca
+    assert cabeca.index("/static/app.css") < cabeca.index("encaixe-tema-head")
+    # no cabeçalho da página, antes do botão "Relatar um evento"
+    assert (
+        corpo.index("encaixe-busca")
+        < corpo.index("encaixe-tema-topo")
+        < corpo.index('<a class="btn" href="/eventos/relatar">')
+    )
+
+
 def test_html_nao_cita_endereco_externo(tmp_path: Path) -> None:
     with encaixado(eventos.web, tmp_path, tela("minha_tela")):
         html = cliente().get("/minha_tela").text

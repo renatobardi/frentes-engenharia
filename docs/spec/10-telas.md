@@ -1,10 +1,11 @@
 # 10 · Telas
 
-As cinco telas e o menu. Quase tudo vem de [R22]; o que o mapa calcula está em [06](06-mapa-e-painel.md).
+As sete telas, o menu, a busca e o tema escuro. Quase tudo vem de [R22]; o que o mapa calcula está em [06](06-mapa-e-painel.md). As telas Decisões e Saúde da classificação, a busca, o tema escuro e a fonte vêm das issues [#117] a [#121], autorizadas na [#145]: a spec as descreve aqui, e cada issue constrói a sua.
 
 ## Restrições de stack
 
-- HTML renderizado no servidor (Jinja2) + HTMX, sem build. CSS num arquivo só, escrito à mão. Tudo servido de `static/` (inclusive o `htmx.min.js`): **nenhum CDN, nenhuma fonte web**. Sem biblioteca de componentes. [R23]
+- HTML renderizado no servidor (Jinja2) + HTMX, sem build. CSS num arquivo só, escrito à mão. Tudo servido de `static/` (inclusive o `htmx.min.js`): **nenhum CDN**. Sem biblioteca de componentes. [R23]
+- **Uma fonte web só**: a `InterVariable.woff2`, servida de `static/` ([ADR-0001](../adr/0001-stack.md), linha 3). Nenhuma outra, e nenhuma de fora. [#121]
 - Gráfico de evolução: SVG gerado no servidor. [R23]
 - Sem login. [R22] [R23]
 - A visão, o período, a versão, a célula e o evento abertos cabem no **endereço da página**, para o roteiro ter um link por passo. [R22]
@@ -19,8 +20,12 @@ As cinco telas e o menu. Quase tudo vem de [R22]; o que o mapa calcula está em 
 | 3 | **Lista de eventos** | todos os eventos, com filtros | nenhum; é o destino dos contadores |
 | 4 | **Relatar um evento** | o formulário, o resultado com a confiança e o convite a completar | 4 |
 | 5 | **Taxonomia** | a revisão gravada (o diff) e a versão vigente, só leitura | 6b |
+| 6 | **Decisões** | as células endereçadas, com o índice antes e depois, e a fila das células quentes sem endereçamento | nenhum |
+| 7 | **Saúde da classificação** | os estados dos eventos, a confiança na frente, quanto de cada origem pinta o mapa, tokens, latência e o sinal de encaixe | nenhum |
 
-- Menu no topo: Mapa de calor, Eventos, Taxonomia, e o botão "Relatar um evento", presente em toda tela. [R22]
+- Menu na barra lateral, nesta ordem: Mapa de calor `/`, Eventos `/eventos`, Taxonomia `/taxonomia`, Decisões `/decisoes`, Saúde `/saude`. O botão "Relatar um evento" (`/eventos/relatar`) fica no cabeçalho, em toda tela. [R22] [#116] [#145]
+- **Decisões e Saúde só aparecem no menu quando a tela existe**: o menu mostra o item cuja rota a aplicação serve. Antes das issues [#117] e [#118] o menu tem os três itens de antes. [#145]
+- A busca e o tema escuro não são itens do menu: entram no cabeçalho (ver "Encaixes no layout"). [#145]
 
 ## Navegação (variante A)
 
@@ -58,7 +63,7 @@ Cabeçalho (célula, visão, período, índice, seta, selo) e os blocos, nesta o
 6. Problemas recorrentes. O clique num problema abre a lista de eventos filtrada por ele.
 7. Eventos da célula (as 8 primeiras, por severidade ou impacto; incertas no fim, marcadas) e o link "ver todas".
 
-Não há tela do problema nem de endereçamentos. [R22]
+Não há tela do problema. [R22] Os endereçamentos têm a tela Decisões, abaixo. [#117]
 
 ### Efeito do ato ao vivo
 
@@ -112,9 +117,80 @@ Na ordem: [R22]
 - **Histórico**: descoberta, revisão sem mudança, revisão que virou v2. [R22]
 - O botão "Revisar a taxonomia agora" mora aqui, fora do roteiro. [R22]
 
+## Decisões
+
+Rota `/decisoes`, pasta `eventos/web/decisoes/`. Issue [#117].
+
+- Lê a visão, o período e a versão do endereço, como o mapa. Só leitura: endereçar e desfazer continuam no painel da célula. [#117] [R19]
+- **Endereçadas**: uma linha por endereçamento ativo da visão. Mostra a célula (área × frente), a data, o texto da decisão, o tipo de solução, quem decidiu (se houver), o **índice na data do endereçamento**, o **índice de hoje** e a variação entre os dois. É a mesma variação do bloco "Endereçamento" do painel ([07](07-enderecamento.md)). [#117] [R19]
+- **Fila sem decisão**: as células mais quentes da visão que não têm endereçamento ativo, da mais quente para a menos quente, com o índice e a seta de tendência. [#117]
+- Cada linha, nas duas partes, leva ao mapa com a célula aberta. [#117]
+- O endereçamento cuja frente não existe na versão lida não aparece, como na grade ([07](07-enderecamento.md)). [R19]
+- Não muda o endereçamento: continua uma marca, sem ciclo, sem responsável e sem prazo ([07](07-enderecamento.md)). [R19]
+- **Em aberto, decide a [#117]**: quantas células entram na fila.
+
+## Saúde da classificação
+
+Rota `/saude`, pasta `eventos/web/saude/`. Issue [#118].
+
+Lê a versão do endereço, como o mapa. Só leitura, e não chama modelo: tudo sai do que a classificação já gravou. Os blocos: [#118]
+
+1. **Estados**: quantos eventos há em cada estado da lista de eventos (classificada pelo Jev, via LLM, incerta, texto vago, não classificada, aguardando). Cada número abre a lista de eventos filtrada pelo estado.
+2. **Confiança na frente**: histograma da confiança do Jev na dimensão frente, com a marca do limiar.
+3. **Quanto pinta o mapa, por origem**: para cada origem, a parte dos eventos que conta em alguma célula.
+4. **Tokens e latência** da classificação.
+5. **Sinal de encaixe**: o valor medido e o limite, como no selo da faixa da v1 no mapa.
+
+- **Em aberto, decide a [#118]**: as faixas do histograma e o recorte de tokens e latência (total, média ou por origem).
+
+## Busca
+
+Pasta `eventos/web/busca/`. Issue [#119]. Não é tela nem item do menu.
+
+- Uma paleta sobre a tela atual. Abre por um botão no cabeçalho e pelo atalho ⌘K (Ctrl+K fora do Mac). `Esc` fecha. [#119]
+- Os resultados vêm agrupados, nesta ordem: **células**, **eventos**, **problemas** e **ações**. [#119]
+- Cada resultado leva a um endereço que já existe: a célula aberta no mapa, o detalhe do evento, a lista de eventos filtrada pelo problema. [#119]
+- Os resultados vêm do servidor, num fragmento do HTMX, pela rota `GET /busca`. A consulta ao banco fica em `eventos/store/`. Não chama modelo. [#119]
+- **Em aberto, decide a [#119]**: quais são as ações, e quantos resultados cada grupo mostra.
+
+## Tema escuro
+
+Pasta `eventos/web/tema/`. Issue [#120]. Não é tela nem item do menu.
+
+- É para o projetor. Usa os tokens `.dark` do Kubo, com os mesmos nomes dos tokens do `app.css`. [#120] [#116]
+- Os tokens escuros ficam num arquivo próprio, `static/tema.css`, e não no `app.css`. [#145]
+- Um botão no cabeçalho troca o tema. [#120]
+- Vale em todas as telas. A escala de calor do mapa sai dos tokens, e o texto sobre a célula mantém o contraste de 4,5:1. [#116]
+- **Em aberto, decide a [#120]**: onde a escolha fica guardada (no endereço ou no navegador).
+
+## Fonte
+
+Issue [#121]. Muda a linha 3 do [ADR-0001](../adr/0001-stack.md).
+
+- A `InterVariable.woff2` fica em `eventos/web/static/` e é declarada no `app.css` (`@font-face`, família "Inter Variable"). É o único arquivo de fonte. [#121]
+- A pilha de fontes do sistema continua depois dela, para quando o arquivo não carregar. [#121] [#116]
+- O `app.css` passa a ter um `url(...)`, com caminho de `/static/`. O teste que hoje proíbe `url(` no `app.css` (`tests/web/test_telas.py`) passa a aceitar só esse caminho. [#121]
+- **Em aberto, confere a [#121]**: a licença da fonte e se o arquivo dela vai junto. Não verificado nesta issue.
+
+## Encaixes no layout
+
+O `base.html` e o `telas.py` já trazem o que as cinco issues usam. Nenhuma delas edita os dois. [#145]
+
+| Quem | O que cria | O que o layout faz |
+|---|---|---|
+| Decisões [#117] | a rota `/decisoes` | mostra o item "Decisões" no menu |
+| Saúde [#118] | a rota `/saude` | mostra o item "Saúde" no menu |
+| Busca [#119] | `eventos/web/busca/templates/busca/topo.html` | inclui o fragmento no cabeçalho, antes de "Relatar um evento" |
+| Tema escuro [#120] | `eventos/web/tema/templates/tema/head.html` | inclui o fragmento no `<head>`, depois do `app.css` |
+| Tema escuro [#120] | `eventos/web/tema/templates/tema/topo.html` | inclui o fragmento no cabeçalho, depois do da busca |
+
+- Sem a rota ou sem o arquivo, o layout fica como está hoje. [#145]
+- As pastas `busca/` e `tema/` precisam de `__init__.py` e de `rotas.py` com `roteador`, mesmo sem rota: é o que põe os templates delas no carregador. [#145]
+- A fonte [#121] edita só o `app.css`. O tema escuro não edita o `app.css`. [#145]
+
 ## Fora
 
-Login, perfis e administração; edição da taxonomia, do organograma, da ficha e dos limiares pela tela; página do problema e página de endereçamentos; tela de custo e de acerto (são slides de reserva) e a página do pedido; tela para disparar a rajada ou ver o webhook; v1 e v2 lado a lado; exportar; versão para celular; tema escuro. [R22]
+Login, perfis e administração; edição da taxonomia, do organograma, da ficha e dos limiares pela tela; página do problema; tela de custo e de acerto (são slides de reserva) e a página do pedido; tela para disparar a rajada ou ver o webhook; v1 e v2 lado a lado; exportar; versão para celular. [R22]
 
 ## Ordem de corte, se o prazo apertar
 
@@ -124,6 +200,7 @@ A lista de eventos é a primeira tela a cortar; depois, a versão vigente e o hi
 
 - **Onde aparecem time e subfrente.** [R2] dizia "só no drill-down", sem dizer onde; [R22] criou o bloco "Composição".
 - **Painel × tela.** [R23] listou "painel da célula" e "três telas da revisão" como telas, porque [R22] ainda estava aberto; [R22] fixou cinco telas, com o painel dentro do mapa. Vale [R22].
+- **O que saiu do "Fora".** [R22] deixou fora a página de endereçamentos e o tema escuro, e [R23] proibiu fonte web. A [#145] registra que o Bardi autorizou as issues [#117] a [#121]: a página de endereçamentos é a tela Decisões, o tema escuro entra, e a fonte é uma só, servida de `static/`. A tela Saúde da classificação e a busca não estavam em [R22].
 
 [R2]: https://github.com/renatobardi/frentes-engenharia/issues/2#issuecomment-5963209961 "Métrica de onde investir e eixos do mapa de calor"
 [R3]: https://github.com/renatobardi/frentes-engenharia/issues/3#issuecomment-5963699217 "Taxonomia das frentes"
@@ -143,4 +220,11 @@ A lista de eventos é a primeira tela a cortar; depois, a versão vigente e o hi
 [R22]: https://github.com/renatobardi/frentes-engenharia/issues/22#issuecomment-5975630924 "Telas do PoC além do mapa de calor"
 [R23]: https://github.com/renatobardi/frentes-engenharia/issues/23#issuecomment-5975570909 "Stack e onde o PoC roda"
 [R24]: https://github.com/renatobardi/frentes-engenharia/issues/24#issuecomment-5975617171 "Área quando quem relata não é o dono do objeto"
+[#116]: https://github.com/renatobardi/frentes-engenharia/issues/116 "Redesign visual no padrão do Kubo Design System (épico)"
+[#117]: https://github.com/renatobardi/frentes-engenharia/issues/117 "Tela Decisões"
+[#118]: https://github.com/renatobardi/frentes-engenharia/issues/118 "Tela Saúde da classificação"
+[#119]: https://github.com/renatobardi/frentes-engenharia/issues/119 "Busca ⌘K (paleta agrupada)"
+[#120]: https://github.com/renatobardi/frentes-engenharia/issues/120 "Tema escuro (tokens .dark do Kubo) para o projetor"
+[#121]: https://github.com/renatobardi/frentes-engenharia/issues/121 "Self-host da InterVariable.woff2"
 [#139]: https://github.com/renatobardi/frentes-engenharia/issues/139 "Passeio guiado no mapa de calor"
+[#145]: https://github.com/renatobardi/frentes-engenharia/issues/145 "P0: spec 10, ADR-0001 e menu para as telas pós-redesign"
