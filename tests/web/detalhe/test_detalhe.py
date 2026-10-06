@@ -861,3 +861,72 @@ def test_cabecalho_volta_para_a_celula_e_a_via_llm_e_um_selo(banco: Path, http: 
     assert re.search(volta, html, re.S)
     assert '<li class="badge badge-secundario">via LLM</li>' in html
     assert '<tr class="via-llm">' in html
+
+
+# --------------------------------------------------------------------------- selos do cabeçalho
+
+
+def _selos(html: str) -> list[str]:
+    topo = html.split('<ul class="marcas">')[1].split("</ul>")[0]
+    return re.findall(r"<li class=\"badge[^\"]*\">([^<]+)</li>", topo)
+
+
+def _frentes_do_problema(banco: Path, dias: list[int], **campos) -> None:
+    for i, atras in enumerate(dias):
+        quando = contratos.para_iso(contratos.agora() - timedelta(days=atras))
+        _gravar(
+            banco,
+            _classificacao(f"r{i}", **campos),
+            frente=f"r{i}",
+            ocorrido_em=quando,
+            recebido_em=quando,
+        )
+
+
+def test_selo_de_natureza_vem_da_classificacao(banco: Path, http: TestClient) -> None:
+    _gravar(banco, _classificacao("s1"), frente="s1")
+    _gravar(
+        banco,
+        _classificacao("s2", natureza=Natureza.PROATIVA, natureza_final=Natureza.PROATIVA),
+        frente="s2",
+    )
+
+    assert _selos(_pagina(http, "s1")) == ["Reativa", "ao vivo"]
+    assert _selos(_pagina(http, "s2")) == ["Proativa", "ao vivo"]
+
+
+def test_natureza_nula_nao_leva_selo_de_natureza(banco: Path, http: TestClient) -> None:
+    _gravar(banco, _classificacao("s3", natureza=None, natureza_final=None), frente="s3")
+
+    selos = _selos(_pagina(http, "s3"))
+
+    assert "Reativa" not in selos and "Proativa" not in selos
+
+
+def test_selo_de_problema_recorrente_com_tres_dias_distintos(banco: Path, http: TestClient) -> None:
+    _frentes_do_problema(banco, [4, 8, 12])
+
+    assert "problema recorrente" in _selos(_pagina(http, "r0"))
+
+
+def test_dois_dias_distintos_nao_e_recorrente(banco: Path, http: TestClient) -> None:
+    _frentes_do_problema(banco, [4, 8])
+
+    assert "problema recorrente" not in _selos(_pagina(http, "r0"))
+
+
+def test_problema_sem_confianca_nao_leva_selo_de_recorrente(banco: Path, http: TestClient) -> None:
+    _frentes_do_problema(banco, [4, 8, 12], conf_problema=0.1)
+
+    assert "problema recorrente" not in _selos(_pagina(http, "r0"))
+
+
+def test_incerta_nao_leva_selo_de_recorrente(banco: Path, http: TestClient) -> None:
+    _frentes_do_problema(banco, [4, 8, 12])
+    _gravar(
+        banco,
+        _classificacao("ri", estado=Estado.INCERTA, motivo=MotivoIncerta.LLM_SEM_ESCOLHA),
+        frente="ri",
+    )
+
+    assert "problema recorrente" not in _selos(_pagina(http, "ri"))

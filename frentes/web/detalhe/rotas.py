@@ -18,6 +18,9 @@ from starlette.routing import Match
 from starlette.types import Scope
 
 from frentes import contratos, store
+from frentes.config import Limiares
+from frentes.contratos import Estado, Natureza, Visao
+from frentes.mapa import celula
 from frentes.store import classificacao as store_classificacao
 from frentes.store import relato as store_relato
 from frentes.store import versao as store_versao
@@ -43,6 +46,34 @@ def _time_do_emissor(emissores: list[contratos.Emissor], nome: str) -> str | Non
     a lista repete com times diferentes, ou sem time, não diz de qual time é: None."""
     times = {e.time for e in emissores if e.nome == nome}
     return times.pop() if len(times) == 1 else None
+
+
+def _recorrente(
+    con: store.Conexao,
+    frente: contratos.Frente,
+    c: contratos.Classificacao | None,
+    limiares: Limiares,
+) -> bool:
+    """O problema da frente é recorrente na célula em que ela conta? É a marca que o painel
+    da célula (`mapa.celula`) já calcula, com a visão e o período do link "← célula". Sem
+    célula que pinte ou sem problema que valha, não há selo."""
+    if c is None or c.estado not in (Estado.CLASSIFICADA, Estado.VIA_LLM):
+        return False
+    if c.problema is None or c.conf_problema < limiares.confianca.problema:
+        return False
+    if c.area_final is None or c.tipo_final is None or c.natureza_final is None:
+        return False
+    visao = Visao.DOR if c.natureza_final is Natureza.REATIVA else Visao.OPORTUNIDADE
+    painel = celula.ler(
+        con,
+        area=c.area_final,
+        tipo=c.tipo_final,
+        visao=visao,
+        limiares=limiares,
+        periodo=montagem.periodo_da(frente.data),
+        versao=c.versao,
+    )
+    return any(p.chave == c.problema and p.recorrente for p in painel.problemas)
 
 
 @roteador.get(
@@ -75,6 +106,7 @@ def detalhe_da_frente(
             store_classificacao.ler(con, frente_id, escolhida) if escolhida is not None else None
         )
         time_do_relator = _time_do_emissor(store_relato.emissores(con), frente.emissor)
+        recorrente = _recorrente(con, frente, classificacao, config.limiares)
 
     contexto: dict[str, Any] = {
         "d": montagem.montar(
@@ -88,6 +120,7 @@ def detalhe_da_frente(
             sem_typesafe=config.typesafe_api_key is None,
             sem_openrouter=config.openrouter_api_key is None,
             time_do_relator=time_do_relator,
+            recorrente=recorrente,
         )
     }
     # voltar no navegador sem cache do HTMX pede a página inteira, não o miolo
