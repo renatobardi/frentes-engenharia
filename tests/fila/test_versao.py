@@ -644,3 +644,27 @@ def test_comando_recusado_pela_trava_sai_com_2(
         segurada.close()
 
     assert "já está classificando" in capsys.readouterr().err
+
+
+def test_resumo_soma_o_custo_por_modelo_e_diz_qual_nao_tem_preco() -> None:
+    totais = armazem.Totais(
+        eventos=3,
+        por_estado={Estado.CLASSIFICADA: 3},
+        jev_entrada=4_000_000,
+        jev_saida=0,
+        llm_entrada=0,
+        llm_saida=0,
+        por_modelo=(
+            armazem.UsoDoModelo("inception/mercury-decide-20260930", 1, 1_000_000, 0),
+            armazem.UsoDoModelo("modelo/sem-preco", 1, 1_000_000, 0),
+            armazem.UsoDoModelo("perplexity/pplx-decider-v1-27b-20261001", 1, 2_000_000, 0),
+        ),
+    )
+    resumo = fila.ResumoDaVersao(versao=2, totais=totais, recalculadas=0, ativada=True)
+
+    texto = resumo.texto()
+    assert resumo.custo_estimado_usd == pytest.approx(0.08)  # só o pago soma
+    assert "  inception/mercury-decide-20260930: 1 eventos, 1000000 tokens" in texto
+    assert "1000000 tokens de entrada, US$ 0.0000" in texto
+    assert "  modelo/sem-preco: 1 eventos, 1000000 tokens de entrada, sem preço na tabela" in texto
+    assert "custo estimado: US$ 0.0800" in texto
