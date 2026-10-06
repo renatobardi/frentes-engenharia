@@ -8,3 +8,4 @@ __pycache__/
 data/*.sqlite
 data/*.sqlite-wal
 data/*.sqlite-shm
+data/*.lock
