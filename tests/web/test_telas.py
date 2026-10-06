@@ -94,28 +94,16 @@ def test_menu_so_mostra_o_item_cuja_tela_existe(
     )
 
 
-def test_layout_inclui_os_fragmentos_da_busca_e_do_tema_so_quando_existem(tmp_path: Path) -> None:
+def test_layout_inclui_os_fragmentos_da_busca_e_do_tema(tmp_path: Path) -> None:
+    # a busca (#119) e o tema (#120) existem na main e entram sozinhos, sem editar o `base.html`
     with encaixado(eventos.web, tmp_path, tela("minha_tela")):
-        sem = cliente().get("/minha_tela").text
-    assert (
-        "encaixe-" not in sem
-    )  # a busca (#119) ainda não existe; o tema (#120) existe e entra sozinho
+        html = cliente().get("/minha_tela").text
 
-    vazio = "from fastapi import APIRouter\nroteador = APIRouter()\n"
-    arquivos = {
-        **tela("minha_tela"),
-        "busca/__init__.py": "",
-        "busca/rotas.py": vazio,
-        "busca/templates/busca/topo.html": '<i id="encaixe-busca"></i>',
-    }
-    with encaixado(eventos.web, tmp_path / "com", arquivos):
-        com = cliente().get("/minha_tela").text
-
-    cabeca, corpo = com.split("</head>")
+    cabeca, corpo = html.split("</head>")
     assert cabeca.index("/static/app.css") < cabeca.index("/static/tema.css")
-    # no cabeçalho da página, antes do botão "Relatar um evento"
+    # no cabeçalho da página, a busca, depois o tema, antes do botão "Relatar um evento"
     assert (
-        corpo.index("encaixe-busca")
+        corpo.index("data-busca-abrir")
         < corpo.index("data-tema-botao")
         < corpo.index('<a class="btn" href="/eventos/relatar">')
     )

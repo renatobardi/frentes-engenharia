@@ -1,0 +1,23 @@
+{#- O fragmento do HTMX: os grupos da busca. Todo texto vem do banco e sai escapado (autoescape). -#}
+{% if sem_dados %}<p class="busca-aviso">Sem banco para buscar: só as ações.</p>{% endif %}
+{% for grupo in grupos %}
+<section class="busca-grupo" aria-label="{{ grupo.nome }}">
+  <h3 class="busca-grupo-nome">{{ grupo.nome }}</h3>
+  <ul class="busca-lista">
+    {% for r in grupo.resultados %}
+    <li><a class="busca-item" href="{{ r.destino }}" data-busca-item>
+      <span class="busca-item-titulo">{{ r.titulo }}</span>
+      {% if r.detalhe %}<span class="busca-item-detalhe">{{ r.detalhe }}</span>{% endif %}
+    </a></li>
+    {% endfor %}
+  </ul>
+  {% if grupo.mais > 0 %}
+  <p class="busca-mais">
+    {%- if grupo.ver_todos %}<a href="{{ grupo.ver_todos }}" data-busca-item>+{{ grupo.mais }} na lista de eventos</a>
+    {%- else %}+{{ grupo.mais }} que casam; digite mais para afinar{% endif -%}
+  </p>
+  {% endif %}
+</section>
+{% else %}
+<p class="busca-aviso">Nada achado{% if consulta %} para “{{ consulta }}”{% endif %}.</p>
+{% endfor %}
