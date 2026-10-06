@@ -1,0 +1,92 @@
+{
+  "model": "inception/mercury-decide-20260930",
+  "answers": {
+    "area": {
+      "type": "choice",
+      "choice": "simulacao",
+      "probabilities": {
+        "simulacao": 0.9969787547329699,
+        "proposta": 0.0013227721744933135,
+        "nenhum_destes": 0.001698473092536727
+      },
+      "confidence": 0.9954681320994547
+    },
+    "frente": {
+      "type": "choice",
+      "choice": "nenhum_destes",
+      "probabilities": {
+        "lentidao": 0.04592881231107699,
+        "erro": 0.031566380289006025,
+        "nenhum_destes": 0.922504807399917
+      },
+      "confidence": 0.8837572110998754
+    },
+    "natureza": {
+      "type": "choice",
+      "choice": "reativo",
+      "probabilities": {
+        "reativo": 0.9993332977912776,
+        "proativo": 0.0006667022087224438
+      },
+      "confidence": 0.9986665955825551
+    },
+    "severidade": {
+      "type": "score",
+      "score": 0.9626731135929119,
+      "legend": {
+        "0": "leve: incomoda",
+        "1": "grave: para a operação"
+      },
+      "probabilities": {
+        "0": 0.03732688640708807,
+        "1": 0.9626731135929119
+      },
+      "confidence": 0.9253462271858238
+    },
+    "impacto": {
+      "type": "score",
+      "score": 0.9465966668104392,
+      "legend": {
+        "0": "leve: incomoda",
+        "1": "grave: para a operação"
+      },
+      "probabilities": {
+        "0": 0.0534033331895608,
+        "1": 0.9465966668104392
+      },
+      "confidence": 0.8931933336208784
+    },
+    "causa_raiz": {
+      "type": "choice",
+      "choice": "nenhum_destes",
+      "probabilities": {
+        "config": 0.06754669301670263,
+        "nenhum_destes": 0.9324533069832973
+      },
+      "confidence": 0.8649066139665946
+    },
+    "urgencia": {
+      "type": "noul",
+      "noul": 0.7772998560157665
+    },
+    "problema": {
+      "type": "choice",
+      "choice": "p1",
+      "probabilities": {
+        "p1": 0.9998088957025006,
+        "nenhum_destes": 0.00019110429749931803
+      },
+      "confidence": 0.9996177914050013
+    },
+    "controle": {
+      "type": "noul",
+      "noul": 0.9902915253093142
+    }
+  },
+  "usage": {
+    "input_tokens": 732,
+    "output_tokens": 11,
+    "cost": 0
+  },
+  "provider": "Inception"
+}

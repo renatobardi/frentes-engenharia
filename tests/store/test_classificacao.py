@@ -140,3 +140,19 @@ def test_pendentes_sem_classificacao_e_aguardando_llm() -> None:
         assert armazem.sem_classificacao(con, 1) == ["f3"]
         assert armazem.aguardando_llm(con, 1) == ["f2"]
         assert armazem.sem_classificacao(con, 2) == ["f1", "f2", "f3"]  # outra versão
+
+
+def test_uso_por_modelo_separa_pelo_modelo_que_respondeu() -> None:
+    con = banco_com("f1", "f2", "f3")
+    base = classificacao()
+    outro = replace(base.resposta_jev, modelo="inception/mercury-decide-20260930")
+    armazem.gravar(con, classificacao("f1"))
+    armazem.gravar(con, classificacao("f2", resposta_jev=outro))
+    armazem.gravar(con, classificacao("f3", resposta_jev=outro))
+
+    assert armazem.uso_por_modelo(con, 1) == [
+        armazem.UsoDoModelo("inception/mercury-decide-20260930", 2, 22, 12),
+        armazem.UsoDoModelo("jev-1", 1, 11, 6),
+    ]
+    assert armazem.uso_por_modelo(con, 2) == []
+    assert list(armazem.totais(con, 1).por_modelo) == armazem.uso_por_modelo(con, 1)

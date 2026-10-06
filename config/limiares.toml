@@ -51,6 +51,9 @@ jev = 40
 llm = 8
 # Largadas por segundo ao Jev, além do semáforo (o teto dele é 80 req/s, spec 03).
 jev_por_s = 60
+# Chamadas simultâneas a cada elo da cadeia que passa pelo OpenRouter (#112). Com 4 o elo
+# pago já devolveu 429; o gratuito não devolveu nem com 16.
+decisoes = 4
 
 # Tempo limite de uma chamada, em segundos. llm_lote_s é o das chamadas de lote da LLM (candidatos
 # da lista de problemas e propostas da descoberta: 80 a 140 s medidos); llm_s, o da chamada por evento.
@@ -66,6 +69,13 @@ llm_lote_s = 180
 tentativas = 3
 espera_inicial_s = 1
 
+# Disjuntor da cadeia do Jev (#112): o elo que falha este número de vezes seguidas é pulado
+# pela pausa; depois dela, é tentado de novo. Valores da construção: a decisão diz "N vezes"
+# e "alguns minutos". O último elo nunca é pulado.
+[disjuntor]
+falhas_seguidas = 5
+pausa_s = 300
+
 [fila]
 varredura_s = 30
 # Espera do painel da célula depois de um evento novo, para a rajada gerar uma chamada só.
@@ -75,4 +85,7 @@ painel_espera_s = 30
 # primeira versão pede. A LLM roda sem raciocínio em todos os papéis.
 [modelos]
 jev = "jev-latest"
+# Cadeia do Jev (#112): os elos tentados antes do Jev direto, nesta ordem, pela rota de
+# decisões do OpenRouter. O seguinte entra quando o anterior falha. Lista vazia: só o Jev.
+jev_antes = ["inception/mercury-decide:free", "perplexity/pplx-decider-v1-27b"]
 llm = "deepseek/deepseek-v4-flash"

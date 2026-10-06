@@ -2,6 +2,7 @@
 
 import asyncio
 import sys
+from typing import Any
 
 from eventos import config, fila, store
 
@@ -18,10 +19,22 @@ def _mostrar(p: fila.Progresso) -> None:
     print(f"classificar: {p.texto()}", file=sys.stderr, flush=True)
 
 
-async def _rodar(cfg: config.Config, numero: int) -> fila.ResumoDaVersao:
+def _cadeia(clientes: dict[str, Any]) -> list[str]:
+    """Respostas, quedas e pulos de cada elo nesta execução. A contagem vive na memória do
+    cliente: não vai ao banco."""
+    linhas = []
+    for cliente in clientes.values():
+        contagem = getattr(cliente, "contagem", None)
+        if contagem is not None:
+            linhas += [f"  {elo.texto()}" for elo in contagem()]
+    return ["cadeia do Jev nesta execução:", *linhas] if linhas else []
+
+
+async def _rodar(cfg: config.Config, numero: int) -> tuple[fila.ResumoDaVersao, list[str]]:
     f, clientes = fila.montar_fila(None, cfg)
     try:
-        return await f.classificar_versao(numero, _mostrar)
+        resumo = await f.classificar_versao(numero, _mostrar)
+        return resumo, _cadeia(clientes)
     finally:
         for cliente in clientes.values():
             await cliente.aclose()
@@ -39,7 +52,7 @@ def classificar(argumentos: list[str]) -> int:
         )
         return 2
     try:
-        resumo = asyncio.run(_rodar(cfg, numero))
+        resumo, cadeia = asyncio.run(_rodar(cfg, numero))
     except store.BancoAusente as erro:
         print(f"classificar: {erro}", file=sys.stderr)
         return 2
@@ -54,6 +67,8 @@ def classificar(argumentos: list[str]) -> int:
         print("classificar: interrompido; rode de novo para fazer o que falta", file=sys.stderr)
         return 130
     print(resumo.texto())
+    for linha in cadeia:
+        print(linha)
     return 0 if resumo.completo else 1
 
 

@@ -34,7 +34,7 @@ frentes-engenharia/
 │   ├── contratos.py       # os tipos trocados entre módulos
 │   ├── store/             # schema.sql e todo o SQL
 │   ├── entrada/           # POST /eventos, idempotência, complemento
-│   ├── jev/               # cliente da TypeSafe e montagem do pedido a partir da versão
+│   ├── jev/               # clientes do Jev (TypeSafe, decisões do OpenRouter, a cadeia) e o pedido
 │   ├── llm/               # cliente do OpenRouter
 │   ├── classificacao/     # regras de confiança, desempate, colunas finais (código puro)
 │   ├── taxonomia/         # versões, chaves, descoberta, revisão, lista de problemas e peneira
@@ -68,7 +68,8 @@ frentes-engenharia/
 | Seed, descoberta, classificação do histórico, revisão, painéis, conferência, gravar snapshot | **fora do servidor**: comandos de linha |
 
 - **A fila é o próprio banco**: evento sem linha de classificação na versão vigente está pendente. Ao subir, e a cada **30 s**, o processo varre as pendentes e as `aguardando_llm`. Reiniciar o container não perde nada.
-- **Paralelismo**: semáforo de **40** chamadas ao Jev e de **8** à LLM.
+- **Paralelismo**: semáforo de **40** chamadas ao Jev e de **8** à LLM. Cada elo da cadeia do Jev que passa pelo OpenRouter tem o seu, de **4** (ver [03](03-classificacao.md), "Cadeia do Jev").
+- **Tempo limite e retentativa valem por elo**: um evento em que os três elos esgotam as tentativas espera as três vezes antes de ficar pendente. O disjuntor encurta isso para o elo que está fora do ar.
 - **Tempo limite e retentativa**: 5 s no Jev e 30 s na LLM, 3 tentativas com espera crescente; depois disso o evento continua pendente e a varredura tenta de novo.
 - **Revisão automática** (mensal e por sinal): existe no código, na mesma varredura, e fica **desligada por configuração** (`REVISAO_AUTOMATICA=0`) no ambiente da demo.
 

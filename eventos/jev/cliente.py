@@ -56,6 +56,14 @@ def _retry_after(resposta: httpx.Response) -> float | None:
 class ClienteTypesafe:
     """Implementa `contratos.ClienteJev`. `chave` vem do `Config` e pode faltar."""
 
+    # O que muda no cliente de decisões do OpenRouter, que fala o mesmo contrato.
+    _url = URL
+    _falta_chave = "TYPESAFE_API_KEY não está no ambiente"
+
+    @staticmethod
+    def _vagas(operacao: Operacao) -> int:
+        return operacao.semaforo_jev
+
     def __init__(
         self,
         chave: str | None,
@@ -69,7 +77,7 @@ class ClienteTypesafe:
         self._modelo = modelo
         self._dormir = dormir
         self._operacao = operacao
-        self._semaforo = asyncio.Semaphore(operacao.semaforo_jev)
+        self._semaforo = asyncio.Semaphore(self._vagas(operacao))
         self._http = httpx.AsyncClient(transport=transporte, timeout=operacao.tempo_limite_jev_s)
 
     async def aclose(self) -> None:
@@ -77,7 +85,7 @@ class ClienteTypesafe:
 
     async def perguntar(self, texto: str, perguntas: Perguntas) -> RespostaJev:
         if not self._chave:
-            raise SemChave("TYPESAFE_API_KEY não está no ambiente")
+            raise SemChave(self._falta_chave)
         corpo = corpo_do_pedido(self._modelo, texto, perguntas)
         tentativas = self._operacao.tentativas
         for tentativa in range(1, tentativas + 1):
@@ -102,7 +110,7 @@ class ClienteTypesafe:
             # A latência é só a do `post`: a espera pelo semáforo não conta.
             inicio = time.perf_counter()
             try:
-                resposta = await self._http.post(URL, json=corpo, headers=cabecalhos)
+                resposta = await self._http.post(self._url, json=corpo, headers=cabecalhos)
             except httpx.TimeoutException:
                 raise _Tentar("tempo esgotado") from None
             except httpx.TransportError as erro:

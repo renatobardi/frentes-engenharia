@@ -24,9 +24,6 @@ PROBLEMA_DO_FUNDO = Corte(maximo=0)
 COBERTURA = Corte(minimo=0.70)
 FALSO_POSITIVO_OUTRO_TIME = Corte(maximo=0.05)
 
-# 02: o Jev cobra US$ 0,042 por milhão de tokens de entrada; a saída é grátis.
-JEV_USD_POR_MTOK_ENTRADA = 0.042
-
 # As histórias da spec 08: o time fixo (conferido por área aceita), a visão de cada uma e
 # quais têm corte de intensidade. H3 esfria depois do mês 6 (a janela de 90 dias do dia D
 # não pega o pico) e H7 desenha uma coluna, não uma célula: as duas só são reportadas.
