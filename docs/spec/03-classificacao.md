@@ -30,7 +30,7 @@ Decisão do Bardi em 2026-10-06 [C112]: a chamada das 8 dimensões passa por uma
 
 | Elo | Modelo | Caminho | Preço |
 |---|---|---|---|
-| 1 | `inception/mercury-decide:free` | OpenRouter, `POST https://openrouter.ai/api/alpha/decisions`, `OPENROUTER_API_KEY` | gratuito; 1.000 requisições por dia e contexto de 33K [C112] |
+| 1 | `inception/mercury-decide:free` | OpenRouter, `POST https://openrouter.ai/api/alpha/decisions`, `OPENROUTER_API_KEY` | gratuito; 1.000 requisições por dia e contexto de 33K [C112]. Pedido acima do contexto volta HTTP 422 (medido em 2026-10-06, #155): o cliente trata como recusa sem repetir e a cadeia passa ao elo seguinte |
 | 2 | `perplexity/pplx-decider-v1-27b` | a mesma rota | US$0,04 por milhão de tokens de entrada [M112] |
 | 3 | o `modelo_jev` da versão (`jev-latest`) | TypeSafe direto, como acima | US$0,042 por milhão de tokens de entrada [R5] |
 
