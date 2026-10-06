@@ -5,7 +5,7 @@ A stack, o que roda em segundo plano, os comandos, os segredos, os gates e onde 
 ## A stack
 
 ```
-navegador do Bardi ──(tailnet)──► oute-server ──► LXC frentes-engenharia-prd
+navegador (internet: só leitura; tailnet: completo) ──► oute-server ──► LXC frentes-engenharia-prd
                                                    └─ 1 container Docker "app"
                                                        ├─ FastAPI (1 processo): telas HTML + POST /eventos
                                                        ├─ fila em memória: Jev → regras → LLM → painel
@@ -107,8 +107,8 @@ frentes-engenharia/
 ## Onde roda
 
 - **Um LXC no oute-server, `frentes-engenharia-prd`**, um ambiente só.
-- **Só tailnet, nunca `0.0.0.0`. Sem login.** O token de demo protege só o `POST /eventos` e a rota de recarregar o snapshot.
-- **Endereço**: `https://eventos.oute.pro`, vhost do nginx só no IP da tailnet. Enquanto o vhost não existe, o acesso direto pela porta do proxy do LXD na tailnet.
+- **Internet só leitura, tailnet completa. Sem login.** O app é um PoC com dados fictícios. O nginx do oute-server atende `https://frentes.oute.pro` na internet (`0.0.0.0:443`) só para `GET` e `HEAD` e devolve `405` nos outros métodos; na tailnet (`100.66.254.24:443`) tudo funciona. O LXC continua sem porta pública. O token de demo protege só o `POST /eventos` e a rota de recarregar o snapshot. Fonte: [lab#266](https://github.com/renatobardi/lab/issues/266) e `docs/frentes-vhost.md` do `lab`.
+- **Endereço**: `https://frentes.oute.pro` (e `https://frentes-engenharia.oute.pro`), vhost do nginx na internet e na tailnet, com o certificado do certbot. O vhost vive no repo `lab` (`servers/oute-server/nginx/`).
 - **Empacotamento**: `Dockerfile` (`python:3.12-slim`, `uv sync --frozen --no-dev`, usuário sem privilégio de uid 10001) e `docker-compose.yml` com um serviço (`app`) e um volume (`/data`). A imagem é construída dentro do LXC. Sem registry.
 - **`GET /healthz`**: commit, versão vigente e dia do snapshot.
 - **Repositório**: fica em `renatobardi/frentes-engenharia`, privado.
@@ -138,8 +138,8 @@ Nada disto foi feito. É mudança permanente no oute-server: segue o fluxo do re
 | 2 | Acesso ao repo privado | chave de deploy **só de leitura** deste repo, para o `install-app` clonar em `/opt/app` |
 | 3 | `/opt/app/.env` no LXC | root, `0600`, com as três variáveis e a porta alocada, a partir do vault, por stdin |
 | 4 | Três itens no Vaultwarden | os nomes acima. O Bardi cria |
-| 5 | Vhost `eventos.oute.pro` | nginx só no IP da tailnet, certificado do certbot, log próprio. Não é necessário para o primeiro deploy |
-| 6 | Entrada no inventário e no `PORTS.md` | container na seção só-tailnet; `backup: strategy: none` |
+| 5 | Vhost `frentes.oute.pro` | nginx na internet (só `GET`/`HEAD`) e na tailnet (completo), certificado do certbot, log próprio. Não é necessário para o primeiro deploy |
+| 6 | Entrada no inventário e no `PORTS.md` | container com `public: true`, na seção "Public HTTPS"; `backup: strategy: none` |
 | 7 | Firewall | nenhuma regra nova |
 | 8 | Monitor (opcional) | um check do `uptime-kuma` no `/healthz` |
 
