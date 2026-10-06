@@ -22,7 +22,7 @@ Uma linguagem, um processo, um arquivo de banco, um container.
 | 6 | Linha de comando | `python -m eventos <comando>`: o mesmo pacote serve a API e os comandos |
 | 7 | Snapshot | O arquivo SQLite compactado, versionado no repo (`data/snapshot/eventos.sqlite.gz`), sem o gabarito e sem a rajada |
 | 8 | Limiares | `config/limiares.toml`, no repo, fora da versão da taxonomia |
-| 9 | Onde roda | Um LXC no oute-server (`frentes-engenharia-prd`), só na tailnet, sem login. Um `Dockerfile` e um `docker-compose.yml` com um serviço e um volume. `GET /healthz` devolve o commit, a versão vigente e o dia do snapshot |
+| 9 | Onde roda | Um LXC no oute-server (`frentes-engenharia-prd`), na internet só leitura e na tailnet completo, sem login (ver [spec 12](../spec/12-operacao-e-deploy.md)). Um `Dockerfile` e um `docker-compose.yml` com um serviço e um volume. `GET /healthz` devolve o commit, a versão vigente e o dia do snapshot |
 | 10 | Deploy | Pelo canal de aprovação, um script por deploy |
 | 11 | Plano sem rede | A aplicação sobe sem as chaves e do snapshot; o mesmo `docker compose up` roda no Mac |
 | 12 | Segredos | Três variáveis, só do ambiente: `TYPESAFE_API_KEY`, `OPENROUTER_API_KEY`, `EVENTOS_WEBHOOK_TOKEN`. Só o `config.py` lê o ambiente; sem `TYPESAFE_API_KEY`, ele usa `OUTE_TYPESAFE_API_KEY` |
