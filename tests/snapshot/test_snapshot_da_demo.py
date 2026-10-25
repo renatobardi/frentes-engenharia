@@ -1,20 +1,23 @@
-"""O snapshot versionado em `data/snapshot/eventos.sqlite.gz` (#65): o que ele tem de trazer
+"""O snapshot versionado em `data/snapshot/eventos.snapshot.tar.gz` (#65): o que ele tem de trazer
 para a demo subir dele. Não chama modelo: só carrega o arquivo e lê."""
 
 import json
+import uuid
+from collections.abc import Iterator
 from contextlib import closing
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 
+import psycopg
 import pytest
 from fastapi.testclient import TestClient
 
 from eventos import config, store
 from eventos.snapshot import arquivo
 from eventos.web.app import criar_app
+from tests.banco import URL_TESTE
 
 # o arquivo de verdade: nos testes o `arquivo.CAMINHO_PADRAO` aponta para um que não existe
-SNAPSHOT = config.RAIZ / "data" / "snapshot" / "eventos.sqlite.gz"
+SNAPSHOT = config.RAIZ / "data" / "snapshot" / "eventos.snapshot.tar.gz"
 RAJADA = config.RAIZ / "seed" / "gerado" / "rajada.jsonl"
 AGORA = datetime(2026, 11, 20, 15, 0, tzinfo=UTC)
 EVENTOS = 6000
@@ -22,13 +25,18 @@ LIMITE_MB = 50
 
 
 @pytest.fixture(scope="module")
-def banco(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    caminho = tmp_path_factory.mktemp("demo") / "eventos.sqlite"
-    arquivo.carregar(caminho, SNAPSHOT, agora=AGORA)
-    return caminho
+def banco() -> Iterator[str]:
+    """A demo carregada uma vez, num schema do módulo (não `t_*`, que o conftest derruba a cada
+    teste)."""
+    schema = f"demo_{uuid.uuid4().hex[:12]}"
+    url = store.com_schema(URL_TESTE, schema)
+    arquivo.carregar(url, SNAPSHOT, agora=AGORA)
+    yield url
+    with psycopg.connect(URL_TESTE, autocommit=True) as admin:
+        admin.execute(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE')
 
 
-def _um(banco: Path, sql: str) -> object:
+def _um(banco: str, sql: str) -> object:
     with closing(store.abrir_existente(banco)) as con:
         return con.execute(sql).fetchone()[0]
 
@@ -37,7 +45,7 @@ def test_o_arquivo_cabe_no_repo() -> None:
     assert SNAPSHOT.stat().st_size < LIMITE_MB * 1024 * 1024
 
 
-def test_a_seed_inteira_esta_classificada_na_v1_e_na_v2(banco: Path) -> None:
+def test_a_seed_inteira_esta_classificada_na_v1_e_na_v2(banco: str) -> None:
     assert _um(banco, "SELECT count(*) FROM evento") == EVENTOS
     for versao in (1, 2):
         prontas = _um(
@@ -49,7 +57,7 @@ def test_a_seed_inteira_esta_classificada_na_v1_e_na_v2(banco: Path) -> None:
     assert _um(banco, "SELECT count(*) FROM versao_taxonomia WHERE ativada_em IS NOT NULL") == 2
 
 
-def test_a_descoberta_e_a_revisao_estao_gravadas_e_fechadas(banco: Path) -> None:
+def test_a_descoberta_e_a_revisao_estao_gravadas_e_fechadas(banco: str) -> None:
     with closing(store.abrir_existente(banco)) as con:
         geracoes = [
             tuple(r) for r in con.execute("SELECT tipo, resultado, versao_resultante FROM geracao")
@@ -57,7 +65,7 @@ def test_a_descoberta_e_a_revisao_estao_gravadas_e_fechadas(banco: Path) -> None
     assert geracoes == [("descoberta", "versao_nova", 1), ("revisao", "versao_nova", 2)]
 
 
-def test_ha_paineis_prontos_nas_duas_versoes_e_o_enderecamento_da_h3(banco: Path) -> None:
+def test_ha_paineis_prontos_nas_duas_versoes_e_o_enderecamento_da_h3(banco: str) -> None:
     for versao in (1, 2):
         assert _um(banco, f"SELECT count(*) FROM painel_celula WHERE versao = {versao}") > 100
     assert _um(banco, "SELECT count(*) FROM painel_celula WHERE estado <> 'atual'") == 0
@@ -71,7 +79,7 @@ def test_ha_paineis_prontos_nas_duas_versoes_e_o_enderecamento_da_h3(banco: Path
     assert 170 <= dias <= 200
 
 
-def test_nao_leva_gabarito_nem_rajada(banco: Path) -> None:
+def test_nao_leva_gabarito_nem_rajada(banco: str) -> None:
     assert _um(banco, "SELECT count(*) FROM gabarito") == 0
     # a rajada chega pelo webhook com `ref_externa` "rajada-NN-…" e os textos do rajada.jsonl
     assert _um(banco, "SELECT count(*) FROM evento WHERE ref_externa LIKE 'rajada%'") == 0
@@ -79,23 +87,23 @@ def test_nao_leva_gabarito_nem_rajada(banco: Path) -> None:
     textos = [json.loads(linha)["texto"] for linha in linhas if linha.strip()]
     assert len(textos) >= 20
     with closing(store.abrir_existente(banco)) as con:
-        marcas = ", ".join("?" * len(textos))
+        marcas = ", ".join(["%s"] * len(textos))
         achadas = con.execute(
             f"SELECT count(*) FROM evento WHERE texto IN ({marcas})", textos
         ).fetchone()[0]
     assert achadas == 0
 
 
-def test_o_dia_d_vira_ontem_e_nenhum_evento_fica_no_futuro(banco: Path) -> None:
+def test_o_dia_d_vira_ontem_e_nenhum_evento_fica_no_futuro(banco: str) -> None:
     ontem = (AGORA - timedelta(days=1)).date().isoformat()
     ultimo = _um(banco, "SELECT max(substr(coalesce(ocorrido_em, recebido_em), 1, 10)) FROM evento")
     assert ultimo == ontem
 
 
 def test_a_aplicacao_sobe_dele_e_o_healthz_devolve_a_versao_vigente_e_o_dia(
-    banco: Path, monkeypatch: pytest.MonkeyPatch
+    banco: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("EVENTOS_DB", str(banco))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(banco))
     monkeypatch.setenv("EVENTOS_COMMIT", "abc1234")
     cliente = TestClient(criar_app(config.carregar()))  # sem a partida: a fila não sobe
 
@@ -107,7 +115,7 @@ def test_a_aplicacao_sobe_dele_e_o_healthz_devolve_a_versao_vigente_e_o_dia(
     assert mapa.status_code == 200 and "Top 3" in mapa.text
 
 
-def test_as_datas_do_pipeline_ficam_no_dia_d_ou_antes(banco: Path) -> None:
+def test_as_datas_do_pipeline_ficam_no_dia_d_ou_antes(banco: str) -> None:
     """No primeiro snapshot (#109) a descoberta, a revisão, as classificações e os painéis
     tinham a data do dia seguinte ao dia D, e a tela mostrava a revisão num horário futuro."""
     fim = f"{(AGORA - timedelta(days=1)).date().isoformat()}T23:59:59Z"
@@ -123,7 +131,7 @@ def test_as_datas_do_pipeline_ficam_no_dia_d_ou_antes(banco: Path) -> None:
         assert depois == 0, (tabela, coluna)
 
 
-def test_a_v2_tem_uma_frente_nova_criado_pela_revisao(banco: Path) -> None:
+def test_a_v2_tem_uma_frente_nova_criado_pela_revisao(banco: str) -> None:
     """O passo 6 do roteiro: a v2 com a coluna nova. No primeiro snapshot (#109) a revisão
     propôs 3 frentes e o código descartou os 3."""
     novos = _um(
@@ -136,7 +144,7 @@ def test_a_v2_tem_uma_frente_nova_criado_pela_revisao(banco: Path) -> None:
     assert any(o["tipo"] == "criar_frente" and o["aplicada"] for o in operacoes)
 
 
-def test_todo_problema_termina_na_clausula_do_objeto(banco: Path) -> None:
+def test_todo_problema_termina_na_clausula_do_objeto(banco: str) -> None:
     sem = _um(
         banco,
         "SELECT count(*) FROM valor WHERE dimensao = 'problema' AND descricao NOT LIKE"

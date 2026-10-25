@@ -1,7 +1,6 @@
 """As duas rotas e a fila gravam no snapshot com uma leitura em andamento."""
 
 import asyncio
-import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
@@ -22,53 +21,44 @@ from tests.llm.falso import LlmFalsa
 from tests.snapshot.apoio import banco_carregado
 
 
-def test_banco_carregado_ja_esta_em_wal_antes_de_abrir_pelo_store(tmp_path: Path) -> None:
-    banco = banco_carregado(tmp_path)
-    with closing(sqlite3.connect(banco)) as con:
-        assert con.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
-    assert not list(banco.parent.glob(".snapshot-*"))
-
-
-def test_troca_snapshot_com_app_no_ar_recusa_ocupado_e_reabre_em_wal(
+def test_troca_snapshot_com_app_no_ar_recusa_ocupado_e_depois_carrega(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     banco = banco_carregado(tmp_path)
-    # Começa em WAL também na base; a regressão é o modo depois da recarga.
-    store.abrir(banco).close()
-    monkeypatch.setattr(arquivo, "CAMINHO_PADRAO", tmp_path / "snapshot.sqlite.gz")
+    monkeypatch.setattr(arquivo, "CAMINHO_PADRAO", tmp_path / "snapshot.tar.gz")
+    monkeypatch.setattr(arquivo, "ESPERA_DE_TRAVA_MS", 200)
     monkeypatch.setattr(fila, "ao_partir", lambda app: None)
     monkeypatch.setattr(partida, "ao_partir", lambda app: None)
-    cfg = config.carregar({"EVENTOS_DB": str(banco), "EVENTOS_WEBHOOK_TOKEN": "token-do-teste"})
+    cfg = config.carregar(
+        {"EVENTOS_DATABASE_URL": str(banco), "EVENTOS_WEBHOOK_TOKEN": "token-do-teste"}
+    )
     headers = {"Authorization": "Bearer token-do-teste"}
     with TestClient(criar_app(cfg)) as http:
-        with closing(store.abrir_existente(banco)) as leitor:
-            leitor.execute("BEGIN")
-            leitor.execute("SELECT count(*) FROM evento").fetchone()
-            with closing(store.abrir_existente(banco)) as escritor, escritor:
-                escritor.execute("UPDATE evento SET texto = 'mudou' WHERE id = 'na-fila'")
-            recusada = http.post("/admin/snapshot/carregar", headers=headers)
-            assert recusada.status_code == 409
-            assert "ocupado" in recusada.json()["detail"]
-            with closing(sqlite3.connect(banco)) as con:
+        with closing(store.conectar(banco)) as leitor:
+            with leitor.transaction():  # uma leitura em andamento segura a tabela
+                leitor.execute("SELECT count(*) FROM evento").fetchone()
+                with closing(store.abrir_existente(banco)) as escritor:
+                    escritor.execute("UPDATE evento SET texto = 'mudou' WHERE id = 'na-fila'")
+                recusada = http.post("/admin/snapshot/carregar", headers=headers)
+                assert recusada.status_code == 409
+                assert "ocupado" in recusada.json()["detail"]
+            with closing(store.abrir_existente(banco)) as con:
                 assert con.execute("SELECT texto FROM evento WHERE id = 'na-fila'").fetchone()[
                     0
                 ] == ("mudou")
         assert http.post("/admin/snapshot/carregar", headers=headers).status_code == 200
-        with closing(sqlite3.connect(banco)) as con:
-            assert con.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
-            assert con.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        with closing(store.abrir_existente(banco)) as con:
             assert con.execute("SELECT texto FROM evento WHERE id = 'na-fila'").fetchone()[0] == (
                 "O simulador caiu"
             )
         assert http.get("/healthz").json()["versao_vigente"] == 1
-    assert not list(banco.parent.glob(".snapshot-*"))
 
 
 def test_enderecar_relatar_e_classificar_em_paralelo_no_snapshot(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     banco = banco_carregado(tmp_path)
-    cfg = config.carregar({"EVENTOS_DB": str(banco)})
+    cfg = config.carregar({"EVENTOS_DATABASE_URL": str(banco)})
     jev_falso = JevFalso({"O simulador caiu": jev(), "O gravame caiu": jev()})
     llm = LlmFalsa({})
 
@@ -102,7 +92,7 @@ def test_enderecar_relatar_e_classificar_em_paralelo_no_snapshot(
     monkeypatch.setattr(classificacao, "gravar", classificar_junto)
     monkeypatch.setattr(enderecamento, "criar", enderecar_junto)
 
-    with TestClient(criar_app(cfg)) as http, closing(sqlite3.connect(banco)) as leitor:
+    with TestClient(criar_app(cfg)) as http, closing(store.conectar(banco)) as leitor:
         leitor.execute("BEGIN")
         leitor.execute("SELECT count(*) FROM evento").fetchone()
         with ThreadPoolExecutor(max_workers=3) as executor:
@@ -138,7 +128,6 @@ def test_enderecar_relatar_e_classificar_em_paralelo_no_snapshot(
             await asyncio.wait_for(http.app.state.fila.varrer(), timeout=10)
 
         http.portal.call(concluir_fila)
-        assert "database is locked" not in caplog.text
         assert "erro ao classificar" not in caplog.text
     with closing(store.abrir_existente(banco)) as con:
         assert con.execute("SELECT count(*) FROM enderecamento").fetchone()[0] == 1

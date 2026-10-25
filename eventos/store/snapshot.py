@@ -1,28 +1,45 @@
-"""O SQL do snapshot: copiar o banco com o `snapshot_meta` e deslocar as datas.
+"""O SQL do snapshot: o que se lê do banco para gravá-lo e o que se escreve para carregá-lo.
 
-Quem decide quando gravar ou carregar, e mexe nos arquivos, é `eventos/snapshot/`.
+O artefato é um `.tar.gz` com um CSV por tabela (ver `eventos/snapshot/`). Quem decide quando
+gravar ou carregar, e mexe nos arquivos, é `eventos/snapshot/`.
 """
 
-import json
 import re
-import sqlite3
-from collections.abc import Mapping
-from contextlib import closing
+from collections.abc import Iterable, Iterator, Sequence
 from datetime import date, timedelta
-from pathlib import Path
 from typing import Any
 
-from eventos import contratos
-from eventos.store import BancoAusente, Conexao, abrir_existente
+from eventos.store import Conexao
 
 # Chave em `evento.metadados` com que o script da rajada marca os eventos que envia.
 MARCA_DA_RAJADA = "rajada"
+
+# As tabelas do snapshot, na ordem em que o carregador as escreve, com a ordem das linhas no CSV
+# (a chave primária, para o arquivo sair igual quando o banco é o mesmo). `gabarito` nunca entra.
+TABELAS: dict[str, str] = {
+    "emissor": "id",
+    "geracao": "id",
+    "versao_taxonomia": "numero",
+    "valor": "versao, dimensao, chave",
+    "evento": "seq",
+    "classificacao": "evento_id, versao",
+    "painel_celula": "versao, area, frente, visao, periodo",
+    "enderecamento": "id",
+}
+# Colunas de identidade: depois do carregamento a sequência passa do maior id carregado.
+IDENTIDADES: dict[str, str] = {"evento": "seq", "geracao": "id", "enderecamento": "id"}
+
+NULO = "\\N"
 
 _DATA = re.compile(r"^(\d{4}-\d{2}-\d{2})(T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))?$")
 
 
 class SnapshotInvalido(Exception):
     """O arquivo não é um snapshot que este esquema carrega."""
+
+
+class BancoNaoTrocavel(Exception):
+    """O banco não pode receber o snapshot agora (ocupado). A mensagem diz por quê."""
 
 
 def dia_dos_dados(con: Conexao) -> str | None:
@@ -51,74 +68,65 @@ def contar_gabarito(con: Conexao) -> int:
 def contar_rajada(con: Conexao) -> int:
     return con.execute(
         "SELECT count(*) FROM evento"
-        " WHERE coalesce(json_extract(metadados, ?), 0) NOT IN (0, 'false')",
-        (f"$.{MARCA_DA_RAJADA}",),
+        " WHERE coalesce(metadados::jsonb -> %s, 'false'::jsonb)"
+        " NOT IN ('false'::jsonb, '0'::jsonb, 'null'::jsonb)",
+        (MARCA_DA_RAJADA,),
     ).fetchone()[0]
 
 
-def copiar_para(
-    con: Conexao,
-    destino: Path,
-    *,
-    dia_d: str,
-    gerado_em: str,
-    commit_sha: str,
-    limiares: Mapping[str, Any],
-) -> None:
-    """Copia o banco para `destino` (um arquivo novo) e grava nele a linha do `snapshot_meta`.
+def banco_sem_dados(con: Conexao) -> bool:
+    """O esquema existe e está vazio: sem evento e sem a linha do snapshot."""
+    com_evento = con.execute("SELECT EXISTS (SELECT 1 FROM evento)").fetchone()[0]
+    com_snapshot = con.execute("SELECT EXISTS (SELECT 1 FROM snapshot_meta)").fetchone()[0]
+    return not com_evento and not com_snapshot
 
-    O arquivo sai num só (sem WAL) e compacto. O banco de origem não é alterado.
-    """
-    with closing(sqlite3.connect(destino)) as copia:
-        con.backup(copia)
-        copia.execute("DELETE FROM snapshot_meta")
-        copia.execute(
-            "INSERT INTO snapshot_meta (id, dia_d, gerado_em, commit_sha, limiares)"
-            " VALUES (1, ?, ?, ?, ?)",
-            (dia_d, gerado_em, commit_sha, json.dumps(limiares, sort_keys=True)),
+
+def colunas_da_tabela(con: Conexao, tabela: str) -> list[str]:
+    from eventos.store import colunas
+
+    return colunas(con, tabela)
+
+
+def exportar_csv(con: Conexao, tabela: str) -> Iterator[bytes]:
+    """As linhas da tabela em CSV, com cabeçalho, na ordem da chave. NULL sai como `\\N`."""
+    nomes = ", ".join(colunas_da_tabela(con, tabela))
+    ordem = TABELAS[tabela]
+    comando = (
+        f"COPY (SELECT {nomes} FROM {tabela} ORDER BY {ordem}) "
+        f"TO STDOUT WITH (FORMAT csv, HEADER true, NULL '{NULO}')"
+    )
+    with con.cursor().copy(comando) as copia:
+        for pedaco in copia:
+            yield bytes(pedaco)
+
+
+def esvaziar(con: Conexao) -> None:
+    """Esvazia as tabelas do snapshot (e o `snapshot_meta`), zerando as identidades."""
+    tabelas = ", ".join([*TABELAS, "snapshot_meta"])
+    con.execute(f"TRUNCATE {tabelas} RESTART IDENTITY CASCADE")
+
+
+def escrever(
+    con: Conexao, tabela: str, colunas: Sequence[str], linhas: Iterable[Sequence[Any]]
+) -> int:
+    """Escreve as linhas na tabela por COPY. Devolve quantas."""
+    nomes = ", ".join(colunas)
+    total = 0
+    with con.cursor().copy(f"COPY {tabela} ({nomes}) FROM STDIN") as copia:
+        for linha in linhas:
+            copia.write_row(linha)
+            total += 1
+    return total
+
+
+def acertar_identidades(con: Conexao) -> None:
+    """Depois de escrever ids explícitos, o próximo gerado tem de passar do maior carregado."""
+    for tabela, coluna in IDENTIDADES.items():
+        con.execute(
+            f"SELECT setval(pg_get_serial_sequence('{tabela}', '{coluna}'),"
+            f" coalesce((SELECT max({coluna}) FROM {tabela}), 1),"
+            f" (SELECT max({coluna}) FROM {tabela}) IS NOT NULL)"
         )
-        copia.commit()
-        copia.execute("PRAGMA journal_mode = DELETE")
-        copia.execute("VACUUM")
-
-
-class BancoNaoTrocavel(Exception):
-    """O banco no caminho não pode ser trocado com segurança. A mensagem diz por quê."""
-
-
-def banco_existe(caminho: Path) -> bool:
-    """Há um banco com o esquema no caminho. Arquivo que não é SQLite é erro, não ausência."""
-    try:
-        abrir_existente(caminho).close()
-    except BancoAusente:
-        return False
-    except sqlite3.DatabaseError:
-        raise BancoNaoTrocavel(f"o arquivo em {caminho} não é um banco SQLite") from None
-    return True
-
-
-def liberar_para_troca(caminho: Path) -> None:
-    """Deixa o banco em uso sem WAL, para o arquivo novo poder tomar o lugar dele.
-
-    Passa o WAL para o arquivo principal e o esvazia; se alguma conexão ainda lê ou escreve
-    nele (checkpoint ocupado), recusa em vez de trocar. Depois remove o `-wal` e o `-shm`.
-    """
-    if not caminho.exists():
-        return
-    try:
-        with closing(sqlite3.connect(caminho)) as con:
-            ocupado = con.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()[0]
-    except sqlite3.DatabaseError as erro:
-        raise BancoNaoTrocavel(f"o arquivo em {caminho} não é um banco SQLite: {erro}") from None
-    if ocupado:
-        raise BancoNaoTrocavel(
-            f"o banco em {caminho} está ocupado (uma conexão ainda o usa): tente de novo"
-        )
-    for sobra in (
-        caminho.with_name(caminho.name + "-wal"),
-        caminho.with_name(caminho.name + "-shm"),
-    ):
-        sobra.unlink(missing_ok=True)
 
 
 def deslocar_texto(valor: str, dias: int, *, estrito: bool = True) -> str:
@@ -138,67 +146,11 @@ def deslocar_texto(valor: str, dias: int, *, estrito: bool = True) -> str:
     return dia.isoformat() + valor[10:]
 
 
-def _deslocar_json(valor: object, dias: int) -> object:
+def deslocar_json(valor: object, dias: int) -> object:
     if isinstance(valor, str):
         return deslocar_texto(valor, dias, estrito=False)
     if isinstance(valor, list):
-        return [_deslocar_json(item, dias) for item in valor]
+        return [deslocar_json(item, dias) for item in valor]
     if isinstance(valor, dict):
-        return {chave: _deslocar_json(item, dias) for chave, item in valor.items()}
+        return {chave: deslocar_json(item, dias) for chave, item in valor.items()}
     return valor
-
-
-def deslocar_arquivo(arquivo: Path, ontem: date, carregado_em: str) -> int:
-    """Desloca todas as datas do snapshot em `arquivo` para o dia D virar `ontem`.
-
-    Tudo numa transação: se algo falha, o arquivo fica como estava (e quem chamou o
-    descarta). Devolve quantos dias deslocou.
-    """
-    motivos: list[ValueError] = []
-    try:
-        with closing(sqlite3.connect(arquivo, isolation_level=None)) as con:
-            con.row_factory = sqlite3.Row
-            if con.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
-                raise SnapshotInvalido("o arquivo do snapshot está corrompido")
-            meta = con.execute("SELECT dia_d FROM snapshot_meta WHERE id = 1").fetchone()
-            if meta is None:
-                raise SnapshotInvalido("o arquivo não tem a linha do snapshot_meta")
-            dias = (ontem - date.fromisoformat(meta["dia_d"])).days
-
-            # O SQLite troca o erro de uma função nossa por "user-defined function raised
-            # exception"; guardamos o original para dizer qual data não deslocou.
-
-            def desloca(valor: str | None) -> str | None:
-                try:
-                    return None if valor is None else deslocar_texto(valor, dias)
-                except ValueError as erro:
-                    motivos.append(erro)
-                    raise
-
-            con.create_function("desloca", 1, desloca)
-            con.create_function(
-                "desloca_json",
-                1,
-                lambda v: json.dumps(_deslocar_json(json.loads(v), dias), ensure_ascii=False),
-            )
-            con.execute("BEGIN")
-            try:
-                for tabela, colunas in contratos.COLUNAS_DE_DATA.items():
-                    for coluna in colunas:
-                        con.execute(f"UPDATE {tabela} SET {coluna} = desloca({coluna})")
-                con.execute("UPDATE evento SET metadados = desloca_json(metadados)")
-                con.execute(
-                    "UPDATE snapshot_meta SET carregado_em = ?, deslocamento_dias = ?",
-                    (carregado_em, dias),
-                )
-                con.execute("COMMIT")
-            except BaseException:
-                con.execute("ROLLBACK")
-                raise
-            # O arquivo compactado é portátil (DELETE); o banco da aplicação usa WAL.
-            # A conexão fecha antes da troca do arquivo, consolidando o WAL temporário.
-            con.execute("PRAGMA journal_mode = WAL")
-    except (sqlite3.Error, ValueError) as erro:
-        motivo = motivos[0] if motivos else erro
-        raise SnapshotInvalido(f"o snapshot não carrega: {motivo}") from erro
-    return dias

@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from eventos import config, store
+from tests.banco import banco_de
 
 # O último dia da seed do banco de teste, e o "agora" da carga: ontem é 2026-10-02, então
 # tudo desloca 109 dias. As datas são fixas, nunca relativas ao relógio.
@@ -24,7 +25,7 @@ METADADOS = {
 
 def popular(con: store.Conexao) -> None:
     """Uma linha em cada tabela com coluna de data, mais as dependências dela."""
-    con.executescript(
+    con.execute(
         """
         INSERT INTO geracao (id, tipo, disparada_em, resultado, versao_resultante)
             VALUES (1, 'descoberta', '2026-04-01T01:00:00Z', NULL, NULL);
@@ -44,7 +45,7 @@ def popular(con: store.Conexao) -> None:
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em, metadados)"
         " VALUES ('f1', 'log', 'sistema-pagamentos', 'timeout no gateway',"
-        " '2026-06-10T07:00:00Z', '2026-06-10T08:30:00Z', ?)",
+        " '2026-06-10T07:00:00Z', '2026-06-10T08:30:00Z', %s)",
         (json.dumps(METADADOS),),
     )
     con.execute(
@@ -65,7 +66,7 @@ def popular(con: store.Conexao) -> None:
 
 @pytest.fixture
 def banco_populado(tmp_path: Path) -> Path:
-    caminho = tmp_path / "origem" / "eventos.sqlite"
+    caminho = banco_de(tmp_path, "origem")
     con = store.abrir(caminho)
     popular(con)
     con.close()
@@ -74,13 +75,15 @@ def banco_populado(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def cfg(banco_populado: Path) -> config.Config:
-    return config.carregar({"EVENTOS_DB": str(banco_populado), "EVENTOS_COMMIT": "abc1234"})
+    return config.carregar(
+        {"EVENTOS_DATABASE_URL": str(banco_populado), "EVENTOS_COMMIT": "abc1234"}
+    )
 
 
 @pytest.fixture
 def snapshot_gravado(cfg: config.Config, tmp_path: Path) -> Path:
     from eventos.snapshot import arquivo
 
-    destino = tmp_path / "repo" / "eventos.sqlite.gz"
+    destino = tmp_path / "repo" / "eventos.snapshot.tar.gz"
     arquivo.gravar(cfg, destino, AGORA)
     return destino

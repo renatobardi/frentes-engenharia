@@ -1,4 +1,4 @@
-"""Ao subir sem banco no volume, carrega o snapshot sozinho: subir do zero já dá a demo pronta."""
+"""Ao subir com o banco vazio, carrega o snapshot sozinho: subir do zero já dá a demo pronta."""
 
 import logging
 
@@ -22,7 +22,7 @@ def ao_partir(app: FastAPI) -> None:
     try:
         carregado = arquivo.carregar(banco)
     except arquivo.SnapshotAusente as erro:
-        # Sem snapshot a aplicação sobe com o banco vazio, que o primeiro acesso cria.
-        log.warning("sem banco e sem snapshot: %s", erro)
+        # Sem snapshot a aplicação sobe com o banco vazio (o esquema já foi migrado).
+        log.warning("banco vazio e sem snapshot: %s", erro)
         return
-    log.info("snapshot do dia %s carregado em %s", carregado.dia_d, banco)
+    log.info("snapshot do dia %s carregado", carregado.dia_d)

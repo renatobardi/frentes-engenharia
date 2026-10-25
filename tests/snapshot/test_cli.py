@@ -4,6 +4,7 @@ import pytest
 
 from eventos.__main__ import main
 from eventos.snapshot import arquivo, cli
+from tests.banco import banco_de, tabelas_do
 
 
 @pytest.fixture
@@ -11,9 +12,9 @@ def ambiente(
     banco_populado: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> tuple[Path, Path]:
     """(banco de origem, arquivo do snapshot) com o ambiente apontando para o banco."""
-    monkeypatch.setenv("EVENTOS_DB", str(banco_populado))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(banco_populado))
     monkeypatch.setenv("EVENTOS_COMMIT", "abc1234")
-    return banco_populado, tmp_path / "repo" / "eventos.sqlite.gz"
+    return banco_populado, tmp_path / "repo" / "eventos.snapshot.tar.gz"
 
 
 def test_o_comando_snapshot_esta_declarado_e_sai_de_planejados() -> None:
@@ -48,17 +49,17 @@ def test_gravar_e_carregar_pela_linha_de_comando(
     assert "dia D 2026-06-15" in capsys.readouterr().out
     assert saida.is_file()
 
-    novo = tmp_path / "volume" / "eventos.sqlite"
-    monkeypatch.setenv("EVENTOS_DB", str(novo))
+    novo = banco_de(tmp_path, "volume")
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(novo))
     assert main(["snapshot", "carregar", "--de", str(saida)]) == 0
     assert "dia D 2026-06-15 deslocado" in capsys.readouterr().out
-    assert novo.is_file()
+    assert "evento" in tabelas_do(novo)
 
 
 def test_gravar_sem_banco_sai_com_1(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setenv("EVENTOS_DB", str(tmp_path / "nao-existe.sqlite"))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(banco_de(tmp_path, "nao-existe", criar=False)))
 
     assert main(["snapshot", "gravar", "--saida", str(tmp_path / "s.gz")]) == 1
     assert "não há banco" in capsys.readouterr().err
@@ -95,7 +96,7 @@ def test_carregar_arquivo_estragado_sai_com_1(
     estragado.write_bytes(b"isto nao e gzip")
 
     assert main(["snapshot", "carregar", "--de", str(estragado)]) == 1
-    assert "descompactar" in capsys.readouterr().err
+    assert "não consegui ler" in capsys.readouterr().err
 
 
 def test_gravar_avisa_quando_o_arquivo_passa_do_limite_do_repo(
@@ -139,19 +140,3 @@ def test_gravar_sem_commit_definido_avisa(
 
     assert main(["snapshot", "gravar", "--saida", str(saida)]) == 0
     assert "EVENTOS_COMMIT não está definido" in capsys.readouterr().err
-
-
-def test_carregar_sobre_arquivo_que_nao_e_sqlite_sai_com_1(
-    ambiente: tuple[Path, Path],
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    _, saida = ambiente
-    assert main(["snapshot", "gravar", "--saida", str(saida)]) == 0
-    estranho = tmp_path / "estranho.sqlite"
-    estranho.write_text("não é banco " * 50)
-    monkeypatch.setenv("EVENTOS_DB", str(estranho))
-
-    assert main(["snapshot", "carregar", "--de", str(saida)]) == 1
-    assert "não é um banco SQLite" in capsys.readouterr().err
