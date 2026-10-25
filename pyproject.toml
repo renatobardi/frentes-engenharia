@@ -11,6 +11,8 @@ dependencies = [
     "jinja2>=3.1",
     "httpx>=0.27",
     "python-multipart>=0.0.9",
+    "psycopg[binary]>=3.2",
+    "psycopg-pool>=3.2",
 ]
 
 [dependency-groups]
@@ -32,6 +34,10 @@ filterwarnings = [
     "error",
     # O TestClient do Starlette pede httpx2; a dependência decidida no ADR-0001 é httpx.
     "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+    # Um teste que abre o banco e não fecha: o psycopg avisa na coleta da conexão. O conftest
+    # derruba as conexões esquecidas ao fim do teste, então o aviso não diz nada de útil.
+    "ignore:.*was deleted while still open:ResourceWarning",
+    "ignore:.*BaseConnection.__del__.*:pytest.PytestUnraisableExceptionWarning",
 ]
 
 [tool.ruff]
@@ -56,4 +62,6 @@ select = ["E", "F", "W", "I", "UP", "B", "TID251"]
 "eventos/jev/**" = ["TID251"]
 "eventos/llm/**" = ["TID251"]
 "eventos/seed/rajada.py" = ["TID251"]
+# Script único da migração da #162 (SQLite → Postgres): sai na limpeza, junto com esta exceção.
+"scripts/sqlite_para_postgres.py" = ["TID251"]
 "tests/**" = ["TID251"]
