@@ -9,6 +9,17 @@ permissions:
 jobs:
   gates:
     runs-on: ubuntu-latest
+    # Os testes rodam contra Postgres 17, o mesmo do oute-supabase-db.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: teste
+        ports:
+          - 55439:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5

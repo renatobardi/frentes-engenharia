@@ -331,7 +331,7 @@ socket.create_connection = sem_rede
 
 with TemporaryDirectory() as pasta:
     banco = Path(pasta) / "eventos.sqlite"
-    cfg = config.carregar({"EVENTOS_DB": str(banco)})
+    cfg = config.carregar({"EVENTOS_DATABASE_URL": str(banco)})
     arquivo.carregar(banco)
     con = store.abrir_existente(banco)
     texto, emissor = con.execute("SELECT texto,emissor FROM evento WHERE id='ev-2343'").fetchone()

@@ -1,4 +1,8 @@
-.PHONY: test lint format servir
+.PHONY: test lint format servir db
+
+# Postgres de desenvolvimento e testes (porta 55439). Os testes precisam dele no ar.
+db:
+	docker compose --profile dev up -d --wait db
 
 # Os dois gates do repo (AGENTS.md, "Validar antes do PR").
 test:

@@ -9,15 +9,15 @@ navegador (internet: só leitura; tailnet: completo) ──► oute-server ─�
                                                    └─ 1 container Docker "app"
                                                        ├─ FastAPI (1 processo): telas HTML + POST /eventos
                                                        ├─ fila em memória: Jev → regras → LLM → painel
-                                                       └─ SQLite em /data (volume)
+                                                       └─ Postgres do oute-supabase-db (schema próprio)
 script da rajada ──POST /eventos──►                    saída: api.typesafe.ai e openrouter.ai
 ```
 
 - **Python 3.12, com `uv`.**
 - **FastAPI + uvicorn, um processo, um único worker** (por causa da fila em memória e do SQLite).
-- Dependências de execução, e só estas: `fastapi`, `uvicorn`, `jinja2`, `httpx`, `python-multipart`. Sem ORM, sem SDK de LLM.
+- Dependências de execução, e só estas: `fastapi`, `uvicorn`, `jinja2`, `httpx`, `python-multipart`, `psycopg[binary]`, `psycopg_pool`. Sem ORM, sem SDK de LLM.
 - **Front**: Jinja2 + HTMX, sem build (ver [10](10-telas.md)).
-- **Banco**: SQLite, um arquivo, biblioteca padrão `sqlite3`, modo WAL. Datas em texto ISO 8601, UTC. JSON em colunas de texto. Sem migrações: o banco nasce do `schema.sql` ou do snapshot.
+- **Banco**: Postgres (`oute-supabase-db`, schema `frentes_engenharia_prd`), `psycopg` 3 com pool de 1 a 5 conexões. Datas em texto ISO 8601, UTC. JSON em colunas de texto. Migrações em `store/migracoes/`, aplicadas na partida. Ver o [ADR-0002](../adr/0002-postgres-do-oute-supabase-db.md).
 
 ## Estrutura de pastas
 
@@ -32,7 +32,7 @@ frentes-engenharia/
 │   ├── __main__.py        # a linha de comando
 │   ├── config.py          # ambiente e limiares; único lugar que lê variável de ambiente
 │   ├── contratos.py       # os tipos trocados entre módulos
-│   ├── store/             # schema.sql e todo o SQL
+│   ├── store/             # migracoes/ (o esquema) e todo o SQL
 │   ├── entrada/           # POST /eventos, idempotência, complemento
 │   ├── jev/               # clientes do Jev (TypeSafe, decisões do OpenRouter, a cadeia) e o pedido
 │   ├── llm/               # cliente do OpenRouter
@@ -48,7 +48,7 @@ frentes-engenharia/
 │   └── web/               # app FastAPI, rotas, templates/, static/
 ├── seed/                  # o que nós escrevemos: organograma.json, histórias, enderecamentos.json
 │   └── gerado/            # eventos.jsonl, gabarito.jsonl, rajada.jsonl
-├── data/snapshot/eventos.sqlite.gz
+├── data/snapshot/eventos.snapshot.tar.gz
 ├── scripts/deploy.sh
 ├── tests/                 # espelha eventos/, um diretório por módulo
 └── docs/adr/  docs/agents/

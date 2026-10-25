@@ -19,7 +19,7 @@ Ambiente limpo: `env -i HOME="$(mktemp -d)" PATH="$PATH" LANG=C.UTF-8 make test`
 
 - Nenhum teste toca a rede nem gasta dinheiro. O Jev e a LLM são falsos com respostas gravadas, passados como parâmetro (`contratos.ClienteJev`, `contratos.ClienteLlm`).
 - O `tests/conftest.py` apaga do ambiente as chaves e tudo o que o `config.py` lê, e faz falhar qualquer conexão para fora da própria máquina. Variável nova no `config.py` entra em `VARIAVEIS` do `conftest.py`.
-- O banco do teste é SQLite em memória (`store.abrir()`) ou um arquivo em `tmp_path`.
+- O banco do teste é um Postgres 17 local (`make db`, porta 55439; na CI, um `service`): cada teste pede os seus schemas descartáveis em `tests/banco.py` (`banco_de(tmp_path)` onde antes havia `tmp_path / "eventos.sqlite"`, `url_novo()` no lugar de `store.abrir()` em memória) e o `conftest` os derruba ao fim. Não há `with con:`: use `with con.transaction():`.
 - `tests/` espelha `eventos/`, um diretório por módulo, sem `__init__.py`.
 - Teste não depende do relógio no limite exato nem de nome sorteado.
 
@@ -27,7 +27,7 @@ Ambiente limpo: `env -i HOME="$(mktemp -d)" PATH="$PATH" LANG=C.UTF-8 make test`
 
 | Regra | Quem pode |
 |---|---|
-| SQL (`sqlite3`) | só `eventos/store/`. O esquema é o `store/schema.sql` |
+| SQL (`psycopg`) | só `eventos/store/`. O esquema é a migração `store/migracoes/0001_esquema.sql` (e as seguintes) |
 | Falar com a rede (`httpx`, `urllib.request`, `socket`) | só `eventos/jev/` e `eventos/llm/` (e `eventos/seed/rajada.py`, que é o cliente do webhook) |
 | Ler variável de ambiente | só `eventos/config.py` |
 | Ler o gabarito | só `eventos/conferencia/` |
@@ -37,10 +37,10 @@ As três primeiras são conferidas pelo `make lint` (regra `TID251` do ruff, no 
 
 ## Os dois arquivos que todo módulo toca
 
-- **`eventos/store/schema.sql`**: o modelo de dados inteiro. Não há migração: o banco nasce dele ou do snapshot. Mudou o esquema, regrava-se o snapshot.
+- **`eventos/store/migracoes/`**: o modelo de dados, em migrações `NNNN_nome.sql` aplicadas na partida (ADR-0002). Mudou o esquema, entra uma migração nova; o snapshot é regravado se as colunas mudaram.
 - **`eventos/contratos.py`**: os tipos trocados entre os módulos. Não importa nenhum módulo do pacote.
 
-Os valores dos enums do `contratos.py` são os mesmos dos `CHECK` do `schema.sql`, e toda coluna de data (menos as do `snapshot_meta`) está em `contratos.COLUNAS_DE_DATA`, que é o que o carregador do snapshot desloca. Os testes conferem as duas coisas: mudou um, mude o outro no mesmo PR. Mudança nesses dois arquivos vai num PR pequeno e próprio, para as sessões paralelas não divergirem.
+Os valores dos enums do `contratos.py` são os mesmos dos `CHECK` das migrações, e toda coluna de data (menos as do `snapshot_meta`) está em `contratos.COLUNAS_DE_DATA`, que é o que o carregador do snapshot desloca. Os testes conferem as duas coisas: mudou um, mude o outro no mesmo PR. Mudança nesses dois arquivos vai num PR pequeno e próprio, para as sessões paralelas não divergirem.
 
 Datas: texto ISO 8601 em UTC, sempre pelo `contratos.para_iso` (`2026-10-03T14:05:09Z`). Valor da taxonomia é referido pela **chave**. "Nenhum destes" não é valor: é `NULL` no banco e `None` no contrato.
 
@@ -50,7 +50,7 @@ Datas: texto ISO 8601 em UTC, sempre pelo `contratos.para_iso` (`2026-10-03T14:0
 
 ## Encaixes das fatias paralelas
 
-Cada fatia cria arquivos no próprio módulo e não edita arquivo de outra. Quem edita é o que mora no mesmo lugar para todos, e esse vai em PR pequeno (como `schema.sql` e `contratos.py`).
+Cada fatia cria arquivos no próprio módulo e não edita arquivo de outra. Quem edita é o que mora no mesmo lugar para todos, e esse vai em PR pequeno (como as migrações e `contratos.py`).
 
 - **Telas**: pasta `eventos/web/<tela>/` com `__init__.py` (obrigatório: sem ele a tela é ignorada em silêncio e a rota dá 404), `rotas.py` (`roteador = APIRouter()`) e `templates/<tela>/*.html`. A app inclui o roteador e acha os templates sozinha. A página estende `base.html` (menu e `htmx.min.js`) e usa `eventos.web.telas.renderizar(request, "<tela>/pagina.html", contexto)`. O CSS base é `static/app.css`; só `static/` serve arquivo.
 - **Menu e rotas**: as quatro URLs do menu são fixas: Mapa de calor `/`, Eventos `/eventos`, Taxonomia `/taxonomia`, "Relatar um evento" `/eventos/relatar`. O menu tem mais dois itens, que só aparecem quando a rota existe: Decisões `/decisoes` e Saúde `/saude`. A busca e o tema escuro entram no layout por fragmento (`busca/topo.html`, `tema/head.html`, `tema/topo.html`), incluído quando existe: ver "Encaixes no layout" em [`docs/spec/10-telas.md`](docs/spec/10-telas.md). Cada fatia de tela serve a dela e não edita `base.html` nem `telas.py`. Rota que não é tela (o `POST /eventos` do `entrada/`, recarregar o snapshot, fragmentos do HTMX) entra no `rotas.py` do módulo ou da tela dona, sempre dentro de `eventos/web/<pasta>/`. A precedência é a ordem alfabética das pastas: uma rota com parâmetro (`/eventos/{id}`) numa pasta anterior captura `/eventos/relatar`; declare a rota fixa antes da com parâmetro, e se duas pastas disputam o caminho, resolva no `rotas.py` da que vem primeiro.
@@ -68,9 +68,9 @@ Cada fatia cria arquivos no próprio módulo e não edita arquivo de outra. Quem
 
 ## Dependências e front
 
-- Dependências de execução, e só estas: `fastapi`, `uvicorn`, `jinja2`, `httpx`, `python-multipart`. Sem ORM, sem SDK de LLM. Dependência nova pede decisão do Bardi.
+- Dependências de execução, e só estas: `fastapi`, `uvicorn`, `jinja2`, `httpx`, `python-multipart`, `psycopg[binary]`, `psycopg_pool`. Sem ORM, sem SDK de LLM. Dependência nova pede decisão do Bardi.
 - Telas: HTML renderizado no servidor (Jinja2) + HTMX, sem build. Um CSS escrito à mão. Tudo servido de `eventos/web/static/`: nenhum CDN, e uma fonte web só, a `InterVariable.woff2` (ADR-0001).
-- Um processo, um worker do uvicorn, um arquivo SQLite.
+- Um processo, um worker do uvicorn, o Postgres do oute-supabase-db (ADR-0002).
 
 ## Git
 
