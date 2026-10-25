@@ -13,14 +13,15 @@ from eventos import config, store
 from eventos.conferencia import conferir as orquestra
 from eventos.conferencia.relatorio import Conferencia, Relatorio
 from eventos.store.gabarito import Gabarito
+from tests.banco import url_novo
 
 DIA = "2026-09-10"
 AREAS = {"formalizacao": ("gravame",), "originacao": ("proposta",), "canal": ("app",)}
 _ids = count(1)
 
 
-def banco(caminho: Path | str = store.EM_MEMORIA) -> store.Conexao:
-    return store.abrir(caminho)
+def banco(caminho: str | None = None) -> store.Conexao:
+    return store.abrir(caminho or url_novo())
 
 
 def versao(
@@ -34,7 +35,7 @@ def versao(
     """Uma versão com as frentes e os times dados (time → área). Sem `times`, os de `AREAS`."""
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
-        " VALUES (?, '{}', 'jev-1', '2026-01-01T00:00:00Z', ?)",
+        " VALUES (%s, '{}', 'jev-1', '2026-01-01T00:00:00Z', %s)",
         (numero, "2026-01-02T00:00:00Z" if ativada else None),
     )
     times = times or {t: a for a, ts in AREAS.items() for t in ts}
@@ -43,7 +44,8 @@ def versao(
     valores += [("frente", t, None) for t in frentes]
     for dimensao, chave, pai in valores:
         con.execute(
-            "INSERT INTO valor (versao, dimensao, chave, nome, chave_pai) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO valor (versao, dimensao, chave, nome, chave_pai)"
+            " VALUES (%s, %s, %s, %s, %s)",
             (numero, dimensao, chave, chave, pai),
         )
     con.commit()
@@ -80,7 +82,7 @@ def evento(
     id = f"ev-{next(_ids):04d}"
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em)"
-        " VALUES (?, 'relato', 'Ana', 'texto', ?, ?)",
+        " VALUES (%s, 'relato', 'Ana', 'texto', %s, %s)",
         (id, f"{quando}T10:00:00Z", f"{quando}T10:05:00Z"),
     )
     linha = {
@@ -110,7 +112,7 @@ def evento(
         "resposta_llm": resposta_llm,
     }
     con.execute(
-        f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
+        f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join(['%s'] * len(linha))})",
         list(linha.values()),
     )
     con.commit()

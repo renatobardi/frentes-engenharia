@@ -24,15 +24,15 @@ def versao_vigente(con: Conexao) -> int | None:
 
 
 def versao_existe(con: Conexao, versao: int) -> bool:
-    linha = con.execute("SELECT 1 FROM versao_taxonomia WHERE numero = ?", (versao,)).fetchone()
+    linha = con.execute("SELECT 1 FROM versao_taxonomia WHERE numero = %s", (versao,)).fetchone()
     return linha is not None
 
 
 def _janela(desde: str, ate: str, origens: Sequence[str]) -> tuple[str, list[object]]:
-    sql = f"{_DATA} >= ? AND {_DATA} < ?"
+    sql = f"{_DATA} >= %s AND {_DATA} < %s"
     args: list[object] = [desde, ate]
     if origens:
-        sql += f" AND f.origem IN ({', '.join('?' * len(origens))})"
+        sql += f" AND f.origem IN ({', '.join(['%s'] * len(origens))})"
         args += list(origens)
     return sql, args
 
@@ -55,7 +55,7 @@ def somas_por_celula(
         SELECT c.area_final AS area, c.frente_final AS frente,
                sum(c.{score}) AS soma, count(*) AS n
         FROM classificacao c JOIN evento f ON f.id = c.evento_id
-        WHERE c.versao = ? AND c.estado IN {_PINTAM} AND c.natureza_final = ?
+        WHERE c.versao = %s AND c.estado IN {_PINTAM} AND c.natureza_final = %s
           AND c.area_final IS NOT NULL AND c.frente_final IS NOT NULL AND {janela}
         GROUP BY c.area_final, c.frente_final
         """,
@@ -78,8 +78,8 @@ def incertas_por_celula(
         f"""
         SELECT c.area_final AS area, c.frente_final AS frente, count(*) AS n
         FROM classificacao c JOIN evento f ON f.id = c.evento_id
-        WHERE c.versao = ? AND c.estado = 'incerta' AND c.motivo != 'texto_vago'
-          AND c.natureza_final = ?
+        WHERE c.versao = %s AND c.estado = 'incerta' AND c.motivo != 'texto_vago'
+          AND c.natureza_final = %s
           AND c.area_final IS NOT NULL AND c.frente_final IS NOT NULL AND {janela}
         GROUP BY c.area_final, c.frente_final
         """,
@@ -96,8 +96,8 @@ def contar_incertas(
     return con.execute(
         f"""
         SELECT count(*) FROM classificacao c JOIN evento f ON f.id = c.evento_id
-        WHERE c.versao = ? AND c.estado = 'incerta' AND c.motivo != 'texto_vago'
-          AND c.natureza_final = ? AND {janela}
+        WHERE c.versao = %s AND c.estado = 'incerta' AND c.motivo != 'texto_vago'
+          AND c.natureza_final = %s AND {janela}
         """,
         [versao, natureza, *args],
     ).fetchone()[0]
@@ -111,7 +111,7 @@ def contar_texto_vago(
     return con.execute(
         f"""
         SELECT count(*) FROM classificacao c JOIN evento f ON f.id = c.evento_id
-        WHERE c.versao = ? AND c.estado = 'incerta' AND c.motivo = 'texto_vago' AND {janela}
+        WHERE c.versao = %s AND c.estado = 'incerta' AND c.motivo = 'texto_vago' AND {janela}
         """,
         [versao, *args],
     ).fetchone()[0]
@@ -125,7 +125,7 @@ def contar_aguardando(
     return con.execute(
         f"""
         SELECT count(*) FROM evento f
-        LEFT JOIN classificacao c ON c.evento_id = f.id AND c.versao = ?
+        LEFT JOIN classificacao c ON c.evento_id = f.id AND c.versao = %s
         WHERE (c.evento_id IS NULL OR c.estado = 'aguardando_llm') AND {janela}
         """,
         [versao, *args],
@@ -146,7 +146,7 @@ def nao_classificadas(
         f"""
         SELECT c.area_final AS area, c.frente_final AS frente, count(*) AS n
         FROM classificacao c JOIN evento f ON f.id = c.evento_id
-        WHERE c.versao = ? AND c.estado = 'nao_classificada' AND c.natureza_final = ?
+        WHERE c.versao = %s AND c.estado = 'nao_classificada' AND c.natureza_final = %s
           AND {janela}
         GROUP BY c.area_final, c.frente_final
         """,
@@ -174,8 +174,8 @@ def soma_por_mes(
         f"""
         SELECT substr({_DATA}, 1, 7) AS mes, sum(c.{score}) AS soma
         FROM classificacao c JOIN evento f ON f.id = c.evento_id
-        WHERE c.versao = ? AND c.estado IN {_PINTAM} AND c.natureza_final = ?
-          AND c.area_final = ? AND c.frente_final = ? AND {janela}
+        WHERE c.versao = %s AND c.estado IN {_PINTAM} AND c.natureza_final = %s
+          AND c.area_final = %s AND c.frente_final = %s AND {janela}
         GROUP BY mes
         """,
         [versao, natureza, area, frente, *args],
@@ -210,7 +210,7 @@ def eventos_da_celula(
                c.causa_raiz AS causa_raiz, c.conf_causa AS conf_causa,
                c.problema AS problema, c.conf_problema AS conf_problema
         FROM classificacao c JOIN evento f ON f.id = c.evento_id
-        WHERE c.versao = ? AND c.natureza_final = ? AND c.area_final = ? AND c.frente_final = ?
+        WHERE c.versao = %s AND c.natureza_final = %s AND c.area_final = %s AND c.frente_final = %s
           AND (c.estado IN {_PINTAM} OR (c.estado = 'incerta' AND c.motivo != 'texto_vago'))
           AND {janela}
         ORDER BY (c.estado = 'incerta'), c.{score} DESC, {_DATA} DESC, f.id
@@ -239,7 +239,7 @@ def problemas_por_dia(
     evento. `visao_natureza` é a natureza da célula, que escolhe quais problemas entram.
     """
     janela, args = _janela(desde, ate, origens)
-    valido = "c.problema IS NOT NULL AND c.conf_problema >= ?"
+    valido = "c.problema IS NOT NULL AND c.conf_problema >= %s"
     linhas = con.execute(
         f"""
         SELECT c.problema AS problema, c.natureza_final AS natureza,
@@ -248,13 +248,13 @@ def problemas_por_dia(
                sum(CASE c.natureza_final WHEN 'reativo' THEN c.severidade ELSE c.impacto END)
                    AS soma
         FROM classificacao c JOIN evento f ON f.id = c.evento_id
-        WHERE c.versao = ? AND c.estado IN {_PINTAM} AND {valido}
+        WHERE c.versao = %s AND c.estado IN {_PINTAM} AND {valido}
           AND c.area_final IS NOT NULL AND c.frente_final IS NOT NULL AND {janela}
           AND c.problema IN (
               SELECT c2.problema FROM classificacao c2 JOIN evento f ON f.id = c2.evento_id
-              WHERE c2.versao = ? AND c2.estado IN {_PINTAM} AND c2.natureza_final = ?
-                AND c2.area_final = ? AND c2.frente_final = ?
-                AND c2.problema IS NOT NULL AND c2.conf_problema >= ? AND {janela})
+              WHERE c2.versao = %s AND c2.estado IN {_PINTAM} AND c2.natureza_final = %s
+                AND c2.area_final = %s AND c2.frente_final = %s
+                AND c2.problema IS NOT NULL AND c2.conf_problema >= %s AND {janela})
         GROUP BY c.problema, c.natureza_final, c.area_final, c.frente_final, dia
         """,
         [

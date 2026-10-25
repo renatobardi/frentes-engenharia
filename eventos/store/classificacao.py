@@ -92,17 +92,20 @@ def gravar(con: Conexao, c: Classificacao) -> None:
         valor = getattr(c, coluna)
         valores[coluna] = valor.value if hasattr(valor, "value") else valor
     nomes = ", ".join(_COLUNAS)
-    marcas = ", ".join("?" * len(_COLUNAS))
-    with con:
+    marcas = ", ".join(["%s"] * len(_COLUNAS))
+    # A do mesmo evento e versão é substituída: upsert pela chave primária.
+    trocas = ", ".join(f"{c} = EXCLUDED.{c}" for c in _COLUNAS if c not in ("evento_id", "versao"))
+    with con.transaction():
         con.execute(
-            f"INSERT OR REPLACE INTO classificacao ({nomes}) VALUES ({marcas})",
+            f"INSERT INTO classificacao ({nomes}) VALUES ({marcas})"
+            f" ON CONFLICT (evento_id, versao) DO UPDATE SET {trocas}",
             [valores[coluna] for coluna in _COLUNAS],
         )
 
 
 def ler(con: Conexao, evento_id: str, versao: int) -> Classificacao | None:
     linha = con.execute(
-        "SELECT * FROM classificacao WHERE evento_id = ? AND versao = ?", (evento_id, versao)
+        "SELECT * FROM classificacao WHERE evento_id = %s AND versao = %s", (evento_id, versao)
     ).fetchone()
     if linha is None:
         return None
@@ -125,7 +128,7 @@ def ler(con: Conexao, evento_id: str, versao: int) -> Classificacao | None:
 
 
 def ler_evento(con: Conexao, evento_id: str) -> Evento | None:
-    linha = con.execute("SELECT * FROM evento WHERE id = ?", (evento_id,)).fetchone()
+    linha = con.execute("SELECT * FROM evento WHERE id = %s", (evento_id,)).fetchone()
     if linha is None:
         return None
     metadados: Mapping[str, Any] = json.loads(linha["metadados"])
@@ -147,7 +150,7 @@ def sem_classificacao(con: Conexao, versao: int) -> list[str]:
     """Os ids dos eventos sem linha na versão, as mais antigas primeiro."""
     linhas = con.execute(
         "SELECT f.id FROM evento f WHERE NOT EXISTS "
-        "(SELECT 1 FROM classificacao c WHERE c.evento_id = f.id AND c.versao = ?) "
+        "(SELECT 1 FROM classificacao c WHERE c.evento_id = f.id AND c.versao = %s) "
         "ORDER BY f.recebido_em, f.id",
         (versao,),
     )
@@ -157,7 +160,7 @@ def sem_classificacao(con: Conexao, versao: int) -> list[str]:
 def aguardando_llm(con: Conexao, versao: int) -> list[str]:
     """Os ids dos eventos cuja classificação na versão espera o desempate."""
     linhas = con.execute(
-        "SELECT evento_id FROM classificacao WHERE versao = ? AND estado = 'aguardando_llm' "
+        "SELECT evento_id FROM classificacao WHERE versao = %s AND estado = 'aguardando_llm' "
         "ORDER BY classificada_em, evento_id",
         (versao,),
     )
@@ -167,7 +170,7 @@ def aguardando_llm(con: Conexao, versao: int) -> list[str]:
 def da_versao(con: Conexao, versao: int) -> list[Classificacao]:
     """Todas as classificações da versão, as mais antigas primeiro."""
     linhas = con.execute(
-        "SELECT evento_id FROM classificacao WHERE versao = ? ORDER BY classificada_em, evento_id",
+        "SELECT evento_id FROM classificacao WHERE versao = %s ORDER BY classificada_em, evento_id",
         (versao,),
     ).fetchall()
     achadas = (ler(con, linha["evento_id"], versao) for linha in linhas)
@@ -189,9 +192,9 @@ def uso_por_modelo(con: Conexao, versao: int) -> list[UsoDoModelo]:
     return [
         UsoDoModelo(linha["modelo"] or "", linha["n"], linha["e"], linha["s"])
         for linha in con.execute(
-            "SELECT json_extract(resposta_jev, '$.modelo') AS modelo, count(*) AS n, "
+            "SELECT (resposta_jev::jsonb ->> 'modelo') AS modelo, count(*) AS n, "
             "coalesce(sum(tokens_entrada), 0) AS e, coalesce(sum(tokens_saida), 0) AS s "
-            "FROM classificacao WHERE versao = ? GROUP BY modelo ORDER BY modelo",
+            "FROM classificacao WHERE versao = %s GROUP BY modelo ORDER BY modelo",
             (versao,),
         )
     ]
@@ -218,18 +221,18 @@ def totais(con: Conexao, versao: int) -> Totais:
     por_estado = {
         Estado(linha["estado"]): linha["n"]
         for linha in con.execute(
-            "SELECT estado, count(*) AS n FROM classificacao WHERE versao = ? GROUP BY estado",
+            "SELECT estado, count(*) AS n FROM classificacao WHERE versao = %s GROUP BY estado",
             (versao,),
         )
     }
     jev = con.execute(
         "SELECT coalesce(sum(tokens_entrada), 0) AS e, coalesce(sum(tokens_saida), 0) AS s "
-        "FROM classificacao WHERE versao = ?",
+        "FROM classificacao WHERE versao = %s",
         (versao,),
     ).fetchone()
     llm_entrada = llm_saida = 0
     for linha in con.execute(
-        "SELECT resposta_llm FROM classificacao WHERE versao = ? AND resposta_llm IS NOT NULL",
+        "SELECT resposta_llm FROM classificacao WHERE versao = %s AND resposta_llm IS NOT NULL",
         (versao,),
     ):
         uso = _llm_de_json(linha["resposta_llm"]).uso

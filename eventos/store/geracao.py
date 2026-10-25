@@ -75,10 +75,10 @@ def abrir(con: Conexao, geracao: Geracao) -> int:
     """Grava a geração sem resultado e devolve o `id`."""
     if geracao.resultado is not None or geracao.versao_resultante is not None:
         raise ValueError("a geração entra aberta: o resultado vai por `fechar`")
-    with con:
+    with con.transaction():
         cursor = con.execute(
             "INSERT INTO geracao (tipo, gatilho, disparada_em, versao_base, sinal, operacoes, "
-            "resumo) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "resumo) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id",
             (
                 geracao.tipo.value,
                 geracao.gatilho.value if geracao.gatilho else None,
@@ -89,8 +89,7 @@ def abrir(con: Conexao, geracao: Geracao) -> int:
                 geracao.resumo,
             ),
         )
-    assert cursor.lastrowid is not None
-    return cursor.lastrowid
+    return cursor.fetchone()["id"]
 
 
 def fechar(
@@ -104,11 +103,11 @@ def fechar(
 ) -> None:
     """Grava o resultado, o resumo (na descoberta recusada, o motivo), a versão que saiu e,
     se vierem, as operações (na descoberta, o que ela criou, com os eventos de evidência)."""
-    with con:
+    with con.transaction():
         cursor = con.execute(
-            "UPDATE geracao SET resultado = ?, resumo = coalesce(?, resumo), "
-            "versao_resultante = ?, operacoes = coalesce(?, operacoes) "
-            "WHERE id = ? AND resultado IS NULL",
+            "UPDATE geracao SET resultado = %s, resumo = coalesce(%s, resumo), "
+            "versao_resultante = %s, operacoes = coalesce(%s, operacoes) "
+            "WHERE id = %s AND resultado IS NULL",
             (
                 resultado.value,
                 resumo,
@@ -122,7 +121,7 @@ def fechar(
 
 
 def ler(con: Conexao, geracao_id: int) -> Geracao | None:
-    linha = con.execute("SELECT * FROM geracao WHERE id = ?", (geracao_id,)).fetchone()
+    linha = con.execute("SELECT * FROM geracao WHERE id = %s", (geracao_id,)).fetchone()
     if linha is None:
         return None
     sinal = json.loads(linha["sinal"]) if linha["sinal"] else None
@@ -152,7 +151,7 @@ def textos_do_periodo(con: Conexao, desde: str, ate: str) -> list[TextoDoEvento]
     O texto é o original, sem complemento (a descoberta lê o evento bruto).
     """
     linhas = con.execute(
-        f"SELECT id, origem, texto FROM evento WHERE {_DATA} >= ? AND {_DATA} < ? "
+        f"SELECT id, origem, texto FROM evento WHERE {_DATA} >= %s AND {_DATA} < %s "
         f"ORDER BY {_DATA}, id",
         (desde, ate),
     )

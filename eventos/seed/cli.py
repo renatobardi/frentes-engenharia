@@ -19,7 +19,7 @@ from eventos.seed.saida import gravar
 
 USO = (
     "uso: python -m eventos seed gerar [--seed N] [--total N] [--entrada PASTA] [--saida PASTA]\n"
-    "     python -m eventos seed carregar [--entrada PASTA] [--gerado PASTA] [--banco CAMINHO]\n"
+    "     python -m eventos seed carregar [--entrada PASTA] [--gerado PASTA] [--banco URL]\n"
     "     python -m eventos seed textos [--teto DÓLARES] [--lotes N] [--paralelo N] "
     "\n     python -m eventos seed relatorio"
 )
@@ -79,7 +79,7 @@ def carregar(argumentos: list[str]) -> int:
             return 2
         valor = resto.pop(0)
         if nome == "--banco":
-            banco = Path(valor)
+            banco = valor
         else:
             opcoes[nome] = valor
     try:
@@ -94,8 +94,7 @@ def carregar(argumentos: list[str]) -> int:
         return 1
     print(
         f"eventos: {feito.eventos_novos} novas, {feito.eventos_existentes} já existiam; "
-        f"emissores: {feito.emissores_novos} novos, {feito.emissores_existentes} já existiam "
-        f"({banco})"
+        f"emissores: {feito.emissores_novos} novos, {feito.emissores_existentes} já existiam"
     )
     return 0
 

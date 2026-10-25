@@ -10,11 +10,12 @@ O planejamento corre como um mapa de wayfinding nas issues do repo (label `wayfi
 
 ```bash
 uv sync
-make test                 # os testes, sem rede e sem chave
+make db                   # Postgres local para desenvolver e testar (uma vez)
+make test                 # os testes, sem rede externa e sem chave
 make lint
 uv run python -m eventos servir   # http://127.0.0.1:8000/healthz
 ```
 
-Com Docker: `docker compose up -d --build`. As chaves vêm do ambiente (os nomes estão no [`.env.example`](.env.example)); a aplicação sobe sem elas.
+Com Docker: `docker compose up -d --build`. O banco é o Postgres do `oute-supabase-db` (`EVENTOS_DATABASE_URL`); em desenvolvimento, `make db` sobe um Postgres local (porta 55439), que os testes também usam. As chaves vêm do ambiente (os nomes estão no [`.env.example`](.env.example)); a aplicação sobe sem elas.
 
 Regras do repo para quem constrói: [`AGENTS.md`](AGENTS.md). Glossário: [`CONTEXT.md`](CONTEXT.md). Stack: [`docs/adr/0001-stack.md`](docs/adr/0001-stack.md).

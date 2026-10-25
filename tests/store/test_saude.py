@@ -4,12 +4,13 @@ import pytest
 
 from eventos import store
 from eventos.store import saude
+from tests.banco import url_novo
 from tests.web.mapa.test_mapa import _class, _evento, _versao
 
 
 @pytest.fixture
 def con():
-    con = store.abrir()
+    con = store.abrir(url_novo())
     _versao(con, 1, {"incidente": "Incidente"}, True)
     _versao(con, 2, {"incidente": "Incidente"}, True)
     return con

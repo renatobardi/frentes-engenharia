@@ -16,9 +16,9 @@ O estado gravado de que a demo sobe.
 
 ## Formato
 
-- **O arquivo SQLite, compactado, versionado no repo**: `data/snapshot/eventos.sqlite.gz`. O deploy é um `git checkout` e o snapshot vem junto. [R23]
+- **Um `.tar.gz` com um CSV por tabela, versionado no repo**: `data/snapshot/eventos.snapshot.tar.gz` (ADR-0002; era o SQLite compactado). O deploy é um `git checkout` e o snapshot vem junto. [R23]
 - **Tamanho não medido.** Se passar de **50 MB** compactado, muda para anexo de release. O snapshot é regravado poucas vezes e de propósito. [R23]
-- Sem migrações: mudou o esquema, regrava-se o snapshot. [R23]
+- O esquema evolui por migrações (`store/migracoes/`); o snapshot só é regravado quando as colunas mudam. Carregar popula o schema numa transação (ADR-0002).
 
 ## Carga e deslocamento de datas
 

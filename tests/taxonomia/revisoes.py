@@ -3,7 +3,6 @@
 
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from typing import Any
 
 from eventos import store
@@ -26,6 +25,7 @@ from eventos.store import classificacao as repo_classificacao
 from eventos.store import evento as repo_evento
 from eventos.taxonomia import prompts_problemas, prompts_revisao
 from eventos.taxonomia.versoes import ativar, gravar
+from tests.banco import url_novo
 from tests.llm.falso import LlmFalsa, SemGravacao, resposta_llm
 
 AGORA = datetime(2026, 10, 3, 12, 0, 0, tzinfo=UTC)
@@ -33,11 +33,11 @@ LIMIARES = carregar_limiares()
 
 
 def banco_vigente(
-    documento: DocumentoTaxonomia, ativada_ha_dias: int = 60, caminho: Path | str = store.EM_MEMORIA
+    documento: DocumentoTaxonomia, ativada_ha_dias: int = 60, caminho: str | None = None
 ) -> store.Conexao:
-    """Um banco com a versão 1 gravada e ativada (ainda sem eventos); em memória, se não vier
-    o `caminho` de um arquivo."""
-    con = store.abrir(caminho)
+    """Um banco com a versão 1 gravada e ativada (ainda sem eventos); um banco novo, se não vier
+    o `caminho` (a URL) de um que já existe."""
+    con = store.abrir(caminho or url_novo())
     gravar(con, documento, "jev-teste")
     ativar(con, 1, AGORA - timedelta(days=ativada_ha_dias))
     return con

@@ -1,7 +1,6 @@
 """Geração de oito painéis enquanto uma leitura mantém uma transação aberta."""
 
 import asyncio
-import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
@@ -57,7 +56,7 @@ def test_paineis_em_paralelo_no_snapshot_com_leitura_aberta(
             return_exceptions=True,
         )
 
-    with closing(sqlite3.connect(banco)) as leitor:
+    with closing(store.conectar(banco)) as leitor:
         leitor.execute("BEGIN")
         leitor.execute("SELECT count(*) FROM evento").fetchone()
         resultados = asyncio.run(gerar())

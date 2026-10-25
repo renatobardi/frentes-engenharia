@@ -24,11 +24,11 @@ def gravar_complemento(con: Conexao, evento_id: str, complemento: str, em: str) 
 
     Só grava no evento de origem `relato` que ainda não tem complemento; devolve se gravou.
     """
-    with con:
+    with con.transaction():
         return (
             con.execute(
-                "UPDATE evento SET complemento = ?, complementado_em = ?"
-                " WHERE id = ? AND origem = 'relato' AND complemento IS NULL",
+                "UPDATE evento SET complemento = %s, complementado_em = %s"
+                " WHERE id = %s AND origem = 'relato' AND complemento IS NULL",
                 (complemento, em, evento_id),
             ).rowcount
             == 1

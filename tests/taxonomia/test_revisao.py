@@ -15,6 +15,7 @@ from eventos.store import geracao as repo
 from eventos.store import versao as repo_versao
 from eventos.taxonomia import prompts_revisao, sinal
 from eventos.taxonomia.revisao import SemEventosNaJanela, SemVersaoVigente, revisar
+from tests.banco import url_novo
 from tests.llm.falso import SemGravacao
 from tests.taxonomia.propostas import candidato, gravar_candidatos, gravar_juncao, gravar_peneira
 from tests.taxonomia.revisoes import (
@@ -587,7 +588,7 @@ def test_a_geracao_guarda_gatilho_sinal_operacoes_frase_e_resultado(con) -> None
 def test_sem_versao_vigente_ou_sem_eventos_na_janela_nao_grava_geracao(documento) -> None:
     from eventos import store
 
-    vazio = store.abrir()
+    vazio = store.abrir(url_novo())
     with pytest.raises(SemVersaoVigente):
         rodar(vazio, LlmDaRevisao(resposta()))
     assert vazio.execute("SELECT count(*) FROM geracao").fetchone()[0] == 0

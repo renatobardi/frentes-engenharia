@@ -10,7 +10,7 @@ VARIAVEIS = (
     "OUTE_TYPESAFE_API_KEY",
     "OPENROUTER_API_KEY",
     "EVENTOS_WEBHOOK_TOKEN",
-    "EVENTOS_DB",
+    "EVENTOS_DATABASE_URL",
     "EVENTOS_HOST",
     "EVENTOS_PORT",
     "EVENTOS_COMMIT",
@@ -25,6 +25,15 @@ LOCAIS = ("127.0.0.1", "::1", "localhost")
 def sem_chaves(monkeypatch: pytest.MonkeyPatch) -> None:
     for nome in VARIAVEIS:
         monkeypatch.delenv(nome, raising=False)
+
+
+@pytest.fixture(autouse=True)
+def schemas_descartaveis():
+    """Cada teste cria os seus schemas (`tests/banco.py`); ao fim, eles somem."""
+    from tests import banco
+
+    yield
+    banco.derrubar_criados()
 
 
 @pytest.fixture(autouse=True)
@@ -47,5 +56,5 @@ def sem_snapshot_do_repo(monkeypatch: pytest.MonkeyPatch, tmp_path_factory) -> N
     e nenhum teste depende do conteúdo do snapshot da demo sem pedir por ele."""
     from eventos.snapshot import arquivo
 
-    ausente = tmp_path_factory.getbasetemp() / "sem-snapshot" / "eventos.sqlite.gz"
+    ausente = tmp_path_factory.getbasetemp() / "sem-snapshot" / "eventos.snapshot.tar.gz"
     monkeypatch.setattr(arquivo, "CAMINHO_PADRAO", ausente)

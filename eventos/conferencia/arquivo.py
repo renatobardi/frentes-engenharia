@@ -9,7 +9,17 @@ from eventos.store import gabarito as armazem
 from eventos.store.gabarito import Gabarito
 
 ARQUIVO_PADRAO = config.RAIZ / "seed" / "gerado" / "gabarito.jsonl"
-BANCO_DO_GABARITO = "gabarito.sqlite"
+# O gabarito fica num schema à parte do Postgres de desenvolvimento, nunca no do servidor:
+# o irmão do schema da aplicação (`<schema>_gabarito`; `gabarito`, se a URL não fixa um).
+SUFIXO_DO_GABARITO = "gabarito"
+
+
+def banco_do_gabarito_de(banco: str) -> str:
+    """A URL do gabarito que vai com a da aplicação: o mesmo servidor, o schema irmão."""
+    schema = store.schema_da_url(banco)
+    return store.com_schema(
+        banco, f"{schema}_{SUFIXO_DO_GABARITO}" if schema else SUFIXO_DO_GABARITO
+    )
 
 
 class GabaritoInvalido(Exception):
@@ -55,9 +65,10 @@ def ler(caminho: Path) -> list[Gabarito]:
     return lidos
 
 
-def carregar(caminho: Path, banco: Path) -> list[Gabarito]:
-    """Lê o arquivo, grava no banco à parte (criando-o) e devolve o gabarito."""
+def carregar(caminho: Path, banco: str) -> list[Gabarito]:
+    """Lê o arquivo, grava no schema à parte (criando-o) e devolve o gabarito."""
     lidos = ler(caminho)
+    store.garantir_schema(banco)
     con = store.abrir(banco)
     try:
         armazem.substituir(con, lidos)
@@ -68,7 +79,7 @@ def carregar(caminho: Path, banco: Path) -> list[Gabarito]:
     return lidos
 
 
-def do_banco(banco: Path) -> list[Gabarito]:
+def do_banco(banco: str) -> list[Gabarito]:
     """O gabarito já carregado no banco à parte."""
     con = store.abrir_existente(banco)
     try:

@@ -19,6 +19,7 @@ from eventos import contratos, store
 from eventos.contratos import Celula, TipoSolucao, Visao
 from eventos.enderecamento import marcas
 from eventos.web.mapa import painel
+from tests.banco import banco_de, url_novo
 from tests.web.mapa.test_ao_vivo import _marca, _poll, _polling
 from tests.web.mapa.test_mapa import (
     PORQUE,
@@ -37,7 +38,7 @@ TEXTO = "Automatizar o failover"
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     with closing(store.abrir(caminho)) as con:
         _montar(con)
         _valores_do_painel(con)
@@ -367,7 +368,11 @@ def test_sem_banco_enderecar_da_503(tmp_path: Path) -> None:
     from eventos import config
     from eventos.web.app import criar_app
 
-    http = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nada.db")})))
+    http = TestClient(
+        criar_app(
+            config.carregar({"EVENTOS_DATABASE_URL": str(banco_de(tmp_path, "nada", criar=False))})
+        )
+    )
 
     assert _enderecar(http).status_code == 503
 
@@ -457,7 +462,7 @@ def _serie(*indices: float) -> list:
 
 def _marca_em(dia: str):
     return marcas.criar(
-        store.abrir(), Celula("a", "t", Visao.DOR), "x", TipoSolucao.PROCESSO,
+        store.abrir(url_novo()), Celula("a", "t", Visao.DOR), "x", TipoSolucao.PROCESSO,
         decidido_em=contratos.de_iso(f"{dia}T12:00:00Z"),
     )  # fmt: skip
 

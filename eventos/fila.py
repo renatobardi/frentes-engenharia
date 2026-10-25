@@ -20,14 +20,13 @@ Quem fala com a fila:
 """
 
 import asyncio
-import fcntl
 import json
 import logging
 import time
+import zlib
 from collections.abc import AsyncIterator, Awaitable, Callable, Coroutine, Iterator
 from contextlib import asynccontextmanager, closing, contextmanager, nullcontext
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI
@@ -116,24 +115,31 @@ class ClassificandoEmOutroProcesso(Exception):
     """Outro processo já classifica: duas cópias chamariam o Jev para o mesmo evento."""
 
 
-def _arquivo_de_trava(banco: Path, nome: str) -> Path:
-    return banco.with_name(f"{banco.name}.{nome}.lock")
+def _chave_da_trava(con: store.Conexao, nome: str) -> int:
+    """A chave da trava: fixa por schema e papel (a trava de aviso do Postgres é por banco)."""
+    schema = con.execute("SELECT current_schema()").fetchone()[0] or ""
+    return zlib.crc32(f"eventos:{schema}:{nome}".encode())
 
 
-def _tentar_travar(caminho: Path, *, exclusiva: bool) -> Any:
-    """Abre o arquivo de trava e pega `flock` sem esperar. Devolve o arquivo aberto (a trava
-    vale até fechá-lo, ou até o processo morrer) ou `None` se outro processo a segura."""
-    arquivo = open(caminho, "a")  # noqa: SIM115  (fica aberto enquanto a trava vale)
+def _tentar_travar(banco: str, nome: str) -> Any:
+    """Pega a trava de aviso do Postgres sem esperar, numa conexão só dela. Devolve essa conexão
+    (a trava vale até fechá-la, ou até o processo morrer) ou `None` se outro processo a segura."""
+    con = store.conectar(banco)
     try:
-        fcntl.flock(arquivo, (fcntl.LOCK_EX if exclusiva else fcntl.LOCK_SH) | fcntl.LOCK_NB)
-    except BlockingIOError:
-        arquivo.close()
+        pegou = con.execute(
+            "SELECT pg_try_advisory_lock(%s)", (_chave_da_trava(con, nome),)
+        ).fetchone()[0]
+    except BaseException:
+        con.close()
+        raise
+    if not pegou:
+        con.close()
         return None
-    return arquivo
+    return con
 
 
 @contextmanager
-def _travas_da_execucao(banco: Path, vigente: bool) -> Iterator[None]:
+def _travas_da_execucao(banco: str, vigente: bool) -> Iterator[None]:
     """A trava de quem roda `classificar` (uma execução por banco) e, se a versão é a vigente,
     a do servidor, que classifica a vigente em segundo plano (ele a segura enquanto está no ar)."""
     pegas: list[Any] = []
@@ -141,14 +147,14 @@ def _travas_da_execucao(banco: Path, vigente: bool) -> Iterator[None]:
         for nome, quem in (("classificar", "outro `classificar`"), ("servidor", "o servidor")):
             if nome == "servidor" and not vigente:
                 continue
-            arquivo = _tentar_travar(_arquivo_de_trava(banco, nome), exclusiva=True)
-            if arquivo is None:
+            conexao = _tentar_travar(banco, nome)
+            if conexao is None:
                 raise ClassificandoEmOutroProcesso(f"{quem} já está classificando neste banco")
-            pegas.append(arquivo)
+            pegas.append(conexao)
         yield
     finally:
-        for arquivo in pegas:
-            arquivo.close()
+        for conexao in pegas:
+            conexao.close()
 
 
 @dataclass(frozen=True, slots=True)
@@ -183,7 +189,7 @@ class Fila:
     def __init__(
         self,
         app: FastAPI | None,
-        banco: Path,
+        banco: str,
         limiares: config.Limiares,
         operacao: config.Operacao,
         jev_para: FabricaJev,
@@ -306,10 +312,8 @@ class Fila:
         """Enquanto a varredura roda, o `classificar` na versão vigente se recusa. Sem a trava
         (pasta sem escrita, ou `classificar` já na vigente) o servidor sobe do mesmo jeito."""
         try:
-            self._trava_do_servidor = _tentar_travar(
-                _arquivo_de_trava(self._banco, "servidor"), exclusiva=True
-            )
-        except OSError:
+            self._trava_do_servidor = _tentar_travar(self._banco, "servidor")
+        except store.ErroDoBanco:
             self._trava_do_servidor = None
         if self._trava_do_servidor is None:
             registro.warning("sem a trava do servidor: o `classificar` na vigente não vai recusar")
@@ -368,15 +372,11 @@ class Fila:
                 contagem["feitas"] += 1
                 contagem["falhas"] += evento_id in self._motivos
                 if progresso is not None and contagem["feitas"] % a_cada == 0:
+                    # a foto vale para o instante do marco: ler o contador depois do await deixaria
+                    # outras tarefas, que terminam enquanto o banco responde, adiantarem a conta
+                    feitas, falhas = contagem["feitas"], contagem["falhas"]
                     totais = await asyncio.to_thread(self._totais, numero)
-                    progresso(
-                        Progresso(
-                            contagem["feitas"],
-                            len(pendentes) - contagem["feitas"],
-                            contagem["falhas"],
-                            totais,
-                        )
-                    )
+                    progresso(Progresso(feitas, len(pendentes) - feitas, falhas, totais))
 
             try:
                 await asyncio.gather(*(uma(i) for i in pendentes))

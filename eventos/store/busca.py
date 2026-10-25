@@ -77,9 +77,9 @@ def _celulas(con: Conexao, versao: int, palavras: list[str]) -> list[Celula]:
         JOIN valor va ON va.versao = c.versao AND va.dimensao = 'area' AND va.chave = c.area_final
         JOIN valor vf ON vf.versao = c.versao AND vf.dimensao = 'frente'
                      AND vf.chave = c.frente_final
-        WHERE c.versao = ? AND c.estado IN ('classificada', 'via_llm')
+        WHERE c.versao = %s AND c.estado IN ('classificada', 'via_llm')
           AND c.natureza_final IS NOT NULL
-        GROUP BY c.area_final, c.frente_final, c.natureza_final
+        GROUP BY c.area_final, c.frente_final, c.natureza_final, va.nome, vf.nome
         ORDER BY count(*) DESC, va.nome, vf.nome, c.natureza_final
         """,
         (versao,),
@@ -100,7 +100,7 @@ def _celulas(con: Conexao, versao: int, palavras: list[str]) -> list[Celula]:
 
 def _problemas(con: Conexao, versao: int, palavras: list[str]) -> list[Problema]:
     linhas = con.execute(
-        "SELECT chave, nome FROM valor WHERE versao = ? AND dimensao = 'problema'"
+        "SELECT chave, nome FROM valor WHERE versao = %s AND dimensao = 'problema'"
         " ORDER BY ordem, nome",
         (versao,),
     ).fetchall()

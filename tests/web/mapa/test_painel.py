@@ -10,6 +10,7 @@ import pytest
 
 from eventos import store
 from eventos.web.mapa import painel
+from tests.banco import banco_de
 from tests.web.mapa.test_mapa import (
     CELULA,
     PORQUE,
@@ -25,7 +26,7 @@ STATIC = Path(__file__).parents[3] / "eventos/web/static"
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     with closing(store.abrir(caminho)) as con:
         _montar(con)
         con.commit()

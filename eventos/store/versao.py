@@ -64,12 +64,12 @@ def inserir(con: Conexao, versao: VersaoTaxonomia, derivados: list[Valor]) -> No
     if any(v.versao != versao.numero for v in derivados):
         raise ValueError(f"há valor de outra versão entre os da versão {versao.numero}")
     try:
-        with con:
+        with con.transaction():
             con.execute(
                 "INSERT INTO versao_taxonomia "
                 "(numero, documento, modelo_jev, criada_em, geracao_id, versao_anterior, "
                 "ativada_em) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "VALUES (%s, %s, %s, %s, %s, %s, %s)",
                 (
                     versao.numero,
                     json.dumps(versao.documento.para_dict(), ensure_ascii=False),
@@ -80,9 +80,9 @@ def inserir(con: Conexao, versao: VersaoTaxonomia, derivados: list[Valor]) -> No
                     para_iso(versao.ativada_em) if versao.ativada_em else None,
                 ),
             )
-            con.executemany(
+            con.cursor().executemany(
                 "INSERT INTO valor (versao, dimensao, chave, nome, descricao, chave_pai, ordem) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "VALUES (%s, %s, %s, %s, %s, %s, %s)",
                 [
                     (v.versao, v.dimensao.value, v.chave, v.nome, v.descricao, v.chave_pai, v.ordem)
                     for v in derivados
@@ -90,14 +90,14 @@ def inserir(con: Conexao, versao: VersaoTaxonomia, derivados: list[Valor]) -> No
             )
     except ErroDeIntegridade as erro:
         if con.execute(
-            "SELECT 1 FROM versao_taxonomia WHERE numero = ?", (versao.numero,)
+            "SELECT 1 FROM versao_taxonomia WHERE numero = %s", (versao.numero,)
         ).fetchone():
             raise VersaoJaGravada(f"a versão {versao.numero} já está gravada") from erro
         raise
 
 
 def ler(con: Conexao, numero: int) -> VersaoTaxonomia | None:
-    linha = con.execute("SELECT * FROM versao_taxonomia WHERE numero = ?", (numero,)).fetchone()
+    linha = con.execute("SELECT * FROM versao_taxonomia WHERE numero = %s", (numero,)).fetchone()
     if linha is None:
         return None
     return VersaoTaxonomia(
@@ -113,7 +113,7 @@ def ler(con: Conexao, numero: int) -> VersaoTaxonomia | None:
 
 def valores(con: Conexao, numero: int) -> list[Valor]:
     linhas = con.execute(
-        "SELECT * FROM valor WHERE versao = ? ORDER BY dimensao, chave_pai IS NOT NULL, "
+        "SELECT * FROM valor WHERE versao = %s ORDER BY dimensao, chave_pai IS NOT NULL, "
         "chave_pai, ordem, chave",
         (numero,),
     )
@@ -133,7 +133,7 @@ def valores(con: Conexao, numero: int) -> list[Valor]:
 
 def chaves_usadas(con: Conexao, dimensao: Dimensao) -> set[str]:
     """As chaves que alguma versão já usou na dimensão, inclusive as de valor removido."""
-    linhas = con.execute("SELECT DISTINCT chave FROM valor WHERE dimensao = ?", (dimensao.value,))
+    linhas = con.execute("SELECT DISTINCT chave FROM valor WHERE dimensao = %s", (dimensao.value,))
     return {linha["chave"] for linha in linhas}
 
 
@@ -141,7 +141,7 @@ def eventos_sem_classificacao(con: Conexao, numero: int) -> int:
     """Quantos eventos não têm classificação pronta na versão (`aguardando_llm` não conta)."""
     linha = con.execute(
         "SELECT count(*) AS n FROM evento f WHERE NOT EXISTS "
-        "(SELECT 1 FROM classificacao c WHERE c.evento_id = f.id AND c.versao = ? "
+        "(SELECT 1 FROM classificacao c WHERE c.evento_id = f.id AND c.versao = %s "
         "AND c.estado <> 'aguardando_llm')",
         (numero,),
     )
@@ -151,13 +151,13 @@ def eventos_sem_classificacao(con: Conexao, numero: int) -> int:
 def ativar(con: Conexao, numero: int, em: str) -> bool:
     """Preenche `ativada_em` se, no mesmo comando, a versão está sem ativação, é maior que a
     vigente e o histórico inteiro tem classificação pronta nela. Devolve se ativou."""
-    with con:
+    with con.transaction():
         cursor = con.execute(
-            "UPDATE versao_taxonomia SET ativada_em = ? WHERE numero = ? AND ativada_em IS NULL "
+            "UPDATE versao_taxonomia SET ativada_em = %s WHERE numero = %s AND ativada_em IS NULL "
             "AND numero > coalesce((SELECT max(numero) FROM versao_taxonomia "
             "WHERE ativada_em IS NOT NULL), 0) "
             "AND NOT EXISTS (SELECT 1 FROM evento f WHERE NOT EXISTS "
-            "(SELECT 1 FROM classificacao c WHERE c.evento_id = f.id AND c.versao = ? "
+            "(SELECT 1 FROM classificacao c WHERE c.evento_id = f.id AND c.versao = %s "
             "AND c.estado <> 'aguardando_llm'))",
             (em, numero, numero),
         )

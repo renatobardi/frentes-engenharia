@@ -21,6 +21,7 @@ from eventos.contratos import (
 from eventos.store import classificacao as armazem
 from eventos.store import evento as armazem_evento
 from eventos.store import versao as armazem_versao
+from tests.banco import url_novo
 from tests.fila.documento import DOCUMENTO, QUANDO
 
 
@@ -66,7 +67,7 @@ def classificacao(evento_id: str = "f1", **trocas: object) -> Classificacao:
 
 
 def banco_com(*ids: str) -> store.Conexao:
-    con = store.abrir()
+    con = store.abrir(url_novo())
     armazem_versao.inserir(con, VersaoTaxonomia(1, DOCUMENTO, "jev-latest", QUANDO), [])
     for i, id_ in enumerate(ids):
         armazem_evento.gravar(
@@ -122,7 +123,7 @@ def test_ler_o_que_nao_existe_devolve_none() -> None:
 def test_ler_evento_devolve_o_texto_e_o_complemento() -> None:
     with closing(banco_com("f1")) as con:
         sem = armazem.ler_evento(con, "f1")
-        with con:
+        with con.transaction():
             con.execute(
                 "UPDATE evento SET complemento = 'mais', complementado_em = '2026-10-03T13:00:00Z'"
             )

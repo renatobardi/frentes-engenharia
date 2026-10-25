@@ -16,6 +16,7 @@ from eventos.contratos import (
     TimeDoOrganograma,
     ValorDoDocumento,
 )
+from tests.banco import url_novo
 
 
 def _lista(prefixo: str, n: int) -> tuple[ValorDoDocumento, ...]:
@@ -80,4 +81,4 @@ def regua():
 
 @pytest.fixture
 def con() -> store.Conexao:
-    return store.abrir()
+    return store.abrir(url_novo())

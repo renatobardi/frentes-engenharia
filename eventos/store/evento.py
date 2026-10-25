@@ -17,7 +17,7 @@ class Gravada:
 
 def id_da_ref_externa(con: Conexao, origem: contratos.Origem, ref_externa: str) -> str | None:
     linha = con.execute(
-        "SELECT id FROM evento WHERE origem = ? AND ref_externa = ?", (origem.value, ref_externa)
+        "SELECT id FROM evento WHERE origem = %s AND ref_externa = %s", (origem.value, ref_externa)
     ).fetchone()
     return linha["id"] if linha else None
 
@@ -39,10 +39,10 @@ def gravar(
             return Gravada(existente, nova=False)
     ocorrido_em = contratos.para_iso(bruta.ocorrido_em) if bruta.ocorrido_em else None
     try:
-        with con:
+        with con.transaction():
             con.execute(
                 "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em,"
-                " ref_externa, metadados) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                " ref_externa, metadados) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
                 (
                     id,
                     origem.value,

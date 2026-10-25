@@ -18,6 +18,7 @@ from eventos.taxonomia import sinal
 from eventos.taxonomia.revisao import revisar
 from eventos.taxonomia.versoes import ativar
 from eventos.web.app import criar_app
+from tests.banco import banco_de
 from tests.taxonomia.conftest import montar
 from tests.taxonomia.propostas import candidato, gravar_candidatos, gravar_juncao, gravar_peneira
 from tests.taxonomia.revisoes import (
@@ -87,11 +88,11 @@ def _resumo(html: str, url: str) -> str:
 @pytest.mark.parametrize("url", ["/", "/?versao=2", "/taxonomia"])
 @pytest.mark.parametrize("aplicar", [False, True], ids=["tres_descartadas", "mista"])
 def test_resumo_nas_telas_usa_operacoes_filtradas(tmp_path: Path, url: str, aplicar: bool) -> None:
-    caminho = tmp_path / "eventos.sqlite"
+    caminho = banco_de(tmp_path)
     feita = _revisao(caminho, aplicar=aplicar, problema_novo=not aplicar)
     assert feita.resultado is ResultadoGeracao.VERSAO_NOVA
     assert sum(o.aplicada for o in feita.geracao.operacoes) == int(aplicar)
-    cliente = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)})))
+    cliente = TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(caminho)})))
     pagina = cliente.get(url)
     assert pagina.status_code == 200
 
@@ -113,10 +114,10 @@ def test_resumo_nas_telas_usa_operacoes_filtradas(tmp_path: Path, url: str, apli
 
 
 def test_revisao_sem_mudanca_mostra_os_tres_descartes_na_taxonomia(tmp_path: Path) -> None:
-    caminho = tmp_path / "eventos.sqlite"
+    caminho = banco_de(tmp_path)
     feita = _revisao(caminho, aplicar=False, problema_novo=False)
     assert feita.resultado is ResultadoGeracao.SEM_MUDANCA
-    cliente = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)})))
+    cliente = TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(caminho)})))
     resumo = _resumo(cliente.get("/taxonomia").text, "/taxonomia")
     assert resumo.startswith("3 propostas, nenhuma aplicada, 3 descartadas.")
     assert resumo.count("evidência insuficiente") == 3
@@ -125,7 +126,7 @@ def test_revisao_sem_mudanca_mostra_os_tres_descartes_na_taxonomia(tmp_path: Pat
 
 @pytest.mark.parametrize("url", ["/", "/taxonomia"])
 def test_motivo_do_descarte_continua_escapado_no_resumo(tmp_path: Path, url: str) -> None:
-    caminho = tmp_path / "eventos.sqlite"
+    caminho = banco_de(tmp_path)
     feita = _revisao(caminho, aplicar=False, problema_novo=True)
     motivo = "evidência inválida: <img src=x onerror=alert('motivo')>"
     operacoes = [replace(o, motivo_do_descarte=motivo) for o in feita.geracao.operacoes]
@@ -137,7 +138,7 @@ def test_motivo_do_descarte_continua_escapado_no_resumo(tmp_path: Path, url: str
         repo_geracao.fechar(
             con, id, ResultadoGeracao.VERSAO_NOVA, versao_resultante=2, operacoes=operacoes
         )
-    cliente = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)})))
+    cliente = TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(caminho)})))
     html = cliente.get(url).text
     resumo = _resumo(html, url)
     assert "&lt;img src=x onerror=alert(&#39;motivo&#39;)&gt;" in resumo

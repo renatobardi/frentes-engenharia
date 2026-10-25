@@ -110,7 +110,7 @@ def _conferir_com_o_banco(con: store.Conexao, eventos: list[EventoDaSeed]) -> No
     """Um `id` que o banco já tem com outra origem ou `ref_externa` é arquivo regerado."""
     for f in eventos:
         linha = con.execute(
-            "SELECT origem, ref_externa FROM evento WHERE id = ?", (f.id,)
+            "SELECT origem, ref_externa FROM evento WHERE id = %s", (f.id,)
         ).fetchone()
         mesma = (f.origem.value, f.bruta.ref_externa)
         if linha and (linha["origem"], linha["ref_externa"]) != mesma:

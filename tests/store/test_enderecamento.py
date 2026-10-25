@@ -7,22 +7,23 @@ import pytest
 from eventos import store
 from eventos.contratos import Celula, Enderecamento, Procedencia, TipoSolucao, Visao
 from eventos.store import enderecamento as armazem
+from tests.banco import url_novo
 
 QUANDO = datetime(2026, 6, 30, 12, 0, 0, tzinfo=UTC)
 
 
 @pytest.fixture
 def con() -> store.Conexao:
-    con = store.abrir()
+    con = store.abrir(url_novo())
     for numero, frentes in ((1, ("incidente", "tecnologia")), (2, ("incidente",))):
         con.execute(
             "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
-            " VALUES (?, '{}', 'jev-1.13.0', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z')",
+            " VALUES (%s, '{}', 'jev-1.13.0', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z')",
             (numero,),
         )
         for chave in frentes:
             con.execute(
-                "INSERT INTO valor (versao, dimensao, chave, nome) VALUES (?, 'frente', ?, ?)",
+                "INSERT INTO valor (versao, dimensao, chave, nome) VALUES (%s, 'frente', %s, %s)",
                 (numero, chave, chave.title()),
             )
     return con

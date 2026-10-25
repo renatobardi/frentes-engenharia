@@ -9,6 +9,7 @@ from eventos.contratos import Emissor, EventoBruto, Origem, TipoEmissor
 from eventos.snapshot import arquivo
 from eventos.store import emissor
 from eventos.store import evento as eventos
+from tests.banco import banco_de
 from tests.painel.apoio import criar_banco, evento
 
 AGORA = datetime(2026, 10, 4, 12, tzinfo=UTC)
@@ -28,8 +29,8 @@ def banco_carregado(tmp_path: Path) -> Path:
             EventoBruto("sistema", "O simulador caiu"),
             "2026-09-20T12:00:00Z",
         )
-    snapshot = tmp_path / "snapshot.sqlite.gz"
-    arquivo.gravar(config.carregar({"EVENTOS_DB": str(origem)}), snapshot, AGORA)
-    banco = tmp_path / "volume" / "eventos.sqlite"
+    snapshot = tmp_path / "snapshot.tar.gz"
+    arquivo.gravar(config.carregar({"EVENTOS_DATABASE_URL": str(origem)}), snapshot, AGORA)
+    banco = banco_de(tmp_path, "volume")
     arquivo.carregar(banco, snapshot, AGORA)
     return banco

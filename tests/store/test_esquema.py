@@ -5,6 +5,7 @@ import pytest
 
 from eventos import store
 from eventos.contratos import COLUNAS_DE_DATA
+from tests.banco import banco_de, schema_existe, tabelas_do, url_novo
 
 ENTIDADES = [
     "classificacao",
@@ -16,6 +17,7 @@ ENTIDADES = [
     "painel_celula",
     "snapshot_meta",
     "valor",
+    "versao_esquema",
     "versao_taxonomia",
 ]
 
@@ -24,7 +26,7 @@ JEV = '{"modelo": "jev-1.13.0", "respostas": {}}'
 
 @pytest.fixture
 def con() -> store.Conexao:
-    return store.abrir()
+    return store.abrir(url_novo())
 
 
 def evento(con: store.Conexao, id: str = "f1", **campos: object) -> None:
@@ -37,7 +39,7 @@ def evento(con: store.Conexao, id: str = "f1", **campos: object) -> None:
         **campos,
     }
     con.execute(
-        f"INSERT INTO evento ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
+        f"INSERT INTO evento ({', '.join(linha)}) VALUES ({', '.join(['%s'] * len(linha))})",
         list(linha.values()),
     )
 
@@ -45,7 +47,7 @@ def evento(con: store.Conexao, id: str = "f1", **campos: object) -> None:
 def versao(con: store.Conexao, numero: int = 1, ativada_em: str | None = None) -> None:
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
-        " VALUES (?, '{}', 'jev-1.13.0', '2026-04-01T00:00:00Z', ?)",
+        " VALUES (%s, '{}', 'jev-1.13.0', '2026-04-01T00:00:00Z', %s)",
         (numero, ativada_em),
     )
 
@@ -72,7 +74,7 @@ def classificacao(con: store.Conexao, evento_id: str = "f1", versao: int = 1, **
         **campos,
     }
     con.execute(
-        f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
+        f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join(['%s'] * len(linha))})",
         list(linha.values()),
     )
 
@@ -89,7 +91,7 @@ def enderecamento(con: store.Conexao, **campos: object) -> None:
         **campos,
     }
     con.execute(
-        f"INSERT INTO enderecamento ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
+        f"INSERT INTO enderecamento ({', '.join(linha)}) VALUES ({', '.join(['%s'] * len(linha))})",
         list(linha.values()),
     )
 
@@ -99,11 +101,10 @@ def test_o_esquema_cria_todas_as_entidades_do_modelo(con: store.Conexao) -> None
 
 
 def test_o_banco_em_arquivo_e_criado_e_relido(tmp_path: Path) -> None:
-    caminho = tmp_path / "pasta-nova" / "eventos.sqlite"
+    caminho = banco_de(tmp_path, "pasta-nova", criar=False)
 
-    con = store.abrir(caminho)
+    con = store.abrir(caminho)  # cria o schema e as tabelas
     evento(con, metadados='{"linhas": ["503 /checkout"]}')
-    con.commit()
     con.close()
 
     relido = store.abrir(caminho)
@@ -111,40 +112,37 @@ def test_o_banco_em_arquivo_e_criado_e_relido(tmp_path: Path) -> None:
     assert store.tabelas(relido) == ENTIDADES
     assert (linha["id"], linha["origem"], linha["emissor"]) == ("f1", "relato", "Ana Prado")
     assert linha["metadados"] == '{"linhas": ["503 /checkout"]}'
-    assert relido.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
 
 
-def test_abrir_existente_nao_cria_arquivo_nem_pasta(tmp_path: Path) -> None:
-    caminho = tmp_path / "pasta-nova" / "eventos.sqlite"
+def test_abrir_existente_nao_cria_o_schema(tmp_path: Path) -> None:
+    caminho = banco_de(tmp_path, "pasta-nova", criar=False)
 
     with pytest.raises(store.BancoAusente, match="não há banco"):
         store.abrir_existente(caminho)
 
-    assert not caminho.parent.exists()
+    assert not schema_existe(caminho)
 
 
-def test_abrir_existente_recusa_arquivo_sem_esquema_e_nao_o_cria(tmp_path: Path) -> None:
-    caminho = tmp_path / "eventos.sqlite"
-    caminho.touch()
+def test_abrir_existente_recusa_schema_sem_esquema_e_nao_o_cria(tmp_path: Path) -> None:
+    caminho = banco_de(tmp_path)  # o schema existe, sem tabela
 
     with pytest.raises(store.BancoAusente, match="não tem o esquema"):
         store.abrir_existente(caminho)
 
-    assert caminho.stat().st_size == 0
+    assert tabelas_do(caminho) == []
 
 
 def test_abrir_existente_le_o_banco_que_ja_foi_criado(tmp_path: Path) -> None:
-    caminho = tmp_path / "eventos.sqlite"
+    caminho = banco_de(tmp_path)
     store.abrir(caminho).close()
 
     assert store.tabelas(store.abrir_existente(caminho)) == ENTIDADES
 
 
 def test_abrir_um_banco_que_ja_tem_tabelas_nao_recria_o_esquema(tmp_path: Path) -> None:
-    caminho = tmp_path / "eventos.sqlite"
+    caminho = banco_de(tmp_path)
     con = store.abrir(caminho)
     con.execute("DROP TABLE gabarito")
-    con.commit()
     con.close()
 
     assert "gabarito" not in store.tabelas(store.abrir(caminho))
@@ -210,22 +208,21 @@ def test_versao_vigente_e_a_maior_ativada(con: store.Conexao) -> None:
 
 def test_time_aponta_para_a_area_e_o_pai_tem_que_existir(con: store.Conexao) -> None:
     versao(con)
-    con.execute(
-        "INSERT INTO valor (versao, dimensao, chave, nome, chave_pai)"
-        " VALUES (1, 'area', 'cobranca-boletos', 'Boletos', 'cobranca')"
-    )
-    con.execute(
-        "INSERT INTO valor (versao, dimensao, chave, nome)"
-        " VALUES (1, 'area', 'cobranca', 'Cobrança')"
-    )
-    con.commit()  # o pai veio depois do filho, na mesma transação
+    with con.transaction():  # o pai veio depois do filho, na mesma transação
+        con.execute(
+            "INSERT INTO valor (versao, dimensao, chave, nome, chave_pai)"
+            " VALUES (1, 'area', 'cobranca-boletos', 'Boletos', 'cobranca')"
+        )
+        con.execute(
+            "INSERT INTO valor (versao, dimensao, chave, nome)"
+            " VALUES (1, 'area', 'cobranca', 'Cobrança')"
+        )
 
-    con.execute(
-        "INSERT INTO valor (versao, dimensao, chave, nome, chave_pai)"
-        " VALUES (1, 'frente', 'st-orfao', 'Órfão', 'frente-que-nao-existe')"
-    )
-    with pytest.raises(store.ErroDeIntegridade):
-        con.commit()
+    with pytest.raises(store.ErroDeIntegridade), con.transaction():
+        con.execute(
+            "INSERT INTO valor (versao, dimensao, chave, nome, chave_pai)"
+            " VALUES (1, 'frente', 'st-orfao', 'Órfão', 'frente-que-nao-existe')"
+        )
 
 
 def test_valor_de_dimensao_desconhecida_e_recusado(con: store.Conexao) -> None:
@@ -239,7 +236,7 @@ def test_valor_de_dimensao_desconhecida_e_recusado(con: store.Conexao) -> None:
 
 def test_geracao_revisao_exige_versao_base_e_descoberta_nao_tem(con: store.Conexao) -> None:
     versao(con)
-    sql = "INSERT INTO geracao (tipo, gatilho, disparada_em, versao_base) VALUES (?, ?, ?, ?)"
+    sql = "INSERT INTO geracao (tipo, gatilho, disparada_em, versao_base) VALUES (%s, %s, %s, %s)"
     con.execute(sql, ("descoberta", None, "2026-04-01T00:00:00Z", None))
     con.execute(sql, ("revisao", "encaixe_fraco", "2026-08-01T00:00:00Z", 1))
 
@@ -292,7 +289,7 @@ def test_painel_e_um_por_versao_celula_visao_e_periodo(con: store.Conexao) -> No
     versao(con)
     sql = (
         "INSERT INTO painel_celula (versao, area, frente, visao, periodo, porque, gerado_em,"
-        " modelo_llm, eventos_na_geracao) VALUES (1, 'cobranca', 't-boletos', ?, ?,"
+        " modelo_llm, eventos_na_geracao) VALUES (1, 'cobranca', 't-boletos', %s, %s,"
         " 'Carnês voltam sem registro.', '2026-10-02T03:00:00Z', 'deepseek/deepseek-v4-flash', 41)"
     )
     con.execute(sql, ("dor", "90d"))
@@ -307,7 +304,7 @@ def test_celula_sem_painel_anterior_pode_ser_marcada_atualizando(con: store.Cone
     versao(con)
     sql = (
         "INSERT INTO painel_celula (versao, area, frente, visao, periodo, estado)"
-        " VALUES (1, 'cobranca', 't-boletos', 'dor', ?, ?)"
+        " VALUES (1, 'cobranca', 't-boletos', 'dor', %s, %s)"
     )
     con.execute(sql, ("90d", "atualizando"))
 
@@ -340,7 +337,11 @@ def test_enderecamento_desfeito_fica_guardado_e_libera_a_celula(con: store.Conex
 def test_enderecamento_nao_depende_de_versao_evento_nem_classificacao(con: store.Conexao) -> None:
     enderecamento(con)  # banco sem versão, sem evento e sem valor: a marca aponta para chaves
 
-    referencias = con.execute("SELECT * FROM pragma_foreign_key_list('enderecamento')").fetchall()
+    referencias = con.execute(
+        "SELECT constraint_name FROM information_schema.table_constraints"
+        " WHERE table_schema = current_schema() AND table_name = 'enderecamento'"
+        " AND constraint_type = 'FOREIGN KEY'"
+    ).fetchall()
     assert referencias == []
 
 
@@ -351,8 +352,16 @@ def test_gabarito_nao_tem_ligacao_com_as_tabelas_do_pipeline(con: store.Conexao)
     con.execute("INSERT INTO gabarito (evento_id, historia_id) VALUES ('f-sem-evento', 'H3')")
 
     for tabela in ENTIDADES:
-        referencias = con.execute("SELECT * FROM pragma_foreign_key_list(?)", (tabela,)).fetchall()
-        assert "gabarito" not in [r["table"] for r in referencias]
+        referencias = con.execute(
+            "SELECT ccu.table_name AS referenciada FROM information_schema.table_constraints tc"
+            " JOIN information_schema.constraint_column_usage ccu"
+            "   ON ccu.constraint_name = tc.constraint_name"
+            "  AND ccu.constraint_schema = tc.constraint_schema"
+            " WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = current_schema()"
+            "   AND tc.table_name = %s",
+            (tabela,),
+        ).fetchall()
+        assert "gabarito" not in [r["referenciada"] for r in referencias]
         if tabela == "gabarito":
             assert referencias == []
 
@@ -362,7 +371,7 @@ def test_gabarito_do_relato_cruzado_leva_o_time_de_quem_relata_e_o_sabor(
 ) -> None:
     sql = (
         "INSERT INTO gabarito (evento_id, historia_id, time, time_relator, cruzado)"
-        " VALUES (?, 'fundo', 'cobranca-boletos', ?, ?)"
+        " VALUES (%s, 'fundo', 'cobranca-boletos', %s, %s)"
     )
     con.execute(sql, ("f1", None, None))  # relato que não é cruzado
     con.execute(sql, ("f2", "credito-esteira", "so_o_dono"))
@@ -382,10 +391,31 @@ def test_dia_do_snapshot_e_linha_unica(con: store.Conexao) -> None:
 
     sql = (
         "INSERT INTO snapshot_meta (id, dia_d, gerado_em, commit_sha, limiares)"
-        " VALUES (?, '2026-09-30', '2026-10-03T22:00:00Z', 'abc1234', '{}')"
+        " VALUES (%s, '2026-09-30', '2026-10-03T22:00:00Z', 'abc1234', '{}')"
     )
     con.execute(sql, (1,))
 
     assert store.dia_do_snapshot(con) == "2026-09-30"
     with pytest.raises(store.ErroDeIntegridade):
         con.execute(sql, (2,))
+
+
+def test_contagem_acima_de_2_elevado_a_31_cabe_na_coluna(con: store.Conexao) -> None:
+    """O INTEGER do Postgres tem 32 bits; o esquema usa BIGINT (o SQLite era 64 bits)."""
+    versao(con)
+    evento(con)
+    grande = 3_000_000_000
+
+    classificacao(con, tokens_entrada=grande, latencia_ms=grande)
+
+    linha = con.execute("SELECT tokens_entrada, latencia_ms FROM classificacao").fetchone()
+    assert (linha["tokens_entrada"], linha["latencia_ms"]) == (grande, grande)
+
+
+def test_nenhuma_coluna_do_esquema_e_integer_de_32_bits(con: store.Conexao) -> None:
+    pequenas = con.execute(
+        "SELECT table_name, column_name FROM information_schema.columns"
+        " WHERE table_schema = current_schema() AND data_type IN ('integer', 'smallint')"
+    ).fetchall()
+
+    assert [tuple(c) for c in pequenas] == []

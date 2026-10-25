@@ -51,7 +51,7 @@ def snapshot(argumentos: list[str]) -> int:
         else:
             carregado = arquivo.carregar(cfg.banco, caminho)
             print(
-                f"snapshot carregado em {cfg.banco}: dia D {carregado.dia_d} "
+                f"snapshot carregado: dia D {carregado.dia_d} "
                 f"deslocado {carregado.deslocamento_dias} dias (vira ontem)"
             )
     except store.BancoAusente as erro:

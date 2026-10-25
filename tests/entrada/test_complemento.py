@@ -10,6 +10,7 @@ from eventos.entrada import complemento, recepcao
 from eventos.store import classificacao as armazem
 from eventos.store import relato
 from eventos.store import versao as armazem_versao
+from tests.banco import url_novo
 from tests.fila.documento import DOCUMENTO, QUANDO
 from tests.store.test_classificacao import classificacao as pronta
 
@@ -18,7 +19,7 @@ ORIGEM = contratos.Origem
 
 @pytest.fixture
 def con() -> store.Conexao:
-    with closing(store.abrir()) as con:
+    with closing(store.abrir(url_novo())) as con:
         versao = contratos.VersaoTaxonomia(1, DOCUMENTO, "jev-latest", QUANDO)
         armazem_versao.inserir(con, versao, [])
         assert armazem_versao.ativar(con, 1, contratos.para_iso(QUANDO))

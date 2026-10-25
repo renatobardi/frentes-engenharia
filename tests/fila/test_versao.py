@@ -15,6 +15,7 @@ from eventos.contratos import Estado, Perguntas, RespostaJev, VersaoTaxonomia, p
 from eventos.jev import ClienteEmCadeia, Elo, ErroJev
 from eventos.store import classificacao as armazem
 from eventos.store import versao as armazem_versao
+from tests.banco import banco_de
 from tests.fila.documento import DOCUMENTO, QUANDO
 from tests.fila.test_fila import (  # noqa: F401  (fixtures)
     AREA_BAIXA,
@@ -32,7 +33,7 @@ from tests.llm.falso import LlmFalsa, resposta_llm
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
     """A v1 vigente e a v2 gravada, sem ativação; os eventos entram em cada teste."""
-    caminho = tmp_path / "eventos.sqlite"
+    caminho = banco_de(tmp_path)
     with closing(store.abrir(caminho)) as con:
         armazem_versao.inserir(con, VersaoTaxonomia(1, DOCUMENTO, "jev-latest", QUANDO), [])
         assert armazem_versao.ativar(con, 1, para_iso(QUANDO))
@@ -346,7 +347,7 @@ def test_o_semaforo_limita_as_chamadas_ao_jev_em_voo(banco: Path) -> None:
 
 @pytest.fixture
 def comando(banco: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
-    monkeypatch.setenv("EVENTOS_DB", str(banco))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(banco))
     monkeypatch.setenv("TYPESAFE_API_KEY", "chave-falsa-de-teste")
     monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
 
@@ -377,7 +378,7 @@ def test_comando_classifica_ativa_imprime_o_resumo_e_sai_com_0(
 def test_comando_imprime_as_respostas_e_as_quedas_de_cada_elo_da_cadeia(
     banco: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setenv("EVENTOS_DB", str(banco))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(banco))
     monkeypatch.setenv("TYPESAFE_API_KEY", "chave-falsa-de-teste")
     monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
     gravar_evento(banco, "f1", "texto")
@@ -428,7 +429,7 @@ def test_comando_com_argumento_errado_sai_com_2(
 def test_comando_sem_as_chaves_sai_com_2(
     banco: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setenv("EVENTOS_DB", str(banco))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(banco))
 
     assert cli.classificar(["--versao", "2"]) == 2
     assert "faltam TYPESAFE_API_KEY e OPENROUTER_API_KEY" in capsys.readouterr().err
@@ -446,13 +447,16 @@ def test_comando_com_versao_inexistente_sai_com_2(
 def test_comando_sem_banco_sai_com_2(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setenv("EVENTOS_DB", str(tmp_path / "nao-existe.sqlite"))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(banco_de(tmp_path, "nao-existe", criar=False)))
     monkeypatch.setenv("TYPESAFE_API_KEY", "chave-falsa-de-teste")
     monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
     monkeypatch.setattr(
         fila,
         "montar_fila",
-        lambda app, cfg: (montar(tmp_path / "nao-existe.sqlite", JevFalso({}), LlmFalsa({})), {}),
+        lambda app, cfg: (
+            montar(banco_de(tmp_path, "nao-existe", criar=False), JevFalso({}), LlmFalsa({})),
+            {},
+        ),
     )
 
     assert cli.classificar(["--versao", "2"]) == 2
@@ -600,7 +604,7 @@ def test_a_vaga_do_jev_e_solta_enquanto_o_evento_espera_a_llm(banco: Path) -> No
 def test_dois_classificar_no_mesmo_banco_o_segundo_se_recusa(banco: Path) -> None:
     gravar_evento(banco, "f1", "texto")
     falso = JevFalso({"texto": jev()})
-    segurada = fila._tentar_travar(fila._arquivo_de_trava(banco, "classificar"), exclusiva=True)
+    segurada = fila._tentar_travar(banco, "classificar")
     try:
         with pytest.raises(fila.ClassificandoEmOutroProcesso, match="outro `classificar`"):
             rodar(montar(banco, falso, LlmFalsa({})))
@@ -637,7 +641,7 @@ def test_comando_recusado_pela_trava_sai_com_2(
 ) -> None:
     gravar_evento(banco, "f1", "texto")
     comando(JevFalso({"texto": jev()}), LlmFalsa({}))
-    segurada = fila._tentar_travar(fila._arquivo_de_trava(banco, "classificar"), exclusiva=True)
+    segurada = fila._tentar_travar(banco, "classificar")
     try:
         assert cli.classificar(["--versao", "2"]) == 2
     finally:

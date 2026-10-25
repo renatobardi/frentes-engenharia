@@ -35,7 +35,7 @@ __all__ = [
     "voltar_ao_atual",
 ]
 
-_CHAVE = "versao = ? AND area = ? AND frente = ? AND visao = ? AND periodo = ?"
+_CHAVE = "versao = %s AND area = %s AND frente = %s AND visao = %s AND periodo = %s"
 
 
 def _chave(versao: int, celula: Celula, periodo: Periodo) -> tuple[object, ...]:
@@ -80,11 +80,15 @@ def ler(con: Conexao, versao: int, celula: Celula, periodo: Periodo) -> PainelCe
 
 def gravar(con: Conexao, painel: PainelCelula) -> None:
     """Grava o painel inteiro; o da mesma chave é substituído."""
-    with con:
+    with con.transaction():
         con.execute(
-            "INSERT OR REPLACE INTO painel_celula (versao, area, frente, visao, periodo, porque,"
+            "INSERT INTO painel_celula (versao, area, frente, visao, periodo, porque,"
             " sugestoes, gerado_em, modelo_llm, estado, eventos_na_geracao)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            " ON CONFLICT (versao, area, frente, visao, periodo) DO UPDATE SET"
+            " porque = EXCLUDED.porque, sugestoes = EXCLUDED.sugestoes,"
+            " gerado_em = EXCLUDED.gerado_em, modelo_llm = EXCLUDED.modelo_llm,"
+            " estado = EXCLUDED.estado, eventos_na_geracao = EXCLUDED.eventos_na_geracao",
             (
                 *_chave(painel.versao, painel.celula, painel.periodo),
                 painel.porque,
@@ -99,10 +103,10 @@ def gravar(con: Conexao, painel: PainelCelula) -> None:
 
 def marcar_atualizando(con: Conexao, versao: int, celula: Celula, periodo: Periodo) -> None:
     """Marca o painel `atualizando` sem tocar no texto; sem painel anterior, a linha nasce vazia."""
-    with con:
+    with con.transaction():
         con.execute(
             "INSERT INTO painel_celula (versao, area, frente, visao, periodo, estado)"
-            " VALUES (?, ?, ?, ?, ?, 'atualizando')"
+            " VALUES (%s, %s, %s, %s, %s, 'atualizando')"
             " ON CONFLICT (versao, area, frente, visao, periodo)"
             " DO UPDATE SET estado = 'atualizando'",
             _chave(versao, celula, periodo),
@@ -115,7 +119,7 @@ def voltar_ao_atual(con: Conexao, versao: int, celula: Celula, periodo: Periodo)
     A linha que nasceu `atualizando` e nunca teve texto sai: não há anterior a mostrar, e
     deixá-la diria "atualizando" para sempre."""
     chave = _chave(versao, celula, periodo)
-    with con:
+    with con.transaction():
         con.execute(
             f"UPDATE painel_celula SET estado = 'atual' WHERE {_CHAVE} AND porque IS NOT NULL",
             chave,
@@ -125,7 +129,7 @@ def voltar_ao_atual(con: Conexao, versao: int, celula: Celula, periodo: Periodo)
 
 def encerrar_atualizacoes(con: Conexao) -> int:
     """Ao subir: nada está sendo refeito. Devolve quantas linhas estavam `atualizando`."""
-    with con:
+    with con.transaction():
         n = con.execute(
             "SELECT count(*) AS n FROM painel_celula WHERE estado = 'atualizando'"
         ).fetchone()["n"]
@@ -148,8 +152,8 @@ def textos_dos_eventos(con: Conexao, versao: int, ids: Sequence[str]) -> dict[st
     linhas = con.execute(
         "SELECT f.id AS id, f.origem AS origem, f.texto AS texto, f.complemento AS complemento,"
         " c.urgencia AS urgencia FROM evento f"
-        " JOIN classificacao c ON c.evento_id = f.id AND c.versao = ?"
-        f" WHERE f.id IN ({', '.join('?' * len(ids))})",
+        " JOIN classificacao c ON c.evento_id = f.id AND c.versao = %s"
+        f" WHERE f.id IN ({', '.join(['%s'] * len(ids))})",
         [versao, *ids],
     )
     return {
@@ -165,6 +169,6 @@ def textos_dos_eventos(con: Conexao, versao: int, ids: Sequence[str]) -> dict[st
 def data_do_evento(con: Conexao, evento_id: str) -> datetime | None:
     """A data que conta nos agregados: `ocorrido_em` e, na falta, `recebido_em`."""
     linha = con.execute(
-        "SELECT coalesce(ocorrido_em, recebido_em) AS data FROM evento WHERE id = ?", (evento_id,)
+        "SELECT coalesce(ocorrido_em, recebido_em) AS data FROM evento WHERE id = %s", (evento_id,)
     ).fetchone()
     return de_iso(linha["data"]) if linha else None

@@ -14,6 +14,7 @@ from eventos import config, store
 from eventos.contratos import Origem, Periodo, Visao
 from eventos.mapa import celula
 from eventos.mapa.agregados import VersaoInexistente
+from tests.banco import url_novo
 
 REF = date(2026, 10, 3)
 LIMIARES = config.carregar_limiares()
@@ -24,7 +25,7 @@ def _evento(con: store.Conexao, quando: str, origem: str = "relato") -> str:
     id = f"f{next(_ids)}"
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em)"
-        " VALUES (?, ?, 'Ana', 'texto', ?, ?)",
+        " VALUES (%s, %s, 'Ana', 'texto', %s, %s)",
         (id, origem, f"{quando}T10:00:00Z", f"{quando}T10:05:00Z"),
     )
     return id
@@ -68,7 +69,7 @@ def _class(
         **campos,
     }
     con.execute(
-        f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
+        f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join(['%s'] * len(linha))})",
         list(linha.values()),
     )
     return id
@@ -86,11 +87,11 @@ def _problema(c: celula.Celula, chave: str) -> celula.ProblemaDaCelula:
 
 @pytest.fixture
 def con() -> store.Conexao:
-    con = store.abrir()
+    con = store.abrir(url_novo())
     for numero, ativada in [(1, "2026-01-02T00:00:00Z"), (2, None)]:
         con.execute(
             "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
-            " VALUES (?, '{}', 'jev-1.13.0', '2026-01-01T00:00:00Z', ?)",
+            " VALUES (%s, '{}', 'jev-1.13.0', '2026-01-01T00:00:00Z', %s)",
             (numero, ativada),
         )
     return con
@@ -135,7 +136,7 @@ def test_dias_e_meses_distintos_e_corte_vindo_da_configuracao(con):
 
 def test_o_dia_e_o_de_ocorrido_em_nao_o_de_recebido_em(con):
     id = _class(con, "2026-09-01", problema="p")
-    con.execute("UPDATE evento SET recebido_em = '2026-09-20T10:00:00Z' WHERE id = ?", (id,))
+    con.execute("UPDATE evento SET recebido_em = '2026-09-20T10:00:00Z' WHERE id = %s", (id,))
     _class(con, "2026-09-02", problema="p")
     _class(con, "2026-09-02", problema="p")
 
@@ -280,7 +281,7 @@ def test_celula_vazia_e_versao_inexistente(con):
 
     with pytest.raises(VersaoInexistente):
         _ler(con, versao=9)
-    sem_versao = store.abrir()
+    sem_versao = store.abrir(url_novo())
     with pytest.raises(VersaoInexistente):
         _ler(sem_versao)  # sem versão vigente
 
@@ -321,7 +322,7 @@ def test_o_dia_do_problema_e_utc(con):
     # 23:59:59Z e 00:00:00Z de 01/09 e 02/09 são dois dias UTC, ainda que seja o mesmo no Brasil
     for instante in ["2026-09-01T23:59:59Z", "2026-09-02T00:00:00Z", "2026-09-02T02:30:00Z"]:
         id = _class(con, "2026-09-01", problema="p")
-        con.execute("UPDATE evento SET ocorrido_em = ? WHERE id = ?", (instante, id))
+        con.execute("UPDATE evento SET ocorrido_em = %s WHERE id = %s", (instante, id))
 
     assert _problema(_ler(con), "p").dias == 2
 
@@ -337,7 +338,7 @@ def test_bordas_da_janela_de_90_dias(con):
     ids = {}
     for nome, instante in instantes.items():
         ids[nome] = _class(con, "2026-09-01", problema="p")
-        con.execute("UPDATE evento SET ocorrido_em = ? WHERE id = ?", (instante, ids[nome]))
+        con.execute("UPDATE evento SET ocorrido_em = %s WHERE id = %s", (instante, ids[nome]))
 
     c = _ler(con)
 
@@ -349,11 +350,11 @@ def test_sem_ocorrido_em_vale_recebido_em(con):
     dentro = _class(con, "2026-09-01", problema="p")
     fora = _class(con, "2026-09-01", problema="p")
     con.execute(
-        "UPDATE evento SET ocorrido_em = NULL, recebido_em = '2026-09-10T10:00:00Z' WHERE id = ?",
+        "UPDATE evento SET ocorrido_em = NULL, recebido_em = '2026-09-10T10:00:00Z' WHERE id = %s",
         (dentro,),
     )
     con.execute(
-        "UPDATE evento SET ocorrido_em = NULL, recebido_em = '2026-01-10T10:00:00Z' WHERE id = ?",
+        "UPDATE evento SET ocorrido_em = NULL, recebido_em = '2026-01-10T10:00:00Z' WHERE id = %s",
         (fora,),
     )
 

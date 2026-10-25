@@ -8,6 +8,7 @@ from eventos.store import geracao as repo
 from eventos.store.revisao import LinhaDaJanela
 from eventos.taxonomia import sinal
 from eventos.taxonomia.versoes import gravar
+from tests.banco import url_novo
 from tests.taxonomia.revisoes import AGORA, LIMIARES, banco_vigente, evento, firmes, fracas
 
 FRENTES = ("frente1", "frente2", "frente3", "frente4")
@@ -191,7 +192,7 @@ def test_sinal_alto_respeita_a_pausa_depois_de_uma_revisao(documento) -> None:
 
 
 def test_sem_vigente_ou_com_versao_nova_pendente_nao_dispara(documento) -> None:
-    assert sinal.disparo(store.abrir(), LIMIARES, AGORA) is None
+    assert sinal.disparo(store.abrir(url_novo()), LIMIARES, AGORA) is None
 
     con = banco_vigente(documento(), ativada_ha_dias=200)
     gravar(con, documento(), "jev-teste")  # a versão 2 espera o histórico ser reclassificado

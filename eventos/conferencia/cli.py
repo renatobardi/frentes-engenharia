@@ -14,7 +14,7 @@ from eventos.conferencia.conferir import conferir as conferir_versao
 
 USO = (
     "uso: python -m eventos conferir [--versao N] [--gabarito ARQUIVO.jsonl] "
-    "[--banco-do-gabarito CAMINHO]"
+    "[--banco-do-gabarito URL]"
 )
 
 
@@ -37,13 +37,13 @@ def conferir(argumentos: list[str]) -> int:
         print(f"conferir: {USO}", file=sys.stderr)
         return 2
     cfg = config.carregar()
-    banco_do_gabarito = Path(
-        opcoes.get("--banco-do-gabarito") or cfg.banco.with_name(arquivo.BANCO_DO_GABARITO)
-    )
-    if banco_do_gabarito.resolve() == cfg.banco.resolve():
+    banco_do_gabarito = opcoes.get("--banco-do-gabarito") or arquivo.banco_do_gabarito_de(cfg.banco)
+    if banco_do_gabarito == cfg.banco or store.schema_da_url(
+        banco_do_gabarito
+    ) == store.schema_da_url(cfg.banco):
         print(
-            "conferir: o banco do gabarito não pode ser o da aplicação "
-            f"({cfg.banco}): o gabarito fica num banco à parte",
+            "conferir: o gabarito não pode ficar no schema da aplicação: "
+            "ele fica num schema à parte, só em desenvolvimento",
             file=sys.stderr,
         )
         return 2

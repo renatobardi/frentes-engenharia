@@ -9,7 +9,6 @@ não para as outras: o código de saída é 1 se alguma falhou. Custa chamada à
 import asyncio
 import sys
 from contextlib import closing
-from pathlib import Path
 
 from eventos import config, store
 from eventos.contratos import Celula, ClienteLlm, Periodo, Uso, Visao
@@ -18,7 +17,7 @@ from eventos.mapa import agregados
 from eventos.painel.gerador import Gerador
 
 
-def _celulas(banco: Path, versao: int | None) -> tuple[int, list[tuple[Celula, Periodo]]]:
+def _celulas(banco: str, versao: int | None) -> tuple[int, list[tuple[Celula, Periodo]]]:
     with closing(store.abrir_existente(banco)) as con:
         numero = agregados.resolver_versao(con, versao)
         achadas = [

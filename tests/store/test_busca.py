@@ -4,12 +4,13 @@ import pytest
 
 from eventos import store
 from eventos.store import busca
+from tests.banco import url_novo
 from tests.web.mapa.test_mapa import _class, _evento, _montar, _pinta, _versao  # noqa: F401
 
 
 @pytest.fixture
 def con() -> store.Conexao:
-    con = store.abrir()
+    con = store.abrir(url_novo())
     _montar(con)
     problemas = {
         "boleto": "Boleto duplicado",
@@ -19,14 +20,14 @@ def con() -> store.Conexao:
     for ordem, (chave, nome) in enumerate(problemas.items()):
         con.execute(
             "INSERT INTO valor (versao, dimensao, chave, nome, ordem)"
-            " VALUES (2, 'problema', ?, ?, ?)",
+            " VALUES (2, 'problema', %s, %s, %s)",
             (chave, nome, ordem),
         )
     return con
 
 
 def _texto(con: store.Conexao, id: str, texto: str) -> None:
-    con.execute("UPDATE evento SET texto = ? WHERE id = ?", (texto, id))
+    con.execute("UPDATE evento SET texto = %s WHERE id = %s", (texto, id))
 
 
 def test_consulta_vazia_nao_acha_nada(con: store.Conexao) -> None:

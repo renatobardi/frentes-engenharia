@@ -12,19 +12,20 @@ from eventos.contratos import (
     TipoOperacao,
 )
 from eventos.store import geracao as repo
+from tests.banco import url_novo
 
 AGORA = datetime(2026, 10, 3, 14, 5, 9, tzinfo=UTC)
 
 
 @pytest.fixture
 def con() -> store.Conexao:
-    return store.abrir()
+    return store.abrir(url_novo())
 
 
 def evento(con, id: str, recebido: str, ocorrido: str | None = None, texto: str = "t") -> None:
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, recebido_em, ocorrido_em) "
-        "VALUES (?, 'relato', 'Fulana Emissora', ?, ?, ?)",
+        "VALUES (%s, 'relato', 'Fulana Emissora', %s, %s, %s)",
         (id, texto, recebido, ocorrido),
     )
 

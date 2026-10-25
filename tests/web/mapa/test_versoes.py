@@ -13,6 +13,7 @@ from eventos.contratos import Gatilho, Geracao, ResultadoGeracao, SinalMedido, T
 from eventos.mapa import agregados
 from eventos.store import geracao as store_geracao
 from eventos.web.app import criar_app
+from tests.banco import banco_de
 
 AREAS = {"plat": "Plataforma"}
 FRENTES_V1 = {"incidente": "Incidente", "tecnologia": "Tecnologia"}
@@ -24,13 +25,14 @@ DISPARADA = datetime(2026, 9, 14, 10, 0, tzinfo=UTC)
 def _versao(con: store.Conexao, numero: int, frentes: dict[str, str], ativada: bool = True) -> None:
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
-        " VALUES (?, '{}', 'jev-1.13.0', '2026-01-01T00:00:00Z', ?)",
+        " VALUES (%s, '{}', 'jev-1.13.0', '2026-01-01T00:00:00Z', %s)",
         (numero, "2026-01-02T00:00:00Z" if ativada else None),
     )
     for dimensao, valores in (("area", AREAS), ("frente", frentes)):
         for ordem, (chave, nome) in enumerate(valores.items()):
             con.execute(
-                "INSERT INTO valor (versao, dimensao, chave, nome, ordem) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO valor (versao, dimensao, chave, nome, ordem)"
+                " VALUES (%s, %s, %s, %s, %s)",
                 (numero, dimensao, chave, nome, ordem),
             )
 
@@ -56,7 +58,7 @@ def _revisao(con: store.Conexao, base: int, resultante: int, gatilho: Gatilho) -
 
 
 def _banco(tmp_path: Path, *, com_revisao: bool = True, gatilho=Gatilho.ENCAIXE_FRACO) -> Path:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     con = store.abrir(caminho)
     _versao(con, 1, FRENTES_V1)
     if com_revisao:
@@ -68,7 +70,7 @@ def _banco(tmp_path: Path, *, com_revisao: bool = True, gatilho=Gatilho.ENCAIXE_
 
 
 def _cliente(banco: Path) -> TestClient:
-    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(banco)})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco)})))
 
 
 @pytest.fixture
@@ -125,7 +127,7 @@ def test_com_uma_so_versao_no_banco_nenhuma_faixa_aparece(tmp_path: Path) -> Non
 
 
 def test_revisao_cuja_versao_nao_foi_ativada_nao_faz_faixa_na_v1(tmp_path: Path) -> None:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     con = store.abrir(caminho)
     _versao(con, 1, FRENTES_V1)
     _versao(con, 2, FRENTES_V2, ativada=False)
@@ -214,7 +216,7 @@ def test_celula_inexistente_no_mesmo_endereco_continua_404(banco: Path) -> None:
 
 
 def test_versao_pulada_nao_entra_no_seletor_nem_no_mapa(tmp_path: Path) -> None:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     con = store.abrir(caminho)
     _versao(con, 1, FRENTES_V1)
     _versao(con, 2, FRENTES_V2, ativada=False)

@@ -4,13 +4,14 @@ import pytest
 
 from eventos import store
 from eventos.store import lista
+from tests.banco import url_novo
 
 JEV = '{"modelo": "jev-1.13.0", "respostas": {}}'
 
 
 @pytest.fixture
 def con():
-    con = store.abrir()
+    con = store.abrir(url_novo())
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
         " VALUES (1, '{}', 'jev', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z')"
@@ -19,7 +20,7 @@ def con():
     for i, data in enumerate(datas):
         con.execute(
             "INSERT INTO evento (id, origem, emissor, texto, recebido_em)"
-            " VALUES (?, 'relato', 'Ana', ?, ?)",
+            " VALUES (%s, 'relato', 'Ana', %s, %s)",
             (f"f{i}", f"texto 100% {i}_x", data),
         )
     return con

@@ -12,6 +12,7 @@ from eventos import config, contratos, store
 from eventos.entrada import recepcao
 from eventos.store import evento
 from eventos.web.app import criar_app
+from tests.banco import banco_de, tabelas_do
 
 TOKEN = "token-de-teste"
 CABECALHO = {"X-Webhook-Token": TOKEN}
@@ -19,12 +20,12 @@ CABECALHO = {"X-Webhook-Token": TOKEN}
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    return tmp_path / "eventos.sqlite"
+    return banco_de(tmp_path)
 
 
 @pytest.fixture
 def cliente(banco: Path) -> TestClient:
-    cfg = config.carregar({"EVENTOS_DB": str(banco), "EVENTOS_WEBHOOK_TOKEN": TOKEN})
+    cfg = config.carregar({"EVENTOS_DATABASE_URL": str(banco), "EVENTOS_WEBHOOK_TOKEN": TOKEN})
     return TestClient(criar_app(cfg))
 
 
@@ -136,13 +137,13 @@ def test_bearer_com_o_token_certo_vale(cliente: TestClient, banco: Path) -> None
 
 
 def test_sem_token_configurado_nada_entra(banco: Path) -> None:
-    app = criar_app(config.carregar({"EVENTOS_DB": str(banco)}))
+    app = criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco)}))
     cliente = TestClient(app)
 
     # nem o cabeçalho vazio nem um qualquer abre a porta
     assert cliente.post("/eventos", json={"texto": "x"}).status_code == 401
     assert cliente.post("/eventos", json={"texto": "x"}, headers=CABECALHO).status_code == 401
-    assert not banco.exists()
+    assert tabelas_do(banco) == []  # a porta fechada não abriu nem o esquema
 
 
 @pytest.mark.parametrize(
@@ -219,7 +220,7 @@ def test_corrida_no_indice_unico_devolve_o_id_do_vencedor(
 
 def test_a_resposta_nao_espera_modelo_nenhum(banco: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Sem chave de Jev nem de LLM e sem rede (o conftest derruba qualquer conexão para fora)."""
-    cfg = config.carregar({"EVENTOS_DB": str(banco), "EVENTOS_WEBHOOK_TOKEN": TOKEN})
+    cfg = config.carregar({"EVENTOS_DATABASE_URL": str(banco), "EVENTOS_WEBHOOK_TOKEN": TOKEN})
     assert cfg.typesafe_api_key is None and cfg.openrouter_api_key is None
 
     resposta = TestClient(criar_app(cfg)).post("/eventos", json={"texto": "x"}, headers=CABECALHO)

@@ -148,7 +148,7 @@ def test_data_do_evento_e_ocorrido_em_e_na_falta_recebido_em(tmp_path: Path) -> 
     a = evento(banco, "2026-09-20")
     b = evento(banco, "2026-09-21")
     with store.abrir_existente(banco) as con, con:
-        con.execute("UPDATE evento SET ocorrido_em = NULL WHERE id = ?", (b,))
+        con.execute("UPDATE evento SET ocorrido_em = NULL WHERE id = %s", (b,))
         da, db = armazem.data_do_evento(con, a), armazem.data_do_evento(con, b)
         nenhuma = armazem.data_do_evento(con, "inexistente")
 

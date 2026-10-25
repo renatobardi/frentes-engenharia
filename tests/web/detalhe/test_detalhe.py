@@ -30,6 +30,7 @@ from eventos.contratos import (
 )
 from eventos.store import classificacao as store_classificacao
 from eventos.web.app import criar_app
+from tests.banco import banco_de
 from tests.encaixe import encaixado
 
 ESCOLHA = {"nome": "Ana", "tipo": "pessoa"}
@@ -116,7 +117,7 @@ def _classificacao(evento_id: str, versao: int = 2, **campos) -> Classificacao:
 def _versao(con: store.Conexao, numero: int, documento, ativada: bool = True) -> None:
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
-        " VALUES (?, ?, 'jev-1.13.0', '2026-01-01T00:00:00Z', ?)",
+        " VALUES (%s, %s, 'jev-1.13.0', '2026-01-01T00:00:00Z', %s)",
         (numero, json.dumps(documento.para_dict()), "2026-01-02T00:00:00Z" if ativada else None),
     )
 
@@ -130,7 +131,7 @@ def _evento(
         "ocorrido_em": quando, "recebido_em": quando, **colunas,
     }  # fmt: skip
     con.execute(
-        f"INSERT INTO evento ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
+        f"INSERT INTO evento ({', '.join(linha)}) VALUES ({', '.join(['%s'] * len(linha))})",
         list(linha.values()),
     )
     return id
@@ -138,7 +139,7 @@ def _evento(
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     con = store.abrir(caminho)
     _versao(con, 1, _documento(" v1"))
     _versao(con, 2, _documento())
@@ -162,7 +163,7 @@ def _gravar(
 
 @pytest.fixture
 def http(banco: Path) -> TestClient:
-    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(banco)})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco)})))
 
 
 def _pagina(http: TestClient, id: str, query: str = "") -> str:
@@ -330,7 +331,7 @@ def test_aguardando_o_desempate_da_llm(banco: Path, http: TestClient) -> None:
 
 def test_com_a_chave_a_frase_da_chave_some(banco: Path) -> None:
     _gravar(banco, evento="f9")
-    ambiente = {"EVENTOS_DB": str(banco), "TYPESAFE_API_KEY": "x"}
+    ambiente = {"EVENTOS_DATABASE_URL": str(banco), "TYPESAFE_API_KEY": "x"}
     cliente = TestClient(criar_app(config.carregar(ambiente)))
 
     html = _pagina(cliente, "f9")
@@ -488,12 +489,12 @@ def test_versao_invalida_ou_nao_ativada_e_4xx(banco: Path, http: TestClient, que
 
 
 def test_sem_versao_ativada_o_evento_aparece_sem_classificacao(tmp_path: Path) -> None:
-    caminho = tmp_path / "vazio.db"
+    caminho = banco_de(tmp_path, "vazio", criar=False)
     con = store.abrir(caminho)
     _evento(con, "z1")
     con.commit()
     con.close()
-    cliente = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)})))
+    cliente = TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(caminho)})))
 
     html = _pagina(cliente, "z1")
 
@@ -501,7 +502,11 @@ def test_sem_versao_ativada_o_evento_aparece_sem_classificacao(tmp_path: Path) -
 
 
 def test_sem_banco_responde_503(tmp_path: Path) -> None:
-    cliente = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nada.db")})))
+    cliente = TestClient(
+        criar_app(
+            config.carregar({"EVENTOS_DATABASE_URL": str(banco_de(tmp_path, "nada", criar=False))})
+        )
+    )
 
     resposta = cliente.get("/eventos/f1")
 
@@ -532,7 +537,7 @@ def test_relatar_nao_e_capturada_pela_rota_do_evento(banco: Path, tmp_path: Path
         'def relatar() -> dict:\n    return {"tela": "relatar"}\n'
     )
     with encaixado(eventos.web, tmp_path, {"relatar/__init__.py": "", "relatar/rotas.py": rotas}):
-        cliente = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(banco)})))
+        cliente = TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco)})))
         resposta = cliente.get("/eventos/relatar")
 
     assert resposta.json() == {"tela": "relatar"}
@@ -598,7 +603,7 @@ def test_conteudo_da_llm_que_nao_e_objeto_nao_derruba_a_tela(banco: Path, http: 
     _gravar(banco, _classificacao("o1"), evento="o1")
     con = store.abrir(banco)  # o store só grava objeto: o JSON torto entra direto
     con.execute(
-        "UPDATE classificacao SET resposta_llm = ? WHERE evento_id = 'o1'",
+        "UPDATE classificacao SET resposta_llm = %s WHERE evento_id = 'o1'",
         (
             '{"modelo": "deepseek/x", "conteudo": ["area"], "uso": '
             '{"tokens_entrada": 1, "tokens_saida": 1, "latencia_ms": 1}}',
@@ -618,7 +623,7 @@ def test_id_longo_demais_e_422(http: TestClient) -> None:
 
 def test_versao_pulada_nao_e_oferecida_nem_aberta(tmp_path: Path) -> None:
     # a v2 ficou sem ativação entre a v1 e a v3, ambas ativadas: o seletor não a mostra
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     con = store.abrir(caminho)
     _versao(con, 1, _documento(" v1"))
     _versao(con, 2, _documento(), ativada=False)
@@ -626,7 +631,7 @@ def test_versao_pulada_nao_e_oferecida_nem_aberta(tmp_path: Path) -> None:
     _evento(con, "p1")
     con.commit()
     con.close()
-    http = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)})))
+    http = TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(caminho)})))
 
     html = _pagina(http, "p1")
 
@@ -641,7 +646,7 @@ def test_versao_pulada_nao_e_oferecida_nem_aberta(tmp_path: Path) -> None:
 def _emissor(banco: Path, id: str, nome: str, time: str | None) -> None:
     con = store.abrir(banco)
     con.execute(
-        "INSERT INTO emissor (id, nome, tipo, time) VALUES (?, ?, 'pessoa', ?)", (id, nome, time)
+        "INSERT INTO emissor (id, nome, tipo, time) VALUES (%s, %s, 'pessoa', %s)", (id, nome, time)
     )
     con.commit()
     con.close()

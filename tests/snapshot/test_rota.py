@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from eventos import config, store
 from eventos.snapshot import arquivo
 from eventos.web.app import criar_app
+from tests.banco import banco_de
 from tests.snapshot.conftest import DIA_D
 
 TOKEN = "token-de-demo-do-teste"
@@ -21,7 +22,7 @@ def snapshot_do_teste(monkeypatch: pytest.MonkeyPatch, snapshot_gravado: Path) -
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
     """O banco do volume: um evento feito na tela, que o snapshot não tem."""
-    caminho = tmp_path / "volume" / "eventos.sqlite"
+    caminho = banco_de(tmp_path, "volume")
     con = store.abrir(caminho)
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, recebido_em)"
@@ -33,7 +34,7 @@ def banco(tmp_path: Path) -> Path:
 
 
 def cliente(banco: Path, **ambiente: str) -> TestClient:
-    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(banco), **ambiente})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco), **ambiente})))
 
 
 def eventos(banco: Path) -> list[str]:
@@ -54,13 +55,13 @@ def eventos(banco: Path) -> list[str]:
 def test_a_rota_sem_o_token_certo_responde_401_e_nao_troca_nada(
     banco: Path, cabecalhos: dict[str, str | bytes]
 ) -> None:
-    antes = banco.read_bytes()
+    antes = eventos(banco)
 
     resposta = cliente(banco, EVENTOS_WEBHOOK_TOKEN=TOKEN).post(ROTA, headers=cabecalhos)
 
     assert resposta.status_code == 401
     assert resposta.headers["www-authenticate"] == "Bearer"
-    assert banco.read_bytes() == antes
+    assert eventos(banco) == antes
     assert eventos(banco) == ["da-tela"]
 
 
@@ -98,13 +99,13 @@ def test_a_rota_com_banco_ocupado_responde_409_e_o_banco_fica(banco: Path) -> No
 
 
 def test_a_rota_sem_token_configurado_recusa_ate_com_cabecalho_vazio(banco: Path) -> None:
-    antes = banco.read_bytes()
+    antes = eventos(banco)
 
     sem_cabecalho = cliente(banco).post(ROTA)
     com_cabecalho = cliente(banco).post(ROTA, headers={"Authorization": "Bearer "})
 
     assert (sem_cabecalho.status_code, com_cabecalho.status_code) == (401, 401)
-    assert banco.read_bytes() == antes
+    assert eventos(banco) == antes
 
 
 def test_a_rota_com_o_token_recarrega_o_snapshot_e_desfaz_o_que_foi_feito_na_tela(

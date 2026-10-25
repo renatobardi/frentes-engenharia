@@ -24,6 +24,7 @@ from eventos.painel.refazedor import Refazedor
 from eventos.store import evento as armazem_evento
 from eventos.store import painel as armazem
 from eventos.web.app import criar_app
+from tests.banco import banco_de
 from tests.fila.test_fila import jev
 from tests.jev.falso import JevFalso
 from tests.llm.falso import LlmFalsa
@@ -98,7 +99,7 @@ def test_gancho_sem_painel_na_aplicacao_nao_faz_nada(banco: Path) -> None:
 def test_a_aplicacao_liga_o_painel_ao_subir_registra_o_gancho_e_desliga_ao_parar(
     banco: Path,
 ) -> None:
-    app = criar_app(config.carregar({"EVENTOS_DB": str(banco)}))
+    app = criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco)}))
 
     with TestClient(app):
         assert isinstance(app.state.painel, Refazedor)
@@ -114,7 +115,7 @@ def test_ao_subir_o_painel_que_ficou_atualizando_de_uma_execucao_anterior_e_ence
     with closing(store.abrir_existente(banco)) as con:
         armazem.marcar_atualizando(con, 1, CELULA, Periodo.D90)
         armazem.marcar_atualizando(con, 1, CELULA, Periodo.D30)
-    app = criar_app(config.carregar({"EVENTOS_DB": str(banco)}))
+    app = criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco)}))
 
     with TestClient(app):
         pass
@@ -128,7 +129,14 @@ def test_sem_configuracao_ou_sem_banco_a_partida_nao_falha(tmp_path: Path) -> No
     asyncio.run(partida.ao_parar(sem_config))  # type: ignore[arg-type]
     assert not hasattr(sem_config.state, "painel")
 
-    app = criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nao-existe.sqlite")}))
+    app = criar_app(
+        config.carregar(
+            {"EVENTOS_DATABASE_URL": str(banco_de(tmp_path, "nao-existe", criar=False))}
+        )
+    )
     with TestClient(app):
         assert isinstance(app.state.painel, Refazedor)
-    assert not (tmp_path / "nao-existe.sqlite").exists()  # o painel não cria banco
+    # a aplicação migra o esquema ao subir, mas o painel não grava nada
+    con = store.abrir_existente(banco_de(tmp_path, "nao-existe", criar=False))
+    assert con.execute("SELECT count(*) FROM painel_celula").fetchone()[0] == 0
+    con.close()

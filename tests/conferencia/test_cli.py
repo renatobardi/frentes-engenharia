@@ -10,22 +10,23 @@ from eventos import __main__ as principal
 from eventos import store
 from eventos.conferencia import arquivo, cli
 from eventos.store import gabarito as armazem
+from tests.banco import banco_de, gabarito_de, schema_existe, tabelas_do, url_novo
 from tests.conferencia.apoio import banco, escrever_jsonl, tudo_certo, varias, versao
 
 
 @pytest.fixture
 def ambiente(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """O banco da aplicação em arquivo, já com a versão 1 vigente; devolve a pasta."""
-    monkeypatch.setenv("EVENTOS_DB", str(tmp_path / "eventos.sqlite"))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(banco_de(tmp_path)))
     monkeypatch.setattr(arquivo, "ARQUIVO_PADRAO", tmp_path / "nao-existe.jsonl")
-    with closing(banco(tmp_path / "eventos.sqlite")) as con:
+    with closing(banco(banco_de(tmp_path))) as con:
         versao(con)
     return tmp_path
 
 
 def montar(pasta: Path, fazer) -> Path:  # type: ignore[no-untyped-def]
     """Grava no banco da aplicação o que `fazer(con)` devolver de gabarito e escreve o jsonl."""
-    with closing(store.abrir(pasta / "eventos.sqlite")) as con:
+    with closing(store.abrir(banco_de(pasta))) as con:
         gabaritos = fazer(con)
     escrever_jsonl(pasta / "gabarito.jsonl", gabaritos)
     return pasta / "gabarito.jsonl"
@@ -103,9 +104,9 @@ def test_o_gabarito_vai_para_um_banco_a_parte_e_o_da_aplicacao_fica_sem_ele(
     assert cli.conferir(["--gabarito", str(gabarito)]) == 0
     assert cli.conferir(["--gabarito", str(gabarito)]) == 0  # de novo: substitui, não duplica
 
-    with closing(store.abrir_existente(ambiente / "gabarito.sqlite")) as con:
+    with closing(store.abrir_existente(gabarito_de(banco_de(ambiente)))) as con:
         assert len(armazem.todos(con)) == 33
-    with closing(store.abrir_existente(ambiente / "eventos.sqlite")) as con:
+    with closing(store.abrir_existente(banco_de(ambiente))) as con:
         assert con.execute("SELECT count(*) FROM gabarito").fetchone()[0] == 0
 
 
@@ -123,10 +124,10 @@ def test_sem_arquivo_vale_o_gabarito_que_ja_esta_no_banco_a_parte(
 
 def test_banco_do_gabarito_em_outro_caminho(ambiente: Path) -> None:
     gabarito = montar(ambiente, tudo_certo)
-    outro = ambiente / "outra-pasta" / "g.sqlite"
+    outro = url_novo()
 
     assert cli.conferir(["--gabarito", str(gabarito), "--banco-do-gabarito", str(outro)]) == 0
-    assert outro.exists() and not (ambiente / "gabarito.sqlite").exists()
+    assert tabelas_do(outro) and not schema_existe(gabarito_de(banco_de(ambiente)))
 
 
 def test_versao_pedida_vale_mais_que_a_vigente(
@@ -167,12 +168,12 @@ def test_uso_errado_sai_com_2(
 def test_sem_banco_da_aplicacao_sai_com_2(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setenv("EVENTOS_DB", str(tmp_path / "nao-existe.sqlite"))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(banco_de(tmp_path, "nao-existe", criar=False)))
     arquivo_g = tmp_path / "g.jsonl"
     escrever_jsonl(arquivo_g, [armazem.Gabarito("ev-9999", "H2")])
     assert cli.conferir(["--gabarito", str(arquivo_g)]) == 2
     assert "não há banco" in capsys.readouterr().err
-    assert not (tmp_path / "nao-existe.sqlite").exists()  # a consulta não cria o banco
+    assert not schema_existe(banco_de(tmp_path, "nao-existe", criar=False))  # consultar não cria
 
 
 def test_sem_gabarito_em_arquivo_nem_no_banco_sai_com_2(
@@ -189,14 +190,14 @@ def test_gabarito_invalido_sai_com_2_e_nao_grava(
     ruim.write_text('{"evento_id": "ev-1", "historia_id": "H1"}\n{nao e json}\n', encoding="utf-8")
     assert cli.conferir(["--gabarito", str(ruim)]) == 2
     assert "ruim.jsonl, linha 2: linha inválida" in capsys.readouterr().err
-    assert not (ambiente / "gabarito.sqlite").exists()
+    assert not schema_existe(gabarito_de(banco_de(ambiente)))
 
 
 def test_sem_versao_vigente_sai_com_2(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setenv("EVENTOS_DB", str(tmp_path / "eventos.sqlite"))
-    with closing(banco(tmp_path / "eventos.sqlite")) as con:
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(banco_de(tmp_path)))
+    with closing(banco(banco_de(tmp_path))) as con:
         versao(con, ativada=False)
         gabaritos = varias(con, 2, "H2")
     escrever_jsonl(tmp_path / "g.jsonl", gabaritos)
@@ -281,28 +282,17 @@ def test_arquivo_le_booleanos_e_listas_e_ignora_linha_em_branco(tmp_path: Path) 
     assert (lido.areas_aceitas, lido.fora_de_escopo, lido.listado) == (("x", "y"), True, False)
 
 
-@pytest.mark.parametrize(
-    "caminho", ["eventos.sqlite", "./eventos.sqlite", "../{pasta}/eventos.sqlite"]
-)
+@pytest.mark.parametrize("sufixo", ["", "&application_name=conferir", "&connect_timeout=5"])
 def test_banco_do_gabarito_igual_ao_da_aplicacao_sai_com_2_e_nao_grava(
-    caminho: str, ambiente: Path, capsys: pytest.CaptureFixture[str]
+    sufixo: str, ambiente: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     gabarito = montar(ambiente, tudo_certo)
-    outro = str(ambiente / caminho.format(pasta=ambiente.name))
+    outro = banco_de(ambiente) + sufixo  # a mesma URL, ou o mesmo schema com outra opção
 
     assert cli.conferir(["--gabarito", str(gabarito), "--banco-do-gabarito", outro]) == 2
-    assert "não pode ser o da aplicação" in capsys.readouterr().err
-    with closing(store.abrir_existente(ambiente / "eventos.sqlite")) as con:
+    assert "não pode ficar no schema da aplicação" in capsys.readouterr().err
+    with closing(store.abrir_existente(banco_de(ambiente))) as con:
         assert con.execute("SELECT count(*) FROM gabarito").fetchone()[0] == 0
-
-
-def test_banco_do_gabarito_que_e_link_para_o_da_aplicacao_tambem_e_recusado(
-    ambiente: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    gabarito = montar(ambiente, tudo_certo)
-    atalho = ambiente / "atalho.sqlite"
-    atalho.symlink_to(ambiente / "eventos.sqlite")
-    assert cli.conferir(["--gabarito", str(gabarito), "--banco-do-gabarito", str(atalho)]) == 2
 
 
 @pytest.mark.parametrize(
@@ -315,5 +305,5 @@ def test_gabarito_que_o_esquema_recusa_sai_com_2_e_nao_grava(
     ruim = _jsonl(ambiente, '{"evento_id": "a", "historia_id": "H1", ' + campo + "}")
     assert cli.conferir(["--gabarito", str(ruim)]) == 2
     assert "o esquema recusou o gabarito" in capsys.readouterr().err
-    with closing(store.abrir_existente(ambiente / "gabarito.sqlite")) as con:
+    with closing(store.abrir_existente(gabarito_de(banco_de(ambiente)))) as con:
         assert armazem.todos(con) == []

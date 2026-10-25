@@ -1,6 +1,6 @@
 # ADR-0001: Stack do PoC
 
-- **Estado:** aceito
+- **Estado:** aceito; o banco (SQLite), o snapshot, a fila e as travas foram substituídos pelo [ADR-0002](0002-postgres-do-oute-supabase-db.md)
 - **Data:** 2026-10-03
 - **Decisão completa, com as opções pesadas:** [resolução de "Stack e onde o PoC roda"](https://github.com/renatobardi/frentes-engenharia/issues/23#issuecomment-5975570909)
 
