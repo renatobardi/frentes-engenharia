@@ -1,5 +1,5 @@
 import json
-import sqlite3
+import os
 from contextlib import closing
 
 import pytest
@@ -10,6 +10,7 @@ from eventos.llm import ErroLlmEsgotado
 from eventos.store.geracao import TextoDoEvento
 from eventos.taxonomia import cli, revisao
 from eventos.taxonomia.descoberta import lotes
+from tests.banco import banco_de
 from tests.llm.falso import LlmFalsa
 from tests.taxonomia.conftest import montar
 from tests.taxonomia.propostas import (
@@ -39,16 +40,16 @@ descricao_padrao = candidato("Gravame")["descricao"]
 def evento(con, id: str, data: str, texto: str) -> None:
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, recebido_em) "
-        "VALUES (?, 'relato', 'Zelda Quimera', ?, ?)",
+        "VALUES (%s, 'relato', 'Zelda Quimera', %s, %s)",
         (id, texto, data),
     )
 
 
 @pytest.fixture
 def banco(tmp_path, monkeypatch):
-    caminho = tmp_path / "eventos.sqlite"
+    caminho = banco_de(tmp_path)
     con = store.abrir(caminho)
-    monkeypatch.setenv("EVENTOS_DB", str(caminho))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(caminho))
     monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
     return con
 
@@ -78,7 +79,8 @@ def llm(monkeypatch):
 
 
 def conta(caminho, tabela: str) -> int:
-    return sqlite3.connect(caminho).execute(f"SELECT count(*) FROM {tabela}").fetchone()[0]
+    with closing(store.abrir_existente(str(caminho))) as con:
+        return con.execute(f"SELECT count(*) FROM {tabela}").fetchone()[0]
 
 
 def test_o_comando_esta_declarado_no_modulo_da_taxonomia() -> None:
@@ -106,7 +108,7 @@ def test_grava_a_versao_1_sem_ativacao_e_diz_o_custo(banco, monkeypatch, capsys)
     entrada = llm.chamadas[0][1]
     assert "o deploy quebrou" in entrada and "feature flag" in entrada
     assert "tema do mês dez" not in entrada and "Zelda" not in entrada
-    caminho = banco.execute("PRAGMA database_list").fetchone()["file"]
+    caminho = os.environ["EVENTOS_DATABASE_URL"]
     assert conta(caminho, "versao_taxonomia") == 1 and conta(caminho, "geracao") == 1
 
 
@@ -116,10 +118,9 @@ def test_o_organograma_e_o_da_seed(banco, llm) -> None:
 
     assert cli.descobrir([]) == 3  # lista de problemas vazia: um evento só não faz 2 lotes
 
-    caminho = banco.execute("PRAGMA database_list").fetchone()["file"]
-    documento = json.loads(
-        sqlite3.connect(caminho).execute("SELECT documento FROM versao_taxonomia").fetchone()[0]
-    )
+    caminho = os.environ["EVENTOS_DATABASE_URL"]
+    with closing(store.abrir_existente(caminho)) as con:
+        documento = json.loads(con.execute("SELECT documento FROM versao_taxonomia").fetchone()[0])
     assert len(documento["organograma"]) == 8
 
 
@@ -131,7 +132,7 @@ def test_proposta_que_nao_fica_valida_sai_com_1_e_sem_versao(banco, monkeypatch,
     assert cli.descobrir([]) == 1
 
     assert "recusada" in capsys.readouterr().err
-    caminho = banco.execute("PRAGMA database_list").fetchone()["file"]
+    caminho = os.environ["EVENTOS_DATABASE_URL"]
     assert conta(caminho, "versao_taxonomia") == 0 and conta(caminho, "geracao") == 1
 
 
@@ -141,7 +142,7 @@ def test_sem_chave_sai_com_2_sem_tocar_no_banco(banco, monkeypatch, capsys) -> N
     assert cli.descobrir([]) == 2
 
     assert "OPENROUTER_API_KEY" in capsys.readouterr().err
-    caminho = banco.execute("PRAGMA database_list").fetchone()["file"]
+    caminho = os.environ["EVENTOS_DATABASE_URL"]
     assert conta(caminho, "geracao") == 0
 
 
@@ -200,12 +201,12 @@ def test_lista_com_problema_sai_com_0_e_diz_as_contagens(banco, monkeypatch, cap
 
 def banco_da_revisao(monkeypatch, tmp_path, *respostas, com_eventos: bool = True):
     """O banco da versão 1 vigente, com 12 eventos de encaixe fraco, e a LLM falsa no cliente."""
-    caminho = tmp_path / "revisao.sqlite"
+    caminho = banco_de(tmp_path, "revisao")
     with closing(banco_vigente(montar(), caminho=caminho)) as con:
         if com_eventos:
             fracas(con, "a", ["frente1", "frente2"] * 6)
             firmes(con, "b", 6)
-    monkeypatch.setenv("EVENTOS_DB", str(caminho))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(caminho))
     monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
     monkeypatch.setattr(revisao, "agora", lambda: AGORA)  # o relógio dos eventos do teste
     llm = LlmDaRevisao(*respostas)
@@ -281,13 +282,13 @@ def test_revisar_sem_chave_argumento_sobrando_banco_ou_vigente_sai_com_2(
     assert "OPENROUTER_API_KEY" in capsys.readouterr().err
     monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
 
-    monkeypatch.setenv("EVENTOS_DB", str(tmp_path / "nao-existe.sqlite"))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(banco_de(tmp_path, "nao-existe", criar=False)))
     assert cli.revisar([]) == 2
     assert "não há banco" in capsys.readouterr().err
 
-    vazio = tmp_path / "vazio.sqlite"
+    vazio = banco_de(tmp_path, "vazio", criar=False)
     store.abrir(vazio).close()
-    monkeypatch.setenv("EVENTOS_DB", str(vazio))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(vazio))
     assert cli.revisar([]) == 2
     assert "não há versão vigente" in capsys.readouterr().err
     assert llm.chamadas == [] and conta(caminho, "geracao") == 0

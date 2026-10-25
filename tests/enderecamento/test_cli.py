@@ -8,6 +8,7 @@ from eventos import store
 from eventos.__main__ import main
 from eventos.contratos import Celula, Procedencia, Visao, de_iso
 from eventos.enderecamento import cli, marcas, plantio
+from tests.banco import banco_de
 
 ITEM = {
     "historia": "H3",
@@ -22,17 +23,19 @@ REFERENCIAS = [{"historia": "H3", "eventos_de_referencia": ["f1", "f2"]}]
 
 
 def _classificada(con: store.Conexao, evento_id: str, frente: str) -> None:
-    con.execute("INSERT OR IGNORE INTO emissor (id, nome, tipo) VALUES ('e', 'e', 'sistema')")
+    con.execute(
+        "INSERT INTO emissor (id, nome, tipo) VALUES ('e', 'e', 'sistema') ON CONFLICT DO NOTHING"
+    )
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, recebido_em)"
-        " VALUES (?, 'relato', 'e', 'texto', '2026-01-01T00:00:00Z')",
+        " VALUES (%s, 'relato', 'e', 'texto', '2026-01-01T00:00:00Z')",
         (evento_id,),
     )
     con.execute(
         "INSERT INTO classificacao (evento_id, versao, resposta_jev, conf_area, conf_frente,"
         " conf_natureza, severidade, impacto, urgencia, conf_causa, conf_problema, controle,"
         " estado, frente_final, tokens_entrada, tokens_saida, latencia_ms, classificada_em)"
-        " VALUES (?, 1, '{}', 1, 1, 1, 0, 0, 0, 1, 1, 0, 'classificada', ?, 0, 0, 0,"
+        " VALUES (%s, 1, '{}', 1, 1, 1, 0, 0, 0, 1, 1, 0, 'classificada', %s, 0, 0, 0,"
         " '2026-01-01T00:00:00Z')",
         (evento_id, frente),
     )
@@ -41,7 +44,7 @@ def _classificada(con: store.Conexao, evento_id: str, frente: str) -> None:
 @pytest.fixture
 def banco(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Um banco com a versão 1 vigente e os dois eventos de referência na frente `cobranca`."""
-    caminho = tmp_path / "eventos.sqlite"
+    caminho = banco_de(tmp_path)
     with closing(store.abrir(caminho)) as con:
         con.execute(
             "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
@@ -54,7 +57,7 @@ def banco(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         _classificada(con, "f1", "cobranca")
         _classificada(con, "f2", "cobranca")
         con.commit()
-    monkeypatch.setenv("EVENTOS_DB", str(caminho))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(caminho))
     return caminho
 
 
@@ -151,7 +154,7 @@ def test_sem_banco_sai_com_2(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    monkeypatch.setenv("EVENTOS_DB", str(tmp_path / "vazio.sqlite"))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(banco_de(tmp_path, "vazio", criar=False)))
     assert main(["plantar", *arquivos]) == 2
     assert "não há banco" in capsys.readouterr().err
 

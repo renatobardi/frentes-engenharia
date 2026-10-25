@@ -2,18 +2,19 @@
 
 from eventos import store
 from eventos.store import chegando
+from tests.banco import url_novo
 
 
 def _evento(con: store.Conexao, id: str) -> None:
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, recebido_em)"
-        " VALUES (?, 'webhook', 'api', ?, '2026-10-03T12:00:00Z')",
+        " VALUES (%s, 'webhook', 'api', %s, '2026-10-03T12:00:00Z')",
         (id, f"texto {id}"),
     )
 
 
 def test_marca_de_banco_vazio_e_zero_e_cresce_com_cada_evento() -> None:
-    con = store.abrir(":memory:")
+    con = store.abrir(url_novo())
     assert chegando.marca(con) == 0
     _evento(con, "a")
     _evento(con, "b")
@@ -21,7 +22,7 @@ def test_marca_de_banco_vazio_e_zero_e_cresce_com_cada_evento() -> None:
 
 
 def test_so_conta_o_que_chegou_depois_da_marca_e_limita_as_mais_novas() -> None:
-    con = store.abrir(":memory:")
+    con = store.abrir(url_novo())
     _evento(con, "antes")
     marca = chegando.marca(con)
     for n in range(1, 8):
@@ -35,7 +36,7 @@ def test_so_conta_o_que_chegou_depois_da_marca_e_limita_as_mais_novas() -> None:
 
 
 def test_sem_evento_novo_devolve_zero() -> None:
-    con = store.abrir(":memory:")
+    con = store.abrir(url_novo())
     _evento(con, "a")
 
     assert chegando.depois_da_marca(con, 1, chegando.marca(con), 5) == (0, [])

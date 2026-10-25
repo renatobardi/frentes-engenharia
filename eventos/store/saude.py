@@ -15,7 +15,7 @@ from eventos.store import lista as store_lista
 # [0,9; 1,0], fecha em 1). Cabe nos dois cortes da config (0,5 e 0,7), que caem na divisa.
 FAIXAS = 10
 
-_JUNTA = "evento f LEFT JOIN classificacao c ON c.evento_id = f.id AND c.versao = ?"
+_JUNTA = "evento f LEFT JOIN classificacao c ON c.evento_id = f.id AND c.versao = %s"
 # o mesmo que pinta o mapa (`consultas.somas_por_celula`): terminou em célula de alguma visão
 _PINTA = (
     "c.estado IN ('classificada', 'via_llm') AND c.natureza_final IS NOT NULL"
@@ -43,7 +43,7 @@ class UsoPorOrigem:
 def estados(con: Conexao, versao: int) -> dict[str, int]:
     """Quantos eventos há em cada estado de `lista.ESTADOS`, na ordem dele."""
     colunas = ", ".join(
-        f"coalesce(sum({condicao}), 0) AS e{i}"
+        f"coalesce(sum(({condicao})::int), 0) AS e{i}"
         for i, condicao in enumerate(store_lista.ESTADOS.values())
     )
     linha = con.execute(f"SELECT {colunas} FROM {_JUNTA}", (versao,)).fetchone()
@@ -58,8 +58,8 @@ def histograma_da_confianca_na_frente(con: Conexao, versao: int) -> list[int]:
     """Quantas classificações da versão há em cada faixa de `conf_frente`: `FAIXAS` números,
     da faixa [0; 0,1) à [0,9; 1,0]. Conta todas, inclusive as de texto vago."""
     linhas = con.execute(
-        "SELECT min(CAST(conf_frente * ? AS INTEGER), ? - 1) AS faixa, count(*) AS n "
-        "FROM classificacao WHERE versao = ? GROUP BY faixa",
+        "SELECT LEAST(floor(conf_frente * %s::int)::int, %s::int - 1) AS faixa, count(*) AS n "
+        "FROM classificacao WHERE versao = %s GROUP BY faixa",
         (FAIXAS, FAIXAS, versao),
     )
     saida = [0] * FAIXAS
@@ -72,7 +72,7 @@ def pinta_por_origem(con: Conexao, versao: int) -> list[PintaPorOrigem]:
     """Para cada origem (as cinco, mesmo sem evento): os eventos e os que contam numa célula."""
     linhas = con.execute(
         f"SELECT f.origem AS origem, count(*) AS eventos, "
-        f"coalesce(sum({_PINTA}), 0) AS pintam FROM {_JUNTA} GROUP BY f.origem",
+        f"coalesce(sum(({_PINTA})::int), 0) AS pintam FROM {_JUNTA} GROUP BY f.origem",
         (versao,),
     )
     achadas = {r["origem"]: PintaPorOrigem(r["origem"], r["eventos"], r["pintam"]) for r in linhas}
@@ -86,7 +86,7 @@ def uso_por_origem(con: Conexao, versao: int) -> list[UsoPorOrigem]:
         "SELECT f.origem AS origem, count(*) AS n, sum(c.tokens_entrada) AS entrada, "
         "sum(c.tokens_saida) AS saida, avg(c.latencia_ms) AS media, max(c.latencia_ms) AS maxima "
         "FROM classificacao c JOIN evento f ON f.id = c.evento_id "
-        "WHERE c.versao = ? GROUP BY f.origem",
+        "WHERE c.versao = %s GROUP BY f.origem",
         (versao,),
     )
     achadas = {

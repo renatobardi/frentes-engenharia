@@ -5,7 +5,6 @@ import asyncio
 import logging
 from contextlib import closing
 from datetime import date
-from pathlib import Path
 
 from eventos import config, store
 from eventos.contratos import Celula, ClienteLlm, EstadoPainel, PainelCelula, Periodo, Uso, agora
@@ -19,7 +18,7 @@ ERROS = (ErroLlm, texto.ErroPainel)
 
 
 class Gerador:
-    def __init__(self, banco: Path, llm: ClienteLlm, limiares: config.Limiares) -> None:
+    def __init__(self, banco: str, llm: ClienteLlm, limiares: config.Limiares) -> None:
         self._banco = banco
         self._llm = llm
         self._limiares = limiares

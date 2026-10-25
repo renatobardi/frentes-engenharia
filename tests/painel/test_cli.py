@@ -12,6 +12,7 @@ from eventos.contratos import Celula, EstadoPainel, Periodo, Visao
 from eventos.llm import ErroLlm
 from eventos.painel import cli
 from eventos.store import painel as armazem
+from tests.banco import banco_de
 from tests.painel.apoio import BOM, CELULA, LlmEmOrdem, criar_banco, evento, resposta
 
 # 20 dias atrás: dentro de todas as janelas (30d, 90d, 180d, 12m) com 10 dias de folga
@@ -22,7 +23,7 @@ OPORTUNIDADE = Celula("dados", "melhoria", Visao.OPORTUNIDADE)
 @pytest.fixture
 def banco(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     caminho = criar_banco(tmp_path)
-    monkeypatch.setenv("EVENTOS_DB", str(caminho))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(caminho))
     monkeypatch.setenv("OPENROUTER_API_KEY", "chave-falsa-de-teste")
     return caminho
 
@@ -139,7 +140,7 @@ def test_sem_chave_ou_argumento_estranho_ou_banco_ausente_sai_com_2(
     assert "uso: python -m eventos paineis" in capsys.readouterr().err
     assert cli.paineis(["--versao", "x"]) == 2
 
-    monkeypatch.setenv("EVENTOS_DB", str(tmp_path / "nao-existe.sqlite"))
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(banco_de(tmp_path, "nao-existe", criar=False)))
     assert cli.paineis([]) == 2
     assert "não há banco" in capsys.readouterr().err
 

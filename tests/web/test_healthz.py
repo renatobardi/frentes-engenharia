@@ -5,21 +5,22 @@ from fastapi.testclient import TestClient
 
 from eventos import config, store
 from eventos.web.app import criar_app
+from tests.banco import banco_de, schema_existe, tabelas_do
 
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    return tmp_path / "eventos.sqlite"
+    return banco_de(tmp_path)
 
 
 def cliente(banco: Path, **ambiente: str) -> TestClient:
-    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(banco), **ambiente})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco), **ambiente})))
 
 
 def test_healthz_sem_banco_responde_200_com_os_tres_campos_e_nao_cria_o_banco(
     tmp_path: Path,
 ) -> None:
-    banco = tmp_path / "volume" / "eventos.sqlite"
+    banco = banco_de(tmp_path, "volume", criar=False)
 
     resposta = cliente(banco).get("/healthz")
 
@@ -29,12 +30,11 @@ def test_healthz_sem_banco_responde_200_com_os_tres_campos_e_nao_cria_o_banco(
         "versao_vigente": None,
         "dia_snapshot": None,
     }
-    # quem carrega o snapshot precisa continuar vendo que não há banco no volume
-    assert not banco.parent.exists()
+    # quem carrega o snapshot precisa continuar vendo que não há banco: o schema não é criado
+    assert not schema_existe(banco)
 
 
 def test_healthz_com_arquivo_sem_esquema_responde_vazio_e_nao_cria_o_esquema(banco: Path) -> None:
-    banco.touch()
 
     resposta = cliente(banco).get("/healthz")
 
@@ -44,12 +44,12 @@ def test_healthz_com_arquivo_sem_esquema_responde_vazio_e_nao_cria_o_esquema(ban
         "versao_vigente": None,
         "dia_snapshot": None,
     }
-    assert banco.stat().st_size == 0
+    assert tabelas_do(banco) == []
 
 
 def test_healthz_diz_o_commit_a_versao_vigente_e_o_dia_do_snapshot(banco: Path) -> None:
     con = store.abrir(banco)
-    con.executescript(
+    con.execute(
         """
         INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em) VALUES
             (1, '{}', 'jev-1.13.0', '2026-04-01T00:00:00Z', '2026-04-02T00:00:00Z'),

@@ -19,6 +19,7 @@ from eventos.store import relato as armazem_relato
 from eventos.store import versao as armazem_versao
 from eventos.taxonomia import valores
 from eventos.web.app import criar_app
+from tests.banco import banco_de
 from tests.fila.documento import DOCUMENTO, QUANDO
 from tests.fila.test_fila import jev
 from tests.jev.falso import JevFalso
@@ -34,7 +35,7 @@ CABECALHO_HTMX = {"HX-Request": "true"}
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "eventos.sqlite"
+    caminho = banco_de(tmp_path)
     with closing(store.abrir(caminho)) as con:
         versao = contratos.VersaoTaxonomia(1, DOCUMENTO, "jev-latest", QUANDO)
         armazem_versao.inserir(con, versao, valores.derivar(1, DOCUMENTO))
@@ -59,7 +60,7 @@ def armazem_relato_emissores(con: store.Conexao) -> None:
 def servidor(banco: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
     """A app com a fila ligada a um Jev falso, que o teste põe em `servidor.jev`."""
     monkeypatch.setattr(fila, "ao_partir", lambda app: None)
-    app = criar_app(config.carregar({"EVENTOS_DB": str(banco)}))
+    app = criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco)}))
     with TestClient(app) as cliente:
 
         def ligar(jev_falso: Any) -> TestClient:
@@ -122,7 +123,11 @@ def test_formulario_com_htmx_devolve_so_a_gaveta(servidor: TestClient) -> None:
 
 
 def test_formulario_sem_banco_abre_com_a_lista_vazia(tmp_path: Path) -> None:
-    app = criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nao-existe.sqlite")}))
+    app = criar_app(
+        config.carregar(
+            {"EVENTOS_DATABASE_URL": str(banco_de(tmp_path, "nao-existe", criar=False))}
+        )
+    )
 
     resposta = TestClient(app).get("/eventos/relatar")
 
@@ -209,7 +214,11 @@ def test_enviar_sem_htmx_redireciona_para_o_resultado(servidor: TestClient, banc
 
 
 def test_enviar_sem_banco_da_503(tmp_path: Path) -> None:
-    app = criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nao-existe.sqlite")}))
+    app = criar_app(
+        config.carregar(
+            {"EVENTOS_DATABASE_URL": str(banco_de(tmp_path, "nao-existe", criar=False))}
+        )
+    )
 
     resposta = enviar(TestClient(app), "Ana", TEXTO)
 
@@ -298,7 +307,7 @@ def test_sem_resposta_depois_do_tempo_a_gaveta_diz_aguardando(
     with closing(store.abrir(banco)) as con:
         con.execute(
             "INSERT INTO evento (id, origem, emissor, texto, recebido_em)"
-            " VALUES ('velha', 'relato', 'Ana', 'texto', ?)",
+            " VALUES ('velha', 'relato', 'Ana', 'texto', %s)",
             (antiga,),
         )
         con.commit()
@@ -368,7 +377,8 @@ def test_completar_mantem_o_original_grava_o_complemento_e_reclassifica_com_os_d
     # a classificação do vago é de antes: o complemento vem depois dela
     with closing(store.abrir(banco)) as con:
         con.execute(
-            "UPDATE classificacao SET classificada_em = '2020-01-01T00:00:00Z' WHERE evento_id = ?",
+            "UPDATE classificacao SET classificada_em = '2020-01-01T00:00:00Z'"
+            " WHERE evento_id = %s",
             (id_,),
         )
         con.commit()
@@ -398,7 +408,8 @@ def test_enquanto_reclassifica_a_gaveta_nao_mostra_a_resposta_antiga(
     id_ = _vago(servidor, banco)
     with closing(store.abrir(banco)) as con:
         con.execute(
-            "UPDATE classificacao SET classificada_em = '2020-01-01T00:00:00Z' WHERE evento_id = ?",
+            "UPDATE classificacao SET classificada_em = '2020-01-01T00:00:00Z'"
+            " WHERE evento_id = %s",
             (id_,),
         )
         armazem_relato.gravar_complemento(

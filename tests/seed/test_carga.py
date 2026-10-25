@@ -6,6 +6,7 @@ import pytest
 from eventos import store
 from eventos.__main__ import main
 from eventos.seed import carga, validador
+from tests.banco import banco_de, tabelas_do, url_novo
 
 GERADO = validador.PASTA / "gerado"
 
@@ -52,7 +53,7 @@ def _contar(con: store.Conexao, tabela: str) -> int:
 
 
 def test_a_carga_grava_todas_os_eventos_e_emissores(exemplo: tuple[Path, Path]) -> None:
-    con = store.abrir()
+    con = store.abrir(url_novo())
     feito = carga.carregar(con, *exemplo)
     assert (feito.eventos_novos, feito.eventos_existentes) == (3, 0)
     assert (feito.emissores_novos, feito.emissores_existentes) == (2, 0)
@@ -67,7 +68,7 @@ def test_a_carga_grava_todas_os_eventos_e_emissores(exemplo: tuple[Path, Path]) 
 
 
 def test_a_segunda_carga_nao_muda_a_contagem(exemplo: tuple[Path, Path]) -> None:
-    con = store.abrir()
+    con = store.abrir(url_novo())
     carga.carregar(con, *exemplo)
     segunda = carga.carregar(con, *exemplo)
     assert (segunda.eventos_novos, segunda.eventos_existentes) == (0, 3)
@@ -77,7 +78,7 @@ def test_a_segunda_carga_nao_muda_a_contagem(exemplo: tuple[Path, Path]) -> None
 
 
 def test_o_banco_da_aplicacao_nao_tem_dado_do_gabarito(exemplo: tuple[Path, Path]) -> None:
-    con = store.abrir()
+    con = store.abrir(url_novo())
     carga.carregar(con, *exemplo)
     assert _contar(con, "gabarito") == 0
     tudo = "\n".join(
@@ -95,7 +96,7 @@ def test_arquivo_invalido_nao_grava_nada(exemplo: tuple[Path, Path]) -> None:
     del ruim["texto"]
     with (gerado / "eventos.jsonl").open("a", encoding="utf-8") as arquivo:
         arquivo.write(json.dumps(ruim) + "\n")
-    con = store.abrir()
+    con = store.abrir(url_novo())
     with pytest.raises(carga.CargaInvalida, match="linha 4"):
         carga.carregar(con, gerado, seed)
     assert _contar(con, "evento") == 0
@@ -116,7 +117,7 @@ def test_linhas_recusadas(exemplo: tuple[Path, Path], linha: str) -> None:
     gerado, seed = exemplo
     with (gerado / "eventos.jsonl").open("a", encoding="utf-8") as arquivo:
         arquivo.write(linha + "\n")
-    con = store.abrir()
+    con = store.abrir(url_novo())
     with pytest.raises(carga.CargaInvalida):
         carga.carregar(con, gerado, seed)
 
@@ -124,7 +125,7 @@ def test_linhas_recusadas(exemplo: tuple[Path, Path], linha: str) -> None:
 def test_emissores_invalidos_ou_arquivo_ausente(exemplo: tuple[Path, Path]) -> None:
     gerado, seed = exemplo
     (seed / "emissores.json").write_text('{"emissores": [{"id": "x"}]}', encoding="utf-8")
-    con = store.abrir()
+    con = store.abrir(url_novo())
     with pytest.raises(carga.CargaInvalida, match="emissores inválidos"):
         carga.carregar(con, gerado, seed)
     (seed / "emissores.json").unlink()
@@ -136,7 +137,7 @@ def test_comando_carrega_e_repete_sem_duplicar(
     exemplo: tuple[Path, Path], tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     gerado, seed = exemplo
-    banco = tmp_path / "pasta" / "eventos.sqlite"
+    banco = banco_de(tmp_path, "pasta")
     args = ["seed", "carregar", "--gerado", str(gerado), "--entrada", str(seed),
             "--banco", str(banco)]  # fmt: skip
     assert main(args) == 0
@@ -153,12 +154,12 @@ def test_comando_com_arquivo_invalido_sai_com_1(
 ) -> None:
     gerado, seed = exemplo
     (gerado / "eventos.jsonl").write_text("lixo\n", encoding="utf-8")
-    banco = tmp_path / "b.sqlite"
+    banco = banco_de(tmp_path, "b")
     codigo = main(["seed", "carregar", "--gerado", str(gerado), "--entrada", str(seed),
                    "--banco", str(banco)])  # fmt: skip
     assert codigo == 1
     assert "nada foi gravado" in capsys.readouterr().err
-    assert not banco.exists()  # validou antes de abrir: o banco nem nasceu
+    assert tabelas_do(banco) == []  # validou antes de abrir: nem o esquema foi criado
 
 
 @pytest.mark.parametrize("argumentos", [["--semente", "1"], ["--banco"]])
@@ -167,7 +168,7 @@ def test_comando_com_argumento_invalido_sai_com_2(argumentos: list[str]) -> None
 
 
 def test_a_seed_gerada_carrega_inteira_e_sem_gabarito(tmp_path: Path) -> None:
-    con = store.abrir(tmp_path / "seed.sqlite")
+    con = store.abrir(banco_de(tmp_path, "seed"))
     total = len((GERADO / "eventos.jsonl").read_text(encoding="utf-8").splitlines())
     carga.carregar(con, GERADO, validador.PASTA)
     assert _contar(con, "evento") == total
@@ -189,7 +190,7 @@ def _escrever(gerado: Path, *linhas: dict) -> None:
 def test_recebido_em_invalido_e_recusado(exemplo: tuple[Path, Path], recebido_em: object) -> None:
     gerado, seed = exemplo
     _escrever(gerado, {**_evento(1), "recebido_em": recebido_em})
-    con = store.abrir()
+    con = store.abrir(url_novo())
     with pytest.raises(carga.CargaInvalida, match="linha 1"):
         carga.carregar(con, gerado, seed)
     assert _contar(con, "evento") == 0
@@ -198,7 +199,7 @@ def test_recebido_em_invalido_e_recusado(exemplo: tuple[Path, Path], recebido_em
 def test_recebido_em_com_fuso_vai_para_utc_pelo_para_iso(exemplo: tuple[Path, Path]) -> None:
     gerado, seed = exemplo
     _escrever(gerado, {**_evento(1), "recebido_em": "2025-10-01T00:30:00-03:00"})
-    con = store.abrir()
+    con = store.abrir(url_novo())
     carga.carregar(con, gerado, seed)
     assert con.execute("SELECT recebido_em FROM evento").fetchone()[0] == "2025-10-01T03:30:00Z"
 
@@ -207,7 +208,7 @@ def test_recebido_em_com_fuso_vai_para_utc_pelo_para_iso(exemplo: tuple[Path, Pa
 def test_id_que_nao_e_texto_ou_e_vazio_e_recusado(exemplo: tuple[Path, Path], id_: object) -> None:
     gerado, seed = exemplo
     _escrever(gerado, {**_evento(1), "id": id_})
-    con = store.abrir()
+    con = store.abrir(url_novo())
     with pytest.raises(carga.CargaInvalida, match="id ausente ou vazio"):
         carga.carregar(con, gerado, seed)
     assert _contar(con, "evento") == 0
@@ -216,7 +217,7 @@ def test_id_que_nao_e_texto_ou_e_vazio_e_recusado(exemplo: tuple[Path, Path], id
 def test_ref_externa_repetida_no_arquivo_e_recusada(exemplo: tuple[Path, Path]) -> None:
     gerado, seed = exemplo
     _escrever(gerado, _evento(1), {**_evento(2), "ref_externa": _evento(1)["ref_externa"]})
-    con = store.abrir()
+    con = store.abrir(url_novo())
     with pytest.raises(carga.CargaInvalida, match="ref_externa repetida"):
         carga.carregar(con, gerado, seed)
     assert _contar(con, "evento") == 0
@@ -236,7 +237,7 @@ def test_emissor_invalido_e_recusado_e_nada_e_gravado(
 ) -> None:
     gerado, seed = exemplo
     (seed / "emissores.json").write_text(json.dumps({"emissores": [emissor]}), encoding="utf-8")
-    con = store.abrir()
+    con = store.abrir(url_novo())
     with pytest.raises(carga.CargaInvalida):
         carga.carregar(con, gerado, seed)
     assert _contar(con, "evento") == 0
@@ -249,14 +250,14 @@ def test_id_de_emissor_repetido_no_arquivo_e_recusado(exemplo: tuple[Path, Path]
         json.dumps({"emissores": [_emissor(1), _emissor(1)]}), encoding="utf-8"
     )
     with pytest.raises(carga.CargaInvalida, match="id de emissor repetido"):
-        carga.carregar(store.abrir(), gerado, seed)
+        carga.carregar(store.abrir(url_novo()), gerado, seed)
 
 
 def test_id_ja_no_banco_com_outra_ref_externa_nao_deixa_nada_gravado(
     exemplo: tuple[Path, Path],
 ) -> None:
     gerado, seed = exemplo
-    con = store.abrir()
+    con = store.abrir(url_novo())
     carga.carregar(con, gerado, seed)
     _escrever(gerado, _evento(10), {**_evento(2, "webhook"), "ref_externa": "outra-ref"})
     with pytest.raises(carga.CargaInvalida, match="ev-0002"):
@@ -268,7 +269,7 @@ def test_comando_com_id_em_conflito_sai_com_1(
     exemplo: tuple[Path, Path], tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     gerado, seed = exemplo
-    banco = tmp_path / "b.sqlite"
+    banco = banco_de(tmp_path, "b")
     args = ["seed", "carregar", "--gerado", str(gerado), "--entrada", str(seed),
             "--banco", str(banco)]  # fmt: skip
     assert main(args) == 0
@@ -285,7 +286,7 @@ def test_metadados_da_seed_nao_levam_campo_do_gabarito() -> None:
         campos |= set(json.loads(primeira))
     campos -= {"id", "origem", "emissor", "ocorrido_em", "recebido_em", "ref_externa"}
     campos -= {"servico"}  # o serviço é dado dos templates de log e webhook (spec 08)
-    con = store.abrir()
+    con = store.abrir(url_novo())
     carga.carregar(con, GERADO, validador.PASTA)
     chaves: set[str] = set()
     pilha = [json.loads(m[0]) for m in con.execute("SELECT metadados FROM evento")]

@@ -20,6 +20,7 @@ from eventos.store import versao as repo_versao
 from eventos.taxonomia.revisao import revisar
 from eventos.web.app import criar_app
 from eventos.web.taxonomia import rotas
+from tests.banco import banco_de
 from tests.taxonomia.conftest import montar
 from tests.taxonomia.revisoes import (
     AGORA,
@@ -44,14 +45,14 @@ def _revisar(con: store.Conexao, llm: LlmDaRevisao) -> None:
 def _ativar(caminho: Path, versao: int) -> None:
     with closing(store.abrir(caminho)) as con:
         con.execute(
-            "UPDATE versao_taxonomia SET ativada_em = '2026-10-03T13:00:00Z' WHERE numero = ?",
+            "UPDATE versao_taxonomia SET ativada_em = '2026-10-03T13:00:00Z' WHERE numero = %s",
             (versao,),
         )
         con.commit()
 
 
 def _banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "eventos.sqlite"
+    caminho = banco_de(tmp_path)
     with closing(banco_vigente(montar(), ativada_ha_dias=10, caminho=caminho)) as con:
         fracas(con, "a", ["frente1", "frente2"] * 6, texto=TEXTO_PERIGOSO)
         firmes(con, "b", 6)
@@ -59,7 +60,7 @@ def _banco(tmp_path: Path) -> Path:
 
 
 def _cliente(caminho: Path, **ambiente: str) -> TestClient:
-    cfg = config.carregar({"EVENTOS_DB": str(caminho), **ambiente})
+    cfg = config.carregar({"EVENTOS_DATABASE_URL": str(caminho), **ambiente})
     return TestClient(criar_app(cfg), follow_redirects=False)
 
 
@@ -271,7 +272,7 @@ def test_com_htmx_volta_so_o_miolo_e_sem_ele_a_pagina_inteira(com_versao_nova: P
 
 
 def test_sem_nenhuma_geracao_nem_versao_a_tela_abre_vazia(tmp_path: Path) -> None:
-    caminho = tmp_path / "vazio.sqlite"
+    caminho = banco_de(tmp_path, "vazio", criar=False)
     store.abrir(caminho).close()
 
     resposta_http = _cliente(caminho).get("/taxonomia")
@@ -282,7 +283,9 @@ def test_sem_nenhuma_geracao_nem_versao_a_tela_abre_vazia(tmp_path: Path) -> Non
 
 
 def test_sem_banco_a_tela_responde_503(tmp_path: Path) -> None:
-    assert _cliente(tmp_path / "nao-existe.sqlite").get("/taxonomia").status_code == 503
+    assert (
+        _cliente(banco_de(tmp_path, "nao-existe", criar=False)).get("/taxonomia").status_code == 503
+    )
 
 
 # --------------------------------------------------------------------------- o botão
@@ -348,7 +351,7 @@ def test_o_botao_sem_evento_na_janela_explica_e_nao_cria_geracao(
 
 
 def test_o_botao_sem_versao_vigente_explica_e_nao_cria_geracao(tmp_path: Path) -> None:
-    caminho = tmp_path / "vazio.sqlite"
+    caminho = banco_de(tmp_path, "vazio", criar=False)
     store.abrir(caminho).close()
     cliente = _cliente(caminho)
     cliente.app.state.revisao_llm = LlmDaRevisao(resposta())
@@ -360,7 +363,12 @@ def test_o_botao_sem_versao_vigente_explica_e_nao_cria_geracao(tmp_path: Path) -
 
 
 def test_o_botao_sem_banco_responde_503(tmp_path: Path) -> None:
-    assert _cliente(tmp_path / "nao-existe.sqlite").post("/taxonomia/revisar").status_code == 503
+    assert (
+        _cliente(banco_de(tmp_path, "nao-existe", criar=False))
+        .post("/taxonomia/revisar")
+        .status_code
+        == 503
+    )
 
 
 def test_llm_que_falha_no_botao_deixa_a_geracao_recusada_e_libera_o_botao(
@@ -470,7 +478,7 @@ def test_dois_posts_simultaneos_disparam_uma_revisao_so(
             return await super().completar(instrucao, entrada)
 
     llm = Lenta(resposta(resumo="Nada novo."))
-    app = criar_app(config.carregar({"EVENTOS_DB": str(caminho)}))
+    app = criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(caminho)}))
     app.state.revisao_llm = llm
 
     async def disparar() -> list[int]:

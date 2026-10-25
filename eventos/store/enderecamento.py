@@ -33,10 +33,11 @@ def _de_linha(linha) -> Enderecamento:
 def criar(con: Conexao, marca: Enderecamento) -> Enderecamento:
     """Grava a marca como ativa e devolve com o `id`. Recusa se a célula já tem uma ativa."""
     try:
-        with con:
+        with con.transaction():
             cursor = con.execute(
                 "INSERT INTO enderecamento (area, frente, visao, decidido_em, texto,"
-                " tipo_solucao, quem_decidiu, procedencia) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                " tipo_solucao, quem_decidiu, procedencia) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+                " RETURNING id",
                 (
                     marca.celula.area,
                     marca.celula.frente,
@@ -49,17 +50,17 @@ def criar(con: Conexao, marca: Enderecamento) -> Enderecamento:
                 ),
             )
     except ErroDeIntegridade as erro:
-        if "UNIQUE" in str(erro):
+        if erro.diag.constraint_name == "enderecamento_ativo":
             raise CelulaJaEnderecada(
                 f"{marca.celula.area}/{marca.celula.frente} já tem endereçamento ativo"
                 f" em {marca.celula.visao.value}"
             ) from None
         raise
-    return ler(con, cursor.lastrowid)  # type: ignore[return-value]
+    return ler(con, cursor.fetchone()["id"])  # type: ignore[return-value]
 
 
 def ler(con: Conexao, id: int) -> Enderecamento | None:
-    linha = con.execute(f"SELECT {_COLUNAS} FROM enderecamento WHERE id = ?", (id,)).fetchone()
+    linha = con.execute(f"SELECT {_COLUNAS} FROM enderecamento WHERE id = %s", (id,)).fetchone()
     return _de_linha(linha) if linha else None
 
 
@@ -67,7 +68,7 @@ def do_celula(con: Conexao, celula: Celula) -> Enderecamento | None:
     """O endereçamento ativo da célula na visão, ou None."""
     linha = con.execute(
         f"SELECT {_COLUNAS} FROM enderecamento"
-        " WHERE area = ? AND frente = ? AND visao = ? AND ativo = 1",
+        " WHERE area = %s AND frente = %s AND visao = %s AND ativo = 1",
         (celula.area, celula.frente, celula.visao.value),
     ).fetchone()
     return _de_linha(linha) if linha else None
@@ -75,8 +76,10 @@ def do_celula(con: Conexao, celula: Celula) -> Enderecamento | None:
 
 def desfazer(con: Conexao, id: int) -> bool:
     """Marca como desfeito. True se havia um ativo com esse `id`."""
-    with con:
-        cursor = con.execute("UPDATE enderecamento SET ativo = 0 WHERE id = ? AND ativo = 1", (id,))
+    with con.transaction():
+        cursor = con.execute(
+            "UPDATE enderecamento SET ativo = 0 WHERE id = %s AND ativo = 1", (id,)
+        )
     return cursor.rowcount == 1
 
 
@@ -86,8 +89,8 @@ def ativos(con: Conexao, versao: int, visao: Visao | None = None) -> list[Endere
     Com `visao`, só os dela."""
     linhas = con.execute(
         f"SELECT {', '.join('e.' + c.strip() for c in _COLUNAS.split(','))} FROM enderecamento e"
-        " JOIN valor v ON v.versao = ? AND v.dimensao = 'frente' AND v.chave = e.frente"
-        " WHERE e.ativo = 1 AND (? IS NULL OR e.visao = ?) ORDER BY e.decidido_em, e.id",
+        " JOIN valor v ON v.versao = %s AND v.dimensao = 'frente' AND v.chave = e.frente"
+        " WHERE e.ativo = 1 AND (%s::text IS NULL OR e.visao = %s) ORDER BY e.decidido_em, e.id",
         (versao, visao.value if visao else None, visao.value if visao else None),
     )
     return [_de_linha(linha) for linha in linhas]
@@ -97,10 +100,10 @@ def frente_mais_frequente(con: Conexao, versao: int, evento_ids: list[str]) -> s
     """O `frente_final` mais comum entre os eventos na versão (empate: a menor chave)."""
     if not evento_ids:
         return None
-    marcas = ",".join("?" * len(evento_ids))
+    marcas = ",".join(["%s"] * len(evento_ids))
     linha = con.execute(
         "SELECT frente_final FROM classificacao"
-        f" WHERE versao = ? AND frente_final IS NOT NULL AND evento_id IN ({marcas})"
+        f" WHERE versao = %s AND frente_final IS NOT NULL AND evento_id IN ({marcas})"
         " GROUP BY frente_final ORDER BY count(*) DESC, frente_final LIMIT 1",
         (versao, *evento_ids),
     ).fetchone()

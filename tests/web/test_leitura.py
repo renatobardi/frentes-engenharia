@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from eventos import config
 from eventos.web.app import criar_app
+from tests.banco import banco_de
 
 PUBLICO = {"X-Frentes-Publico": "1"}
 TAILNET = {"X-Frentes-Publico": "0"}
@@ -15,7 +16,7 @@ TAILNET = {"X-Frentes-Publico": "0"}
 @pytest.fixture
 def http(tmp_path: Path) -> TestClient:
     """Sem banco no volume: as telas abrem do mesmo jeito, com o layout e o menu."""
-    cfg = config.carregar({"EVENTOS_DB": str(tmp_path / "eventos.sqlite")})
+    cfg = config.carregar({"EVENTOS_DATABASE_URL": str(banco_de(tmp_path))})
     return TestClient(criar_app(cfg), follow_redirects=False)
 
 

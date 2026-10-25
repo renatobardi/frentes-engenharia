@@ -1,7 +1,7 @@
 """Os tipos trocados entre os módulos, com os termos do CONTEXT.md.
 
 É o arquivo que todo módulo importa, e ele não importa nenhum módulo do pacote.
-Os valores dos enums são os mesmos dos CHECK do `store/schema.sql`
+Os valores dos enums são os mesmos dos CHECK das migrações em `store/migracoes/`
 (conferido em tests/test_contratos.py). Mudou aqui, muda lá.
 
 Convenções:

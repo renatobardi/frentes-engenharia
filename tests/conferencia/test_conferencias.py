@@ -532,7 +532,7 @@ def test_calibracao_do_selo_urgente_por_gravidade_alvo_so_reportada() -> None:
     g = varias(con, 2, "fundo", gravidade_alvo="alta")
     g += varias(con, 2, "fundo", gravidade_alvo="baixa")
     g += varias(con, 1, "fundo")  # sem gravidade-alvo: fora
-    con.execute("UPDATE classificacao SET urgencia = 0.8 WHERE evento_id = ?", (g[0].evento_id,))
+    con.execute("UPDATE classificacao SET urgencia = 0.8 WHERE evento_id = %s", (g[0].evento_id,))
     c = por_nome(rodar(con, g))
 
     assert c["urgentes entre as de gravidade-alvo alta"].medido == 0.5

@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 
 from eventos import config, contratos, store
 from eventos.web.app import criar_app
+from tests.banco import banco_de
 
 _ids = count(1)
 JEV = '{"modelo": "jev-1.13.0", "respostas": {}}'
@@ -31,7 +32,7 @@ def _pinta(con: store.Conexao, area: str, frente: str, severidade: float, dias: 
     id = f"g{next(_ids)}"
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em)"
-        " VALUES (?, 'relato', 'Ana', 'texto', ?, ?)",
+        " VALUES (%s, 'relato', 'Ana', 'texto', %s, %s)",
         (id, _data(dias), _data(dias)),
     )
     linha = {
@@ -44,14 +45,14 @@ def _pinta(con: store.Conexao, area: str, frente: str, severidade: float, dias: 
         "area_final": area, "frente_final": frente, "classificada_em": _data(1),
     }  # fmt: skip
     con.execute(
-        f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
+        f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join(['%s'] * len(linha))})",
         list(linha.values()),
     )
 
 
 @pytest.fixture
 def http(tmp_path: Path) -> TestClient:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     con = store.abrir(caminho)
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
@@ -60,7 +61,8 @@ def http(tmp_path: Path) -> TestClient:
     for dimensao, valores in VALORES.items():
         for ordem, (chave, nome) in enumerate(valores.items()):
             con.execute(
-                "INSERT INTO valor (versao, dimensao, chave, nome, ordem) VALUES (1, ?, ?, ?, ?)",
+                "INSERT INTO valor (versao, dimensao, chave, nome, ordem)"
+                " VALUES (1, %s, %s, %s, %s)",
                 (dimensao, chave, nome, ordem),
             )
     for dias in (3, 5):
@@ -68,7 +70,7 @@ def http(tmp_path: Path) -> TestClient:
     _pinta(con, "ops", "processo", 0.6, 4)
     con.commit()
     con.close()
-    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(caminho)})))
 
 
 def _passos(html: str) -> list[dict[str, str]]:
@@ -155,7 +157,9 @@ def test_abre_sozinho_so_no_mapa_sem_celula_aberta_e_sem_guia_0(http: TestClient
 
 
 def test_a_tela_sem_banco_nao_traz_o_guia(tmp_path: Path) -> None:
-    sem_banco = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nao.db")})))
+    sem_banco = TestClient(
+        criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco_de(tmp_path, "nao"))}))
+    )
 
     html = sem_banco.get("/").text
 

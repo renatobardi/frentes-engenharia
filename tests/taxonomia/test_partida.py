@@ -1,5 +1,4 @@
 import asyncio
-import shutil
 from collections.abc import Iterator
 from contextlib import closing
 from pathlib import Path
@@ -11,6 +10,7 @@ from eventos import config, fila, store
 from eventos.contratos import ResultadoGeracao
 from eventos.llm import ErroLlmEsgotado
 from eventos.taxonomia import partida
+from tests.banco import banco_de, schema_existe
 from tests.jev.falso import JevFalso
 from tests.llm.falso import LlmFalsa
 from tests.taxonomia.conftest import montar
@@ -35,26 +35,18 @@ def ganchos_limpos(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     fila._a_cada_varredura[:] = antes
 
 
-@pytest.fixture(scope="module")
-def modelo(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """Um banco com a versão 1 vigente e o sinal de encaixe alto (12 de 100 eventos), montado
-    uma vez e copiado para cada teste."""
-    caminho = tmp_path_factory.mktemp("modelo") / "eventos.sqlite"
+@pytest.fixture
+def banco(tmp_path: Path) -> str:
+    """Um banco com a versão 1 vigente e o sinal de encaixe alto (12 de 100 eventos)."""
+    caminho = banco_de(tmp_path)
     with closing(banco_vigente(montar(), ativada_ha_dias=10, caminho=caminho)) as con:
         firmes(con, "a", 88)
         fracas(con, "b", ["frente1", "frente2", "frente3", "frente4"] * 3)
     return caminho
 
 
-@pytest.fixture
-def banco(tmp_path: Path, modelo: Path) -> Path:
-    copia = tmp_path / "eventos.sqlite"
-    shutil.copy(modelo, copia)
-    return copia
-
-
 def app_com(banco: Path, revisao_automatica: str, llm=None, chave: str | None = "chave-de-teste"):
-    ambiente = {"EVENTOS_DB": str(banco), "REVISAO_AUTOMATICA": revisao_automatica}
+    ambiente = {"EVENTOS_DATABASE_URL": str(banco), "REVISAO_AUTOMATICA": revisao_automatica}
     if chave:
         ambiente["OPENROUTER_API_KEY"] = chave
     cfg = config.carregar(ambiente)
@@ -93,7 +85,7 @@ def test_com_revisao_automatica_desligada_a_varredura_nao_dispara_revisao(banco:
 
 def test_sem_a_variavel_a_revisao_automatica_fica_desligada(banco: Path) -> None:
     llm = LlmDaRevisao(resposta())
-    ambiente = {"EVENTOS_DB": str(banco)}
+    ambiente = {"EVENTOS_DATABASE_URL": str(banco)}
     cfg = config.carregar(ambiente)
     app = SimpleNamespace(state=SimpleNamespace(config=cfg, revisao_llm=llm))
     partida.ao_partir(app)
@@ -127,7 +119,7 @@ def test_sinal_que_termina_sem_mudanca_nao_repete_na_varredura_seguinte(banco: P
 
 
 def test_ligada_sem_sinal_nem_mes_vencido_nao_dispara(tmp_path: Path) -> None:
-    caminho = tmp_path / "calmo.sqlite"
+    caminho = banco_de(tmp_path, "calmo")
     with closing(banco_vigente(montar(), ativada_ha_dias=10, caminho=caminho)) as con:
         firmes(con, "a", 100)
     llm = LlmDaRevisao(resposta())
@@ -140,7 +132,7 @@ def test_ligada_sem_sinal_nem_mes_vencido_nao_dispara(tmp_path: Path) -> None:
 
 
 def test_mes_vencido_sem_evento_na_janela_nao_quebra_a_varredura(tmp_path: Path) -> None:
-    caminho = tmp_path / "parado.sqlite"
+    caminho = banco_de(tmp_path, "parado")
     banco_vigente(montar(), ativada_ha_dias=40, caminho=caminho).close()
     llm = LlmDaRevisao(resposta())
     app, cfg = app_com(caminho, "1", llm)
@@ -152,7 +144,7 @@ def test_mes_vencido_sem_evento_na_janela_nao_quebra_a_varredura(tmp_path: Path)
 
 
 def test_mes_vencido_dispara_com_eventos_na_janela(tmp_path: Path) -> None:
-    caminho = tmp_path / "mensal.sqlite"
+    caminho = banco_de(tmp_path, "mensal")
     with closing(banco_vigente(montar(), ativada_ha_dias=40, caminho=caminho)) as con:
         firmes(con, "a", 20)
     llm = LlmDaRevisao(resposta())
@@ -185,8 +177,8 @@ def test_ligada_sem_chave_da_llm_nao_roda_e_a_aplicacao_sobe(banco: Path) -> Non
 def test_sem_configuracao_ou_sem_banco_o_gancho_nao_faz_nada(tmp_path: Path) -> None:
     asyncio.run(partida.depois_da_varredura(SimpleNamespace()))  # app sem `state`
     asyncio.run(partida.depois_da_varredura(SimpleNamespace(state=SimpleNamespace())))
-    app, _ = app_com(tmp_path / "nao-existe.sqlite", "1", LlmDaRevisao(resposta()))
+    app, _ = app_com(banco_de(tmp_path, "nao-existe", criar=False), "1", LlmDaRevisao(resposta()))
 
     asyncio.run(partida.depois_da_varredura(app))  # o banco ainda não existe
 
-    assert not (tmp_path / "nao-existe.sqlite").exists()
+    assert not schema_existe(banco_de(tmp_path, "nao-existe", criar=False))

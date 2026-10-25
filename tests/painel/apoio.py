@@ -15,6 +15,7 @@ from eventos import store
 from eventos.contratos import Celula, RespostaLlm, VersaoTaxonomia, Visao, para_iso
 from eventos.store import versao as armazem_versao
 from eventos.taxonomia.valores import derivar
+from tests.banco import banco_de
 from tests.fila.documento import DOCUMENTO, QUANDO
 from tests.llm.falso import LlmFalsa, SemGravacao, resposta_llm
 
@@ -39,7 +40,7 @@ def resposta(conteudo: dict[str, Any] | None = None, modelo: str = "deepseek/dee
 
 
 def criar_banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "eventos.sqlite"
+    caminho = banco_de(tmp_path)
     with closing(store.abrir(caminho)) as con:
         versao = VersaoTaxonomia(1, DOCUMENTO, "jev-latest", QUANDO)
         armazem_versao.inserir(con, versao, derivar(1, DOCUMENTO))
@@ -90,7 +91,7 @@ def evento(
     with closing(store.abrir_existente(banco)) as con, con:
         con.execute(
             "INSERT INTO evento (id, origem, emissor, texto, complemento, complementado_em,"
-            " ocorrido_em, recebido_em) VALUES (?, ?, 'Ana', ?, ?, ?, ?, ?)",
+            " ocorrido_em, recebido_em) VALUES (%s, %s, 'Ana', %s, %s, %s, %s, %s)",
             (
                 id,
                 origem,
@@ -103,7 +104,7 @@ def evento(
         )
         con.execute(
             f"INSERT INTO classificacao ({', '.join(linha)})"
-            f" VALUES ({', '.join('?' * len(linha))})",
+            f" VALUES ({', '.join(['%s'] * len(linha))})",
             list(linha.values()),
         )
     return id

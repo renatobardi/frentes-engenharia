@@ -34,7 +34,7 @@ def da_janela(con: Conexao, versao: int, desde: str, ate: str) -> list[LinhaDaJa
     linhas = con.execute(
         "SELECT c.evento_id, c.estado, c.motivo, c.frente, c.conf_frente, c.frente_final "
         "FROM classificacao c JOIN evento f ON f.id = c.evento_id "
-        f"WHERE c.versao = ? AND {_DATA} >= ? AND {_DATA} < ? "
+        f"WHERE c.versao = %s AND {_DATA} >= %s AND {_DATA} < %s "
         f"ORDER BY {_DATA}, c.evento_id",
         (versao, desde, ate),
     )
@@ -45,7 +45,7 @@ def textos(con: Conexao, ids: Collection[str]) -> dict[str, TextoDoEvento]:
     """`(id, origem, texto)` dos eventos pedidos. O emissor não sai daqui."""
     saida: dict[str, TextoDoEvento] = {}
     for id_ in ids:
-        linha = con.execute("SELECT id, origem, texto FROM evento WHERE id = ?", (id_,)).fetchone()
+        linha = con.execute("SELECT id, origem, texto FROM evento WHERE id = %s", (id_,)).fetchone()
         if linha is not None:
             saida[id_] = TextoDoEvento(linha["id"], linha["origem"], linha["texto"])
     return saida
@@ -54,5 +54,5 @@ def textos(con: Conexao, ids: Collection[str]) -> dict[str, TextoDoEvento]:
 def ultima_revisao(con: Conexao) -> str | None:
     """A data (ISO) em que a última revisão disparou, com qualquer resultado; None se nunca."""
     return con.execute(
-        "SELECT max(disparada_em) AS d FROM geracao WHERE tipo = ?", (TipoGeracao.REVISAO.value,)
+        "SELECT max(disparada_em) AS d FROM geracao WHERE tipo = %s", (TipoGeracao.REVISAO.value,)
     ).fetchone()["d"]

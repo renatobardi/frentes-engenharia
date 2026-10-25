@@ -61,33 +61,33 @@ def _onde(filtro: Filtro) -> tuple[str, list[object]]:
     cond: list[str] = []
     args: list[object] = []
     if filtro.desde is not None:
-        cond.append(f"{_DATA} >= ?")
+        cond.append(f"{_DATA} >= %s")
         args.append(filtro.desde)
     if filtro.ate is not None:
-        cond.append(f"{_DATA} < ?")
+        cond.append(f"{_DATA} < %s")
         args.append(filtro.ate)
     if filtro.origens:
-        cond.append(f"f.origem IN ({', '.join('?' * len(filtro.origens))})")
+        cond.append(f"f.origem IN ({', '.join(['%s'] * len(filtro.origens))})")
         args += list(filtro.origens)
     if filtro.natureza is not None:
-        cond.append("c.natureza_final = ?")
+        cond.append("c.natureza_final = %s")
         args.append(filtro.natureza)
     if filtro.estado is not None:
         cond.append(ESTADOS[filtro.estado])
     if filtro.busca:
         padrao = f"%{_escapar(filtro.busca)}%"
-        cond.append("(f.texto LIKE ? ESCAPE '\\' OR f.complemento LIKE ? ESCAPE '\\')")
+        cond.append("(f.texto ILIKE %s ESCAPE '\\' OR f.complemento ILIKE %s ESCAPE '\\')")
         args += [padrao, padrao]
     if filtro.area is not None:
-        cond.append("c.area_final = ?")
+        cond.append("c.area_final = %s")
         args.append(filtro.area)
     if filtro.frente is not None:
-        cond.append("c.frente_final = ?")
+        cond.append("c.frente_final = %s")
         args.append(filtro.frente)
     if filtro.problema is not None:
-        cond.append("c.problema = ? AND c.conf_problema >= ?")
+        cond.append("c.problema = %s AND c.conf_problema >= %s")
         args += [filtro.problema, filtro.confianca_problema]
-    return (" AND ".join(cond) or "1"), args
+    return (" AND ".join(cond) or "TRUE"), args
 
 
 def listar(con: Conexao, versao: int, filtro: Filtro, limite: int, deslocamento: int = 0) -> Pagina:
@@ -97,7 +97,7 @@ def listar(con: Conexao, versao: int, filtro: Filtro, limite: int, deslocamento:
     if filtro.ordem not in _ORDENS:
         raise ValueError(f"ordem desconhecida: {filtro.ordem!r}")
     onde, args = _onde(filtro)
-    origem = "evento f LEFT JOIN classificacao c ON c.evento_id = f.id AND c.versao = ?"
+    origem = "evento f LEFT JOIN classificacao c ON c.evento_id = f.id AND c.versao = %s"
     contagem = f"SELECT count(*) FROM {origem} WHERE {onde}"
     total = con.execute(contagem, [versao, *args]).fetchone()[0]
     linhas = con.execute(
@@ -106,15 +106,15 @@ def listar(con: Conexao, versao: int, filtro: Filtro, limite: int, deslocamento:
                {_DATA} AS data, c.evento_id IS NOT NULL AS classificada_na_versao,
                c.estado AS estado, c.motivo AS motivo, c.natureza_final AS natureza,
                c.area_final AS area, c.frente_final AS frente, {_SCORE} AS score,
-               min(c.conf_area, c.conf_frente) AS confianca,
-               (SELECT nome FROM valor v WHERE v.versao = ? AND v.dimensao = 'area'
+               LEAST(c.conf_area, c.conf_frente) AS confianca,
+               (SELECT nome FROM valor v WHERE v.versao = %s AND v.dimensao = 'area'
                   AND v.chave = c.area_final) AS area_nome,
-               (SELECT nome FROM valor v WHERE v.versao = ? AND v.dimensao = 'frente'
+               (SELECT nome FROM valor v WHERE v.versao = %s AND v.dimensao = 'frente'
                   AND v.chave = c.frente_final) AS frente_nome
         FROM {origem}
         WHERE {onde}
         ORDER BY {_ORDENS[filtro.ordem]}
-        LIMIT ? OFFSET ?
+        LIMIT %s OFFSET %s
         """,
         [versao, versao, versao, *args, limite, deslocamento],
     )
@@ -124,7 +124,7 @@ def listar(con: Conexao, versao: int, filtro: Filtro, limite: int, deslocamento:
 def nome_do_valor(con: Conexao, versao: int, dimensao: str, chave: str) -> str | None:
     """O nome de um valor da taxonomia na versão, para o rótulo dos filtros de contexto."""
     linha = con.execute(
-        "SELECT nome FROM valor WHERE versao = ? AND dimensao = ? AND chave = ?",
+        "SELECT nome FROM valor WHERE versao = %s AND dimensao = %s AND chave = %s",
         (versao, dimensao, chave),
     ).fetchone()
     return linha["nome"] if linha else None

@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 
 from eventos import config, contratos, store
 from eventos.web.app import criar_app
+from tests.banco import banco_de
 
 JEV = '{"modelo": "jev-1.13.0", "respostas": {}}'
 
@@ -24,7 +25,7 @@ def _data(dias: int) -> str:
 def _versao(con: store.Conexao, numero: int, ativada: bool = True) -> None:
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
-        " VALUES (?, '{}', 'jev-1.13.0', '2026-01-01T00:00:00Z', ?)",
+        " VALUES (%s, '{}', 'jev-1.13.0', '2026-01-01T00:00:00Z', %s)",
         (numero, "2026-01-02T00:00:00Z" if ativada else None),
     )
     valores = (
@@ -36,7 +37,7 @@ def _versao(con: store.Conexao, numero: int, ativada: bool = True) -> None:
     )
     for dimensao, chave, nome in valores:
         con.execute(
-            "INSERT INTO valor (versao, dimensao, chave, nome) VALUES (?, ?, ?, ?)",
+            "INSERT INTO valor (versao, dimensao, chave, nome) VALUES (%s, %s, %s, %s)",
             (numero, dimensao, chave, nome),
         )
 
@@ -44,7 +45,7 @@ def _versao(con: store.Conexao, numero: int, ativada: bool = True) -> None:
 def _evento(con: store.Conexao, id: str, origem: str, dias: int, texto: str) -> None:
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em)"
-        " VALUES (?, ?, 'Ana', ?, ?, ?)",
+        " VALUES (%s, %s, 'Ana', %s, %s, %s)",
         (id, origem, texto, _data(dias), _data(dias)),
     )
 
@@ -68,7 +69,7 @@ def _inserir(con: store.Conexao, id: str, versao: int, **campos: object) -> None
         **campos,
     }  # fmt: skip
     con.execute(
-        f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
+        f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join(['%s'] * len(linha))})",
         list(linha.values()),
     )
 
@@ -110,12 +111,12 @@ def _montar(con: store.Conexao) -> None:
 
 @pytest.fixture
 def http(tmp_path: Path) -> TestClient:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     con = store.abrir(caminho)
     _montar(con)
     con.commit()
     con.close()
-    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(caminho)})))
 
 
 def _ids(resposta) -> list[str]:
@@ -202,9 +203,9 @@ def test_busca_no_texto_ignora_maiusculas_e_nao_trata_coringa(http: TestClient):
 
 
 def test_busca_olha_tambem_o_complemento(http: TestClient, tmp_path: Path):
-    con = store.abrir(config.carregar({"EVENTOS_DB": str(tmp_path / "eventos.db")}).banco)
+    con = store.abrir(config.carregar({"EVENTOS_DATABASE_URL": str(banco_de(tmp_path))}).banco)
     con.execute(
-        "UPDATE evento SET complemento = 'é o balanceador', complementado_em = ? WHERE id = 'fD'",
+        "UPDATE evento SET complemento = 'é o balanceador', complementado_em = %s WHERE id = 'fD'",
         (_data(1),),
     )
     con.commit()
@@ -332,8 +333,8 @@ def test_sem_resultado_diz_que_nao_ha(http: TestClient):
 
 
 def test_texto_longo_e_cortado_e_escapado(http: TestClient, tmp_path: Path):
-    con = store.abrir(config.carregar({"EVENTOS_DB": str(tmp_path / "eventos.db")}).banco)
-    con.execute("UPDATE evento SET texto = ? WHERE id = 'fA'", ("<b>x</b> " + "palavra " * 60,))
+    con = store.abrir(config.carregar({"EVENTOS_DATABASE_URL": str(banco_de(tmp_path))}).banco)
+    con.execute("UPDATE evento SET texto = %s WHERE id = 'fA'", ("<b>x</b> " + "palavra " * 60,))
     con.commit()
     con.close()
     html = http.get("/eventos?origem=relato&estado=classificada&periodo=30d").text
@@ -370,15 +371,21 @@ def test_campo_de_busca_tem_id_para_o_foco_sobreviver_a_troca_do_htmx(http: Test
 
 
 def test_sem_banco_responde_503(tmp_path: Path):
-    app = criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nao-existe.db")}))
+    app = criar_app(
+        config.carregar(
+            {"EVENTOS_DATABASE_URL": str(banco_de(tmp_path, "nao-existe", criar=False))}
+        )
+    )
     # a subida não cria banco: o TestClient sem `with` não roda os ganchos
     assert TestClient(app).get("/eventos").status_code == 503
 
 
 def test_banco_sem_versao_vigente_responde_503_com_o_motivo(tmp_path: Path):
-    caminho = tmp_path / "vazio.db"
+    caminho = banco_de(tmp_path, "vazio", criar=False)
     store.abrir(caminho).close()
-    resposta = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)}))).get("/eventos")
+    resposta = TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(caminho)}))).get(
+        "/eventos"
+    )
     assert resposta.status_code == 503
     assert "não há versão vigente" in resposta.text
 
@@ -462,9 +469,9 @@ def test_previa_diz_por_que_nao_pinta_o_mapa(http: TestClient):
 def test_previa_sem_versao_le_a_vigente_e_mostra_o_complemento_escapado(
     http: TestClient, tmp_path: Path
 ):
-    con = store.abrir(config.carregar({"EVENTOS_DB": str(tmp_path / "eventos.db")}).banco)
+    con = store.abrir(config.carregar({"EVENTOS_DATABASE_URL": str(banco_de(tmp_path))}).banco)
     con.execute(
-        "UPDATE evento SET complemento = '<i>é o balanceador</i>', complementado_em = ?"
+        "UPDATE evento SET complemento = '<i>é o balanceador</i>', complementado_em = %s"
         " WHERE id = 'fD'",
         (_data(1),),
     )
@@ -482,12 +489,16 @@ def test_previa_de_evento_ou_versao_que_nao_existe_e_404(http: TestClient):
 
 
 def test_previa_sem_banco_ou_sem_versao_vigente_responde_503(tmp_path: Path):
-    app = criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nao-existe.db")}))
+    app = criar_app(
+        config.carregar(
+            {"EVENTOS_DATABASE_URL": str(banco_de(tmp_path, "nao-existe", criar=False))}
+        )
+    )
     assert TestClient(app).get("/eventos/previa/fA").status_code == 503
-    caminho = tmp_path / "vazio.db"
+    caminho = banco_de(tmp_path, "vazio", criar=False)
     con = store.abrir(caminho)
     _evento(con, "fA", "relato", 1, "x")
     con.commit()
     con.close()
-    vazio = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)})))
+    vazio = TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(caminho)})))
     assert vazio.get("/eventos/previa/fA").status_code == 503

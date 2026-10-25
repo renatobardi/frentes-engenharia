@@ -67,10 +67,10 @@ def _linha(g: Gabarito) -> list[object]:
 def substituir(con: Conexao, gabaritos: Iterable[Gabarito]) -> int:
     """Troca o gabarito do banco pelo dado e devolve quantas linhas gravou."""
     linhas = [_linha(g) for g in gabaritos]
-    nomes, marcas = ", ".join(_COLUNAS), ", ".join("?" * len(_COLUNAS))
-    with con:
+    nomes, marcas = ", ".join(_COLUNAS), ", ".join(["%s"] * len(_COLUNAS))
+    with con.transaction():
         con.execute("DELETE FROM gabarito")
-        con.executemany(f"INSERT INTO gabarito ({nomes}) VALUES ({marcas})", linhas)
+        con.cursor().executemany(f"INSERT INTO gabarito ({nomes}) VALUES ({marcas})", linhas)
     return len(linhas)
 
 

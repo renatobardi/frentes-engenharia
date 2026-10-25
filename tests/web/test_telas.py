@@ -8,6 +8,7 @@ import eventos.web
 from eventos import config
 from eventos.web import telas
 from eventos.web.app import criar_app
+from tests.banco import banco_de, schema_existe
 from tests.encaixe import encaixado
 
 ROTAS = """
@@ -190,7 +191,7 @@ def test_template_que_nao_existe_falha_alto(tmp_path: Path) -> None:
 def test_shell_mostra_o_snapshot_e_a_contagem_no_menu(tmp_path: Path) -> None:
     from eventos import store
 
-    banco = tmp_path / "eventos.sqlite"
+    banco = banco_de(tmp_path)
     con = store.abrir(banco)
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, recebido_em)"
@@ -203,7 +204,7 @@ def test_shell_mostra_o_snapshot_e_a_contagem_no_menu(tmp_path: Path) -> None:
     con.commit()
     con.close()
     with encaixado(eventos.web, tmp_path, tela("minha_tela")):
-        html = cliente(EVENTOS_DB=str(banco)).get("/minha_tela").text
+        html = cliente(EVENTOS_DATABASE_URL=str(banco)).get("/minha_tela").text
 
     assert "Snapshot · dia D 30/09" in html
     assert "Taxonomia v2 vigente · 1 eventos" in html
@@ -212,11 +213,15 @@ def test_shell_mostra_o_snapshot_e_a_contagem_no_menu(tmp_path: Path) -> None:
 
 def test_shell_sem_banco_some_o_rodape_e_a_pagina_continua(tmp_path: Path) -> None:
     with encaixado(eventos.web, tmp_path, tela("minha_tela")):
-        html = cliente(EVENTOS_DB=str(tmp_path / "nada.sqlite")).get("/minha_tela").text
+        html = (
+            cliente(EVENTOS_DATABASE_URL=str(banco_de(tmp_path, "nada", criar=False)))
+            .get("/minha_tela")
+            .text
+        )
 
     assert "sidebar-rodape" not in html
     assert "nav-extra" not in html
-    assert not (tmp_path / "nada.sqlite").exists()
+    assert not schema_existe(banco_de(tmp_path, "nada", criar=False))
 
 
 def test_barra_lateral_vira_trilho_no_mapa_e_a_query_escolhe() -> None:

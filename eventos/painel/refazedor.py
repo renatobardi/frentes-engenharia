@@ -16,7 +16,6 @@ import logging
 from collections.abc import Awaitable, Callable
 from contextlib import closing
 from datetime import datetime, timedelta
-from pathlib import Path
 
 from eventos import store
 from eventos.contratos import Celula, Classificacao, Estado, Natureza, Periodo, Visao, agora
@@ -33,7 +32,7 @@ VISAO_DA_NATUREZA = {Natureza.REATIVO: Visao.DOR, Natureza.PROATIVO: Visao.OPORT
 class Refazedor:
     def __init__(
         self,
-        banco: Path,
+        banco: str,
         gerador: Gerador,
         espera_s: float,
         dormir: Callable[[float], Awaitable[None]] = asyncio.sleep,

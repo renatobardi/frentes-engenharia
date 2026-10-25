@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 import eventos.web
 from eventos import config, store
 from eventos.web.app import criar_app
+from tests.banco import banco_de
 from tests.web.mapa.test_mapa import _montar, _pinta
 
 ESTATICO = Path(eventos.web.__file__).parent / "static"
@@ -17,7 +18,7 @@ ESTATICO = Path(eventos.web.__file__).parent / "static"
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     con = store.abrir(caminho)
     _montar(con)
     con.execute(
@@ -25,7 +26,7 @@ def banco(tmp_path: Path) -> Path:
         " VALUES (2, 'problema', 'boleto', 'Boleto duplicado', 0)"
     )
     id = _pinta(con, "plat", "incidente", 0.5, 2)
-    con.execute("UPDATE evento SET texto = ? WHERE id = ?", ("<script>x()</script> boleto", id))
+    con.execute("UPDATE evento SET texto = %s WHERE id = %s", ("<script>x()</script> boleto", id))
     con.commit()
     con.close()
     return caminho
@@ -33,7 +34,7 @@ def banco(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def http(banco: Path) -> TestClient:
-    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(banco)})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco)})))
 
 
 def _id_do_xss(http: TestClient) -> str:
@@ -163,7 +164,7 @@ def test_mais_resultados_do_que_cabe_leva_a_lista_filtrada(http: TestClient) -> 
     con = store.abrir(http.app.state.config.banco)  # type: ignore[attr-defined]
     for i in range(7):
         id = _pinta(con, "plat", "incidente", 0.5, 20 + i)
-        con.execute("UPDATE evento SET texto = 'queda do pix' WHERE id = ?", (id,))
+        con.execute("UPDATE evento SET texto = 'queda do pix' WHERE id = %s", (id,))
     con.commit()
     con.close()
 
@@ -181,7 +182,13 @@ def test_nada_achado_diz_o_que_se_buscou(http: TestClient) -> None:
 
 
 def test_sem_banco_a_paleta_segue_com_as_acoes(tmp_path: Path) -> None:
-    http = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nao-existe.db")})))
+    http = TestClient(
+        criar_app(
+            config.carregar(
+                {"EVENTOS_DATABASE_URL": str(banco_de(tmp_path, "nao-existe", criar=False))}
+            )
+        )
+    )
 
     resposta = http.get("/busca", params={"q": "relatar"})
 

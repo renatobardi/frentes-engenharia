@@ -14,6 +14,7 @@ import pytest
 import eventos
 from eventos.__main__ import PLANEJADOS, declarados, main
 from eventos.config import RAIZ
+from tests.banco import banco_de, tabelas_do
 from tests.encaixe import encaixado
 
 
@@ -176,7 +177,7 @@ def test_python_m_eventos_servir_sobe_e_o_healthz_responde(tmp_path: Path) -> No
     porta = porta_livre()
     ambiente = {
         "PATH": os.environ["PATH"],
-        "EVENTOS_DB": str(tmp_path / "eventos.sqlite"),
+        "EVENTOS_DATABASE_URL": str(banco_de(tmp_path)),
         "EVENTOS_PORT": str(porta),
         "EVENTOS_COMMIT": "c2408d7",
     }
@@ -207,7 +208,7 @@ def test_python_m_eventos_servir_sobe_e_o_healthz_responde(tmp_path: Path) -> No
         assert saude["commit"] == "c2408d7"
         assert isinstance(saude["versao_vigente"], int) and saude["versao_vigente"] >= 1
         assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", saude["dia_snapshot"])
-        assert (tmp_path / "eventos.sqlite").is_file()
+        assert "evento" in tabelas_do(banco_de(tmp_path))
     finally:
         processo.terminate()
         processo.wait(timeout=10)

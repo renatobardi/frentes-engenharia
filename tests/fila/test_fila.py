@@ -35,6 +35,7 @@ from eventos.store import classificacao as armazem
 from eventos.store import evento as armazem_evento
 from eventos.store import versao as armazem_versao
 from eventos.web.app import criar_app
+from tests.banco import banco_de, schema_existe
 from tests.fila.documento import DOCUMENTO, QUANDO
 from tests.jev.falso import JevFalso, resposta_jev
 from tests.llm.falso import LlmFalsa, resposta_llm
@@ -72,7 +73,7 @@ def jev(area: dict[str, float] = AREA_CLARA, controle: float = 0.9, **extra: Any
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "eventos.sqlite"
+    caminho = banco_de(tmp_path)
     with closing(store.abrir(caminho)) as con:
         versao = VersaoTaxonomia(1, DOCUMENTO, "jev-latest", QUANDO)
         armazem_versao.inserir(con, versao, [])
@@ -329,7 +330,7 @@ def test_erro_inesperado_deixa_pendente_sem_derrubar_a_varredura(banco: Path) ->
 
 
 def test_sem_versao_vigente_o_evento_fica_pendente_com_o_motivo(tmp_path: Path) -> None:
-    banco = tmp_path / "sem-versao.sqlite"
+    banco = banco_de(tmp_path, "sem-versao")
     store.abrir(banco).close()
     gravar_evento(banco, "f1", "texto")
     f = montar(banco, JevFalso({}), LlmFalsa({}))
@@ -341,14 +342,14 @@ def test_sem_versao_vigente_o_evento_fica_pendente_com_o_motivo(tmp_path: Path) 
     assert contar_linhas(banco) == 0
 
 
-def test_banco_ausente_a_varredura_nao_cria_o_arquivo(tmp_path: Path) -> None:
-    banco = tmp_path / "volume" / "eventos.sqlite"
+def test_banco_ausente_a_varredura_nao_cria_o_schema(tmp_path: Path) -> None:
+    banco = banco_de(tmp_path, "volume", criar=False)
     f = montar(banco, JevFalso({}), LlmFalsa({}))
 
     varrer(f)
     asyncio.run(f.classificar("qualquer"))
 
-    assert not banco.parent.exists()
+    assert not schema_existe(banco)
 
 
 def test_evento_que_nao_existe_nao_grava_nada(banco: Path) -> None:
@@ -401,7 +402,7 @@ def test_reclassificar_substitui_a_linha_da_versao_com_o_texto_e_o_complemento(
     assert ler(banco, "f1").motivo is MotivoIncerta.TEXTO_VAGO
     with closing(store.abrir(banco)) as con, con:
         con.execute(
-            "UPDATE evento SET complemento = ?, complementado_em = ? WHERE id = 'f1'",
+            "UPDATE evento SET complemento = %s, complementado_em = %s WHERE id = 'f1'",
             ("falo do simulador de parcelas", "2026-10-03T13:00:00Z"),
         )
 
@@ -556,7 +557,7 @@ def test_a_aplicacao_sobe_a_fila_sem_chaves_e_o_evento_fica_pendente_com_o_motiv
     banco: Path,
 ) -> None:
     gravar_evento(banco, "f1", "texto")
-    app = criar_app(config.carregar({"EVENTOS_DB": str(banco)}))
+    app = criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco)}))
 
     with TestClient(app):
         esperar(lambda: fila.motivo_pendente(app, "f1") is not None)
@@ -706,7 +707,9 @@ def test_post_eventos_agenda_a_classificacao_sem_esperar_a_varredura(
     banco: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(fila, "ao_partir", lambda app: None)  # sem varredura: só o agendar
-    app = criar_app(config.carregar({"EVENTOS_DB": str(banco), "EVENTOS_WEBHOOK_TOKEN": "t"}))
+    app = criar_app(
+        config.carregar({"EVENTOS_DATABASE_URL": str(banco), "EVENTOS_WEBHOOK_TOKEN": "t"})
+    )
     falso = JevFalso({"o simulador caiu": jev()})
     corpo = {"texto": "o simulador caiu", "ref_externa": "r-1"}
 
@@ -903,8 +906,8 @@ def em_cadeia(*clientes: Any) -> ClienteEmCadeia:
 def modelo_gravado(banco: Path, id_: str) -> str | None:
     with closing(store.abrir(banco)) as con:
         linha = con.execute(
-            "SELECT json_extract(resposta_jev, '$.modelo') AS m FROM classificacao"
-            " WHERE evento_id = ?",
+            "SELECT (resposta_jev::jsonb ->> 'modelo') AS m FROM classificacao"
+            " WHERE evento_id = %s",
             (id_,),
         ).fetchone()
     return linha["m"] if linha else None
@@ -967,7 +970,7 @@ def test_cadeia_os_tres_falham_e_o_evento_fica_pendente_com_o_motivo_de_cada_elo
 
 def test_montar_fila_entrega_a_cadeia_da_configuracao(banco: Path) -> None:
     async def montar_e_fechar() -> list[str]:
-        f, clientes = fila.montar_fila(None, config.carregar({"EVENTOS_DB": str(banco)}))
+        f, clientes = fila.montar_fila(None, config.carregar({"EVENTOS_DATABASE_URL": str(banco)}))
         cliente = f._jev_para("jev-latest")
         try:
             assert clientes == {"jev-latest": cliente}

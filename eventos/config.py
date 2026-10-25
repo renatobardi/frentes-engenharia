@@ -13,7 +13,9 @@ from typing import Any
 
 RAIZ = Path(__file__).resolve().parent.parent
 LIMIARES_PADRAO = RAIZ / "config" / "limiares.toml"
-BANCO_PADRAO = RAIZ / "data" / "eventos.sqlite"
+# Só para desenvolvimento local (o `db` do perfil `dev` do compose: `make db`).
+# Em produção a URL vem do .env (EVENTOS_DATABASE_URL), com a senha da role do app.
+BANCO_PADRAO = "postgresql://postgres:teste@127.0.0.1:55439/postgres"
 COMMIT_DESCONHECIDO = "desconhecido"
 
 
@@ -97,7 +99,8 @@ class Config:
     typesafe_api_key: str | None = field(repr=False)
     openrouter_api_key: str | None = field(repr=False)
     webhook_token: str | None = field(repr=False)
-    banco: Path
+    # URL do Postgres (oute-supabase-db). Leva a senha da role do app: nunca no repr nem em log.
+    banco: str = field(repr=False)
     host: str
     porta: int
     commit: str
@@ -260,7 +263,7 @@ def carregar(ambiente: Mapping[str, str] | None = None) -> Config:
         typesafe_api_key=_segredo(ambiente, "TYPESAFE_API_KEY", "OUTE_TYPESAFE_API_KEY"),
         openrouter_api_key=_segredo(ambiente, "OPENROUTER_API_KEY"),
         webhook_token=_segredo(ambiente, "EVENTOS_WEBHOOK_TOKEN"),
-        banco=Path(ambiente.get("EVENTOS_DB", "").strip() or BANCO_PADRAO),
+        banco=ambiente.get("EVENTOS_DATABASE_URL", "").strip() or BANCO_PADRAO,
         host=ambiente.get("EVENTOS_HOST", "").strip() or "127.0.0.1",
         porta=_porta(ambiente),
         commit=ambiente.get("EVENTOS_COMMIT", "").strip() or COMMIT_DESCONHECIDO,

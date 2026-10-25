@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 
 from eventos import config, contratos, store
 from eventos.web.app import criar_app
+from tests.banco import banco_de
 
 _ids = count(1)
 JEV = '{"modelo": "jev-1.13.0", "respostas": {}}'
@@ -29,13 +30,14 @@ def _data(dias: int) -> str:
 def _versao(con: store.Conexao, numero: int, frentes: dict[str, str], ativada: bool) -> None:
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
-        " VALUES (?, '{}', 'jev-1.13.0', '2026-01-01T00:00:00Z', ?)",
+        " VALUES (%s, '{}', 'jev-1.13.0', '2026-01-01T00:00:00Z', %s)",
         (numero, "2026-01-02T00:00:00Z" if ativada else None),
     )
     for dimensao, valores in (("area", AREAS), ("frente", frentes)):
         for ordem, (chave, nome) in enumerate(valores.items()):
             con.execute(
-                "INSERT INTO valor (versao, dimensao, chave, nome, ordem) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO valor (versao, dimensao, chave, nome, ordem)"
+                " VALUES (%s, %s, %s, %s, %s)",
                 (numero, dimensao, chave, nome, ordem),
             )
 
@@ -44,7 +46,7 @@ def _evento(con: store.Conexao, dias: int, origem: str = "relato") -> str:
     id = f"f{next(_ids)}"
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em)"
-        " VALUES (?, ?, 'Ana', 'texto', ?, ?)",
+        " VALUES (%s, %s, 'Ana', 'texto', %s, %s)",
         (id, origem, _data(dias), _data(dias)),
     )
     return id
@@ -62,7 +64,7 @@ def _class(con: store.Conexao, id: str, versao: int, **campos: object) -> None:
         **campos,
     }  # fmt: skip
     con.execute(
-        f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
+        f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join(['%s'] * len(linha))})",
         list(linha.values()),
     )
 
@@ -105,7 +107,7 @@ def _montar(con: store.Conexao) -> None:
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     con = store.abrir(caminho)
     _montar(con)
     con.commit()
@@ -114,7 +116,7 @@ def banco(tmp_path: Path) -> Path:
 
 
 def _cliente(banco: Path) -> TestClient:
-    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(banco)})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco)})))
 
 
 @pytest.fixture
@@ -322,14 +324,14 @@ def test_em_30_dias_ha_seta_e_em_12_meses_nenhuma(http: TestClient) -> None:
 
 
 def test_sem_banco_responde_503_com_aviso(tmp_path: Path) -> None:
-    resposta = _cliente(tmp_path / "nao-existe.db").get("/")
+    resposta = _cliente(banco_de(tmp_path, "nao-existe", criar=False)).get("/")
 
     assert resposta.status_code == 503
     assert "snapshot" in resposta.text
 
 
 def test_banco_sem_versao_vigente_responde_503(tmp_path: Path) -> None:
-    caminho = tmp_path / "vazio.db"
+    caminho = banco_de(tmp_path, "vazio", criar=False)
     store.abrir(caminho).close()
 
     resposta = _cliente(caminho).get("/")
@@ -434,7 +436,8 @@ def _valores_do_painel(con: store.Conexao) -> None:
         ("problema", "timeout", "Timeout do gateway", None),
     ):
         con.execute(
-            "INSERT INTO valor (versao, dimensao, chave, nome, chave_pai) VALUES (2, ?, ?, ?, ?)",
+            "INSERT INTO valor (versao, dimensao, chave, nome, chave_pai)"
+            " VALUES (2, %s, %s, %s, %s)",
             (dimensao, chave, nome, pai),
         )
     con.execute(
@@ -455,7 +458,7 @@ def _gravar_painel(con: store.Conexao, porque: str | None, estado: str = "atual"
     con.execute(
         "INSERT INTO painel_celula (versao, area, frente, visao, periodo, porque, sugestoes,"
         " gerado_em, modelo_llm, estado, eventos_na_geracao)"
-        " VALUES (2, 'plat', 'incidente', 'dor', '90d', ?, ?, ?, ?, ?, ?)",
+        " VALUES (2, 'plat', 'incidente', 'dor', '90d', %s, %s, %s, %s, %s, %s)",
         (
             porque,
             sugestoes,

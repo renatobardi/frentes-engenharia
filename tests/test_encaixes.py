@@ -10,6 +10,7 @@ import eventos.web
 from eventos import config, store
 from eventos.__main__ import main
 from eventos.web.app import criar_app
+from tests.banco import banco_de
 from tests.encaixe import encaixado
 
 STORE = """
@@ -17,7 +18,7 @@ from eventos.store import Conexao
 
 
 def gravar(con: Conexao, id: str) -> None:
-    con.execute("INSERT INTO emissor (id, nome, tipo) VALUES (?, ?, 'pessoa')", (id, id))
+    con.execute("INSERT INTO emissor (id, nome, tipo) VALUES (%s, %s, 'pessoa')", (id, id))
 
 
 def nomes(con: Conexao) -> list[str]:
@@ -65,8 +66,8 @@ PAGINA = """{% extends "base.html" %}
 def test_comando_tela_e_store_novos_sem_editar_arquivo_de_outro_modulo(
     tmp_path: Path, monkeypatch, capsys
 ) -> None:
-    banco = tmp_path / "eventos.sqlite"
-    monkeypatch.setenv("EVENTOS_DB", str(banco))
+    banco = banco_de(tmp_path)
+    monkeypatch.setenv("EVENTOS_DATABASE_URL", str(banco))
     pasta = tmp_path / "novo"
     with (
         encaixado(eventos.store, pasta / "store", {"emissores_novos.py": STORE}),

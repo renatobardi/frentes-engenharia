@@ -61,7 +61,7 @@ def classificadas(con: Conexao, versao: int) -> list[Linha]:
                c.estado, c.motivo, c.frente, c.conf_frente, c.natureza_final, c.area_final,
                c.frente_final, c.problema, c.conf_problema, c.urgencia
         FROM classificacao c JOIN evento f ON f.id = c.evento_id
-        WHERE c.versao = ? ORDER BY f.id
+        WHERE c.versao = %s ORDER BY f.id
         """,
         (versao,),
     )
@@ -72,7 +72,7 @@ def ultimo_dia(con: Conexao, versao: int) -> date | None:
     """O dia do evento mais recente classificada na versão: a referência das janelas."""
     linha = con.execute(
         "SELECT max(substr(coalesce(f.ocorrido_em, f.recebido_em), 1, 10)) AS dia "
-        "FROM classificacao c JOIN evento f ON f.id = c.evento_id WHERE c.versao = ?",
+        "FROM classificacao c JOIN evento f ON f.id = c.evento_id WHERE c.versao = %s",
         (versao,),
     ).fetchone()
     return date.fromisoformat(linha["dia"]) if linha["dia"] else None
@@ -82,7 +82,7 @@ def area_dos_times(con: Conexao, versao: int) -> dict[str, str]:
     """Time (chave) → área (chave) na versão."""
     linhas = con.execute(
         "SELECT chave, chave_pai FROM valor "
-        "WHERE versao = ? AND dimensao = 'area' AND chave_pai IS NOT NULL",
+        "WHERE versao = %s AND dimensao = 'area' AND chave_pai IS NOT NULL",
         (versao,),
     )
     return {linha["chave"]: linha["chave_pai"] for linha in linhas}
@@ -91,7 +91,7 @@ def area_dos_times(con: Conexao, versao: int) -> dict[str, str]:
 def frentes(con: Conexao, versao: int) -> set[str]:
     """As chaves das frentes (não das subfrentes) da versão."""
     linhas = con.execute(
-        "SELECT chave FROM valor WHERE versao = ? AND dimensao = 'frente' AND chave_pai IS NULL",
+        "SELECT chave FROM valor WHERE versao = %s AND dimensao = 'frente' AND chave_pai IS NULL",
         (versao,),
     )
     return {linha["chave"] for linha in linhas}
@@ -112,7 +112,7 @@ def uso_por_versao(con: Conexao) -> list[UsoDaVersao]:
         totais = armazem.totais(con, numero)
         extra = con.execute(
             "SELECT sum(latencia_ms) AS ms, min(classificada_em) AS de, "
-            "max(classificada_em) AS ate FROM classificacao WHERE versao = ?",
+            "max(classificada_em) AS ate FROM classificacao WHERE versao = %s",
             (numero,),
         ).fetchone()
         achados.append(

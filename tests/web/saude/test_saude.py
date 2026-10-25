@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 from eventos import config, store
 from eventos.store import lista as store_lista
 from eventos.web.app import criar_app
+from tests.banco import banco_de
 from tests.web.mapa.test_mapa import _class, _evento, _versao
 
 AREAS_E_FRENTES = {"area_final": "plat", "frente_final": "incidente", "frente": "incidente"}
@@ -49,7 +50,7 @@ def _montar(con: store.Conexao) -> None:
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     with closing(store.abrir(caminho)) as con:
         _montar(con)
         con.commit()
@@ -58,7 +59,7 @@ def banco(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def http(banco: Path) -> TestClient:
-    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(banco)})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco)})))
 
 
 def _celulas(html: str, id: str) -> list[list[str]]:
@@ -156,13 +157,13 @@ def test_sinal_traz_o_medido_e_o_limite_e_diz_que_faltam_eventos(http: TestClien
 
 
 def test_sinal_dispara_com_eventos_suficientes_e_limite_alcancado(tmp_path: Path) -> None:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     with closing(store.abrir(caminho)) as con:
         _versao(con, 1, {"incidente": "Incidente"}, True)
         for _ in range(100):
             _com(con, "relato", conf_frente=0.1, estado="nao_classificada", natureza_final=None)
         con.commit()
-    http = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)})))
+    http = TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(caminho)})))
 
     html = http.get("/saude").text
 
@@ -171,14 +172,14 @@ def test_sinal_dispara_com_eventos_suficientes_e_limite_alcancado(tmp_path: Path
 
 
 def test_sinal_sem_limite_alcancado_diz_que_nenhum_foi(tmp_path: Path) -> None:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     with closing(store.abrir(caminho)) as con:
         _versao(con, 1, {"incidente": "Incidente"}, True)
         for i in range(100):
             frente = ("incidente", "processo", "fornecedor")[i % 3]
             _com(con, "relato", conf_frente=0.9, **{**AREAS_E_FRENTES, "frente_final": frente})
         con.commit()
-    http = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)})))
+    http = TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(caminho)})))
 
     html = http.get("/saude").text
 
@@ -194,20 +195,26 @@ def test_versao_pedida_vale_e_a_nao_ativada_ou_inexistente_da_404(http: TestClie
 
 
 def test_versao_sem_classificacao_mostra_o_vazio_do_histograma(tmp_path: Path) -> None:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     with closing(store.abrir(caminho)) as con:
         _versao(con, 1, {"incidente": "Incidente"}, True)
         con.commit()
-    html = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)}))).get("/saude").text
+    html = (
+        TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(caminho)})))
+        .get("/saude")
+        .text
+    )
 
     assert "Nenhuma classificação nesta versão." in html
     assert 'id="histograma"' not in html
 
 
 def test_sem_versao_vigente_responde_503_com_o_motivo(tmp_path: Path) -> None:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     store.abrir(caminho).close()
-    resposta = TestClient(criar_app(config.carregar({"EVENTOS_DB": str(caminho)}))).get("/saude")
+    resposta = TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(caminho)}))).get(
+        "/saude"
+    )
 
     assert resposta.status_code == 503
     assert "não há versão vigente" in resposta.text
@@ -215,7 +222,11 @@ def test_sem_versao_vigente_responde_503_com_o_motivo(tmp_path: Path) -> None:
 
 def test_sem_banco_responde_503(tmp_path: Path) -> None:
     resposta = TestClient(
-        criar_app(config.carregar({"EVENTOS_DB": str(tmp_path / "nao-existe.db")}))
+        criar_app(
+            config.carregar(
+                {"EVENTOS_DATABASE_URL": str(banco_de(tmp_path, "nao-existe", criar=False))}
+            )
+        )
     ).get("/saude")
 
     assert resposta.status_code == 503

@@ -7,6 +7,7 @@ import pytest
 
 from eventos import contratos, store
 from eventos.contratos import Evento, Origem
+from tests.banco import url_novo
 
 # (tabela, coluna) do esquema -> o enum que diz os valores aceitos
 ENUMS_DO_ESQUEMA: dict[tuple[str, str], type[StrEnum]] = {
@@ -31,13 +32,32 @@ ENUMS_DO_ESQUEMA: dict[tuple[str, str], type[StrEnum]] = {
 }
 
 
+def _checks_de_lista() -> dict[tuple[str, str], set[str]]:
+    """Os `CHECK (coluna IN ('a', 'b'))` do esquema criado, lidos do catálogo do Postgres.
+
+    O Postgres guarda `IN (...)` como `coluna = ANY (ARRAY['a'::text, ...])`. Lista de números
+    (o `ativo IN (0, 1)`) não é enum e fica de fora.
+    """
+    con = store.abrir(url_novo())
+    linhas = con.execute(
+        "SELECT t.relname AS tabela, pg_get_constraintdef(c.oid) AS definicao"
+        " FROM pg_constraint c JOIN pg_class t ON t.oid = c.conrelid"
+        " WHERE c.contype = 'c' AND t.relnamespace = current_schema()::regnamespace"
+    ).fetchall()
+    achados: dict[tuple[str, str], set[str]] = {}
+    for linha in linhas:
+        for coluna, lista in re.findall(r"\((\w+) = ANY \(ARRAY\[([^\]]*)\]\)", linha["definicao"]):
+            valores = set(re.findall(r"'([^']*)'", lista))
+            if valores:
+                achados[linha["tabela"], coluna] = valores
+    return achados
+
+
 def valores_aceitos(tabela: str, coluna: str) -> set[str]:
     """Os valores do `CHECK (coluna IN (...))` da tabela, lidos do esquema criado."""
-    con = store.abrir()
-    sql = con.execute("SELECT sql FROM sqlite_master WHERE name = ?", (tabela,)).fetchone()["sql"]
-    lista = re.search(rf"CHECK \({coluna} IN \(([^)]*)\)\)", sql)
-    assert lista, f"{tabela}.{coluna} não tem CHECK de lista no esquema"
-    return set(re.findall(r"'([^']*)'", lista.group(1)))
+    achados = _checks_de_lista()
+    assert (tabela, coluna) in achados, f"{tabela}.{coluna} não tem CHECK de lista no esquema"
+    return achados[tabela, coluna]
 
 
 @pytest.mark.parametrize(("tabela", "coluna"), ENUMS_DO_ESQUEMA)
@@ -48,16 +68,7 @@ def test_enum_tem_os_mesmos_valores_do_check_do_esquema(tabela: str, coluna: str
 
 
 def test_todo_check_de_lista_do_esquema_tem_enum() -> None:
-    esquema = store.ESQUEMA.read_text(encoding="utf-8")
-    com_lista = set()
-    tabela = ""
-    for linha in esquema.splitlines():
-        if criada := re.match(r"CREATE TABLE (\w+)", linha):
-            tabela = criada.group(1)
-        if check := re.search(r"CHECK \((\w+) IN \((?!0, 1)", linha):
-            com_lista.add((tabela, check.group(1)))
-
-    assert com_lista == set(ENUMS_DO_ESQUEMA)
+    assert set(_checks_de_lista()) == set(ENUMS_DO_ESQUEMA)
 
 
 def test_para_iso_e_um_formato_so_em_utc() -> None:

@@ -13,6 +13,7 @@ from eventos import contratos, store
 from eventos.contratos import Origem, Periodo, Visao
 from eventos.mapa import agregados
 from eventos.mapa.agregados import VersaoInexistente
+from tests.banco import url_novo
 
 REF = date(2026, 10, 3)
 JEV = '{"modelo": "jev-1.13.0", "respostas": {}}'
@@ -22,7 +23,7 @@ _ids = count(1)
 def _versao(con: store.Conexao, numero: int, ativada: bool) -> None:
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
-        " VALUES (?, '{}', 'jev-1.13.0', '2026-01-01T00:00:00Z', ?)",
+        " VALUES (%s, '{}', 'jev-1.13.0', '2026-01-01T00:00:00Z', %s)",
         (numero, "2026-01-02T00:00:00Z" if ativada else None),
     )
 
@@ -38,7 +39,7 @@ def _evento(
     ocorrido = f"{quando}T10:00:00Z" if quando else None
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em)"
-        " VALUES (?, ?, 'Ana', 'texto', ?, ?)",
+        " VALUES (%s, %s, 'Ana', 'texto', %s, %s)",
         (id, origem, ocorrido, recebido or f"{quando}T10:05:00Z"),
     )
     return id
@@ -67,7 +68,7 @@ def _class(con: store.Conexao, id: str, versao: int = 1, **campos: object) -> No
         **campos,
     }
     con.execute(
-        f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join('?' * len(linha))})",
+        f"INSERT INTO classificacao ({', '.join(linha)}) VALUES ({', '.join(['%s'] * len(linha))})",
         list(linha.values()),
     )
 
@@ -95,7 +96,7 @@ def _pinta(
 
 @pytest.fixture
 def con() -> store.Conexao:
-    con = store.abrir()
+    con = store.abrir(url_novo())
     _versao(con, 1, True)
     _versao(con, 2, False)
 
@@ -310,8 +311,19 @@ def test_estado_que_nao_pinta_nao_soma_no_indice(con: store.Conexao, caso: str) 
     }
 
 
+def _linhas_no_banco(con: store.Conexao) -> int:
+    """Todas as linhas de todas as tabelas do schema: o que antes o `total_changes` flagrava."""
+    tabelas = [
+        t["table_name"]
+        for t in con.execute(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema()"
+        )
+    ]
+    return sum(con.execute(f"SELECT count(*) FROM {t}").fetchone()[0] for t in tabelas)
+
+
 def test_versao_e_data_de_referencia_mudam_o_resultado_sem_gravar(con: store.Conexao) -> None:
-    antes = con.total_changes
+    antes = _linhas_no_banco(con)
     v1 = agregados.ler(con, visao=Visao.DOR, referencia=REF)
     v2 = agregados.ler(con, visao=Visao.DOR, referencia=REF, versao=2)
     assert {(c.area, c.frente): c.indice for c in v2.celulas} == {("seg", "risco"): 0.5}
@@ -324,7 +336,7 @@ def test_versao_e_data_de_referencia_mudam_o_resultado_sem_gravar(con: store.Con
         0.2
     )  # 07-20 e 05-15 já anterior
     assert _celula(antigo, "ops", "processo").indice == pytest.approx(0.7)
-    assert con.total_changes == antes
+    assert _linhas_no_banco(con) == antes
 
 
 def test_data_de_referencia_padrao_e_hoje(
@@ -394,7 +406,7 @@ def test_serie_mensal_recusa_zero_meses(con: store.Conexao) -> None:
 
 
 def test_padrao_e_a_ultima_versao_ativada() -> None:
-    con = store.abrir()
+    con = store.abrir(url_novo())
     _versao(con, 1, True)
     _versao(con, 2, True)
     _versao(con, 3, False)
@@ -403,7 +415,7 @@ def test_padrao_e_a_ultima_versao_ativada() -> None:
 
 
 def test_sem_versao_vigente_ou_versao_inexistente_e_erro() -> None:
-    vazio = store.abrir()
+    vazio = store.abrir(url_novo())
     with pytest.raises(VersaoInexistente):
         agregados.ler(vazio, visao=Visao.DOR)
     _versao(vazio, 1, True)
@@ -414,7 +426,7 @@ def test_sem_versao_vigente_ou_versao_inexistente_e_erro() -> None:
 
 
 def test_banco_sem_eventos_devolve_mapa_vazio() -> None:
-    con = store.abrir()
+    con = store.abrir(url_novo())
     _versao(con, 1, True)
     mapa = agregados.ler(con, visao=Visao.DOR, referencia=REF)
     assert mapa.celulas == () and mapa.top3 == ()
@@ -447,7 +459,7 @@ def test_celula_que_zerou_volta_com_queda_de_100_por_cento(con: store.Conexao) -
 
 
 def test_bordas_da_janela() -> None:
-    con = store.abrir()
+    con = store.abrir(url_novo())
     _versao(con, 1, True)
     # janela de 90 dias com referência 2026-10-03: [2026-07-06 00:00, 2026-10-04 00:00)
     for quando, area in [
@@ -457,7 +469,7 @@ def test_bordas_da_janela() -> None:
         ("2026-10-04T00:00:00Z", "depois"),
     ]:
         id = _evento(con, quando="2026-01-01")
-        con.execute("UPDATE evento SET ocorrido_em = ? WHERE id = ?", (quando, id))
+        con.execute("UPDATE evento SET ocorrido_em = %s WHERE id = %s", (quando, id))
         _class(con, id, area_final=area, frente_final="t", severidade=0.5)
     mapa = agregados.ler(con, visao=Visao.DOR, referencia=REF)
     assert {c.area: c.indice for c in mapa.celulas if c.indice} == {"inicio": 0.5, "fim": 0.5}
@@ -467,7 +479,7 @@ def test_bordas_da_janela() -> None:
 
 
 def test_empate_no_top3_desempata_por_area_e_frente() -> None:
-    con = store.abrir()
+    con = store.abrir(url_novo())
     _versao(con, 1, True)
     for area in ["d", "b", "a", "c"]:
         _pinta(con, area, "t", 0.5)

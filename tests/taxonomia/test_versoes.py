@@ -15,7 +15,7 @@ CRIADA = datetime(2026, 9, 1, 12, 0, 0, tzinfo=UTC)
 def _evento(con, id: str) -> None:
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, recebido_em) "
-        "VALUES (?, 'relato', 'Ana', 'texto', '2026-09-01T00:00:00Z')",
+        "VALUES (%s, 'relato', 'Ana', 'texto', '2026-09-01T00:00:00Z')",
         (id,),
     )
 
@@ -25,7 +25,7 @@ def _classificar(con, id: str, versao: int, estado: str = "classificada") -> Non
         "INSERT INTO classificacao (evento_id, versao, resposta_jev, conf_area, conf_frente, "
         "conf_natureza, severidade, impacto, urgencia, conf_causa, conf_problema, controle, "
         "estado, tokens_entrada, tokens_saida, latencia_ms, classificada_em) "
-        "VALUES (?, ?, '{}', 0, 0, 0, 0, 0, 0, 0, 0, 0, ?, 1, 1, 1, "
+        "VALUES (%s, %s, '{}', 0, 0, 0, 0, 0, 0, 0, 0, 0, %s, 1, 1, 1, "
         "'2026-09-01T00:00:00Z')",
         (id, versao, estado),
     )

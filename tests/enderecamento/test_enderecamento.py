@@ -9,6 +9,7 @@ from eventos.contratos import Celula, Procedencia, TipoSolucao, Visao, de_iso
 from eventos.enderecamento import marcas, plantio
 from eventos.enderecamento.marcas import CelulaJaEnderecada
 from eventos.enderecamento.plantio import ErroDePlantio
+from tests.banco import url_novo
 
 DOR = Celula("pos-venda", "cobranca", Visao.DOR)
 OPORTUNIDADE = Celula("pos-venda", "cobranca", Visao.OPORTUNIDADE)
@@ -18,28 +19,30 @@ DIA = datetime(2026, 3, 31, 18, 0, tzinfo=UTC)
 def versao(con: store.Conexao, numero: int, frentes: list[str], ativa: bool = True) -> None:
     con.execute(
         "INSERT INTO versao_taxonomia (numero, documento, modelo_jev, criada_em, ativada_em)"
-        " VALUES (?, '{}', 'jev', '2026-01-01T00:00:00Z', ?)",
+        " VALUES (%s, '{}', 'jev', '2026-01-01T00:00:00Z', %s)",
         (numero, "2026-01-01T00:00:00Z" if ativa else None),
     )
     for chave in frentes:
         con.execute(
-            "INSERT INTO valor (versao, dimensao, chave, nome) VALUES (?, 'frente', ?, ?)",
+            "INSERT INTO valor (versao, dimensao, chave, nome) VALUES (%s, 'frente', %s, %s)",
             (numero, chave, chave),
         )
 
 
 def classificar(con: store.Conexao, evento_id: str, numero: int, frente: str | None) -> None:
-    con.execute("INSERT OR IGNORE INTO emissor (id, nome, tipo) VALUES ('e', 'e', 'sistema')")
+    con.execute(
+        "INSERT INTO emissor (id, nome, tipo) VALUES ('e', 'e', 'sistema') ON CONFLICT DO NOTHING"
+    )
     con.execute(
         "INSERT INTO evento (id, origem, emissor, texto, recebido_em)"
-        " VALUES (?, 'relato', 'e', 'texto', '2026-01-01T00:00:00Z')",
+        " VALUES (%s, 'relato', 'e', 'texto', '2026-01-01T00:00:00Z')",
         (evento_id,),
     )
     con.execute(
         "INSERT INTO classificacao (evento_id, versao, resposta_jev, conf_area, conf_frente,"
         " conf_natureza, severidade, impacto, urgencia, conf_causa, conf_problema, controle,"
         " estado, frente_final, tokens_entrada, tokens_saida, latencia_ms, classificada_em)"
-        " VALUES (?, ?, '{}', 1, 1, 1, 0, 0, 0, 1, 1, 0, 'classificada', ?, 0, 0, 0,"
+        " VALUES (%s, %s, '{}', 1, 1, 1, 0, 0, 0, 1, 1, 0, 'classificada', %s, 0, 0, 0,"
         " '2026-01-01T00:00:00Z')",
         (evento_id, numero, frente),
     )
@@ -47,7 +50,7 @@ def classificar(con: store.Conexao, evento_id: str, numero: int, frente: str | N
 
 @pytest.fixture
 def con() -> store.Conexao:
-    con = store.abrir()
+    con = store.abrir(url_novo())
     versao(con, 1, ["cobranca", "acesso"])
     return con
 
@@ -198,7 +201,7 @@ def test_plantar_de_novo_nao_duplica(con: store.Conexao) -> None:
 
 def test_plantar_sem_versao_vigente_falha() -> None:
     with pytest.raises(ErroDePlantio, match="vigente"):
-        plantio.plantar(store.abrir(), [item()])
+        plantio.plantar(store.abrir(url_novo()), [item()])
 
 
 @pytest.mark.parametrize("referencia", [[], ["nao-existe"]])

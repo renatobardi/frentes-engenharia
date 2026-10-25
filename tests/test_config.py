@@ -5,6 +5,7 @@ import pytest
 
 from eventos import config
 from eventos.config import ErroDeConfig
+from tests.banco import banco_de
 
 LIMIARES = config.LIMIARES_PADRAO.read_text(encoding="utf-8")
 
@@ -40,7 +41,7 @@ def test_le_as_tres_chaves_e_o_resto_do_ambiente(tmp_path: Path) -> None:
             "TYPESAFE_API_KEY": "ts",
             "OPENROUTER_API_KEY": "or",
             "EVENTOS_WEBHOOK_TOKEN": "tok",
-            "EVENTOS_DB": str(tmp_path / "f.sqlite"),
+            "EVENTOS_DATABASE_URL": str(banco_de(tmp_path, "f")),
             "EVENTOS_HOST": "0.0.0.0",
             "EVENTOS_PORT": "3790",
             "EVENTOS_COMMIT": "abc1234",
@@ -49,7 +50,7 @@ def test_le_as_tres_chaves_e_o_resto_do_ambiente(tmp_path: Path) -> None:
     )
 
     assert (cfg.typesafe_api_key, cfg.openrouter_api_key, cfg.webhook_token) == ("ts", "or", "tok")
-    assert cfg.banco == tmp_path / "f.sqlite"
+    assert cfg.banco == banco_de(tmp_path, "f")
     assert (cfg.host, cfg.porta, cfg.commit) == ("0.0.0.0", 3790, "abc1234")
     assert cfg.revisao_automatica is True
 
@@ -203,11 +204,31 @@ def test_corte_por_modelo_que_nao_e_tabela_e_recusado(tmp_path: Path) -> None:
         config.carregar_limiares(limiares_em(tmp_path, texto))
 
 
-def test_env_example_traz_so_os_nomes_dos_tres_segredos() -> None:
+def test_env_example_traz_so_os_nomes_dos_segredos_e_da_url_do_banco() -> None:
     linhas = (config.RAIZ / ".env.example").read_text(encoding="utf-8").splitlines()
     atribuicoes = [linha for linha in linhas if linha and not linha.startswith("#")]
 
-    assert atribuicoes == ["TYPESAFE_API_KEY=", "OPENROUTER_API_KEY=", "EVENTOS_WEBHOOK_TOKEN="]
+    assert atribuicoes == [
+        "TYPESAFE_API_KEY=",
+        "OPENROUTER_API_KEY=",
+        "EVENTOS_WEBHOOK_TOKEN=",
+        "EVENTOS_DATABASE_URL=",
+    ]
+
+
+def test_a_url_do_banco_vem_do_ambiente_e_o_padrao_e_o_postgres_de_desenvolvimento() -> None:
+    assert config.carregar({}).banco == config.BANCO_PADRAO
+    assert config.carregar({"EVENTOS_DATABASE_URL": "  "}).banco == config.BANCO_PADRAO
+
+    cfg = config.carregar({"EVENTOS_DATABASE_URL": " postgresql://app@db/x "})
+
+    assert cfg.banco == "postgresql://app@db/x"
+
+
+def test_a_url_do_banco_nao_aparece_no_repr_da_config() -> None:
+    cfg = config.carregar({"EVENTOS_DATABASE_URL": "postgresql://app:senha-secreta@db/x"})
+
+    assert "senha-secreta" not in repr(cfg)
 
 
 # (seção, chave, valor decidido, valor trocado no toml, como ler da Config)

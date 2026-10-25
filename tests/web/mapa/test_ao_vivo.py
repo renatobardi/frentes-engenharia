@@ -21,6 +21,7 @@ from eventos import config, contratos, fila, store
 from eventos.store import versao as armazem_versao
 from eventos.taxonomia import valores
 from eventos.web.app import criar_app
+from tests.banco import banco_de
 from tests.fila.documento import DOCUMENTO, QUANDO
 from tests.fila.test_fila import jev
 from tests.jev.falso import JevFalso
@@ -42,7 +43,7 @@ PROCESSO_OPS = "area=ops&frente=processo"
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     with closing(store.abrir(caminho)) as con:
         _montar(con)
         con.commit()
@@ -110,7 +111,7 @@ def _nova(banco: Path, texto: str, **classificacao: object) -> str:
         id = f"n-{texto}".replace(" ", "-")
         con.execute(
             "INSERT INTO evento (id, origem, emissor, texto, ocorrido_em, recebido_em)"
-            " VALUES (?, 'webhook', 'api', ?, ?, ?)",
+            " VALUES (%s, 'webhook', 'api', %s, %s, %s)",
             (id, texto, _data(0), _data(0)),
         )
         if classificacao:
@@ -544,7 +545,7 @@ def test_texto_do_painel_continua_escapado_na_leitura_parcial(com_painel: Path) 
 
 
 def test_polling_sem_banco_responde_204_e_nao_troca_nada(tmp_path: Path) -> None:
-    http = _cliente(tmp_path / "nao-existe.db")
+    http = _cliente(banco_de(tmp_path, "nao-existe", criar=False))
 
     resposta = http.get("/mapa/ao-vivo")
 
@@ -552,7 +553,7 @@ def test_polling_sem_banco_responde_204_e_nao_troca_nada(tmp_path: Path) -> None
 
 
 def test_polling_sem_versao_vigente_responde_204(tmp_path: Path) -> None:
-    caminho = tmp_path / "vazio.db"
+    caminho = banco_de(tmp_path, "vazio", criar=False)
     store.abrir(caminho).close()
 
     assert _cliente(caminho).get("/mapa/ao-vivo").status_code == 204
@@ -578,13 +579,15 @@ CABECALHO_WEBHOOK = {"x-webhook-token": "t"}
 @pytest.fixture
 def servidor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Any]:
     """A app com a fila ligada a um Jev falso; o banco tem só a taxonomia da fila."""
-    caminho = tmp_path / "eventos.sqlite"
+    caminho = banco_de(tmp_path)
     with closing(store.abrir(caminho)) as con:
         versao = contratos.VersaoTaxonomia(1, DOCUMENTO, "jev-latest", QUANDO)
         armazem_versao.inserir(con, versao, valores.derivar(1, DOCUMENTO))
         assert armazem_versao.ativar(con, 1, contratos.para_iso(QUANDO))
     monkeypatch.setattr(fila, "ao_partir", lambda app: None)
-    app = criar_app(config.carregar({"EVENTOS_DB": str(caminho), "EVENTOS_WEBHOOK_TOKEN": "t"}))
+    app = criar_app(
+        config.carregar({"EVENTOS_DATABASE_URL": str(caminho), "EVENTOS_WEBHOOK_TOKEN": "t"})
+    )
     with TestClient(app) as cliente:
         cliente.banco = caminho  # type: ignore[attr-defined]
         cliente.app_ = app  # type: ignore[attr-defined]

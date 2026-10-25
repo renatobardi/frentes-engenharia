@@ -12,10 +12,10 @@ def gravar_todos(con: Conexao, emissores: Iterable[contratos.Emissor]) -> int:
     Só o conflito de `id` é ignorado: dado que fere o esquema levanta erro.
     """
     novos = 0
-    with con:
+    with con.transaction():
         for e in emissores:
             novos += con.execute(
-                "INSERT INTO emissor (id, nome, tipo, time, cargo) VALUES (?, ?, ?, ?, ?)"
+                "INSERT INTO emissor (id, nome, tipo, time, cargo) VALUES (%s, %s, %s, %s, %s)"
                 " ON CONFLICT (id) DO NOTHING",
                 (e.id, e.nome, e.tipo.value, e.time, e.cargo),
             ).rowcount

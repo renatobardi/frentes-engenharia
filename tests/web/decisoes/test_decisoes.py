@@ -19,6 +19,7 @@ from eventos.contratos import Celula, TipoSolucao, Visao
 from eventos.enderecamento import marcas
 from eventos.web.app import criar_app
 from eventos.web.decisoes import montagem
+from tests.banco import banco_de
 from tests.web.mapa.test_mapa import _montar, _pinta
 
 PLAT_INCIDENTE = Celula("plat", "incidente", Visao.DOR)
@@ -26,7 +27,7 @@ PLAT_INCIDENTE = Celula("plat", "incidente", Visao.DOR)
 
 @pytest.fixture
 def banco(tmp_path: Path) -> Path:
-    caminho = tmp_path / "eventos.db"
+    caminho = banco_de(tmp_path)
     with closing(store.abrir(caminho)) as con:
         _montar(con)
         _pinta(con, "plat", "incidente", 0.5, 100)
@@ -35,7 +36,7 @@ def banco(tmp_path: Path) -> Path:
 
 
 def _http(banco: Path) -> TestClient:
-    return TestClient(criar_app(config.carregar({"EVENTOS_DB": str(banco)})))
+    return TestClient(criar_app(config.carregar({"EVENTOS_DATABASE_URL": str(banco)})))
 
 
 @pytest.fixture
@@ -217,14 +218,14 @@ def test_o_menu_mostra_o_item_e_marca_a_tela(http: TestClient) -> None:
 
 
 def test_sem_banco_responde_503(tmp_path: Path) -> None:
-    resposta = _http(tmp_path / "nao-existe.db").get("/decisoes")
+    resposta = _http(banco_de(tmp_path, "nao-existe", criar=False)).get("/decisoes")
 
     assert resposta.status_code == 503
     assert "O banco ainda não existe" in resposta.text
 
 
 def test_banco_sem_versao_vigente_responde_503(tmp_path: Path) -> None:
-    caminho = tmp_path / "vazio.db"
+    caminho = banco_de(tmp_path, "vazio", criar=False)
     store.abrir(caminho).close()
 
     resposta = _http(caminho).get("/decisoes")
