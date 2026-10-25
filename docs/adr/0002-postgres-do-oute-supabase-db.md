@@ -64,3 +64,7 @@ o banco; o `store/` isolado é o que deixa essa troca barata".
   de um parâmetro solto (`%s::text`).
 - **Backup** deixa de ser do volume: o dump é do `lab` (schema inteiro, com donos e grants).
 - **Sem caminho de volta** ao SQLite depois do cutover: correções vão para a frente.
+
+## Cutover (2026-10-25)
+
+Os dados de produção (6.000 eventos, 12.000 classificações, 774 células do painel, 19.107 linhas) foram copiados do `eventos.sqlite` para o schema `frentes_engenharia_prd` com conferência linha a linha, e o app trocou de container na mesma sessão. O volume do SQLite e o script de cópia foram removidos, sem retenção. O ensaio no banco real achou o que os testes locais não achavam: o servidor devolve `double` com 15 dígitos, então cada conexão pede `extra_float_digits=3` (#164).

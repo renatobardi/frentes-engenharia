@@ -49,7 +49,8 @@ select = ["E", "F", "W", "I", "UP", "B", "TID251"]
 
 # Regras de dependência entre módulos (AGENTS.md). Quem pode usar cada API está em per-file-ignores.
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
-"sqlite3".msg = "Só eventos/store/ tem SQL."
+"sqlite3".msg = "O banco é Postgres (ADR-0002): nada de sqlite3."
+"psycopg".msg = "Só eventos/store/ tem SQL."
 "httpx".msg = "Só eventos/jev/ e eventos/llm/ falam com a rede."
 "urllib.request".msg = "Só eventos/jev/, eventos/llm/ e a rajada falam com a rede."
 "socket".msg = "Só eventos/jev/ e eventos/llm/ falam com a rede."
@@ -62,6 +63,6 @@ select = ["E", "F", "W", "I", "UP", "B", "TID251"]
 "eventos/jev/**" = ["TID251"]
 "eventos/llm/**" = ["TID251"]
 "eventos/seed/rajada.py" = ["TID251"]
-# Script único da migração da #162 (SQLite → Postgres): sai na limpeza, junto com esta exceção.
-"scripts/sqlite_para_postgres.py" = ["TID251"]
+# só captura os erros do driver na carga do snapshot (sem SQL)
+"eventos/snapshot/arquivo.py" = ["TID251"]
 "tests/**" = ["TID251"]
