@@ -1,6 +1,6 @@
 """`python -m eventos conferir`: confere a seed classificada contra o gabarito.
 
-Carrega o gabarito num banco à parte (`gabarito.sqlite`, ao lado do banco da aplicação) e
+Carrega o gabarito num schema à parte (`<schema>_gabarito`, ao lado do schema da aplicação) e
 imprime o relatório. Sai com 1 se algum corte com valor falhar. Não chama modelo e não usa chave.
 """
 
