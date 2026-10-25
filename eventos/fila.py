@@ -372,15 +372,11 @@ class Fila:
                 contagem["feitas"] += 1
                 contagem["falhas"] += evento_id in self._motivos
                 if progresso is not None and contagem["feitas"] % a_cada == 0:
+                    # a foto vale para o instante do marco: ler o contador depois do await deixaria
+                    # outras tarefas, que terminam enquanto o banco responde, adiantarem a conta
+                    feitas, falhas = contagem["feitas"], contagem["falhas"]
                     totais = await asyncio.to_thread(self._totais, numero)
-                    progresso(
-                        Progresso(
-                            contagem["feitas"],
-                            len(pendentes) - contagem["feitas"],
-                            contagem["falhas"],
-                            totais,
-                        )
-                    )
+                    progresso(Progresso(feitas, len(pendentes) - feitas, falhas, totais))
 
             try:
                 await asyncio.gather(*(uma(i) for i in pendentes))
