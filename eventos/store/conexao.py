@@ -13,6 +13,7 @@ from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 import psycopg
 from psycopg import adapt, sql
+from psycopg.conninfo import conninfo_to_dict
 from psycopg_pool import ConnectionPool
 
 # Pool do app: um operador e um worker (ADR-0001); uma conexão emprestada por requisição ou passo.
@@ -54,8 +55,13 @@ class _NumericoComoPython(adapt.Loader):
         return int(valor) if valor == valor.to_integral_value() else float(valor)
 
 
-def _opcoes(schema: str | None) -> str | None:
-    return f"-c search_path={schema}" if schema else None
+def _opcoes(url: str, schema: str | None) -> str:
+    """As opções de sessão: as da URL (o `search_path` da role ou do teste), mais as nossas.
+    `extra_float_digits=3`: o `double` volta exato (o servidor pode estar em 0 ou 1: 15 dígitos)."""
+    partes = [conninfo_to_dict(url).get("options"), "-c extra_float_digits=3"]
+    if schema:
+        partes.append(f"-c search_path={schema}")
+    return " ".join(p for p in partes if p)
 
 
 def _preparar(conexao: psycopg.Connection) -> None:
@@ -65,7 +71,7 @@ def _preparar(conexao: psycopg.Connection) -> None:
 def conectar(url: str, schema: str | None = None) -> psycopg.Connection:
     """Uma conexão nova, em autocommit. `schema` fixa o `search_path` (a role do app já o tem)."""
     conexao = psycopg.connect(
-        url, options=_opcoes(schema), autocommit=True, row_factory=_fabrica_de_linhas
+        url, options=_opcoes(url, schema), autocommit=True, row_factory=_fabrica_de_linhas
     )
     _preparar(conexao)
     return conexao
@@ -78,7 +84,7 @@ def criar_pool(url: str, schema: str | None = None) -> ConnectionPool:
         min_size=TAMANHO_MIN,
         max_size=TAMANHO_MAX,
         kwargs={
-            "options": _opcoes(schema),
+            "options": _opcoes(url, schema),
             "autocommit": True,
             "row_factory": _fabrica_de_linhas,
         },

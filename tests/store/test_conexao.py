@@ -187,3 +187,20 @@ def test_com_schema_e_schema_da_url_sao_inversos(banco: str) -> None:
 
     assert store.schema_da_url(url) == "outro_schema"
     assert store.schema_da_url("postgresql://u:p@h/db") is None
+
+
+@pytest.mark.parametrize("abrir", ABRIR)
+def test_o_double_volta_exato_mesmo_com_o_servidor_em_15_digitos(banco: str, abrir) -> None:
+    """O Postgres do servidor devolve `double` com 15 dígitos (extra_float_digits=0 ou 1): a
+    conexão pede o valor exato, igual ao que o SQLite e os testes têm."""
+    exato = 0.18999999999999997
+    with psycopg.connect(banco, autocommit=True) as admin:
+        admin.execute("ALTER ROLE CURRENT_USER IN DATABASE postgres SET extra_float_digits = 0")
+    try:
+        with closing(abrir(banco)) as con:
+            lido = con.execute("SELECT %s::float8 AS v", (exato,)).fetchone()["v"]
+    finally:
+        with psycopg.connect(banco, autocommit=True) as admin:
+            admin.execute("ALTER ROLE CURRENT_USER IN DATABASE postgres RESET extra_float_digits")
+
+    assert lido == exato
